@@ -1,0 +1,16 @@
+{
+  "version": "0.6.0-beta.18",
+  "description": "Beta patch: channel worker OOM guard — default idle cleanup TTL (5m), default live-worker budget (6), and `.trellis/config.yaml` `channel.worker_guard` section.",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Enhancements:**\n- feat(channel): default OOM guard for `trellis channel spawn`. Workers that stay continuously idle past `channel.worker_guard.idle_timeout` (default `5m`) are self-terminated with `killed{reason:\"idle-timeout\"}`. Mid-turn workers and workers without an `idleSince` projection are never killed by idle cleanup.\n- feat(channel): spawn-time live-worker budget per project/scope. Default `channel.worker_guard.max_live_workers: 6`. Expired idle workers are cleaned first; if the budget is still exhausted, `spawn` rejects with an actionable list of live workers and the kill / override commands.\n- feat(channel): new spawn flags `--idle-timeout <duration>` and `--max-live-workers <n>` (and matching env vars `TRELLIS_CHANNEL_WORKER_IDLE_TIMEOUT` / `TRELLIS_CHANNEL_MAX_LIVE_WORKERS`). Pass `0` to disable either guard. `--timeout` remains opt-in only — no default hard TTL was added.\n- feat(core): `WorkerState.idleSince` is now projected from durable events (`spawned`, `turn_finished`, `interrupted` set it; `turn_started` and terminal lifecycles clear it).\n- feat(config): `.trellis/config.yaml` gains a `channel.worker_guard` section. Existing projects pick up the commented-out template via `trellis update`.",
+  "migrations": [],
+  "configSectionsAdded": [
+    {
+      "file": ".trellis/config.yaml",
+      "sentinel": "worker_guard:",
+      "sectionHeading": "Channel worker OOM guard"
+    }
+  ],
+  "notes": "Beta patch on top of 0.6.0-beta.17. The new guard ships enabled by default, and `trellis update` appends the active `channel.worker_guard` config section for existing projects. To opt out, set `channel.worker_guard.idle_timeout: 0` and / or `channel.worker_guard.max_live_workers: 0`, or pass `--idle-timeout 0` / `--max-live-workers 0` per spawn."
+}

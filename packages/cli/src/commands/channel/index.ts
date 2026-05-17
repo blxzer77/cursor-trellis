@@ -1,5 +1,5 @@
 import chalk from "chalk";
-import type { Command } from "commander";
+import { InvalidArgumentError, type Command } from "commander";
 
 import { isProvider, listProviders, type Provider } from "./adapters/index.js";
 import {
@@ -28,6 +28,15 @@ import { runSupervisor } from "./supervisor.js";
 import { channelWait, parseDuration } from "./wait.js";
 import { parseCsv } from "./store/schema.js";
 import { parseInboxPolicy } from "@mindfoldhq/trellis-core/channel";
+
+function parseNonNegativeInteger(value: string): number {
+  if (!/^\d+$/.test(value)) {
+    throw new InvalidArgumentError(
+      `expected a non-negative integer, got '${value}'`,
+    );
+  }
+  return Number(value);
+}
 
 export function registerChannelCommand(program: Command): void {
   const channel = program
@@ -311,6 +320,15 @@ export function registerChannelCommand(program: Command): void {
       "--inbox-policy <policy>",
       "worker inbox delivery policy: explicitOnly | broadcastAndExplicit (default explicitOnly)",
     )
+    .option(
+      "--idle-timeout <duration>",
+      "OOM-guard idle-cleanup TTL for this worker (default 5m; 0 disables)",
+    )
+    .option(
+      "--max-live-workers <n>",
+      "spawn-time live-worker budget for this project/scope (default 6; 0 disables)",
+      parseNonNegativeInteger,
+    )
     .action(async (name: string, raw: Record<string, unknown>) => {
       const opts = raw as {
         agent?: string;
@@ -326,6 +344,8 @@ export function registerChannelCommand(program: Command): void {
         by?: string;
         scope?: string;
         inboxPolicy?: string;
+        idleTimeout?: string;
+        maxLiveWorkers?: number;
       };
       if (opts.provider !== undefined && !isProvider(opts.provider)) {
         console.error(
@@ -349,6 +369,8 @@ export function registerChannelCommand(program: Command): void {
           by: opts.by,
           scope: opts.scope,
           inboxPolicy: parseInboxPolicy(opts.inboxPolicy),
+          idleTimeoutMs: parseDuration(opts.idleTimeout),
+          maxLiveWorkers: opts.maxLiveWorkers,
         });
       } catch (err) {
         console.error(
