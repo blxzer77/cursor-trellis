@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/cli/backend/platform-integration.md", "reason": "Cross-platform active-task runtime and hook/session identity contract."}
+{"file": ".trellis/spec/cli/backend/script-conventions.md", "reason": "Python script contract for task.py start/current/finish and active task resolver behavior."}
+{"file": ".trellis/spec/cli/backend/directory-structure.md", "reason": "Shared hook inventory must stay aligned with Cursor hook-inject templates."}
+{"file": ".trellis/tasks/04-27-platform-compat-feedback/research/claude-code-session-env-file.md", "reason": "Session env propagation research for Claude Code, Codex, and OpenCode Bash commands."}

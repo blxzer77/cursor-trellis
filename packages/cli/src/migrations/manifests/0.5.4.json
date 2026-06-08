@@ -1,0 +1,9 @@
+{
+  "version": "0.5.4",
+  "description": "Patch: guard sub-agent recursion (#237) + fix compareVersions on hyphenated prereleases (#230).",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Bug Fixes:**\n- fix(workflow): guard sub-agent recursion (#237). On Codex, `[workflow-state:in_progress]` reaches the sub-agent's turn too, and the sub-agent followed its own dispatch instruction — spawning another `trellis-implement` instead of doing the work. Scoped the dispatch rule to the main session and added a self-exemption to all platform `trellis-implement` / `trellis-check` agent definitions.\n- fix(compare-versions): preserve hyphens inside prerelease identifiers (#230 by @voidborne-d). `String.split(\"-\", 2)` truncates the tail in JavaScript (unlike Python `maxsplit`), so `compareVersions(\"1.0.0-alpha-1\", \"1.0.0-alpha-2\")` returned `0` — the two versions sorted as equal. Fixed. Adds 20 test cases in `packages/cli/test/utils/compare-versions.test.ts`.",
+  "migrations": [],
+  "notes": "Patch on top of 0.5.3. Run `trellis update` (no `--migrate` needed). Affects every platform whose per-turn workflow-state breadcrumb can reach sub-agent turns (Codex confirmed; risk applies more broadly)."
+}

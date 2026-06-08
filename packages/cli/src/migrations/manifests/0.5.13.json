@@ -1,0 +1,9 @@
+{
+  "version": "0.5.13",
+  "description": "Patch: OpenCode context injection, non-Git session context, hook timeouts, and Copilot SessionStart wording.",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Bug Fixes:**\n- fix(opencode): detect Windows POSIX shell dialects before injecting `TRELLIS_CONTEXT_ID`, so Git Bash / MSYS / Cygwin sessions receive `export ...` while PowerShell keeps `$env:...`.\n- fix(context): session context now handles non-Git Trellis roots without reporting fake clean Git state, and falls back to bounded child-repo discovery for unconfigured polyrepo layouts.\n- fix(opencode): Trellis sub-agent dispatch now skips duplicate SessionStart / workflow-state injection, resolves active tasks from session context, `Active task:` hints, or single-session fallback, and marks successfully injected prompts.\n- fix(hooks): default hook timeouts now use 30s for SessionStart and 15s for per-prompt workflow injection across hook-based platforms, avoiding Windows Python cold-start drops.\n- fix(copilot): SessionStart output no longer emits the stale `Copilot currently ignores sessionStart hook output` system message; it keeps `hookSpecificOutput.additionalContext` as the documented payload.\n\n**Internal:**\n- docs(spec): platform and cross-platform spec templates document shell-dialect-aware `TRELLIS_CONTEXT_ID` prefix rules for OpenCode.",
+  "migrations": [],
+  "notes": "Run `trellis update` to refresh hash-tracked hook, OpenCode, session-context, and spec templates. No migration required."
+}

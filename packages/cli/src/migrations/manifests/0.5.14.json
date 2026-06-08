@@ -1,0 +1,9 @@
+{
+  "version": "0.5.14",
+  "description": "Patch: `task.py archive` auto-commit no longer leaks dirty changes from other task dirs into the archive commit, and source-side deletes now stage correctly (no more phantom-delete fixups).",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Bug Fixes:**\n- fix(scripts): `task.py archive` auto-commit is now scoped to just the archived task's source + destination paths (plus any child task dirs whose `task.json` was edited as part of the parent→children relationship update). Dirty changes in OTHER active task dirs no longer get bundled into the archive commit.\n- fix(scripts): after `shutil.move` of a tracked task dir, the source-side deletions are now explicitly staged via `git rm -r --cached --ignore-unmatch`, so the working tree stays clean against HEAD without needing a follow-up fixup commit.\n\n**Internal:**\n- `safe_archive_paths_to_add()` accepts optional `task_name` + `modified_children` parameters; backward-compatible when called with no args (legacy wide scope preserved).\n- New integration test `test/scripts/task-archive.integration.test.ts` covers scope-creep + phantom-delete regressions against the real Python script.",
+  "migrations": [],
+  "notes": "Run `trellis update` to pull in the fixed `.trellis/scripts/common/task_store.py` + `safe_commit.py`. No migration required — script signatures changed but file paths did not."
+}

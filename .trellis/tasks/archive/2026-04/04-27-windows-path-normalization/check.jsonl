@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/guides/cross-platform-thinking-guide.md", "reason": "验收时对照清单逐项确认（路径分隔符、行尾符、命令可用性）。"}
+{"file": ".trellis/spec/cli/unit-test/conventions.md", "reason": "新增 win32-path / CRLF / migration 单测须符合 UT 规范（含 anti-patterns）。"}
+{"file": ".trellis/spec/cli/unit-test/mock-strategies.md", "reason": "模拟 path.win32 行为和 CRLF 文件读取的 mock 策略。"}
+{"file": ".trellis/spec/cli/backend/quality-guidelines.md", "reason": "代码质量门槛核对。"}

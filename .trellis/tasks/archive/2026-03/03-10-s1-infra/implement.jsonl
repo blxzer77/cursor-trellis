@@ -1,0 +1,7 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/cli/backend/index.md", "reason": "Backend development guide"}
+{"file": "packages/cli/src/utils/project-detector.ts", "reason": "Main target: add detectMonorepo()"}
+{"file": "packages/cli/src/commands/init.ts", "reason": "Monorepo init flow + flags"}
+{"file": "packages/cli/src/configurators/workflow.ts", "reason": "createSpecTemplates monorepo support"}
+{"file": "packages/cli/src/utils/template-fetcher.ts", "reason": "Download API target path parameter"}
+{"file": "packages/cli/src/cli/index.ts", "reason": "Add --monorepo/--no-monorepo flags"}

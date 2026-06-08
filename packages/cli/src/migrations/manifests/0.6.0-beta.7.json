@@ -1,0 +1,9 @@
+{
+  "version": "0.6.0-beta.7",
+  "description": "Beta patch: brings the v0.5.12 workflow update fix into the 0.6 beta line.",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Bug Fixes:**\n- fix(update): update `.trellis/workflow.md` as a whole hash-tracked template so runtime phase routing markers, including Codex `codex-inline` / `codex-sub-agent` blocks, refresh during `trellis update`.",
+  "migrations": [],
+  "notes": "Beta patch on top of 0.6.0-beta.6. Run `trellis update` to refresh hash-tracked workflow templates. No migration required."
+}

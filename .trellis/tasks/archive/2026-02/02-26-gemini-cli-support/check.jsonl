@@ -1,0 +1,6 @@
+{"file": ".opencode/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".trellis/spec/shared/index.md", "reason": "Shared coding standards"}
+{"file": ".opencode/commands/trellis/check-backend.md", "reason": "Backend check spec"}
+{"file": ".trellis/spec/backend/platform-integration.md", "reason": "Verify all 10 steps"}
+{"file": "src/types/ai-tools.ts", "reason": "Verify registry completeness"}
+{"file": "src/configurators/index.ts", "reason": "Verify PLATFORM_FUNCTIONS registration"}

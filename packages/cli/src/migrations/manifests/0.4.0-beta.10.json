@@ -1,0 +1,9 @@
+{
+  "version": "0.4.0-beta.10",
+  "description": "Ralph Loop field name fix, migration task assignee parsing, task lifecycle docs",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Bug Fixes:**\n- fix(hooks): correct SubagentStop event field names in ralph-loop (#152) — Ralph Loop was silently inert for all users because the hook read non-existent fields (subagent_type/agent_output/prompt); now reads agent_type and last_assistant_message. Check/implement/debug subagents will now actually trigger loop control.\n- fix(update): parse name from .developer when creating migration task (#153) — previously embedded the entire key=value file contents (including the initialized_at timestamp) as the task assignee, which leaked into session-start task rendering and broke the ACTIVE TASKS layout.\n\n**Documentation:**\n- docs(workflow): document task.py start/finish lifecycle and .current-task mechanism — workflow.md now documents the start/finish subcommands (previously undocumented despite being wired in argparse) and explains how .current-task feeds SessionStart hook injection. Task Development Flow expanded from 5 to 7 steps with explicit Start and Finish phases.",
+  "migrations": [],
+  "notes": "Run `trellis update` to sync. Ralph Loop will now actually fire for check/implement/debug subagents — if you relied on the previously-silent behavior, watch for new loop activity."
+}

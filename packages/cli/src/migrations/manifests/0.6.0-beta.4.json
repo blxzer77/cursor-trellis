@@ -1,0 +1,9 @@
+{
+  "version": "0.6.0-beta.4",
+  "description": "Reverts better-sqlite3 dependency added in 0.6.0-beta.3.",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Bug Fixes:**\n- fix(mem): `better-sqlite3` dependency removed. Reverts the OpenCode SQLite reader added in 0.6.0-beta.3. Fixes `npm install -g @mindfoldhq/trellis@beta` failure when the prebuilt binary download fails and no local C toolchain is available.\n- fix(mem): OpenCode platform degraded — `tl mem list / search / extract` on platform `opencode` returns empty + a one-shot stderr warning. Claude and Codex paths unchanged.",
+  "migrations": [],
+  "notes": "Beta patch on top of 0.6.0-beta.3. Run `trellis update`."
+}

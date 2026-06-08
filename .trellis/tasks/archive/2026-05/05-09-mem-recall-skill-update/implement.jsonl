@@ -1,0 +1,4 @@
+{"file": ".trellis/tasks/05-09-mem-recall-skill-update/prd.md", "reason": "Locked decisions (symlink, drop old skill), AC list, scope boundaries"}
+{"file": "marketplace/skills/mem-recall/SKILL.md", "reason": "The file being edited — sub-agent must read current shape to know where to insert the --phase subsection"}
+{"file": ".trellis/spec/cli/backend/commands-mem.md", "reason": "Reference spec for --phase semantics; skill should mirror but not duplicate (skill is action-oriented, spec is contract-oriented)"}
+{"file": "docs-site/changelog/v0.6.0-beta.3.mdx", "reason": "Just-shipped changelog has the user-facing wording for --phase; reuse phrasing"}

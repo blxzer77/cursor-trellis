@@ -1,0 +1,6 @@
+{"file": ".trellis/spec/cli/backend/index.md", "reason": "CLI backend implementation guidelines for registry/init changes"}
+{"file": ".trellis/spec/cli/backend/error-handling.md", "reason": "Probe-based control flow and user-facing error handling rules"}
+{"file": ".trellis/spec/cli/backend/quality-guidelines.md", "reason": "Registry mode detection, URL parsing, and edge-case guidance"}
+{"file": ".trellis/spec/cli/unit-test/index.md", "reason": "Unit test structure and expectations for CLI changes"}
+{"file": ".trellis/spec/cli/unit-test/conventions.md", "reason": "Test quality conventions and anti-patterns"}
+{"file": ".trellis/tasks/04-27-git-backed-private-registry-init/research/repo-findings.md", "reason": "Repo-specific findings for private registry root cause and affected files"}

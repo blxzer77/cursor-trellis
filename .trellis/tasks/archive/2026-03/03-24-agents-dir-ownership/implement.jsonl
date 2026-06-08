@@ -1,0 +1,6 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/cli/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/cli/backend/platform-integration.md", "reason": "Platform registry and detection patterns"}
+{"file": ".trellis/spec/cli/unit-test/conventions.md", "reason": "Test conventions"}
+{"file": "packages/cli/src/types/ai-tools.ts", "reason": "Platform registry to modify"}
+{"file": "packages/cli/src/configurators/index.ts", "reason": "Detection and template collection"}

@@ -1,0 +1,6 @@
+{"file": ".trellis/spec/cli/backend/platform-integration.md", "reason": "Verify platform configurator and template collection consistency"}
+{"file": ".trellis/spec/cli/backend/migrations.md", "reason": "Verify update/hash tracking implications"}
+{"file": ".trellis/spec/cli/unit-test/conventions.md", "reason": "Verify test coverage decisions"}
+{"file": ".trellis/spec/docs-site/docs/sync-on-change.md", "reason": "Verify docs-site sync for skill behavior changes"}
+{"file": ".trellis/tasks/04-28-docs-meta-skill-built-in-install/research/repo-install-paths.md", "reason": "Review against researched implementation constraints"}
+{"file": ".trellis/tasks/04-28-docs-meta-skill-built-in-install/research/marketplace-meta-skill-drift.md", "reason": "Verify implementation against drift audit and update plan"}

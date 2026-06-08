@@ -1,0 +1,3 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/cli/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/tasks/04-17-cc-hook-inject-test/test-spec.md", "reason": "Test spec file with SPEC_CANARY"}

@@ -1,0 +1,31 @@
+{
+  "id": "session-scoped-task-state",
+  "name": "session-scoped-task-state",
+  "title": "Session 级 current-task 指针：多窗口并发不互相污染",
+  "description": "",
+  "status": "in_progress",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P1",
+  "creator": "taosu",
+  "assignee": "taosu",
+  "createdAt": "2026-04-21",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "feat/v0.5.0-beta",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {},
+  "integrations": {
+    "feishu": {
+      "task_guid": "1bd8415f-a588-4edc-98f8-66280c5baaa8"
+    }
+  }
+}

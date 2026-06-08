@@ -1,0 +1,47 @@
+{
+  "id": "dogfood-monorepo-compat",
+  "name": "dogfood-monorepo-compat",
+  "title": "Dogfooding: 本项目 slash command 和 hook 适配 monorepo",
+  "description": "",
+  "status": "completed",
+  "package": null,
+  "dev_type": null,
+  "scope": null,
+  "priority": "P2",
+  "creator": "taosu",
+  "assignee": "taosu",
+  "createdAt": "2026-03-10",
+  "completedAt": "2026-03-10",
+  "branch": null,
+  "base_branch": "feat/v037",
+  "worktree_path": null,
+  "current_phase": 0,
+  "next_action": [
+    {
+      "phase": 1,
+      "action": "implement"
+    },
+    {
+      "phase": 2,
+      "action": "check"
+    },
+    {
+      "phase": 3,
+      "action": "finish"
+    },
+    {
+      "phase": 4,
+      "action": "create-pr"
+    }
+  ],
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "03-06-v037",
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "linear_issue": "MIN-366"
+  }
+}

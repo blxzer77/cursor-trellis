@@ -1,0 +1,9 @@
+{
+  "version": "0.6.0-beta.8",
+  "description": "Beta patch: adds task-creation consent gates and planning artifacts across workflow, hooks, skills, and platform templates.",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Enhancements:**\n- feat(workflow): no-task turns now classify simple conversation, inline small work, and full Trellis tasks before task creation; complex work asks before creating a task and entering planning.\n- feat(task): `task.py create` now creates a default `prd.md`, while complex tasks require `design.md` and `implement.md` before `task.py start`.\n- feat(context): implement/check context loading now uses the same artifact order across hook-push, pull-prelude, Pi, OpenCode, and inline modes: jsonl entries -> `prd.md` -> optional `design.md` -> optional `implement.md`.\n- feat(codex): Codex no-task breadcrumbs include `<trellis-bootstrap>` plus explicit `<codex-mode>` text, and inline mode keeps implementation/check work in the main session.",
+  "migrations": [],
+  "notes": "Beta patch on top of 0.6.0-beta.7. Run `trellis update` to refresh workflow, hook, skill, agent, and platform templates. No migration required."
+}

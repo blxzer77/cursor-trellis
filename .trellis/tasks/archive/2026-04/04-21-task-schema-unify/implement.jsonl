@@ -1,0 +1,8 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/cli/backend/quality-guidelines.md", "reason": "Source of the 'Audit ALL Writers, Not Just the Creator' lesson — this task literally implements that lesson. Also contains the phase.py:get_current_phase reader example that needs swapping."}
+{"file": ".trellis/spec/cli/backend/migrations.md", "reason": "Need to add safe-file-delete entry for common/phase.py to next manifest — follow the manifest schema rules here."}
+{"file": ".trellis/spec/cli/backend/script-conventions.md", "reason": "Directory tree (line 24) still lists phase.py — needs updating. Also governs Python conventions for the file we're deleting."}
+{"file": "packages/cli/src/commands/init.ts", "reason": "Contains getBootstrapTaskJson + TaskJson interface to replace with shared factory (lines 258-339)."}
+{"file": "packages/cli/src/commands/update.ts", "reason": "Contains migration task writer to replace with shared factory (lines 2009-2036); strip current_phase/next_action."}
+{"file": ".trellis/scripts/common/task_store.py", "reason": "Canonical 24-field schema to mirror (cmd_create, lines 147-172)."}

@@ -1,0 +1,6 @@
+{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python3 .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/spec/cli/backend/index.md", "reason": "Backend quality checklist."}
+{"file": ".trellis/spec/guides/cross-platform-thinking-guide.md", "reason": "Cross-platform verification for generated scripts."}
+{"file": ".trellis/spec/cli/backend/script-conventions.md", "reason": "Verify Python script conventions."}
+{"file": ".trellis/spec/cli/backend/quality-guidelines.md", "reason": "Verify backend quality rules."}
+{"file": ".trellis/spec/cli/unit-test/index.md", "reason": "Unit test expectations for CLI changes."}

@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/cli/backend/platform-integration.md", "reason": "Platform capability matrix (agent-capable vs agent-less) — explains why /trellis:start is conditionally emitted and why AGENTS.md must be platform-neutral"}
+{"file": ".trellis/tasks/04-24-fix-agents-md-start-reference/prd.md", "reason": "Authoritative scope, decision (option A), acceptance criteria, and explicit out-of-scope list for this fix"}

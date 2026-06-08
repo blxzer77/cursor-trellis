@@ -1,0 +1,5 @@
+{"file": ".trellis/tasks/05-08-trellis-mem-unit-tests/prd.md", "reason": "Acceptance criteria + Definition of Done."}
+{"file": ".trellis/spec/cli/unit-test/index.md", "reason": "Entry point for unit-test specs."}
+{"file": ".trellis/spec/cli/unit-test/conventions.md", "reason": "Anti-patterns (no hardcoded counts, no tautological tests, no TS type checks). Verify new tests don't violate."}
+{"file": ".trellis/spec/cli/unit-test/integration-patterns.md", "reason": "Tier-3 CLI subprocess test conventions."}
+{"file": ".trellis/spec/cli/backend/quality-guidelines.md", "reason": "Quality bar: lint / typecheck / coverage."}

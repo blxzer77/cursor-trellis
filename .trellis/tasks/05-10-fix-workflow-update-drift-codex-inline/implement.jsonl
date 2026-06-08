@@ -1,0 +1,6 @@
+{"file": ".trellis/tasks/05-10-fix-workflow-update-drift-codex-inline/prd.md", "reason": "Task requirements and acceptance criteria for the workflow.md update drift fix."}
+{"file": ".trellis/spec/cli/backend/migrations.md", "reason": "Update command and template-hash behavior are governed by the migration/update spec."}
+{"file": ".trellis/spec/cli/backend/workflow-state-contract.md", "reason": "workflow.md is runtime-parsed by hooks/get_context; this spec captures breadcrumb and workflow contract rules."}
+{"file": ".trellis/spec/cli/unit-test/conventions.md", "reason": "Regression test expectations and test isolation rules."}
+{"file": ".trellis/spec/cli/unit-test/integration-patterns.md", "reason": "Function-level init/update test pattern for real filesystem upgrade scenarios."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Bug spans template source, update logic, generated runtime scripts, and workflow parser behavior."}

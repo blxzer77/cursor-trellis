@@ -1,0 +1,9 @@
+{
+  "version": "0.6.0-beta.12",
+  "description": "Beta patch: add thread channels, project/global channel scope, linked context, and shared channel event filtering.",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Enhancements:**\n- feat(channel): add `trellis channel create --type thread`, `trellis channel post`, `trellis channel threads`, and `trellis channel thread` for durable thread channels.\n- feat(channel): add `--scope project|global` resolution across channel create, send, wait, spawn, messages, list, kill, rm, and prune.\n- feat(channel): add channel and thread `description` plus `linkedContext` fields via `--linked-context-file` and `--linked-context-raw`.",
+  "migrations": [],
+  "notes": "Run `trellis update` to pull in thread channel commands and project/global scope support. No migration required because existing channel paths and project files remain valid."
+}

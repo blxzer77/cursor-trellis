@@ -1,0 +1,11 @@
+{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"why\"}. Put spec/research only — no code paths. Run `python3 .trellis/scripts/get_context.py --mode packages` to list specs. Delete this line when done."}
+{"file": ".trellis/spec/guides/index.md", "reason": "Shared cross-package guidelines (code-reuse / cross-layer / cross-platform thinking)"}
+{"file": ".trellis/spec/cli/backend/index.md", "reason": "CLI backend dev guide — applies because this task modifies Python scripts under packages/cli/src/templates/trellis/scripts/"}
+{"file": ".trellis/spec/cli/backend/script-conventions.md", "reason": "Python script conventions — task.py / task_context.py / hooks all follow these"}
+{"file": ".trellis/spec/cli/backend/migrations.md", "reason": "Migration manifest schema — needed for 0.5.0-beta.12 manifest"}
+{"file": ".trellis/spec/cli/backend/platform-integration.md", "reason": "Class-1 vs Class-2 platform model — directly relevant since jsonl consumers split along this axis"}
+{"file": ".trellis/spec/cli/backend/quality-guidelines.md", "reason": "Audit-all-writers principle applies: removing init-context requires sweeping workflow.md/SKILL.md/prelude docs"}
+{"file": ".trellis/tasks/04-23-init-context-removal/research/rollout-1-trace.md", "reason": "Concrete evidence: first Codex rollout showing init-context failure → main-thread takeover (235 exec, 33 apply_patch, 0 sub-agent)"}
+{"file": ".trellis/tasks/04-23-init-context-removal/research/rollout-2-trace.md", "reason": "Independent reproduction: second rollout, 1:1 same behavior — elevates causal claim from guess to reproducible"}
+{"file": ".trellis/tasks/04-23-init-context-removal/research/init-context-root-cause.md", "reason": "Two-layer root cause: surface `--package required`, deeper spec-layout mismatch. Justifies deletion over patching"}
+{"file": ".trellis/tasks/04-23-init-context-removal/research/jsonl-consumers.md", "reason": "Class-1 hook vs Class-2 prelude consumption paths — guides which files to sweep and what fallback logic to add"}

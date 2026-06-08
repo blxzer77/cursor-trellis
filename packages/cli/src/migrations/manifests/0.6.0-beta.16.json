@@ -1,0 +1,9 @@
+{
+  "version": "0.6.0-beta.16",
+  "description": "Beta patch: align Trellis task artifacts with check agents and document parent/child task trees in workflow guidance.",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Enhancements:**\n- feat(workflow): document parent/child task tree planning in `workflow.md`, `trellis-brainstorm`, and `trellis-meta` references. Planning breadcrumbs now remind agents that multi-deliverable work should use independently verifiable child tasks and explicit child artifact dependencies.\n\n**Bug Fixes:**\n- fix(agents): `trellis-check` agents across platforms now read task `prd.md`, `design.md` when present, and `implement.md` when present before checking code against specs. Pi implement/check agents now list the same task artifact order.",
+  "migrations": [],
+  "notes": "Run `npm install -g @mindfoldhq/trellis@beta` and `trellis update` to refresh workflow and agent templates. No file migration is required."
+}

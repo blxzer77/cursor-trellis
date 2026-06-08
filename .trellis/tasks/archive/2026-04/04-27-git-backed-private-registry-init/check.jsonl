@@ -1,0 +1,6 @@
+{"file": ".trellis/spec/cli/backend/index.md", "reason": "Review CLI backend behavior and integration boundaries"}
+{"file": ".trellis/spec/cli/backend/error-handling.md", "reason": "Verify mode detection does not collapse auth/network/not-found cases"}
+{"file": ".trellis/spec/cli/backend/quality-guidelines.md", "reason": "Verify registry mode-detection and URL parsing edge cases"}
+{"file": ".trellis/spec/cli/unit-test/index.md", "reason": "Review test coverage expectations"}
+{"file": ".trellis/spec/cli/unit-test/conventions.md", "reason": "Review test assertions for non-tautological coverage"}
+{"file": ".trellis/tasks/04-27-git-backed-private-registry-init/research/repo-findings.md", "reason": "Verify implementation addresses the recorded private registry root cause"}

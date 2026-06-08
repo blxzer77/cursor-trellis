@@ -1,0 +1,46 @@
+{
+  "id": "monorepo-spec-adapt",
+  "name": "monorepo-spec-adapt",
+  "title": "Monorepo Spec 目录适配 — 按 package 组织 spec",
+  "description": "",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "priority": "P2",
+  "creator": "taosu",
+  "assignee": "taosu",
+  "createdAt": "2026-03-09",
+  "completedAt": "2026-03-09",
+  "branch": null,
+  "base_branch": "feat/monorepo-submodule",
+  "worktree_path": null,
+  "current_phase": 1,
+  "next_action": [
+    {
+      "phase": 1,
+      "action": "implement"
+    },
+    {
+      "phase": 2,
+      "action": "check"
+    },
+    {
+      "phase": 3,
+      "action": "finish"
+    },
+    {
+      "phase": 4,
+      "action": "create-pr"
+    }
+  ],
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "03-09-monorepo-submodule",
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "linear_issue": "MIN-356"
+  }
+}

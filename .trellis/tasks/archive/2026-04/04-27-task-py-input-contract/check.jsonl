@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/cli/unit-test/conventions.md", "reason": "新增 archive 路径输入 smoke test 须符合 UT 规范（无反模式）。"}
+{"file": ".trellis/spec/cli/backend/quality-guidelines.md", "reason": "代码质量验收。"}

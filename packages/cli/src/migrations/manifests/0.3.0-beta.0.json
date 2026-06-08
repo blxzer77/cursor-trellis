@@ -1,0 +1,297 @@
+{
+  "version": "0.3.0-beta.0",
+  "description": "Command path namespace migration + Shell to Python script migration",
+  "breaking": true,
+  "recommendMigrate": true,
+  "changelog": "BREAKING: All shell scripts (.sh) have been replaced by Python scripts (.py). Requires Python 3.10+. The multi-agent/ directory is now multi_agent/ (underscore). Run with --migrate to archive legacy shell scripts to scripts-shell-archive/.",
+  "migrationGuide": "# Migration Guide: v0.3.0 Shell to Python\n\n## Overview\n\nAll shell scripts (.sh) have been replaced by Python scripts (.py). This affects any custom workflows, slash commands, or documentation that references the old scripts.\n\n## Requirements\n\n- Python 3.10 or higher\n\n## What Changed\n\n### Script Extensions\n\n| Old Path | New Path |\n|----------|----------|\n| `.trellis/scripts/*.sh` | `.trellis/scripts/*.py` |\n| `.trellis/scripts/common/*.sh` | `.trellis/scripts/common/*.py` |\n| `.trellis/scripts/multi-agent/*.sh` | `.trellis/scripts/multi_agent/*.py` |\n\n### Directory Rename\n\n| Old | New |\n|-----|-----|\n| `multi-agent/` (hyphen) | `multi_agent/` (underscore) |\n\n### Invocation Change\n\n| Old | New |\n|-----|-----|\n| `./script.sh` | `python3 ./script.py` |\n| `./.trellis/scripts/task.sh` | `python3 ./.trellis/scripts/task.py` |\n\n## Files to Check\n\nSearch your project for these patterns and update them:\n\n```bash\n# Find files with old .sh references\ngrep -r '\\.trellis/scripts.*\\.sh' .claude/ .cursor/ .trellis/\n\n# Find files with old multi-agent directory\ngrep -r 'multi-agent/' .claude/ .cursor/ .trellis/\n```\n\n## Common Replacements\n\n```\n# Task management\n./.trellis/scripts/task.sh → python3 ./.trellis/scripts/task.py\n\n# Context\n./.trellis/scripts/get-context.sh → python3 ./.trellis/scripts/get_context.py\n\n# Developer\n./.trellis/scripts/get-developer.sh → python3 ./.trellis/scripts/get_developer.py\n./.trellis/scripts/init-developer.sh → python3 ./.trellis/scripts/init_developer.py\n\n# Session\n./.trellis/scripts/add-session.sh → python3 ./.trellis/scripts/add_session.py\n\n# Multi-agent\n./.trellis/scripts/multi-agent/start.sh → python3 ./.trellis/scripts/multi_agent/start.py\n./.trellis/scripts/multi-agent/status.sh → python3 ./.trellis/scripts/multi_agent/status.py\n./.trellis/scripts/multi-agent/plan.sh → python3 ./.trellis/scripts/multi_agent/plan.py\n./.trellis/scripts/multi-agent/cleanup.sh → python3 ./.trellis/scripts/multi_agent/cleanup.py\n./.trellis/scripts/multi-agent/create-pr.sh → python3 ./.trellis/scripts/multi_agent/create_pr.py\n```\n\n## After Migration\n\nRun `trellis update --migrate` to archive the old shell scripts to `.trellis/scripts-shell-archive/`.",
+  "aiInstructions": "1. Search for files containing old patterns:\n   - `.trellis/scripts/*.sh` references\n   - `multi-agent/` directory references (should be `multi_agent/`)\n   - `python script.py` without `python3` (Windows compatibility)\n2. For each file found, apply the replacements from the migration guide\n3. IMPORTANT: Always use `python3` explicitly, not just `python` or relying on shebang (Windows doesn't support shebang)\n4. Check ALL locations: docstrings, help text, error messages, markdown docs\n5. Verify the changes compile/work correctly\n6. After all files are updated, remind user to run `trellis update --migrate`",
+  "migrations": [
+    {
+      "type": "rename",
+      "from": ".claude/commands/start.md",
+      "to": ".claude/commands/trellis/start.md",
+      "description": "Move Claude start command to trellis/ subdirectory"
+    },
+    {
+      "type": "rename",
+      "from": ".claude/commands/finish-work.md",
+      "to": ".claude/commands/trellis/finish-work.md",
+      "description": "Move Claude finish-work command to trellis/ subdirectory"
+    },
+    {
+      "type": "rename",
+      "from": ".claude/commands/before-frontend-dev.md",
+      "to": ".claude/commands/trellis/before-frontend-dev.md",
+      "description": "Move Claude before-frontend-dev command to trellis/ subdirectory"
+    },
+    {
+      "type": "rename",
+      "from": ".claude/commands/before-backend-dev.md",
+      "to": ".claude/commands/trellis/before-backend-dev.md",
+      "description": "Move Claude before-backend-dev command to trellis/ subdirectory"
+    },
+    {
+      "type": "rename",
+      "from": ".claude/commands/check-frontend.md",
+      "to": ".claude/commands/trellis/check-frontend.md",
+      "description": "Move Claude check-frontend command to trellis/ subdirectory"
+    },
+    {
+      "type": "rename",
+      "from": ".claude/commands/check-backend.md",
+      "to": ".claude/commands/trellis/check-backend.md",
+      "description": "Move Claude check-backend command to trellis/ subdirectory"
+    },
+    {
+      "type": "rename",
+      "from": ".claude/commands/check-cross-layer.md",
+      "to": ".claude/commands/trellis/check-cross-layer.md",
+      "description": "Move Claude check-cross-layer command to trellis/ subdirectory"
+    },
+    {
+      "type": "rename",
+      "from": ".claude/commands/record-session.md",
+      "to": ".claude/commands/trellis/record-session.md",
+      "description": "Move Claude record-session command to trellis/ subdirectory"
+    },
+    {
+      "type": "rename",
+      "from": ".claude/commands/update-spec.md",
+      "to": ".claude/commands/trellis/update-spec.md",
+      "description": "Move Claude update-spec command to trellis/ subdirectory"
+    },
+    {
+      "type": "rename",
+      "from": ".claude/commands/onboard.md",
+      "to": ".claude/commands/trellis/onboard.md",
+      "description": "Move Claude onboard command to trellis/ subdirectory"
+    },
+    {
+      "type": "rename",
+      "from": ".claude/commands/break-loop.md",
+      "to": ".claude/commands/trellis/break-loop.md",
+      "description": "Move Claude break-loop command to trellis/ subdirectory"
+    },
+    {
+      "type": "rename",
+      "from": ".claude/commands/integrate-skill.md",
+      "to": ".claude/commands/trellis/integrate-skill.md",
+      "description": "Move Claude integrate-skill command to trellis/ subdirectory"
+    },
+    {
+      "type": "rename",
+      "from": ".claude/commands/create-command.md",
+      "to": ".claude/commands/trellis/create-command.md",
+      "description": "Move Claude create-command command to trellis/ subdirectory"
+    },
+    {
+      "type": "rename",
+      "from": ".claude/commands/parallel.md",
+      "to": ".claude/commands/trellis/parallel.md",
+      "description": "Move Claude parallel command to trellis/ subdirectory"
+    },
+    {
+      "type": "rename",
+      "from": ".cursor/commands/start.md",
+      "to": ".cursor/commands/trellis-start.md",
+      "description": "Rename Cursor start command with trellis- prefix"
+    },
+    {
+      "type": "rename",
+      "from": ".cursor/commands/finish-work.md",
+      "to": ".cursor/commands/trellis-finish-work.md",
+      "description": "Rename Cursor finish-work command with trellis- prefix"
+    },
+    {
+      "type": "rename",
+      "from": ".cursor/commands/before-frontend-dev.md",
+      "to": ".cursor/commands/trellis-before-frontend-dev.md",
+      "description": "Rename Cursor before-frontend-dev command with trellis- prefix"
+    },
+    {
+      "type": "rename",
+      "from": ".cursor/commands/before-backend-dev.md",
+      "to": ".cursor/commands/trellis-before-backend-dev.md",
+      "description": "Rename Cursor before-backend-dev command with trellis- prefix"
+    },
+    {
+      "type": "rename",
+      "from": ".cursor/commands/check-frontend.md",
+      "to": ".cursor/commands/trellis-check-frontend.md",
+      "description": "Rename Cursor check-frontend command with trellis- prefix"
+    },
+    {
+      "type": "rename",
+      "from": ".cursor/commands/check-backend.md",
+      "to": ".cursor/commands/trellis-check-backend.md",
+      "description": "Rename Cursor check-backend command with trellis- prefix"
+    },
+    {
+      "type": "rename",
+      "from": ".cursor/commands/check-cross-layer.md",
+      "to": ".cursor/commands/trellis-check-cross-layer.md",
+      "description": "Rename Cursor check-cross-layer command with trellis- prefix"
+    },
+    {
+      "type": "rename",
+      "from": ".cursor/commands/record-session.md",
+      "to": ".cursor/commands/trellis-record-session.md",
+      "description": "Rename Cursor record-session command with trellis- prefix"
+    },
+    {
+      "type": "rename",
+      "from": ".cursor/commands/update-spec.md",
+      "to": ".cursor/commands/trellis-update-spec.md",
+      "description": "Rename Cursor update-spec command with trellis- prefix"
+    },
+    {
+      "type": "rename",
+      "from": ".cursor/commands/onboard.md",
+      "to": ".cursor/commands/trellis-onboard.md",
+      "description": "Rename Cursor onboard command with trellis- prefix"
+    },
+    {
+      "type": "rename",
+      "from": ".cursor/commands/break-loop.md",
+      "to": ".cursor/commands/trellis-break-loop.md",
+      "description": "Rename Cursor break-loop command with trellis- prefix"
+    },
+    {
+      "type": "rename",
+      "from": ".cursor/commands/integrate-skill.md",
+      "to": ".cursor/commands/trellis-integrate-skill.md",
+      "description": "Rename Cursor integrate-skill command with trellis- prefix"
+    },
+    {
+      "type": "rename",
+      "from": ".cursor/commands/create-command.md",
+      "to": ".cursor/commands/trellis-create-command.md",
+      "description": "Rename Cursor create-command command with trellis- prefix"
+    },
+    {
+      "type": "rename",
+      "from": ".cursor/commands/parallel.md",
+      "to": ".cursor/commands/trellis-parallel.md",
+      "description": "Rename Cursor parallel command with trellis- prefix"
+    },
+
+    {
+      "type": "rename",
+      "from": ".trellis/scripts/get-developer.sh",
+      "to": ".trellis/scripts-shell-archive/get-developer.sh",
+      "description": "Archive legacy shell script (replaced by Python)"
+    },
+    {
+      "type": "rename",
+      "from": ".trellis/scripts/init-developer.sh",
+      "to": ".trellis/scripts-shell-archive/init-developer.sh",
+      "description": "Archive legacy shell script (replaced by Python)"
+    },
+    {
+      "type": "rename",
+      "from": ".trellis/scripts/get-context.sh",
+      "to": ".trellis/scripts-shell-archive/get-context.sh",
+      "description": "Archive legacy shell script (replaced by Python)"
+    },
+    {
+      "type": "rename",
+      "from": ".trellis/scripts/task.sh",
+      "to": ".trellis/scripts-shell-archive/task.sh",
+      "description": "Archive legacy shell script (replaced by Python)"
+    },
+    {
+      "type": "rename",
+      "from": ".trellis/scripts/add-session.sh",
+      "to": ".trellis/scripts-shell-archive/add-session.sh",
+      "description": "Archive legacy shell script (replaced by Python)"
+    },
+    {
+      "type": "rename",
+      "from": ".trellis/scripts/create-bootstrap.sh",
+      "to": ".trellis/scripts-shell-archive/create-bootstrap.sh",
+      "description": "Archive legacy shell script (replaced by Python)"
+    },
+
+    {
+      "type": "rename",
+      "from": ".trellis/scripts/common/paths.sh",
+      "to": ".trellis/scripts-shell-archive/common/paths.sh",
+      "description": "Archive legacy shell script (replaced by Python)"
+    },
+    {
+      "type": "rename",
+      "from": ".trellis/scripts/common/developer.sh",
+      "to": ".trellis/scripts-shell-archive/common/developer.sh",
+      "description": "Archive legacy shell script (replaced by Python)"
+    },
+    {
+      "type": "rename",
+      "from": ".trellis/scripts/common/git-context.sh",
+      "to": ".trellis/scripts-shell-archive/common/git-context.sh",
+      "description": "Archive legacy shell script (replaced by Python)"
+    },
+    {
+      "type": "rename",
+      "from": ".trellis/scripts/common/worktree.sh",
+      "to": ".trellis/scripts-shell-archive/common/worktree.sh",
+      "description": "Archive legacy shell script (replaced by Python)"
+    },
+    {
+      "type": "rename",
+      "from": ".trellis/scripts/common/task-queue.sh",
+      "to": ".trellis/scripts-shell-archive/common/task-queue.sh",
+      "description": "Archive legacy shell script (replaced by Python)"
+    },
+    {
+      "type": "rename",
+      "from": ".trellis/scripts/common/task-utils.sh",
+      "to": ".trellis/scripts-shell-archive/common/task-utils.sh",
+      "description": "Archive legacy shell script (replaced by Python)"
+    },
+    {
+      "type": "rename",
+      "from": ".trellis/scripts/common/phase.sh",
+      "to": ".trellis/scripts-shell-archive/common/phase.sh",
+      "description": "Archive legacy shell script (replaced by Python)"
+    },
+    {
+      "type": "rename",
+      "from": ".trellis/scripts/common/registry.sh",
+      "to": ".trellis/scripts-shell-archive/common/registry.sh",
+      "description": "Archive legacy shell script (replaced by Python)"
+    },
+
+    {
+      "type": "rename",
+      "from": ".trellis/scripts/multi-agent/start.sh",
+      "to": ".trellis/scripts-shell-archive/multi-agent/start.sh",
+      "description": "Archive legacy shell script (replaced by Python in multi_agent/)"
+    },
+    {
+      "type": "rename",
+      "from": ".trellis/scripts/multi-agent/plan.sh",
+      "to": ".trellis/scripts-shell-archive/multi-agent/plan.sh",
+      "description": "Archive legacy shell script (replaced by Python in multi_agent/)"
+    },
+    {
+      "type": "rename",
+      "from": ".trellis/scripts/multi-agent/status.sh",
+      "to": ".trellis/scripts-shell-archive/multi-agent/status.sh",
+      "description": "Archive legacy shell script (replaced by Python in multi_agent/)"
+    },
+    {
+      "type": "rename",
+      "from": ".trellis/scripts/multi-agent/create-pr.sh",
+      "to": ".trellis/scripts-shell-archive/multi-agent/create-pr.sh",
+      "description": "Archive legacy shell script (replaced by Python in multi_agent/)"
+    },
+    {
+      "type": "rename",
+      "from": ".trellis/scripts/multi-agent/cleanup.sh",
+      "to": ".trellis/scripts-shell-archive/multi-agent/cleanup.sh",
+      "description": "Archive legacy shell script (replaced by Python in multi_agent/)"
+    }
+  ],
+  "notes": "Part 1: Command namespace migration - Claude Code uses subdirectory namespacing (.claude/commands/trellis/), Cursor uses filename prefix (.cursor/commands/trellis-*). Part 2: Shell to Python migration - All .trellis/scripts/*.sh files are archived to .trellis/scripts-shell-archive/ (not deleted). The multi-agent/ directory (with hyphen) is replaced by multi_agent/ (with underscore). Empty source directories are automatically cleaned up after rename."
+}

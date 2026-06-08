@@ -1,0 +1,9 @@
+{
+  "version": "0.6.0-beta.15",
+  "description": "Beta patch: add core mem APIs, forum channel APIs, and channel worker lifecycle controls with Codex turn ordering fixes.",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Enhancements:**\n- feat(core): add `@mindfoldhq/trellis-core/mem` for reusable `tl mem` session listing, search, context extraction, project aggregation, and provider adapters.\n- feat(channel): add forum channel commands and context entries with `trellis channel create --type forum`, `channel post`, `channel forum`, `channel thread`, and `channel context`.\n- feat(channel): add reusable worker runtime APIs, cursor reads, cross-channel watchers, `--inbox-policy`, and `--delivery-mode` for managed channel workers.\n\n**Bug Fixes:**\n- fix(channel): serialize normal worker turns, record `interrupt_requested` / `interrupted`, and keep workers active after turn-level `done` / `error` events.\n- fix(channel): delay Codex `done` until `final_answer` is recorded and keep `fs.watch` subscriptions alive after watcher errors.",
+  "migrations": [],
+  "notes": "Run `npm install -g @mindfoldhq/trellis@beta` and `trellis update` to use the core mem, forum channel, and channel worker lifecycle updates. No file migration is required."
+}

@@ -1,0 +1,116 @@
+{
+  "version": "0.5.0-beta.15",
+  "description": "Task runtime and platform compatibility update. `task.py start/current/finish` now use `.trellis/.runtime/sessions/<context-key>.json`; `.trellis/.current-task` is no longer the active-task fallback. `workflow.md` and hook breadcrumbs now allow trivial turns and explicit current-turn overrides to skip Trellis task creation or sub-agent dispatch. Claude Code, Codex, Cursor, OpenCode, and Pi handle shell session identity for `task.py`: Codex uses native `CODEX_SESSION_ID` / `CODEX_THREAD_ID`, while the other hosts propagate `TRELLIS_CONTEXT_ID` through host-specific bridges. Cursor matches `Task|Subagent` and parses native custom-agent payloads. Pi resolves context keys from session manager, environment, transcript path, or process fallback. Template registry downloads support private Git-backed registries through local Git credentials. Claude Code statusLine is no longer installed by default for new projects, while existing Claude Code statusLine files and settings are preserved on update. The manifest also includes 10 hash-verified `safe-file-delete` entries for orphan shared hooks.",
+  "breaking": true,
+  "recommendMigrate": false,
+  "changelog": "**Behavior Changes:**\n- feat(task): `task.py start/current/finish` read and write `.trellis/.runtime/sessions/<context-key>.json`. `.trellis/.current-task` is no longer used as the active-task fallback. `task.py start` exits with a clear error when no session identity is available. `task.py finish` deletes the resolved session file. `task.py archive` deletes session files that still point at the archived task before moving it.\n- feat(init): bootstrap and joiner onboarding tasks no longer write `.trellis/.current-task`; generated PRDs tell the AI to start the task from a session that provides Trellis session identity.\n- feat(workflow): `workflow.md` and hook fallback breadcrumbs now treat no-task trigger words as task-creation signals instead of mandatory creation. Task creation is not required for trivial turns when all three hold: zero file writes, one-reply answer, and no research beyond reading 1-2 repo files. Explicit current-turn phrases such as `skip trellis`, `no task`, `just do it`, `跳过 trellis`, `别走流程`, and `先别建任务` skip task creation for that turn.\n- feat(workflow): `in_progress` breadcrumbs keep `trellis-implement` / `trellis-check` as the default, but explicit current-turn requests such as `do it inline`, `main session 写就行`, and `不用 sub-agent` allow main-session implementation.\n\n**Platform Integration:**\n- feat(hooks): Claude Code writes `TRELLIS_CONTEXT_ID` through `CLAUDE_ENV_FILE`; Codex command environments are supported through `CODEX_SESSION_ID` / Codex Desktop `CODEX_THREAD_ID`; Cursor adds `beforeShellExecution` tickets under `.trellis/.runtime/cursor-shell/`; OpenCode prefixes Bash commands with `TRELLIS_CONTEXT_ID`; Pi injects the same value into Bash and nested `pi --mode json` runs.\n- docs(platforms): GitHub Copilot uses a platform-specific SessionStart hook; Gemini/Qoder/CodeBuddy/Droid/Kiro use shared hook input or platform env; Kilo/Antigravity/Windsurf have no hook integration; `.agents/skills` consumers rely on host-provided prelude/env. All groups share `.trellis/.runtime/sessions/`, while beta.15 adds shell-command handling for Claude Code, Codex, Cursor, OpenCode, and Pi.\n- feat(cursor): Cursor `hooks.json` matches `Task|Subagent`. `inject-subagent-context.py` parses native custom-agent payloads including `{ custom: { name } }` and `{ type: { case: \"custom\", value: { name } } }`.\n- feat(pi): Pi Agent resolves context keys from `TRELLIS_CONTEXT_ID`, `sessionManager.getSessionId()`, `PI_SESSION_ID` / `PI_SESSIONID`, transcript path, or process fallback, then reads active tasks from `.trellis/.runtime/sessions/`.\n- feat(workflow): `workflow-state` breadcrumbs use exact agent names (`trellis-implement`, `trellis-check`, `trellis-research`) and document explicit per-turn override phrases.\n\n**Bug Fixes:**\n- fix(registry): Template registry downloads support private Git-backed registries through local Git credentials. Self-hosted GitLab / GitHub Enterprise and SSH registry sources use Git to read `index.json` and copy template directories, and classify auth, missing-ref, missing-path, invalid-json, and network failures separately instead of falling through to direct-download mode.\n- fix(opencode): OpenCode recognizes `OPENCODE_RUN_ID` and strips the `trellis-` prefix before matching sub-agent names, preserving `implement.jsonl` / `check.jsonl` injection for renamed agents.\n- fix(claude): Claude Code statusLine is no longer installed by default for new projects. Existing `.claude/hooks/statusline.py` files are preserved on update, and an existing `.claude/settings.json` `statusLine` entry is carried forward instead of being forced out.\n- fix(cli): `writeSharedHooks` and `collectSharedHooks` use `SHARED_HOOKS_BY_PLATFORM`. The manifest removes 10 orphan shared-hook files through hash-verified `safe-file-delete` entries; locally modified files are preserved.\n\n**Docs:**\n- docs(beta): docs-site beta pages and `v0.5.0-beta.15` changelog document session-scoped task state, workflow policy relaxation, per-platform session identity behavior, Pi Agent, Cursor hook behavior, native Git worktrees, private Git-backed template registries, Claude Code statusLine defaults, existing statusLine preservation, and the current `continue` / `finish-work` command flow.",
+  "migrations": [
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/hooks/statusline.py",
+      "description": "Removed: Cursor has no statusLine event; shared-hooks/statusline.py was never invoked.",
+      "allowed_hashes": [
+        "87c01ee786ca9e1f25b591f0ed67564cd430586d57516d5b6fc57c34b6e7a3ec",
+        "c92c0020a0c60308437b66f024a244303e708519c97089cf654ceddc144f7435",
+        "b9b0a39a486643f2b78ecb3c757459182a6326ea070ba34a49887e23adc40bbb"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".codex/hooks/statusline.py",
+      "description": "Removed: Codex has no statusLine event; shared-hooks/statusline.py was never invoked.",
+      "allowed_hashes": [
+        "87c01ee786ca9e1f25b591f0ed67564cd430586d57516d5b6fc57c34b6e7a3ec",
+        "c92c0020a0c60308437b66f024a244303e708519c97089cf654ceddc144f7435",
+        "b9b0a39a486643f2b78ecb3c757459182a6326ea070ba34a49887e23adc40bbb"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".gemini/hooks/statusline.py",
+      "description": "Removed: Gemini CLI has no statusLine event; shared-hooks/statusline.py was never invoked.",
+      "allowed_hashes": [
+        "87c01ee786ca9e1f25b591f0ed67564cd430586d57516d5b6fc57c34b6e7a3ec",
+        "c92c0020a0c60308437b66f024a244303e708519c97089cf654ceddc144f7435",
+        "b9b0a39a486643f2b78ecb3c757459182a6326ea070ba34a49887e23adc40bbb"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".qoder/hooks/statusline.py",
+      "description": "Removed: Qoder has no statusLine event; shared-hooks/statusline.py was never invoked.",
+      "allowed_hashes": [
+        "87c01ee786ca9e1f25b591f0ed67564cd430586d57516d5b6fc57c34b6e7a3ec",
+        "c92c0020a0c60308437b66f024a244303e708519c97089cf654ceddc144f7435",
+        "b9b0a39a486643f2b78ecb3c757459182a6326ea070ba34a49887e23adc40bbb"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".github/copilot/hooks/statusline.py",
+      "description": "Removed: GitHub Copilot has no statusLine event; shared-hooks/statusline.py was never invoked.",
+      "allowed_hashes": [
+        "87c01ee786ca9e1f25b591f0ed67564cd430586d57516d5b6fc57c34b6e7a3ec",
+        "c92c0020a0c60308437b66f024a244303e708519c97089cf654ceddc144f7435",
+        "b9b0a39a486643f2b78ecb3c757459182a6326ea070ba34a49887e23adc40bbb"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".codebuddy/hooks/statusline.py",
+      "description": "Removed: CodeBuddy has no statusLine event; shared-hooks/statusline.py was never invoked.",
+      "allowed_hashes": [
+        "87c01ee786ca9e1f25b591f0ed67564cd430586d57516d5b6fc57c34b6e7a3ec",
+        "c92c0020a0c60308437b66f024a244303e708519c97089cf654ceddc144f7435",
+        "b9b0a39a486643f2b78ecb3c757459182a6326ea070ba34a49887e23adc40bbb"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".factory/hooks/statusline.py",
+      "description": "Removed: Factory Droid has no statusLine event; shared-hooks/statusline.py was never invoked.",
+      "allowed_hashes": [
+        "87c01ee786ca9e1f25b591f0ed67564cd430586d57516d5b6fc57c34b6e7a3ec",
+        "c92c0020a0c60308437b66f024a244303e708519c97089cf654ceddc144f7435",
+        "b9b0a39a486643f2b78ecb3c757459182a6326ea070ba34a49887e23adc40bbb"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".kiro/hooks/statusline.py",
+      "description": "Removed: Kiro has no statusLine event; shared-hooks/statusline.py was never invoked.",
+      "allowed_hashes": [
+        "87c01ee786ca9e1f25b591f0ed67564cd430586d57516d5b6fc57c34b6e7a3ec",
+        "c92c0020a0c60308437b66f024a244303e708519c97089cf654ceddc144f7435",
+        "b9b0a39a486643f2b78ecb3c757459182a6326ea070ba34a49887e23adc40bbb"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".kiro/hooks/session-start.py",
+      "description": "Removed: Kiro supports only `agentSpawn`; there is no SessionStart event to trigger this script.",
+      "allowed_hashes": [
+        "26b52ad72259316aa5adc8068d0df2a002273d5eda659ac3c71f3f5ecd9ebd08",
+        "ddd59c6fc5e6fa8c8535d6ac375ecaad60f15b87abc6dfc279007e610c636dd8",
+        "597409062bed8f9977750fa6262bb997facce7d8377d3482d4bcb2054e19c491",
+        "6cf36cffba3cf4a3caff99606d9fc9dde07fa4f74b7227aeb08d3de00ced7ca2",
+        "373f2f41c5506982cef1049f0203ca9e442c8074f54880aa021f037c0b9300b0",
+        "bc2026f6b1c195432e1126e1388d11fccec2df7a72010d0daa9fb6af76f683dd",
+        "cf355e44ace5e9b7c7d9a416462d4057a6cff9d5905b8db1839e6e4c892cfd13",
+        "a1b0db7c264da8e7abeb378a16ba8132b99b9918c9546627137d69427108f4b6",
+        "a0256292a2ade20728d71d2ea9a7ce866f6955efe034934eaecbf820244e9ad8"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".kiro/hooks/inject-workflow-state.py",
+      "description": "Removed: Kiro supports only `agentSpawn`; there is no UserPromptSubmit event to trigger this script.",
+      "allowed_hashes": [
+        "281939a51a62467a5dd73947fdec7143d0e936b4b64b5224ce0484186eb5b018",
+        "4231e4e0d52c9b05d66a215c870db30a876201a51350e5191953418ca4ec4637",
+        "50bd086d40654b9fe8cb902d2f321ce06e39b6d4020a6e9aa49154cc371bdb16"
+      ]
+    }
+  ],
+  "notes": "Behavior change: `.trellis/.current-task` is preserved but ignored by active-task resolution. Existing task directories and jsonl files remain valid. `task.py start` now requires session identity from the host or `TRELLIS_CONTEXT_ID`. Run `trellis update` to refresh hooks and templates. The 10 shared-hook cleanup migrations are hash-verified; locally modified hook files are preserved with a warning. Claude Code statusLine is not installed by default for new projects, and existing Claude Code statusLine files/settings are preserved on update."
+}

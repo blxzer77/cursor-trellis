@@ -1,0 +1,47 @@
+{
+  "id": "s4-worktree",
+  "name": "s4-worktree",
+  "title": "S4: Worktree submodule + PR 感知",
+  "description": "",
+  "status": "completed",
+  "package": "cli",
+  "dev_type": "backend",
+  "scope": null,
+  "priority": "P3",
+  "creator": "taosu",
+  "assignee": "taosu",
+  "createdAt": "2026-03-10",
+  "completedAt": "2026-03-11",
+  "branch": null,
+  "base_branch": "feat/v0.4.0-beta",
+  "worktree_path": null,
+  "current_phase": 2,
+  "next_action": [
+    {
+      "phase": 1,
+      "action": "implement"
+    },
+    {
+      "phase": 2,
+      "action": "check"
+    },
+    {
+      "phase": 3,
+      "action": "finish"
+    },
+    {
+      "phase": 4,
+      "action": "create-pr"
+    }
+  ],
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "03-10-v040-beta1",
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "linear_issue": "MIN-372"
+  }
+}

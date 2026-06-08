@@ -1,0 +1,9 @@
+{
+  "version": "0.5.0-beta.4",
+  "description": "Critical bug fix: workflow.md is now included in update's template set — previously excluded, causing 0.4.x → 0.5 upgrades to silently leave workflow.md at the old structure that 0.5's get_context.py / hooks can't parse",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Bug Fixes:**\n- fix(update): include workflow.md in `collectTemplateFiles` — `.trellis/workflow.md` was explicitly excluded from `trellis update`'s template set on the assumption that it's \"user-customizable documentation, written once at init\". That assumption broke in 0.5.0 because workflow.md started carrying **script-parsed structure**: `## Phase Index` (read by `get_context.py --mode phase`), `## Phase 1/2/3` headings (inlined into SessionStart payload), and `[workflow-state:STATUS]` tag blocks (consumed by the per-turn breadcrumb hook). Users upgrading from 0.4.x → 0.5 ended up with `get_context.py` reporting `Phase Index section not found in workflow.md` and the `/continue` command unable to route. workflow.md is now included in the normal update flow — unmodified copies auto-update, user-modified copies go through the existing \"Modified by you\" confirm prompt with diff. `workspace/index.md` stays excluded (it's runtime-appended by `add_session.py`, no script-parsed structure).",
+  "migrations": [],
+  "notes": "Pure CLI-side bug fix — no project file migrations. If you upgraded to any 0.5.0-beta.0..beta.3 and see `Phase Index section not found in workflow.md` from `get_context.py`, this release fixes it: run `trellis update --migrate`. Unmodified workflow.md auto-updates; if you customized it, you'll see the \"Modified by you\" confirm prompt with a diff — pick `Overwrite` to get the new 0.5.0 structure, or merge your edits manually into the new template."
+}

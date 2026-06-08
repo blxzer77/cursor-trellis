@@ -1,0 +1,6 @@
+{"file": ".trellis/spec/cli/backend/quality-guidelines.md", "reason": "Code quality bar for review"}
+{"file": ".trellis/spec/cli/backend/error-handling.md", "reason": "Verify error paths (missing manifest, invalid JSON, scrubber failures) are handled per spec"}
+{"file": ".trellis/spec/cli/backend/platform-integration.md", "reason": "Verify all 11 platforms covered by scrubber dispatch table"}
+{"file": ".trellis/spec/cli/unit-test/conventions.md", "reason": "Unit test patterns and anti-patterns"}
+{"file": ".trellis/spec/cli/unit-test/integration-patterns.md", "reason": "Integration test pattern (init → uninstall → assert clean state)"}
+{"file": ".trellis/spec/cli/unit-test/mock-strategies.md", "reason": "How to mock fs / prompt / process.platform for scrubber and uninstall tests"}

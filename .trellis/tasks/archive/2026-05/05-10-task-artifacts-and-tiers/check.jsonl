@@ -1,0 +1,9 @@
+{"file": ".trellis/spec/cli/backend/workflow-state-contract.md", "reason": "review workflow-state and no-task routing changes against breadcrumb invariants"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "review complete cross-layer data flow and boundary contracts"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "review duplicated artifact routing and validation logic"}
+{"file": ".trellis/spec/guides/cross-platform-thinking-guide.md", "reason": "review generated command and template changes for platform assumptions"}
+{"file": ".trellis/spec/cli/backend/platform-integration.md", "reason": "review platform integration and common-template synchronization"}
+{"file": ".trellis/spec/cli/backend/configurator-shared.md", "reason": "review init/update render parity and shared helper usage"}
+{"file": ".trellis/spec/cli/backend/script-conventions.md", "reason": "review Python task script changes for project conventions"}
+{"file": ".trellis/spec/cli/backend/quality-guidelines.md", "reason": "review tests, lint, and quality criteria for implementation"}
+{"file": ".trellis/tasks/05-10-task-artifacts-and-tiers/research/local-context.md", "reason": "review implementation against the local impact map"}

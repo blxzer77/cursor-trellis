@@ -1,0 +1,7 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": "src/templates/trellis/scripts/task.py", "reason": "Core task CLI - add subtask commands"}
+{"file": "src/templates/trellis/scripts/common/git_context.py", "reason": "Context display - add hierarchy"}
+{"file": "src/templates/trellis/scripts/common/task_queue.py", "reason": "Task queue - add children info"}
+{"file": "src/commands/init.ts", "reason": "TypeScript TaskJson interface"}
+{"file": ".claude/skills/trellis-meta/references/core/tasks.md", "reason": "Task system docs"}

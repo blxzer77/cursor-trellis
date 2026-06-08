@@ -1,0 +1,9 @@
+{
+  "version": "0.5.9",
+  "description": "Patch: codex dispatch defaults to inline + workflow.md namespaced into codex-inline / codex-sub-agent.",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Bug Fixes:**\n- fix(codex): default `codex.dispatch_mode` flipped from `sub-agent` to `inline`. Codex sub-agents run with `fork_turns=\"none\"` isolation and can't inherit the parent session's task context, so they exit silently or recursively dispatch. Inline keeps the main Codex agent in charge so context isn't lost. Set `codex.dispatch_mode: sub-agent` in `.trellis/config.yaml` to opt back into the legacy dispatch flow. Invalid values fall back to inline.\n- fix(workflow): namespace `--platform codex` into virtual platforms `codex-inline` / `codex-sub-agent` so `workflow.md` `[Platform A, B, ...]` blocks render the correct guidance per mode. `inject-workflow-state.py` emits a `<codex-mode>` banner in the per-turn UserPromptSubmit prompt so Codex knows which mode it is in, and `[workflow-state:STATUS-inline]` blocks now drive the breadcrumb path for inline mode.\n\n**Internal:**\n- chore(manifests): restore `0.6.0-beta.0.json` on main. The version was published from `feat/v0.6.0-beta` but its manifest never landed on main, breaking adjacent-version update chains for users who hop between stable and beta lines.",
+  "migrations": [],
+  "notes": "Patch on top of 0.5.8. Run `trellis update` (no `--migrate` needed). Existing Codex projects keep working: if you previously uncommented `dispatch_mode: sub-agent`, that opt-in still routes to the legacy dispatch flow; if the line is commented (the default), behavior switches to inline."
+}

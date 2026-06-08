@@ -1,0 +1,4 @@
+{"file": ".trellis/tasks/05-08-mem-opencode-sqlite/prd.md", "reason": "AC list — verify dogfood (138 sessions), soft-degrade behavior, dynamic PRAGMA defense, --include-children parent_id, no Claude/Codex regression"}
+{"file": ".trellis/spec/cli/backend/commands-mem.md", "reason": "Verify OpenCode SQLite subsection added; old JSON path removed; symbol references resolve"}
+{"file": ".trellis/spec/cli/unit-test/conventions.md", "reason": "Test anti-patterns — no hardcoded counts on growing data, no tautological tests, fixture cleanup"}
+{"file": ".trellis/spec/cli/backend/quality-guidelines.md", "reason": "Surgical-changes verification — Claude / Codex paths untouched"}

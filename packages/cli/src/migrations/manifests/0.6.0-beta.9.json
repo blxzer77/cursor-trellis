@@ -1,0 +1,9 @@
+{
+  "version": "0.6.0-beta.9",
+  "description": "Beta patch for trellis upgrade, OpenCode and Copilot context fixes, hook timeout defaults, and manifest continuity.",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Enhancements:**\n- feat(upgrade): add `trellis upgrade` with channel-aware defaults (`latest`, `beta`, `rc`), `--tag`, and `--dry-run`; update CLI/session hints to point at the command.\n- docs(brainstorm): simplify bundled brainstorm skill/prompt templates after beta.8 planning artifact routing.\n\n**Bug Fixes:**\n- fix(upgrade): harden upgrade execution with tag validation, no shell on POSIX, Windows `cmd.exe` invocation, and troubleshooting output for npm/PATH failures.\n- fix(opencode): inject `TRELLIS_CONTEXT_ID` using the shell dialect that parses the command and recognize `env ... TRELLIS_CONTEXT_ID=...` prefixes.\n- fix(context): handle non-Git Trellis roots without fake clean Git status and discover child Git repos for unconfigured polyrepos.\n- fix(opencode): isolate Trellis sub-agent context, resolve active tasks from session context / `Active task:` hints / single-session fallback, and preserve beta.8 task artifact order.\n- fix(hooks): raise hook timeout defaults to 30s for SessionStart and 15s for per-prompt workflow injection across hook-based platforms.\n- fix(copilot): remove stale SessionStart `systemMessage` while keeping `hookSpecificOutput.additionalContext`.\n\n**Internal:**\n- chore(manifests): restore `0.5.13.json` on the beta line for stable-to-beta manifest continuity.",
+  "migrations": [],
+  "notes": "Beta patch on top of 0.6.0-beta.8. Run `trellis update` to refresh workflow, hook, OpenCode, Copilot, session-context, and skill templates. No migration required."
+}

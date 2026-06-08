@@ -1,0 +1,7 @@
+{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"why\"}. Put spec/research only — no code paths. Delete this line when done."}
+{"file": ".trellis/spec/guides/index.md", "reason": "Shared guidelines including code-reuse thinking (important for check phase when sweeping multi-file changes)"}
+{"file": ".trellis/spec/cli/backend/quality-guidelines.md", "reason": "Quality gates: lint, type-check, and the 'audit all writers' rule — critical for verifying no consumer of jsonl was missed"}
+{"file": ".trellis/spec/cli/backend/script-conventions.md", "reason": "Verify Python scripts still follow conventions after refactor"}
+{"file": ".trellis/spec/cli/backend/migrations.md", "reason": "Verify 0.5.0-beta.12 manifest shape matches conventions"}
+{"file": ".trellis/spec/cli/unit-test/conventions.md", "reason": "Unit test conventions for any new/changed tests covering task create, seed jsonl, and hook fallback"}
+{"file": ".trellis/tasks/04-23-init-context-removal/research/jsonl-consumers.md", "reason": "Consumer inventory — check phase should verify all listed consumers handle seed-only jsonl correctly"}

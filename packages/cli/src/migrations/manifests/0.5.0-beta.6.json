@@ -1,0 +1,9 @@
+{
+  "version": "0.5.0-beta.6",
+  "description": "Fix codex trellis-check agent: change from read-only to workspace-write, rewrite developer_instructions to match other platforms' self-fix behavior per workflow.md contract.",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Bug Fixes:**\n- fix(codex): `trellis-check.toml` was shipped with `sandbox_mode = \"read-only\"` and 'Read-only Trellis reviewer' framing, which directly contradicted `workflow.md` (the check agent is supposed to auto-fix issues it finds — all other platforms' check agents have Write+Edit tools). Codex users running `trellis-check` could report findings but not fix them, forcing a manual roundtrip through the main agent. Changed to `sandbox_mode = \"workspace-write\"` and rewrote developer_instructions to instruct self-fix + re-run lint/type-check until green, matching the behavior contract of every other platform.",
+  "migrations": [],
+  "notes": "Pure template-content fix for codex users. No path migrations — `trellis update` will flag `.codex/agents/trellis-check.toml` as a template update and either auto-update (if unmodified) or prompt for confirm (if you customized it)."
+}

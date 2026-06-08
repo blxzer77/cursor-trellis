@@ -1,0 +1,13 @@
+{"file":".trellis/tasks/05-14-channel-lib-worker-lifecycle-subscriptions/prd.md","reason":"Task requirements and brainstorm ledger."}
+{"file":".trellis/tasks/05-14-channel-lib-worker-lifecycle-subscriptions/research/issue-intake.md","reason":"Original global issue intake and requirement list."}
+{"file":".trellis/tasks/05-14-channel-lib-worker-lifecycle-subscriptions/research/evidence-pass.md","reason":"Facts the review must validate or challenge."}
+{"file":".trellis/tasks/05-14-channel-lib-worker-lifecycle-subscriptions/research/architect-review.md","reason":"Prior architect findings."}
+{"file":".trellis/tasks/05-14-channel-lib-worker-lifecycle-subscriptions/research/planning-review-2.md","reason":"Second planning review findings."}
+{"file":".trellis/tasks/05-14-channel-lib-worker-lifecycle-subscriptions/design.md","reason":"Draft design to review."}
+{"file":".trellis/tasks/05-14-channel-lib-worker-lifecycle-subscriptions/implement.md","reason":"Draft implementation sequence to review."}
+{"file":".trellis/spec/cli/backend/trellis-core-sdk.md","reason":"Core/CLI boundary requirements."}
+{"file":".trellis/spec/cli/backend/commands-channel.md","reason":"Existing channel contracts."}
+{"file":"packages/core/src/channel/index.ts","reason":"Current core public API surface."}
+{"file":"packages/cli/src/commands/channel/supervisor.ts","reason":"Runtime lifecycle implementation to factor."}
+{"file":"packages/cli/src/commands/channel/supervisor/inbox.ts","reason":"Inbox delivery behavior to factor."}
+{"file":".trellis/tasks/05-14-channel-lib-worker-lifecycle-subscriptions/research/architect-review-3.md","reason":"Third architect review findings."}

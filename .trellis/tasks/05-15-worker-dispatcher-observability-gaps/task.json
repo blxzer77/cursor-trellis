@@ -1,0 +1,29 @@
+{
+  "id": "worker-dispatcher-observability-gaps",
+  "name": "worker-dispatcher-observability-gaps",
+  "title": "Discuss worker dispatcher observability gaps",
+  "description": "",
+  "status": "planning",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "taosu",
+  "assignee": "taosu",
+  "createdAt": "2026-05-15",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "feat/v0.6.0-beta",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "05-15-channel-wait-supervisor-warnings",
+    "05-15-worker-inbox-core-api"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}

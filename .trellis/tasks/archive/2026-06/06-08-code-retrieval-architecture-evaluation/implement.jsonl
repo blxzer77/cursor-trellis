@@ -1,0 +1,5 @@
+{"file":".trellis/spec/cli/backend/platform-integration.md","reason":"Graphify ownership may affect bundled skills, MCP routing, and platform-specific skill roots."}
+{"file":".trellis/spec/cli/backend/configurator-shared.md","reason":"A future trellis-graphify skill would use bundled skill/template distribution rules."}
+{"file":".trellis/spec/guides/cross-platform-thinking-guide.md","reason":"Graphify has Python/runtime/MCP path implications that need Windows and cross-platform handling."}
+{"file":".trellis/tasks/06-08-code-retrieval-architecture-evaluation/research/graphify-evidence.md","reason":"Records the Graphify evidence used to decide Skill+CLI vs MCP vs hybrid ownership."}
+{"file":".trellis/tasks/06-08-code-retrieval-architecture-evaluation/design.md","reason":"Defines the candidate ownership models and evaluation matrix."}

@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/cli/backend/index.md", "reason": "CLI backend quality and architecture rules for platform support"}
+{"file": ".trellis/spec/cli/backend/platform-integration.md", "reason": "Review checklist for platform registry, runtime adapter, docs, and tests"}
+{"file": ".trellis/tasks/04-24-pi-agent-trellis-support/research/pi-agent-capabilities.md", "reason": "Validate implementation against Pi capability limits and MVP scope"}
+{"file": ".trellis/spec/cli/unit-test/index.md", "reason": "Unit test expectations for CLI changes"}

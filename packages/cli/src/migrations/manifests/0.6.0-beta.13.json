@@ -1,0 +1,9 @@
+{
+  "version": "0.6.0-beta.13",
+  "description": "Beta patch: add the trellis-core SDK package, finalize thread channel naming/context commands, and publish core with the CLI.",
+  "breaking": true,
+  "recommendMigrate": false,
+  "changelog": "**Enhancements:**\n- feat(core): add `@mindfoldhq/trellis-core` with public `channel`, `task`, and `testing` exports for Node consumers.\n- feat(channel): use `trellis channel create --type threads` for thread channels and add `trellis channel context`, `trellis channel title`, and `trellis channel thread rename`.\n- feat(channel): add `--context-file` and `--context-raw` as canonical context flags while accepting `--linked-context-*` aliases.\n\n**Internal:**\n- chore(release): publish `@mindfoldhq/trellis-core` before `@mindfoldhq/trellis` with one version, one dist-tag, provenance, and packed CLI dependency checks.",
+  "migrations": [],
+  "notes": "Beta users should replace `trellis channel create --type thread` with `trellis channel create --type threads`. Run `trellis update` to pull in the core SDK-backed channel commands. No file migration is required."
+}

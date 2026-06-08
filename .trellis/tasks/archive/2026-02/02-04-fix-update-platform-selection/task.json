@@ -1,0 +1,41 @@
+{
+  "id": "fix-update-platform-selection",
+  "name": "fix-update-platform-selection",
+  "title": "修复 update 机制：只更新 init 时选择的平台",
+  "description": "",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "priority": "P2",
+  "creator": "taosu",
+  "assignee": "taosu",
+  "createdAt": "2026-02-04",
+  "completedAt": "2026-02-04",
+  "branch": null,
+  "base_branch": "feat/opencode",
+  "worktree_path": null,
+  "current_phase": 0,
+  "next_action": [
+    {
+      "phase": 1,
+      "action": "implement"
+    },
+    {
+      "phase": 2,
+      "action": "check"
+    },
+    {
+      "phase": 3,
+      "action": "finish"
+    },
+    {
+      "phase": 4,
+      "action": "create-pr"
+    }
+  ],
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "relatedFiles": [],
+  "notes": ""
+}

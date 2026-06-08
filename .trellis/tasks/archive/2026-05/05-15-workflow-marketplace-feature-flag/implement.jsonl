@@ -1,0 +1,6 @@
+{"file": ".trellis/spec/cli/backend/commands-update.md", "reason": "update pipeline and workflow.md hash/conflict behavior"}
+{"file": ".trellis/spec/cli/backend/workflow-state-contract.md", "reason": "workflow.md runtime parser and breadcrumb invariants"}
+{"file": ".trellis/spec/cli/backend/script-conventions.md", "reason": ".trellis/config.yaml key and typed accessor conventions"}
+{"file": ".trellis/spec/cli/unit-test/index.md", "reason": "test scope and validation expectations"}
+{"file": ".trellis/tasks/05-15-workflow-marketplace-feature-flag/research/tdd-skill-notes.md", "reason": "TDD workflow source behavior summary"}
+{"file": ".trellis/tasks/05-15-workflow-marketplace-feature-flag/research/arch-review-01.md", "reason": "architecture review findings and adopted workflow hash/update contract"}

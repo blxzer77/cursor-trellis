@@ -1,0 +1,9 @@
+{
+  "version": "0.5.0-beta.1",
+  "description": "First published 0.5 beta — same code as the beta.0 dev cut, bumped at release time",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Release:**\n- First @beta-tagged release of the 0.5 skill-first architecture. Code is identical to the 0.5.0-beta.0 dev cut; the bump happens automatically via `pnpm version prerelease --preid beta` inside `pnpm release:beta`, so beta.0 was never published to npm.\n\nAll migration work (command→skill for 5 skills, safe-file-delete for 6 legacy commands + multi-agent + iFlow + Ralph Loop, breaking-change gate, worktree backup exclusion) is defined in the 0.5.0-beta.0 manifest and applies when upgrading from 0.4.x.",
+  "migrations": [],
+  "notes": "If upgrading from 0.4.x: run `trellis update --migrate` — the gate in the 0.5.0-beta.0 manifest requires the flag. See the 0.5.0-beta.0 changelog for the full migration story."
+}

@@ -1,0 +1,28 @@
+{
+  "id": "channel-topics-managed-agents",
+  "name": "channel-topics-managed-agents",
+  "title": "Channel topics and managed resident agents",
+  "description": "Design channel scope/type/topic metadata and managed resident workers so global Trellis feedback can live inside channel instead of a separate issue feature.",
+  "status": "in_progress",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "taosu",
+  "assignee": "taosu",
+  "createdAt": "2026-05-13",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "feat/v0.6.0-beta",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "05-13-channel-post-text-input"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}

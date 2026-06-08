@@ -1,0 +1,5 @@
+{"file": ".opencode/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".opencode/commands/trellis/check.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/cli/unit-test/conventions.md", "reason": "Unit-test patterns for the new utils/task-json.ts factory."}
+{"file": ".trellis/spec/cli/backend/quality-guidelines.md", "reason": "Check the 'Audit ALL Writers' rule is actually satisfied — both writers call the shared factory."}
+{"file": ".trellis/spec/cli/backend/migrations.md", "reason": "Verify the new manifest entry follows safe-file-delete schema + hash requirements."}

@@ -1,0 +1,47 @@
+{
+  "id": "improve-break-loop-update-spec",
+  "name": "improve-break-loop-update-spec",
+  "title": "改进 break-loop 和 update-spec 命令",
+  "description": "",
+  "status": "completed",
+  "package": null,
+  "dev_type": null,
+  "scope": null,
+  "priority": "P2",
+  "creator": "taosu",
+  "assignee": "taosu",
+  "createdAt": "2026-03-11",
+  "completedAt": "2026-03-12",
+  "branch": null,
+  "base_branch": "feat/v0.4.0-beta",
+  "worktree_path": null,
+  "current_phase": 0,
+  "next_action": [
+    {
+      "phase": 1,
+      "action": "implement"
+    },
+    {
+      "phase": 2,
+      "action": "check"
+    },
+    {
+      "phase": 3,
+      "action": "finish"
+    },
+    {
+      "phase": 4,
+      "action": "create-pr"
+    }
+  ],
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "linear_issue": "MIN-375"
+  }
+}

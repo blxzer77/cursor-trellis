@@ -1,0 +1,5 @@
+{"file": ".trellis/tasks/05-08-mem-opencode-sqlite/prd.md", "reason": "Locked decisions (dynamic PRAGMA / soft-degrade / drop old JSON path), requirements, AC, out-of-scope"}
+{"file": ".trellis/spec/cli/backend/commands-mem.md", "reason": "Existing mem spec — sub-agent must add OpenCode SQLite subsection here; existing OpenCode coverage describes the old JSON layout that is being deleted"}
+{"file": ".trellis/spec/cli/backend/quality-guidelines.md", "reason": "Surgical-changes principle — Claude / Codex paths must NOT be touched"}
+{"file": ".trellis/spec/cli/unit-test/conventions.md", "reason": "Vitest conventions + anti-patterns — fixture must mock node:os and create + close a temporary SQLite DB cleanly"}
+{"file": "/tmp/trellis-mem-perf-research.md", "reason": "Section D.2-D.4 + E.4 — OSS reference implementations (arthurtyukayev/opencode-session-search, ryoppippi/ccusage PR #850) + OpenCode SQLite path detection patterns"}

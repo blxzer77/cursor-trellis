@@ -1,0 +1,6 @@
+{"file": ".trellis/spec/cli/backend/commands-update.md", "reason": "verify update/idempotency and workflow.md protection semantics"}
+{"file": ".trellis/spec/cli/backend/workflow-state-contract.md", "reason": "verify workflow variants preserve runtime parser contract"}
+{"file": ".trellis/spec/cli/unit-test/index.md", "reason": "verify test additions follow project conventions"}
+{"file": ".trellis/tasks/05-15-workflow-marketplace-feature-flag/prd.md", "reason": "requirements and acceptance criteria"}
+{"file": ".trellis/tasks/05-15-workflow-marketplace-feature-flag/design.md", "reason": "intended architecture and boundaries"}
+{"file": ".trellis/tasks/05-15-workflow-marketplace-feature-flag/research/arch-review-01.md", "reason": "verify arch blocker was resolved in implementation and tests"}

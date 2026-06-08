@@ -1,0 +1,9 @@
+{
+  "version": "0.6.0-beta.11",
+  "description": "Beta patch: fix uninstall manifest ownership, task archive auto-commit staging, Windows hook UTF-8 I/O, and beta-branch manifest continuity.",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Bug Fixes:**\n- fix(scripts): `task.py archive` auto-commit now stages only the archived task source path, archive destination path, and child task dirs whose `task.json` was edited during parent cleanup.\n- fix(scripts): `task.py archive` now stages source-side deletes with `git rm -r --cached --ignore-unmatch` after moving a tracked task dir to `.trellis/tasks/archive/<YYYY-MM>/`.\n- fix(uninstall): `trellis init` now tracks platform/root template hashes from files actually written by Trellis instead of walking `.codex/`, `.claude/`, and other platform dirs that can contain user runtime data.\n- fix(uninstall): `trellis update` and `trellis uninstall` prune orphan `.trellis/.template-hashes.json` entries before planning, preserving user-owned files from manifests created by older versions.\n- fix(hooks): Windows hook templates force UTF-8 for stdin, stdout, and stderr so non-ASCII task names and prompt payloads do not fail under cp936/cp1252 code pages.\n\n**Internal:**\n- Restored `0.5.14.json` and added `0.5.15.json` on the beta branch so `check-manifest-continuity` passes against all published stable versions.",
+  "migrations": [],
+  "notes": "Run `trellis update` to pull in the archive auto-commit fix, manifest ownership self-heal, and updated hook templates. No migration required because file paths did not change."
+}

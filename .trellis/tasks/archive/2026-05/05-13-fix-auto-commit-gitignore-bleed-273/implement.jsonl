@@ -1,0 +1,3 @@
+{"file": ".trellis/spec/cli/backend/script-conventions.md", "reason": "Python script standards for .trellis/scripts/ — task_store.py lives under this convention"}
+{"file": ".trellis/spec/cli/backend/migrations.md", "reason": "Template-file migration system — changes under packages/cli/src/templates/trellis/scripts/ may need a manifest entry"}
+{"file": ".trellis/spec/cli/backend/error-handling.md", "reason": "Python error-handling conventions to apply when adding the explicit `git rm` fallback"}

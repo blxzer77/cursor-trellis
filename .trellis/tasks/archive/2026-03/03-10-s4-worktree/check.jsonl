@@ -1,0 +1,5 @@
+{"file": ".opencode/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".opencode/commands/trellis/check.md", "reason": "Code quality check spec"}
+{"file": "packages/cli/src/templates/trellis/scripts/multi_agent/start.py", "reason": "verify submodule init"}
+{"file": "packages/cli/src/templates/trellis/scripts/multi_agent/create_pr.py", "reason": "verify submodule PR"}
+{"file": "packages/cli/src/templates/trellis/scripts/multi_agent/cleanup.py", "reason": "verify cleanup"}

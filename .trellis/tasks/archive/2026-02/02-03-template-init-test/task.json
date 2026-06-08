@@ -1,0 +1,41 @@
+{
+  "id": "template-init-test",
+  "name": "template-init-test",
+  "title": "trellis init --template 选项支持",
+  "description": "",
+  "status": "in_progress",
+  "dev_type": null,
+  "scope": "src/cli/",
+  "priority": "P2",
+  "creator": "taosu",
+  "assignee": "taosu",
+  "createdAt": "2026-02-03",
+  "completedAt": null,
+  "branch": "test/template-init",
+  "base_branch": "feat/opencode",
+  "worktree_path": "/Users/taosu/workspace/company/mindfold/product/share-public/trellis-worktrees/test/template-init",
+  "current_phase": 0,
+  "next_action": [
+    {
+      "phase": 1,
+      "action": "implement"
+    },
+    {
+      "phase": 2,
+      "action": "check"
+    },
+    {
+      "phase": 3,
+      "action": "finish"
+    },
+    {
+      "phase": 4,
+      "action": "create-pr"
+    }
+  ],
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "relatedFiles": [],
+  "notes": ""
+}

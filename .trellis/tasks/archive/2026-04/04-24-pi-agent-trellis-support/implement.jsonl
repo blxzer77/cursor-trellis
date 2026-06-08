@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/cli/backend/platform-integration.md", "reason": "Required checklist for adding a new AI CLI platform"}
+{"file": ".trellis/tasks/04-24-pi-agent-trellis-support/research/pi-agent-capabilities.md", "reason": "Pi official docs research and MVP capability classification"}
+{"file": ".trellis/spec/cli/backend/index.md", "reason": "CLI backend guidelines for platform registry and init changes"}
+{"file": ".trellis/spec/guides/cross-platform-thinking-guide.md", "reason": "Pi support touches paths, commands, CLI wrappers, and cross-platform assumptions"}

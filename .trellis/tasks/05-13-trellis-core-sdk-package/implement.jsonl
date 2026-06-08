@@ -1,0 +1,10 @@
+{"file":".trellis/tasks/05-13-trellis-core-sdk-package/prd.md","reason":"Task requirements and acceptance criteria."}
+{"file":".trellis/tasks/05-13-trellis-core-sdk-package/design.md","reason":"SDK package design and migration plan."}
+{"file":".trellis/spec/cli/backend/commands-channel.md","reason":"Current channel command/event protocol and future attribution notes."}
+{"file":".trellis/tasks/05-13-channel-topics-managed-agents/design.md","reason":"Existing thread-channel design and by/to/origin/meta boundary."}
+{"file":"packages/cli/src/commands/channel/store/events.ts","reason":"Current channel event append/read implementation to extract into core."}
+{"file":"packages/cli/src/commands/channel/store/paths.ts","reason":"Current channel storage path and scope resolution implementation."}
+{"file":"packages/cli/src/commands/channel/store/filter.ts","reason":"Shared channel event filtering logic."}
+{"file":"packages/cli/src/commands/channel/store/thread-state.ts","reason":"Thread reducer and thread list state projection."}
+{"file":"packages/cli/src/commands/channel/threads.ts","reason":"Current structured thread command behavior to wrap with core API."}
+{"file":"packages/cli/src/commands/channel/send.ts","reason":"Current message send command behavior to wrap with core API."}

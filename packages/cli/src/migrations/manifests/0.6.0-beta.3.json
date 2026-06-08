@@ -1,0 +1,9 @@
+{
+  "version": "0.6.0-beta.3",
+  "description": "Beta patch: tl mem --phase brainstorm slicing, 5-9x perf, OpenCode SQLite reader for 1.2+ users.",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Enhancements:**\n- feat(mem): `tl mem extract <id> --phase brainstorm|implement|all` slices a session into discussion vs implementation parts. Multi-task sessions get `--- task: <slug> ---` separators. Claude and Codex supported; OpenCode falls back to full dialogue.\n- perf(mem): 5-9× faster. `mem list` 3.5s → 0.67s, `mem list --platform codex` 3.2s → 0.33s, `mem extract --phase brainstorm` 5.8s → 0.73s.\n\n**Bug Fixes:**\n- fix(mem): OpenCode 1.2+ users no longer see 0 sessions. OpenCode 1.2 moved storage to SQLite; the old JSON-directory reader has been replaced. OpenCode 1.1.x is no longer supported.\n- fix(mem): `--phase` parser handles `$(... --slug NAME)` substitution, multiple `task.py` invocations per Bash command, and `task.py start` quoted in commit-message heredocs.",
+  "migrations": [],
+  "notes": "Beta patch on top of 0.6.0-beta.2. Run `trellis update` (no `--migrate` needed). New dependency `better-sqlite3` for OpenCode — standard `npm install` handles it via prebuilt binaries; if the native binding fails, `tl mem` still works on other platforms."
+}

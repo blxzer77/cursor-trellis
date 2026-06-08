@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/cli/backend/platform-integration.md", "reason": "Trellis 现有的平台集成约定。调研结论里推荐的修法不能违反这套契约（class-1 push hook vs class-2 pull prelude 等）。"}
+{"file": ".trellis/spec/cli/backend/script-conventions.md", "reason": "Python 脚本规范 + 跨 OS 兼容已知踩点（PEP 604 enterprise-fork 事故、Windows MSYS/Cygwin/WSL 路径归一化）。Windows 适配新代码要遵守这些规范。"}

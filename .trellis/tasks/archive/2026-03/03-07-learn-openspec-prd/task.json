@@ -1,0 +1,46 @@
+{
+  "id": "learn-openspec-prd",
+  "name": "learn-openspec-prd",
+  "title": "学习 OpenSpec 体验流程，加强 PRD 制作",
+  "description": "借鉴 OpenSpec SDD 流程，将 prd.md 拆分为 prd+design+tasks 三个 artifact，支持 fast-forward 一次生成，check agent 增加 spec 验证。",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "priority": "P2",
+  "creator": "taosu",
+  "assignee": "taosu",
+  "createdAt": "2026-03-07",
+  "completedAt": "2026-03-10",
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "current_phase": 0,
+  "next_action": [
+    {
+      "phase": 1,
+      "action": "implement"
+    },
+    {
+      "phase": 2,
+      "action": "check"
+    },
+    {
+      "phase": 3,
+      "action": "finish"
+    },
+    {
+      "phase": 4,
+      "action": "create-pr"
+    }
+  ],
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "03-06-v037",
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "linear_issue": "MIN-347"
+  }
+}

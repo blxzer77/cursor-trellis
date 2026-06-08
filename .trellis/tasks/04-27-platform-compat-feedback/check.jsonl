@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/cli/backend/platform-integration.md", "reason": "Verify no global current-task fallback is reintroduced and Claude env bridge is documented."}
+{"file": ".trellis/spec/cli/backend/script-conventions.md", "reason": "Verify task.py start/current/finish behavior remains session-scoped and tested."}
+{"file": ".trellis/spec/cli/backend/directory-structure.md", "reason": "Verify shared hook inventory matches Cursor hook-inject templates."}
+{"file": ".trellis/tasks/04-27-platform-compat-feedback/research/claude-code-session-env-file.md", "reason": "Verify Claude, Codex, and OpenCode Bash task-start fixes match the documented platform behavior."}

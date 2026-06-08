@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/cli/backend/directory-structure.md", "reason": "Where to place new commands/uninstall.ts and any helpers"}
+{"file": ".trellis/spec/cli/backend/platform-integration.md", "reason": "How platforms register configDir/additionalManagedPaths — need to enumerate all 11 to verify scrubber coverage"}
+{"file": ".trellis/spec/cli/backend/script-conventions.md", "reason": "CLI command naming, options, exit codes, output style consistent with init/update"}
+{"file": ".trellis/spec/cli/backend/error-handling.md", "reason": "How to surface user-facing errors (missing manifest, invalid JSON, etc.)"}
+{"file": ".trellis/spec/cli/backend/quality-guidelines.md", "reason": "General code quality bar for the new command + scrubbers"}

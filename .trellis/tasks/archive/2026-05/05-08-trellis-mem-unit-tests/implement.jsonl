@@ -1,0 +1,6 @@
+{"file": ".trellis/tasks/05-08-trellis-mem-unit-tests/prd.md", "reason": "Design doc: tier-1/2/3 test scope, required mem.ts export changes, acceptance criteria."}
+{"file": "packages/cli/src/commands/mem.ts", "reason": "Source under test (1461 LoC). Needs `export` annotations on listed pure helpers + platform parsers; no logic edits."}
+{"file": ".trellis/spec/cli/unit-test/index.md", "reason": "Entry point for unit-test specs."}
+{"file": ".trellis/spec/cli/unit-test/conventions.md", "reason": "Test conventions + anti-patterns (no hardcoded counts, no tautological tests, no TS type checks)."}
+{"file": ".trellis/spec/cli/unit-test/integration-patterns.md", "reason": "Patterns for tier-3 CLI subprocess tests (cmdList / cmdSearch / etc.)."}
+{"file": ".trellis/spec/cli/unit-test/mock-strategies.md", "reason": "Mocking patterns for filesystem / env-var / per-platform session roots."}

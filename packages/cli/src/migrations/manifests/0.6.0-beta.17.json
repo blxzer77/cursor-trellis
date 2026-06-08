@@ -1,0 +1,9 @@
+{
+  "version": "0.6.0-beta.17",
+  "description": "Beta patch: add workflow template switching, worker inbox core APIs, supervisor warning controls, wait kind unions, and Cursor sessionStart schema output.",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Enhancements:**\n- feat(workflow): `trellis init --workflow` and `trellis workflow` can select `native`, `tdd`, `channel-driven-subagent-dispatch`, or marketplace workflow templates for `.trellis/workflow.md`.\n- feat(channel): `trellis channel wait --kind` accepts CSV kind unions such as `done,killed`; supervisors emit `supervisor_warning`, and `trellis channel spawn --warn-before` configures or disables the warning lead time.\n- feat(core): `@mindfoldhq/trellis-core/channel` exports `readWorkerInbox()`, `watchWorkerInbox()`, and `WorkerInboxError` for durable worker inbox consumers.\n\n**Bug Fixes:**\n- fix(hooks): Cursor `sessionStart` hooks now emit top-level `additional_context` and no longer install the unsupported `beforeSubmitPrompt` workflow injector.",
+  "migrations": [],
+  "notes": "Run `npm install -g @mindfoldhq/trellis@beta` and `trellis update` to refresh CLI templates. No file migration is required."
+}

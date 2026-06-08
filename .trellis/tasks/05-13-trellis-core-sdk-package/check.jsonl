@@ -1,0 +1,4 @@
+{"file":".trellis/tasks/05-13-trellis-core-sdk-package/prd.md","reason":"Review task scope and non-goals."}
+{"file":".trellis/tasks/05-13-trellis-core-sdk-package/design.md","reason":"Review SDK package boundaries and API design."}
+{"file":".trellis/spec/cli/backend/commands-channel.md","reason":"Verify channel protocol compatibility."}
+{"file":".trellis/tasks/05-13-channel-topics-managed-agents/design.md","reason":"Verify event attribution boundary consistency."}

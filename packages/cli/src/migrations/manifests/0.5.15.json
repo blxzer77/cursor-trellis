@@ -1,0 +1,9 @@
+{
+  "version": "0.5.15",
+  "description": "Patch: prevent Trellis template manifests from owning user runtime files, and force UTF-8 for Windows hook I/O.",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Bug Fixes:**\n- fix(uninstall): `trellis init` now tracks platform/root template hashes from files actually written by Trellis instead of walking `.codex/`, `.claude/`, and other platform dirs that can contain user runtime data.\n- fix(uninstall): `trellis update` and `trellis uninstall` prune orphan `.trellis/.template-hashes.json` entries before planning, preserving user-owned files from manifests created by older versions.\n- fix(hooks): Windows hook templates force UTF-8 for stdin, stdout, and stderr so non-ASCII task names and prompt payloads do not fail under cp936/cp1252 code pages.",
+  "migrations": [],
+  "notes": "Run `trellis update` to pull in the manifest ownership fixes and updated hook templates. No migration required because file paths did not change."
+}

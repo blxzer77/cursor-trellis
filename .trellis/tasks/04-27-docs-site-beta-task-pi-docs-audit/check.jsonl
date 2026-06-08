@@ -1,0 +1,6 @@
+{"file": ".trellis/spec/docs-site/docs/index.md", "reason": "Check that the docs update stays within docs-site package rules."}
+{"file": ".trellis/spec/docs-site/docs/directory-structure.md", "reason": "Check that beta and zh mirrors are updated without touching release track."}
+{"file": ".trellis/spec/docs-site/docs/mdx-guidelines.md", "reason": "Check MDX syntax, callouts, code fences, and page structure."}
+{"file": ".trellis/spec/docs-site/docs/style-guide.md", "reason": "Check user-facing wording and terminology consistency."}
+{"file": ".trellis/spec/docs-site/docs/sync-on-change.md", "reason": "Check that platform/task-runtime changes are reflected across all required docs pages."}
+{"file": ".trellis/tasks/04-27-docs-site-beta-task-pi-docs-audit/research/docs-site-beta-audit.md", "reason": "Check implementation against the page-level audit findings."}

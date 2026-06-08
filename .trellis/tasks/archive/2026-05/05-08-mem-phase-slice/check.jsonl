@@ -1,0 +1,4 @@
+{"file": ".trellis/tasks/05-08-mem-phase-slice/prd.md", "reason": "AC list — verify regex covers 6 invoker variants, multi-task pairing, fallback behavior, compaction handling"}
+{"file": ".trellis/spec/cli/backend/commands-mem.md", "reason": "Verify --phase subsection added with correct semantics + matches implementation"}
+{"file": ".trellis/spec/cli/unit-test/conventions.md", "reason": "Test anti-patterns (no hardcoded counts, no tautological tests, no TS-redundant typeof)"}
+{"file": ".trellis/spec/cli/backend/quality-guidelines.md", "reason": "Surgical-changes principle — sub-agent must not refactor adjacent dialogue extraction code"}

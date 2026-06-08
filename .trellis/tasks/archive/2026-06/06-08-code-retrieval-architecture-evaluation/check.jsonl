@@ -1,0 +1,5 @@
+{"file":".trellis/spec/cli/backend/platform-integration.md","reason":"Check any ownership recommendation against Trellis platform integration boundaries."}
+{"file":".trellis/spec/cli/backend/configurator-shared.md","reason":"Check future bundled skill assumptions against init/update parity rules."}
+{"file":".trellis/spec/guides/cross-platform-thinking-guide.md","reason":"Check Graphify runtime/MCP recommendations for Windows and persisted path safety."}
+{"file":".trellis/tasks/06-08-code-retrieval-architecture-evaluation/research/graphify-evidence.md","reason":"Check that the decision cites concrete Graphify evidence and known uncertainties."}
+{"file":".trellis/tasks/06-08-code-retrieval-architecture-evaluation/design.md","reason":"Check the final recommendation against the stated ownership model matrix."}

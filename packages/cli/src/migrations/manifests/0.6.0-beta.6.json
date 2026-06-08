@@ -1,0 +1,16 @@
+{
+  "version": "0.6.0-beta.6",
+  "description": "Beta patch: brings v0.5.11 fixes into 0.6 beta line — drops `git add -f` auto-retry + new `session_auto_commit` config.",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Bug Fixes:**\n- fix(scripts): drop `git add -f` auto-retry from 0.6.0-beta.5. When `.gitignore` excludes `.trellis/`, `add_session.py` and `task.py archive` print a warning and skip auto-commit instead of force-staging.\n\n**Enhancements:**\n- feat(scripts): new `session_auto_commit: true | false` in `.trellis/config.yaml` (default `true`). Set `false` to skip auto stage + commit — journal / archive files still write to disk. Closes #245.",
+  "migrations": [],
+  "configSectionsAdded": [
+    {
+      "file": ".trellis/config.yaml",
+      "sentinel": "session_auto_commit:",
+      "sectionHeading": "Session Auto-Commit"
+    }
+  ],
+  "notes": "Beta patch on top of 0.6.0-beta.5. Run `trellis update` — your `.trellis/config.yaml` gets a commented-out `session_auto_commit: true` block appended automatically. Uncomment and flip to `false` if your `.gitignore` excludes `.trellis/` and you want auto-commit off entirely."
+}

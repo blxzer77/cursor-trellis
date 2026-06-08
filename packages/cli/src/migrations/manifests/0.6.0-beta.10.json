@@ -1,0 +1,9 @@
+{
+  "version": "0.6.0-beta.10",
+  "description": "Beta release for the trellis channel multi-agent collaboration runtime.",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Enhancements:**\n- feat(channel): add `trellis channel` multi-agent collaboration runtime with `create`, `send`, `wait`, `spawn`, `run`, `list`, `messages`, `kill`, `rm`, and `prune` subcommands.\n- feat(channel): add Claude stream-json and Codex app-server adapters that translate provider output into channel `message`, `progress`, `done`, and `error` events.\n- feat(channel): store project-scoped channel logs under `~/.trellis/channels/<project>/<channel>/events.jsonl` with locked sequence assignment and lazy legacy-channel relocation.\n\n**Internal:**\n- refactor(channel): isolate adapter parsing, event storage, supervisor shutdown, inbox polling, and stdout pumping under `packages/cli/src/commands/channel/`.",
+  "migrations": [],
+  "notes": "Beta release on top of 0.6.0-beta.9. Run `trellis update` after installing `@mindfoldhq/trellis@beta`. No project-file migration required."
+}

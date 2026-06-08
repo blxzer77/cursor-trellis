@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<title>Codex Rollout Viewer</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --panel: #171923;
+    --panel-2: #1f2230;
+    --border: #2a2e3e;
+    --fg: #e4e6ee;
+    --fg-dim: #8b90a4;
+    --accent: #7aa2f7;
+    --accent-2: #9ece6a;
+    --warn: #e0af68;
+    --err: #f7768e;
+    --tool: #bb9af7;
+    --user: #9ece6a;
+    --assistant: #7aa2f7;
+    --system: #e0af68;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg); color: var(--fg);
+    font: 13px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", sans-serif;
+    display: grid; grid-template-columns: 280px 1fr; grid-template-rows: auto 1fr;
+    grid-template-areas: "header header" "sidebar main";
+    height: 100vh;
+  }
+  header {
+    grid-area: header;
+    padding: 10px 16px; border-bottom: 1px solid var(--border);
+    background: var(--panel);
+    display: flex; gap: 12px; align-items: center;
+  }
+  header h1 { font-size: 14px; font-weight: 600; margin: 0; color: var(--fg-dim); }
+  header .stat { color: var(--fg-dim); font-size: 12px; }
+  header .stat b { color: var(--fg); }
+  header input[type="file"] { display: none; }
+  header label.btn, header button {
+    background: var(--panel-2); color: var(--fg); border: 1px solid var(--border);
+    padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px;
+  }
+  header label.btn:hover, header button:hover { border-color: var(--accent); }
+  header input[type="search"] {
+    flex: 1; max-width: 400px; padding: 6px 10px;
+    background: var(--panel-2); color: var(--fg); border: 1px solid var(--border); border-radius: 6px;
+    font-size: 12px;
+  }
+  aside {
+    grid-area: sidebar;
+    background: var(--panel); border-right: 1px solid var(--border);
+    overflow-y: auto; padding: 12px;
+  }
+  aside h2 {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--fg-dim); margin: 16px 0 6px; font-weight: 600;
+  }
+  aside h2:first-child { margin-top: 0; }
+  .filter {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 5px 8px; border-radius: 4px; cursor: pointer;
+    font-size: 12px; user-select: none;
+  }
+  .filter:hover { background: var(--panel-2); }
+  .filter.active { background: var(--panel-2); color: var(--accent); }
+  .filter .count { color: var(--fg-dim); font-variant-numeric: tabular-nums; }
+  main {
+    grid-area: main; overflow-y: auto;
+  }
+  #dropzone {
+    padding: 60px; text-align: center; color: var(--fg-dim);
+    border: 2px dashed var(--border); margin: 40px; border-radius: 12px;
+  }
+  #dropzone.drag { border-color: var(--accent); color: var(--accent); }
+  .event {
+    border-bottom: 1px solid var(--border);
+    padding: 8px 16px;
+  }
+  .event-head {
+    display: flex; align-items: center; gap: 10px; cursor: pointer;
+    font-size: 12px;
+  }
+  .event-head .line { color: var(--fg-dim); font-variant-numeric: tabular-nums; min-width: 48px; }
+  .event-head .type {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px; padding: 1px 6px; border-radius: 3px; background: var(--panel-2);
+    color: var(--accent);
+  }
+  .event-head .role { font-size: 11px; padding: 1px 6px; border-radius: 3px; font-weight: 600; }
+  .role-user { background: rgba(158, 206, 106, 0.15); color: var(--user); }
+  .role-assistant { background: rgba(122, 162, 247, 0.15); color: var(--assistant); }
+  .role-system, .role-tool { background: rgba(224, 175, 104, 0.15); color: var(--system); }
+  .event-head .preview {
+    flex: 1; color: var(--fg-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .event-body {
+    display: none; padding: 8px 0 8px 58px; margin-top: 6px;
+  }
+  .event.open .event-body { display: block; }
+  .event.open .event-head { font-weight: 500; }
+  .event-body .text {
+    background: var(--panel-2); padding: 10px 12px; border-radius: 6px;
+    white-space: pre-wrap; word-break: break-word; margin-bottom: 8px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;
+    max-height: 600px; overflow-y: auto;
+  }
+  .event-body .text.user { border-left: 3px solid var(--user); }
+  .event-body .text.assistant { border-left: 3px solid var(--assistant); }
+  .event-body .text.tool { border-left: 3px solid var(--tool); }
+  .event-body .meta { color: var(--fg-dim); font-size: 11px; margin-bottom: 4px; }
+  .event-body details { margin-top: 6px; }
+  .event-body details summary { color: var(--fg-dim); cursor: pointer; font-size: 11px; padding: 2px 0; }
+  .event-body details pre {
+    background: var(--panel-2); padding: 10px 12px; border-radius: 6px; margin: 4px 0 0;
+    white-space: pre-wrap; word-break: break-word;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px;
+    max-height: 500px; overflow: auto; color: var(--fg-dim);
+  }
+  .tool-call {
+    background: rgba(187, 154, 247, 0.08); border-left: 3px solid var(--tool);
+    padding: 8px 12px; border-radius: 4px; margin-bottom: 6px;
+  }
+  .tool-call .name { color: var(--tool); font-weight: 600; font-family: ui-monospace, monospace; font-size: 12px; }
+  .tool-call .args { margin-top: 4px; font-family: ui-monospace, monospace; font-size: 11px; color: var(--fg-dim); white-space: pre-wrap; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  #controls { display: flex; gap: 8px; align-items: center; padding: 8px 16px; background: var(--panel); border-bottom: 1px solid var(--border); }
+  #controls button { background: transparent; color: var(--fg-dim); border: 1px solid var(--border); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; }
+  #controls button:hover { color: var(--fg); border-color: var(--accent); }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Codex Rollout Viewer</h1>
+  <label class="btn">
+    Open .jsonl
+    <input type="file" id="file" accept=".jsonl,.ndjson,.json,text/*" />
+  </label>
+  <span class="stat" id="stats">No file loaded</span>
+  <input type="search" id="search" placeholder="Search (substring match across full JSON)…" />
+</header>
+
+<aside>
+  <h2>Top-level type</h2>
+  <div id="types"></div>
+  <h2>Role</h2>
+  <div id="roles"></div>
+  <h2>Inner payload type</h2>
+  <div id="ptypes"></div>
+  <h2>Tool name</h2>
+  <div id="tools"></div>
+</aside>
+
+<main>
+  <div id="dropzone">Drop a rollout .jsonl here, or click "Open .jsonl" above.<br><span style="font-size:11px">Files stay local — nothing is uploaded.</span></div>
+  <div id="controls" class="hidden">
+    <button id="expandAll">Expand all</button>
+    <button id="collapseAll">Collapse all</button>
+    <span class="stat" id="showing"></span>
+  </div>
+  <div id="events"></div>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let events = [];
+let filters = { types: new Set(), roles: new Set(), ptypes: new Set(), tools: new Set(), q: "" };
+
+function getRole(e) {
+  return e.role || e.payload?.role || e._raw?.role || null;
+}
+function getInnerType(e) {
+  return e.payload?.type || e.content?.[0]?.type || null;
+}
+function getToolName(e) {
+  // Codex response_item shapes
+  if (e.payload?.name) return e.payload.name;
+  if (e.payload?.call?.name) return e.payload.call.name;
+  if (e.name && typeof e.name === 'string' && (e.type||'').toLowerCase().includes('tool')) return e.name;
+  // local_shell_call / function_call patterns
+  if (e.payload?.type === 'function_call' && e.payload?.name) return e.payload.name;
+  if (e.type === 'local_shell_call') return 'shell';
+  return null;
+}
+function firstText(e) {
+  const c = e.payload?.content || e.content;
+  if (Array.isArray(c)) {
+    for (const item of c) {
+      if (typeof item === 'string') return item;
+      if (item?.text) return item.text;
+      if (item?.content) return typeof item.content === 'string' ? item.content : JSON.stringify(item.content);
+    }
+  }
+  if (typeof e.payload?.text === 'string') return e.payload.text;
+  if (typeof e.text === 'string') return e.text;
+  if (typeof e.payload?.arguments === 'string') return e.payload.arguments;
+  if (typeof e.payload?.output === 'string') return e.payload.output;
+  return null;
+}
+
+function buildFilters() {
+  const typeCount = {}, roleCount = {}, ptypeCount = {}, toolCount = {};
+  for (const e of events) {
+    const t = e.type || '(none)'; typeCount[t] = (typeCount[t]||0)+1;
+    const r = getRole(e); if (r) roleCount[r] = (roleCount[r]||0)+1;
+    const pt = getInnerType(e); if (pt) ptypeCount[pt] = (ptypeCount[pt]||0)+1;
+    const tn = getToolName(e); if (tn) toolCount[tn] = (toolCount[tn]||0)+1;
+  }
+  renderFilterGroup($('types'), typeCount, filters.types);
+  renderFilterGroup($('roles'), roleCount, filters.roles);
+  renderFilterGroup($('ptypes'), ptypeCount, filters.ptypes);
+  renderFilterGroup($('tools'), toolCount, filters.tools);
+}
+
+function renderFilterGroup(container, counts, active) {
+  container.innerHTML = '';
+  const entries = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  for (const [k,v] of entries) {
+    const div = document.createElement('div');
+    div.className = 'filter' + (active.has(k) ? ' active' : '');
+    div.innerHTML = `<span>${escapeHtml(k)}</span><span class="count">${v}</span>`;
+    div.onclick = () => {
+      if (active.has(k)) active.delete(k); else active.add(k);
+      buildFilters(); renderEvents();
+    };
+    container.appendChild(div);
+  }
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function matches(e) {
+  if (filters.types.size && !filters.types.has(e.type || '(none)')) return false;
+  if (filters.roles.size) { const r = getRole(e); if (!r || !filters.roles.has(r)) return false; }
+  if (filters.ptypes.size) { const pt = getInnerType(e); if (!pt || !filters.ptypes.has(pt)) return false; }
+  if (filters.tools.size) { const tn = getToolName(e); if (!tn || !filters.tools.has(tn)) return false; }
+  if (filters.q) {
+    const raw = e._raw || JSON.stringify(e);
+    if (!raw.toLowerCase().includes(filters.q.toLowerCase())) return false;
+  }
+  return true;
+}
+
+function renderEvents() {
+  const container = $('events');
+  container.innerHTML = '';
+  let shown = 0;
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < events.length; i++) {
+    const e = events[i];
+    if (!matches(e)) continue;
+    shown++;
+    const role = getRole(e);
+    const pt = getInnerType(e);
+    const tn = getToolName(e);
+    const text = firstText(e);
+    const preview = tn
+      ? `[${tn}] ${(text||'').slice(0,200).replace(/\n/g,' ')}`
+      : (text || JSON.stringify(e).slice(0, 200)).replace(/\n/g,' ');
+
+    const div = document.createElement('div');
+    div.className = 'event';
+    div.innerHTML = `
+      <div class="event-head">
+        <span class="line">#${e._line}</span>
+        <span class="type">${escapeHtml(e.type||'?')}${pt && pt !== e.type ? ' / '+escapeHtml(pt) : ''}</span>
+        ${role ? `<span class="role role-${escapeHtml(role)}">${escapeHtml(role)}</span>` : ''}
+        ${tn ? `<span class="type" style="color:var(--tool)">${escapeHtml(tn)}</span>` : ''}
+        <span class="preview">${escapeHtml(preview)}</span>
+      </div>
+      <div class="event-body"></div>
+    `;
+    const head = div.querySelector('.event-head');
+    const body = div.querySelector('.event-body');
+    head.onclick = () => {
+      div.classList.toggle('open');
+      if (div.classList.contains('open') && !body.dataset.rendered) {
+        body.innerHTML = renderBody(e, text, tn, role);
+        body.dataset.rendered = '1';
+      }
+    };
+    frag.appendChild(div);
+  }
+  container.appendChild(frag);
+  $('showing').textContent = `showing ${shown} / ${events.length}`;
+}
+
+function renderBody(e, text, tn, role) {
+  let html = '';
+  if (e.timestamp) html += `<div class="meta">timestamp: ${escapeHtml(e.timestamp)}</div>`;
+  if (tn) {
+    const args = e.payload?.arguments || e.payload?.command || e.payload?.call?.arguments;
+    html += `<div class="tool-call"><div class="name">${escapeHtml(tn)}</div>`;
+    if (args) html += `<div class="args">${escapeHtml(typeof args === 'string' ? args : JSON.stringify(args, null, 2))}</div>`;
+    html += `</div>`;
+  }
+  if (text) {
+    html += `<div class="text ${role||'assistant'}">${escapeHtml(text)}</div>`;
+  }
+  html += `<details><summary>Full JSON</summary><pre>${escapeHtml(JSON.stringify(e, (k,v)=>k==='_raw'||k==='_line'?undefined:v, 2))}</pre></details>`;
+  return html;
+}
+
+function loadText(text, name) {
+  events = [];
+  const lines = text.split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    try {
+      const obj = JSON.parse(line);
+      obj._line = i + 1;
+      obj._raw = line;
+      events.push(obj);
+    } catch (err) {
+      events.push({ _line: i + 1, _raw: line, type: '(parse-error)', error: err.message, text: line.slice(0,500) });
+    }
+  }
+  $('stats').innerHTML = `<b>${escapeHtml(name)}</b> · ${events.length} events`;
+  $('dropzone').classList.add('hidden');
+  $('controls').classList.remove('hidden');
+  buildFilters();
+  renderEvents();
+}
+
+$('file').addEventListener('change', async (ev) => {
+  const f = ev.target.files[0]; if (!f) return;
+  loadText(await f.text(), f.name);
+});
+
+const dz = $('dropzone');
+['dragenter','dragover'].forEach(t => dz.addEventListener(t, e => { e.preventDefault(); dz.classList.add('drag'); }));
+['dragleave','drop'].forEach(t => dz.addEventListener(t, e => { e.preventDefault(); dz.classList.remove('drag'); }));
+document.body.addEventListener('dragover', e => e.preventDefault());
+document.body.addEventListener('drop', async e => {
+  e.preventDefault();
+  const f = e.dataTransfer.files[0]; if (!f) return;
+  loadText(await f.text(), f.name);
+});
+
+$('search').addEventListener('input', (e) => { filters.q = e.target.value; renderEvents(); });
+$('expandAll').onclick = () => document.querySelectorAll('.event').forEach(el => {
+  el.classList.add('open');
+  const body = el.querySelector('.event-body');
+  if (!body.dataset.rendered) {
+    const idx = parseInt(el.querySelector('.line').textContent.slice(1)) - 1;
+    const e = events.find(x => x._line === idx + 1) || events[idx];
+    if (e) { body.innerHTML = renderBody(e, firstText(e), getToolName(e), getRole(e)); body.dataset.rendered = '1'; }
+  }
+});
+$('collapseAll').onclick = () => document.querySelectorAll('.event').forEach(el => el.classList.remove('open'));
+</script>
+</body>
+</html>

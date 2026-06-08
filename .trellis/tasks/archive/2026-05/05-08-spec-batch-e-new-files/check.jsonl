@@ -1,0 +1,4 @@
+{"file": ".trellis/tasks/05-08-spec-batch-e-new-files/prd.md", "reason": "AC list per spec + style requirements"}
+{"file": ".trellis/spec/cli/backend/platform-integration.md", "reason": "Reference for style consistency check"}
+{"file": ".trellis/spec/cli/backend/migrations.md", "reason": "Verify commands-update.md doesn't duplicate manifest mechanics"}
+{"file": ".trellis/tasks/05-08-spec-audit-drift/research/02-missing-specs.md", "reason": "Verify each new spec addresses its audit-flagged gap"}

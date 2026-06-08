@@ -1,0 +1,46 @@
+{
+  "id": "hook-start-equiv",
+  "name": "hook-start-equiv",
+  "title": "Hook 注入后 AI 主动执行 start 流程",
+  "description": "R1: start.md 强化指令（去掉停止点，连续执行 Phase 1-3）。R2: session-start hook 加 task 状态标签（ready/not ready）。R3: ready 标签改主动指令。",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "priority": "P2",
+  "creator": "taosu",
+  "assignee": "taosu",
+  "createdAt": "2026-03-06",
+  "completedAt": "2026-03-10",
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "current_phase": 1,
+  "next_action": [
+    {
+      "phase": 1,
+      "action": "implement"
+    },
+    {
+      "phase": 2,
+      "action": "check"
+    },
+    {
+      "phase": 3,
+      "action": "finish"
+    },
+    {
+      "phase": 4,
+      "action": "create-pr"
+    }
+  ],
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "03-06-v037",
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "linear_issue": "MIN-343"
+  }
+}

@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/cli/backend/script-conventions.md", "reason": "Python 脚本约定（含跨平台、子命令风格），改 task.py 时遵循。"}
+{"file": ".trellis/spec/cli/backend/quality-guidelines.md", "reason": "代码质量基线（surgical changes、命名、错误处理）。"}

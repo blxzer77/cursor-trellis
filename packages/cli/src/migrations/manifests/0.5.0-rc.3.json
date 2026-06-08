@@ -1,0 +1,9 @@
+{
+  "version": "0.5.0-rc.3",
+  "description": "Patches rc.2 with Gemini CLI 0.40.x template compatibility fixes (#224). No new migrations.",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Bug Fixes:**\n- fix(cli): Gemini CLI 0.40.x template compat (#224). Drop `tools:` line from `.gemini/agents/trellis-{check,implement,research}.md` (sub-agent inherits parent tools). Hook event `UserPromptSubmit` → `BeforeAgent` in `.gemini/settings.json`. Shared skills moved from `.gemini/skills/` to `.agents/skills/`.\n- fix(cli): `inject-workflow-state.py` branches `hookEventName` per platform via `_detect_platform()` — `BeforeAgent` for Gemini, `UserPromptSubmit` otherwise.\n- fix(cli): `needsCodexUpgrade()` narrowed to Codex-only command-as-skill markers `.agents/skills/trellis-{continue,finish-work}/SKILL.md`. Previous broad match auto-installed Codex on `trellis update` for Gemini-only projects.",
+  "migrations": [],
+  "notes": "RC install: `npm install -g @mindfoldhq/trellis@rc`. Existing Gemini installs: re-run `trellis init --gemini` or delete `.gemini/skills/` manually."
+}

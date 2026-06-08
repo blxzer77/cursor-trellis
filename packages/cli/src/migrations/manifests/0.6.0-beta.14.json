@@ -1,0 +1,9 @@
+{
+  "version": "0.6.0-beta.14",
+  "description": "Beta patch: classify Codex channel streamed deltas and verify published packages on public npm after CI publish.",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Bug Fixes:**\n- fix(channel): add `detail.kind`, `detail.stream_id`, and `detail.phase` to Codex `item/agentMessage/delta` progress events so consumers can split interleaved output and commentary streams.\n\n**Internal:**\n- chore(release): verify `@mindfoldhq/trellis` and `@mindfoldhq/trellis-core` are visible on the public npm registry after CI publish.",
+  "migrations": [],
+  "notes": "Run `npm install -g @mindfoldhq/trellis@beta` and `trellis update` to use the Codex channel stream metadata fix. No file migration is required."
+}

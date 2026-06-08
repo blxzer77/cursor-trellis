@@ -1,0 +1,45 @@
+{
+  "id": "remote-spec-templates",
+  "name": "remote-spec-templates",
+  "title": "支持从自定义远程仓库下载 spec 模板",
+  "description": "",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "priority": "P2",
+  "creator": "taosu",
+  "assignee": "taosu",
+  "createdAt": "2026-03-05",
+  "completedAt": "2026-03-06",
+  "branch": null,
+  "base_branch": "feat/remote-spec",
+  "worktree_path": null,
+  "current_phase": 0,
+  "next_action": [
+    {
+      "phase": 1,
+      "action": "implement"
+    },
+    {
+      "phase": 2,
+      "action": "check"
+    },
+    {
+      "phase": 3,
+      "action": "finish"
+    },
+    {
+      "phase": 4,
+      "action": "create-pr"
+    }
+  ],
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "relatedFiles": [],
+  "notes": "",
+  "parent": "03-05-v036-update",
+  "meta": {
+    "linear_issue": "MIN-339"
+  }
+}

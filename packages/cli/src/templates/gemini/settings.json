@@ -1,0 +1,28 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{PYTHON_CMD}} .gemini/hooks/session-start.py",
+            "timeout": 30000
+          }
+        ]
+      }
+    ],
+    "BeforeAgent": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{PYTHON_CMD}} .gemini/hooks/inject-workflow-state.py",
+            "timeout": 15000
+          }
+        ]
+      }
+    ]
+  }
+}

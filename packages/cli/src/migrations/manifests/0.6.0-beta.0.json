@@ -1,0 +1,16 @@
+{
+  "version": "0.6.0-beta.0",
+  "description": "First 0.6 beta. Adds `trellis mem`: search past Claude Code / Codex / OpenCode sessions by keyword, read the turns around each match, and dump full conversations.",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**New feature: `trellis mem`**\n- `trellis mem` searches past Claude Code / Codex / OpenCode sessions by keyword and reads the turns around each match. Five subcommands wired through commander as a passthrough group: `projects`, `list`, `search`, `context`, `extract`. Strips hook injections, AGENTS.md preambles, and tool-call noise so search hits reflect real dialogue. Handles compaction (Claude `isCompactSummary` + Codex `compacted` events). Adds zod ^4 as a runtime dep.\n- 84 unit tests added on top of the integrated POC source: 11 pure helpers (Tier 1, 44 cases), 3 platform parsers with inline fixtures (Tier 2, 24 cases), 5 subcommand integration smoke (Tier 3, 16 cases). mem.ts statement coverage 81.89% / function 89.04% / line 87.93%.",
+  "migrations": [],
+  "configSectionsAdded": [
+    {
+      "file": ".trellis/config.yaml",
+      "sentinel": "codex:",
+      "sectionHeading": "Codex (sub-agent dispatch behavior)"
+    }
+  ],
+  "notes": "First public 0.6 beta. Install: `npm install -g @mindfoldhq/trellis@beta`. The `trellis mem` command is opt-in (only fires when invoked). Codex 0.129+ users should run `/hooks` once to approve the Trellis `UserPromptSubmit` hook."
+}

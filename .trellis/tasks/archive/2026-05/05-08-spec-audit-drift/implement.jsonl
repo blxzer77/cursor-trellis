@@ -1,0 +1,6 @@
+{"file": ".trellis/tasks/05-08-spec-audit-drift/prd.md", "reason": "Scope = A+B+C+D, AC, file edit list, out-of-scope boundaries"}
+{"file": ".trellis/tasks/05-08-spec-audit-drift/research/00-summary.md", "reason": "Cross-batch overview + recommended fix batches A-F"}
+{"file": ".trellis/tasks/05-08-spec-audit-drift/research/01-spec-drift.md", "reason": "Batch A (S1/S2) + Batch C (D1/D4/D5) detailed drift items with line-number evidence"}
+{"file": ".trellis/tasks/05-08-spec-audit-drift/research/02-missing-specs.md", "reason": "Confirms task_context.py / trellis_config.py / workflow_phase.py module-level facts for Batch A"}
+{"file": ".trellis/tasks/05-08-spec-audit-drift/research/03-stale-refs.md", "reason": "Batch B (W1 + init.ts:931→1081 dual-cite) — exact stale lines + correct numbers"}
+{"file": ".trellis/tasks/05-08-spec-audit-drift/research/04-docs-spec-consistency.md", "reason": "Batch D — .current-task fallback contradiction (architecture.mdx:173 EN+ZH)"}

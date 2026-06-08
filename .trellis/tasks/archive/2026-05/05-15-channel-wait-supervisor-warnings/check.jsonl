@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/cli/backend/commands-channel.md", "reason": "Review channel command behavior and event-log compatibility."}
+{"file": ".trellis/spec/cli/backend/quality-guidelines.md", "reason": "Review high-cohesion/low-coupling and reusable implementation shape."}
+{"file": ".trellis/spec/cli/unit-test/index.md", "reason": "Verify test coverage expectations for CLI/core changes."}
+{"file": ".trellis/spec/cli/unit-test/conventions.md", "reason": "Verify tests avoid brittle environment and slow timeout behavior."}

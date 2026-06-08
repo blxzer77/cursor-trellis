@@ -1,0 +1,9 @@
+{"file": ".trellis/spec/cli/unit-test/conventions.md", "reason": "Test conventions (anti-patterns: hardcoded counts, tautological tests, type-checks in TS). Checker validates new tests for resolvePlaceholdersNeutral / configurator changes follow these."}
+{"file": ".trellis/spec/cli/unit-test/integration-patterns.md", "reason": "Patterns for full configurator-flow tests (init/update integration). Needed because Gemini configurator change must be re-validated end-to-end, not just unit-level."}
+{"file": ".trellis/spec/cli/unit-test/mock-strategies.md", "reason": "How to fake fs / cwd for configurator tests without flakiness. Relevant to verifying skills now land in .agents/skills/ instead of .gemini/skills/."}
+{"file": ".trellis/spec/cli/backend/quality-guidelines.md", "reason": "Lint, type-check, test coverage gates the checker enforces."}
+{"file": ".trellis/spec/cli/backend/platform-integration.md", "reason": "Cross-check: did the Gemini configurator change keep parity with platform-integration.md (e.g., still ships per-turn breadcrumb hook, still respects .agents/skills/ precedence)?"}
+{"file": ".trellis/spec/cli/backend/workflow-state-contract.md", "reason": "Cross-check: hookEventName branching in inject-workflow-state.py still complies with the breadcrumb output contract."}
+{"file": ".trellis/tasks/05-03-fix-gemini-cli-template-compat-0-40/research/hook-events.md", "reason": "Authoritative source for verifying the BeforeAgent JSON shape matches what Gemini 0.40.x expects (avoid silent mis-injection)."}
+{"file": ".trellis/tasks/05-03-fix-gemini-cli-template-compat-0-40/research/skills-discovery.md", "reason": "Confirm checker that .agents/skills/ destination + frontmatter shape works with Gemini 0.40.x merge logic (no duplicate-skill warning)."}
+{"file": ".trellis/tasks/05-03-fix-gemini-cli-template-compat-0-40/prd.md", "reason": "Acceptance Criteria + Definition of Done — what 'pass' means for this task."}

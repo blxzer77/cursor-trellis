@@ -1,0 +1,9 @@
+{
+  "version": "0.4.0-beta.9",
+  "description": "Copilot & Windsurf platform support, self-hosted registry, OpenCode dispatch fix, 6-phase task lifecycle",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Enhancements:**\n- feat(copilot): add GitHub Copilot platform support with standalone prompt templates and hook tracking\n- feat(windsurf): add full workflow support for Windsurf IDE — rules, workflows, and AI configuration\n- feat(cli): support self-hosted GitLab/GitHub Enterprise URLs in --registry (#131)\n- feat(cli): statusLine integration for Claude Code (#127)\n- feat(cli): CodeBuddy platform support, Codex agent improvements (#128, #116)\n- refactor(task): update next_action template to 6-phase lifecycle (brainstorm→research→implement→check→update-spec→record-session)\n- refactor: migrate marketplace to standalone repo as submodule (#117)\n\n**Bug Fixes:**\n- fix(opencode): make dispatch wait for child tasks synchronously instead of background polling (#147)\n- fix(hooks): normalize .current-task path refs across platforms (#130)\n- fix(codex): resolve {{PYTHON_CMD}} placeholder in hooks.json for Windows (#132)\n- fix(cli): add_session git-add error handling and Python 3.10 version check\n- fix(cli): support self-hosted GitLab/GHE URL parsing in template-fetcher",
+  "migrations": [],
+  "notes": "Run `trellis update` to sync. New platforms: `trellis init --platform copilot` or `--platform windsurf`."
+}

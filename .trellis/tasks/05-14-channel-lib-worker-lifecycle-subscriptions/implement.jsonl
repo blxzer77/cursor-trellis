@@ -1,0 +1,19 @@
+{"file":".trellis/tasks/05-14-channel-lib-worker-lifecycle-subscriptions/prd.md","reason":"Task requirements and acceptance criteria."}
+{"file":".trellis/tasks/05-14-channel-lib-worker-lifecycle-subscriptions/research/issue-intake.md","reason":"Global issue intake from trellis-issue."}
+{"file":".trellis/tasks/05-14-channel-lib-worker-lifecycle-subscriptions/research/evidence-pass.md","reason":"Initial repository evidence pass."}
+{"file":".trellis/tasks/05-14-channel-lib-worker-lifecycle-subscriptions/research/architect-review.md","reason":"Architect review and corrections."}
+{"file":".trellis/tasks/05-14-channel-lib-worker-lifecycle-subscriptions/research/planning-review-2.md","reason":"Second planning review findings."}
+{"file":".trellis/tasks/05-14-channel-lib-worker-lifecycle-subscriptions/design.md","reason":"Draft channel runtime core API design."}
+{"file":".trellis/tasks/05-14-channel-lib-worker-lifecycle-subscriptions/implement.md","reason":"Draft staged implementation plan."}
+{"file":".trellis/spec/cli/backend/trellis-core-sdk.md","reason":"Core/CLI package boundary and SOT rules."}
+{"file":".trellis/spec/cli/backend/commands-channel.md","reason":"Current channel command and event contracts."}
+{"file":"packages/core/src/channel/index.ts","reason":"Current public core channel exports."}
+{"file":"packages/core/src/channel/internal/store/events.ts","reason":"Core event schema and append/read storage."}
+{"file":"packages/core/src/channel/internal/store/watch.ts","reason":"Single-channel watch implementation."}
+{"file":"packages/core/src/channel/api/read.ts","reason":"Public read API without pagination."}
+{"file":"packages/core/src/channel/api/watch.ts","reason":"Public single-channel watch API."}
+{"file":"packages/cli/src/commands/channel/spawn.ts","reason":"Current CLI-owned channel spawn implementation."}
+{"file":"packages/cli/src/commands/channel/supervisor.ts","reason":"Current CLI-owned supervisor orchestration."}
+{"file":"packages/cli/src/commands/channel/supervisor/inbox.ts","reason":"Current hardcoded worker inbox policy."}
+{"file":"packages/cli/src/commands/channel/kill.ts","reason":"Current CLI-owned kill and stale supervisor handling."}
+{"file":".trellis/tasks/05-14-channel-lib-worker-lifecycle-subscriptions/research/architect-review-3.md","reason":"Third architect review findings."}

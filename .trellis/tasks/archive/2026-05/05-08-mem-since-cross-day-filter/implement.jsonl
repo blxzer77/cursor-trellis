@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/cli/backend/index.md", "reason": "CLI backend spec index — points at directory layout + quality conventions"}
+{"file": ".trellis/spec/cli/backend/quality-guidelines.md", "reason": "Code quality bar (style, error handling, surgical changes) — applies to mem.ts edit"}
+{"file": ".trellis/spec/cli/unit-test/conventions.md", "reason": "Vitest conventions + anti-patterns — needed for new test/commands/mem.test.ts"}
+{"file": ".trellis/tasks/05-08-mem-since-cross-day-filter/prd.md", "reason": "Bug repro, root-cause table (claude L593 / codex L714+723 / opencode L828), proposed inRangeOverlap helper, AC, ship vehicle"}

@@ -1,0 +1,55 @@
+{
+  "id": "hook-path-robustness",
+  "name": "hook-path-robustness",
+  "title": "Hook 路径解析（monorepo submodule 兼容）",
+  "description": "",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": "cli",
+  "priority": "P2",
+  "creator": "taosu",
+  "assignee": "taosu",
+  "createdAt": "2026-04-17",
+  "completedAt": "2026-04-22",
+  "branch": null,
+  "base_branch": "feat/v0.5.0-beta",
+  "worktree_path": null,
+  "current_phase": 0,
+  "next_action": [
+    {
+      "phase": 1,
+      "action": "brainstorm"
+    },
+    {
+      "phase": 2,
+      "action": "research"
+    },
+    {
+      "phase": 3,
+      "action": "implement"
+    },
+    {
+      "phase": 4,
+      "action": "check"
+    },
+    {
+      "phase": 5,
+      "action": "update-spec"
+    },
+    {
+      "phase": 6,
+      "action": "record-session"
+    }
+  ],
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "04-16-skill-first-refactor",
+  "relatedFiles": [],
+  "notes": "Superseded: Windows CWD 最小修复已在 commit abc8514 (fix: opencode update tracking + Windows hook cwd fix) 落地。完整跨平台路径鲁棒性留给后续按需新建 task。",
+  "meta": {
+    "linear_issue": "MIN-455"
+  }
+}

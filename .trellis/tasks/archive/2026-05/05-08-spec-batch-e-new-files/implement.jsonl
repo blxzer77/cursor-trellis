@@ -1,0 +1,5 @@
+{"file": ".trellis/tasks/05-08-spec-batch-e-new-files/prd.md", "reason": "Scope, file roster, style guide pointer, AC"}
+{"file": ".trellis/spec/cli/backend/platform-integration.md", "reason": "Style reference — best-maintained spec; 5 new specs should mirror its structure"}
+{"file": ".trellis/spec/cli/backend/index.md", "reason": "Existing spec layer index; sub-agents need awareness of what already exists"}
+{"file": ".trellis/spec/cli/backend/migrations.md", "reason": "Already covers update.ts manifest mechanics; commands-update.md must not duplicate this scope"}
+{"file": ".trellis/tasks/05-08-spec-audit-drift/research/02-missing-specs.md", "reason": "Per-module gap descriptions for the 5 specs in scope"}

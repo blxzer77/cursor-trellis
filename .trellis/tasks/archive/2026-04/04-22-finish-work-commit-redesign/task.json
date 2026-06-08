@@ -1,0 +1,31 @@
+{
+  "id": "finish-work-commit-redesign",
+  "name": "finish-work-commit-redesign",
+  "title": "Finish-work 职责重划 + Phase 3 commit 自动化",
+  "description": "",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "taosu",
+  "assignee": "taosu",
+  "createdAt": "2026-04-22",
+  "completedAt": "2026-04-29",
+  "branch": null,
+  "base_branch": "feat/v0.5.0-beta",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {},
+  "integrations": {
+    "feishu": {
+      "task_guid": "da97e736-40c3-4fc4-b244-2788a9ac6e47"
+    }
+  }
+}

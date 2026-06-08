@@ -1,0 +1,3 @@
+{"file": ".trellis/tasks/05-09-mem-recall-skill-update/prd.md", "reason": "AC list — verify all items addressed, including symlink + old-skill removal"}
+{"file": "marketplace/skills/mem-recall/SKILL.md", "reason": "Verify --phase brainstorm subsection added with correct semantics + style consistent with rest of skill"}
+{"file": ".trellis/spec/cli/backend/commands-mem.md", "reason": "Verify skill description doesn't contradict the spec (e.g. wrong default phase, wrong fallback behavior)"}

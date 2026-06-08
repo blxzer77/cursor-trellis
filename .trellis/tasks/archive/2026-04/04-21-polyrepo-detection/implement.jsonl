@@ -1,0 +1,6 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/cli/backend/index.md", "reason": "CLI backend conventions"}
+{"file": ".trellis/spec/cli/backend/quality-guidelines.md", "reason": "quality bar for CLI changes"}
+{"file": ".trellis/spec/cli/unit-test/conventions.md", "reason": "test conventions, anti-patterns"}
+{"file": ".trellis/spec/cli/unit-test/integration-patterns.md", "reason": "init integration test pattern (used for polyrepo fixture)"}

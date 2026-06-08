@@ -1,0 +1,9 @@
+{
+  "version": "0.5.0-beta.2",
+  "description": "Bug fix: [b] Backup-rename in the migration confirm prompt now writes an inline .backup copy instead of silently behaving identically to [r] Rename anyway",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Bug Fixes:**\n- fix(update): `backup-rename` actually writes inline `.backup` copy (25a3337) — previously `[b] Backup original, then proceed` and `[r] Rename anyway` executed the exact same code path. Both relied on the full project snapshot at `.trellis/.backup-<timestamp>/`, making the prompt's promise of \"keeps a .backup copy\" misleading. Now `backup-rename` writes `<new-path>.backup` (for rename) or `<from>.backup` (for delete) alongside the normal operation so users can diff/merge their customizations against the new template without digging through the full snapshot. Prompt labels updated to state the concrete artifact path.",
+  "migrations": [],
+  "notes": "Pure CLI-side bug fix — no project file migrations. Run `trellis update` to sync to the new CLI behavior."
+}

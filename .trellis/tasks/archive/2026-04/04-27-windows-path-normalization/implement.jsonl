@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/guides/cross-platform-thinking-guide.md", "reason": "本任务核心约束：路径分隔符 / 行尾符 / 跨平台假设清单。所有改动必须对照检查。"}
+{"file": ".trellis/spec/cli/backend/quality-guidelines.md", "reason": "CLI 侧代码质量基线（错误处理、命名、测试覆盖）。"}
+{"file": ".trellis/spec/cli/backend/migrations.md", "reason": "理解 migrations 体系，避免 .template-hashes.json 的 __version 迁移逻辑与 migrations manifest 体系冲突或重复。"}
+{"file": ".trellis/spec/cli/backend/platform-integration.md", "reason": "configurator collector 出口归一化要排查所有 platform，遵循平台集成约定。"}

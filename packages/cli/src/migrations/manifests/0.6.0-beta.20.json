@@ -1,0 +1,9 @@
+{
+  "version": "0.6.0-beta.20",
+  "description": "Beta patch: bundle the Trellis spec bootstrap skill in the CLI package and clarify Codex CLI 0.131+ timeout-bounds requirements.",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Bug Fixes:**\n- fix(skills): `trellis-spec-bootstarp` is now included under `dist/templates/common/bundled-skills/`, so fresh `trellis init` and `trellis update` install the built-in spec bootstrap skill and track its reference files.\n- fix(docs): the v0.6.0-beta.19 changelog now states that the full Codex `multi_agent_v2` timeout-bounds config requires Codex CLI 0.131.0+.",
+  "migrations": [],
+  "notes": "Beta patch on top of 0.6.0-beta.19. Run `trellis update` to install the bundled `trellis-spec-bootstarp` skill. Codex users should use Codex CLI 0.131.0+ for the full multi_agent_v2 timeout-bounds config."
+}

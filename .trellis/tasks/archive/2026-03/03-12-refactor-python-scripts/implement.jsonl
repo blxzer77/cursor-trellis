@@ -1,0 +1,4 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/cli/backend/index.md", "reason": "Backend development guide"}
+{"file": ".claude/skills/python-design/SKILL.md", "reason": "Python design patterns to follow"}
+{"file": ".trellis/spec/cli/backend/script-conventions.md", "reason": "Script conventions to follow"}

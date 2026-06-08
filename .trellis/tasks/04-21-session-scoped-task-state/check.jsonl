@@ -1,0 +1,6 @@
+{"file": ".trellis/spec/cli/backend/platform-integration.md", "reason": "Review platform-specific behavior and generated config consistency"}
+{"file": ".trellis/spec/cli/backend/quality-guidelines.md", "reason": "Quality rules for reviewing resolver, hook, and platform-template changes"}
+{"file": ".trellis/spec/cli/unit-test/conventions.md", "reason": "Specific Vitest conventions and regression-test expectations"}
+{"file": ".trellis/spec/cli/unit-test/index.md", "reason": "Testing checklist for new resolver and hook behavior"}
+{"file": ".trellis/tasks/04-21-session-scoped-task-state/research/session-identity-platform-survey.md", "reason": "Verify implementation matches researched platform support tiers and Cursor IDE constraints"}
+{"file": ".trellis/spec/cli/backend/index.md", "reason": "Backend quality checklist for changed CLI scripts, hooks, and templates"}
