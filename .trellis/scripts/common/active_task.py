@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Session-scoped active task resolution.
+"""Session-scoped selected task resolution.
 
-The user-facing concept is a single "active task". Trellis stores that pointer
-per AI session/window under `.trellis/.runtime/sessions/`; without a stable
-session key there is no active task.
+The user-facing concept is a live-session "selected task". Trellis stores that
+pointer per AI session/window under `.trellis/.runtime/sessions/`; without a
+stable session key there is no selected task.
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ DIR_RUNTIME = ".runtime"
 DIR_SESSIONS = "sessions"
 DIR_CURSOR_SHELL = "cursor-shell"
 CURSOR_SHELL_TICKET_TTL_SECONDS = 30
-TASK_SESSION_COMMANDS = {"start", "current", "finish"}
+TASK_SESSION_COMMANDS = {"select", "selected", "exit"}
 
 _SESSION_KEYS = ("session_id", "sessionId", "sessionID")
 _CONVERSATION_KEYS = ("conversation_id", "conversationId", "conversationID")
@@ -79,8 +79,8 @@ _ENV_PLATFORM_ALIASES = {
 
 
 @dataclass(frozen=True)
-class ActiveTask:
-    """Resolved active task state."""
+class SelectedTask:
+    """Resolved selected task state."""
 
     task_path: str | None
     source_type: str
@@ -92,8 +92,6 @@ class ActiveTask:
         """Human-readable source label."""
         if self.source_type == "session" and self.context_key:
             return f"session:{self.context_key}"
-        if self.source_type == "session-fallback" and self.context_key:
-            return f"session-fallback:{self.context_key}"
         return self.source_type
 
 
@@ -219,7 +217,7 @@ def _lookup_env_context_key(platform_name: str | None) -> str | None:
     Hooks pass `TRELLIS_CONTEXT_ID` to subprocesses they launch, but an AI-run
     shell command can only see session identity if the host platform exports it
     in the command environment. These names are best-effort adapters; if none
-    are present, there is no session-scoped active task.
+    are present, there is no session-scoped selected task.
     """
     env_platform_name = _env_platform_name(platform_name)
 
@@ -296,7 +294,7 @@ def _pending_ticket_matches_args(ticket: dict[str, Any], repo_root: Path) -> boo
             continue
         if _string_value(subcommand.get("name")) != command_name:
             continue
-        if command_name != "start":
+        if command_name != "select":
             return True
         task_ref = args[1] if len(args) > 1 else None
         if _task_refs_match(_string_value(subcommand.get("task_ref")), task_ref, repo_root):
@@ -448,75 +446,44 @@ def _canonical_task_ref(task_path: str, repo_root: Path) -> str | None:
         return str(full_path)
 
 
-def _active_from_ref(
+def _selected_from_ref(
     task_ref: str | None,
     repo_root: Path,
     source_type: str,
     context_key: str | None = None,
-) -> ActiveTask | None:
+) -> SelectedTask | None:
     if not task_ref:
         return None
     resolved = resolve_task_ref(task_ref, repo_root)
     stale = resolved is None or not resolved.is_dir()
-    return ActiveTask(task_ref, source_type, context_key, stale)
+    return SelectedTask(task_ref, source_type, context_key, stale)
 
 
 def _context_path(repo_root: Path, context_key: str) -> Path:
     return _runtime_sessions_dir(repo_root) / f"{context_key}.json"
 
 
-def resolve_active_task(
+def resolve_selected_task(
     repo_root: Path,
     platform_input: dict[str, Any] | None = None,
     platform: str | None = None,
-) -> ActiveTask:
-    """Resolve the active task from session runtime state only.
+) -> SelectedTask:
+    """Resolve the selected task from explicit session runtime state only.
 
     A stale session task is returned as stale. Missing context identity or a
-    missing/empty session context falls back to single-session inference: if
-    exactly one session file exists in the runtime, return its task with
-    source_type="session-fallback" — covers class-2 platform sub-agents (codex,
-    copilot, gemini, qoder) that don't inherit the parent's session id. ≥2
-    files or 0 files yield ActiveTask(None) — refuses to guess across windows.
+    missing/empty session context returns no selected task. Trellis deliberately
+    does not infer selection from the existence of a single runtime session file;
+    every live session starts with no selected task until the user selects one.
     """
     context_key = resolve_context_key(platform_input, platform)
     if context_key:
         context = _read_json(_context_path(repo_root, context_key)) or {}
-        task_ref = _string_value(context.get("current_task"))
-        active = _active_from_ref(task_ref, repo_root, "session", context_key)
-        if active:
-            return active
+        task_ref = _string_value(context.get("selected_task"))
+        selected = _selected_from_ref(task_ref, repo_root, "session", context_key)
+        if selected:
+            return selected
 
-    fallback = _resolve_single_session_fallback(repo_root)
-    if fallback is not None:
-        return fallback
-
-    return ActiveTask(None, "none", context_key)
-
-
-def _resolve_single_session_fallback(repo_root: Path) -> ActiveTask | None:
-    """Return the task pointed at by the sole session file, if exactly one exists.
-
-    Used when context-key resolution fails (typical for class-2 platform
-    sub-agents). Returns None if 0 or ≥2 session files are present — refuses
-    to pick across windows so 04-21's multi-session isolation contract holds.
-    """
-    sessions_dir = _runtime_sessions_dir(repo_root)
-    if not sessions_dir.is_dir():
-        return None
-
-    session_files = sorted(sessions_dir.glob("*.json"))
-    if len(session_files) != 1:
-        return None
-
-    session_file = session_files[0]
-    context = _read_json(session_file) or {}
-    task_ref = _string_value(context.get("current_task"))
-    if not task_ref:
-        return None
-
-    fallback_key = session_file.stem
-    return _active_from_ref(task_ref, repo_root, "session-fallback", fallback_key)
+    return SelectedTask(None, "none", context_key)
 
 
 def _utc_now() -> str:
@@ -545,13 +512,13 @@ def _context_metadata(
     return metadata
 
 
-def set_active_task(
+def set_selected_task(
     task_path: str,
     repo_root: Path,
     platform_input: dict[str, Any] | None = None,
     platform: str | None = None,
-) -> ActiveTask | None:
-    """Set the active task in session scope.
+) -> SelectedTask | None:
+    """Set the selected task in session scope.
 
     Returns None when no context key is available; callers should surface a
     user-facing error that explains how to provide session identity.
@@ -567,24 +534,25 @@ def set_active_task(
     context_path = _context_path(repo_root, context_key)
     context = _read_json(context_path) or {}
     context.update(_context_metadata(platform_input, platform, context_key))
-    context["current_task"] = canonical
+    context["selected_task"] = canonical
+    context.pop("current_task", None)
     context.setdefault("current_run", None)
     if not _write_json(context_path, context):
         return None
-    return ActiveTask(canonical, "session", context_key)
+    return SelectedTask(canonical, "session", context_key)
 
 
-def clear_active_task(
+def clear_selected_task(
     repo_root: Path,
     platform_input: dict[str, Any] | None = None,
     platform: str | None = None,
-) -> ActiveTask:
-    """Clear the active task by deleting the current session context file."""
+) -> SelectedTask:
+    """Clear the selected task by deleting the current session context file."""
     context_key = resolve_context_key(platform_input, platform)
     if not context_key:
-        return ActiveTask(None, "none")
+        return SelectedTask(None, "none")
 
-    previous = resolve_active_task(repo_root, platform_input, platform)
+    previous = resolve_selected_task(repo_root, platform_input, platform)
     context_path = _context_path(repo_root, context_key)
     if context_path.is_file():
         _remove_file(context_path)
@@ -604,7 +572,10 @@ def clear_task_from_sessions(task_path: str, repo_root: Path) -> int:
 
     for session_path in sessions_dir.glob("*.json"):
         context = _read_json(session_path) or {}
-        current = _string_value(context.get("current_task"))
+        current = (
+            _string_value(context.get("selected_task"))
+            or _string_value(context.get("current_task"))
+        )
         if not current:
             continue
         current_ref = _canonical_task_ref(current, repo_root) or normalize_task_ref(current)
@@ -616,11 +587,21 @@ def clear_task_from_sessions(task_path: str, repo_root: Path) -> int:
     return cleared
 
 
-def get_current_task_source(
+def get_selected_task_source(
     repo_root: Path,
     platform_input: dict[str, Any] | None = None,
     platform: str | None = None,
 ) -> tuple[str, str | None, str | None]:
-    """Return (`source_type`, `context_key`, `task_path`) for compatibility."""
-    active = resolve_active_task(repo_root, platform_input, platform)
+    """Return (`source_type`, `context_key`, `task_path`) for selected task."""
+    active = resolve_selected_task(repo_root, platform_input, platform)
     return active.source_type, active.context_key, active.task_path
+
+
+# Internal compatibility aliases. User-facing commands and generated guidance
+# use selected-task wording, but keeping these names avoids a broad one-shot
+# rewrite of imports that are not part of the public command surface.
+ActiveTask = SelectedTask
+resolve_active_task = resolve_selected_task
+set_active_task = set_selected_task
+clear_active_task = clear_selected_task
+get_current_task_source = get_selected_task_source

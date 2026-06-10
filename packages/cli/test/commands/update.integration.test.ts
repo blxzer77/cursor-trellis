@@ -10,6 +10,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import inquirer from "inquirer";
+import { execSync } from "node:child_process";
 
 // === External dependency mocks (hoisted by vitest) ===
 
@@ -24,7 +25,13 @@ vi.mock("inquirer", () => ({
 vi.mock("node:child_process", () => ({
   execSync: vi.fn().mockImplementation((cmd: string) => {
     const py = process.platform === "win32" ? "python" : "python3";
-    return cmd === `${py} --version` ? "Python 3.11.12" : "";
+    if (cmd === `${py} --version`) {
+      return "Python 3.11.12";
+    }
+    if (cmd === "smart-search doctor --format json") {
+      return JSON.stringify({ ok: true, minimum_profile_ok: true });
+    }
+    return "";
   }),
 }));
 
@@ -40,6 +47,12 @@ import { replacePythonCommandLiterals } from "../../src/configurators/shared.js"
 
 // A managed template file that update always handles (Python script)
 const MANAGED_FILE = `${PATHS.SCRIPTS}/get_context.py`;
+
+function capabilityLookupCommand(command: string): string {
+  return process.platform === "win32"
+    ? `where "${command}"`
+    : `command -v '${command}'`;
+}
 
 /** Remove a key from a hash object (avoids eslint no-dynamic-delete) */
 function removeHashEntry(
@@ -143,7 +156,19 @@ describe("update() integration", () => {
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     const noop = () => {};
     vi.spyOn(console, "log").mockImplementation(noop);
+    vi.spyOn(console, "warn").mockImplementation(noop);
     vi.spyOn(console, "error").mockImplementation(noop);
+    vi.mocked(execSync).mockClear();
+    vi.mocked(execSync).mockImplementation(((cmd: string) => {
+      const py = process.platform === "win32" ? "python" : "python3";
+      if (cmd === `${py} --version`) {
+        return "Python 3.11.12";
+      }
+      if (cmd === "smart-search doctor --format json") {
+        return JSON.stringify({ ok: true, minimum_profile_ok: true });
+      }
+      return "";
+    }) as typeof execSync);
     // Mock fetch for npm registry
     vi.stubGlobal(
       "fetch",
@@ -217,6 +242,153 @@ describe("update() integration", () => {
     // No backup directory created
     const entries = fs.readdirSync(path.join(tmpDir, DIR_NAMES.WORKFLOW));
     expect(entries.filter((e) => e.startsWith(".backup-")).length).toBe(0);
+  });
+
+  it("#1b verifies Smart Search readiness during update", async () => {
+    await setupProject();
+    vi.mocked(execSync).mockClear();
+
+    await update({});
+
+    expect(execSync).toHaveBeenCalledWith(
+      "smart-search doctor --format json",
+      expect.objectContaining({
+        encoding: "utf-8",
+        stdio: "pipe",
+      }),
+    );
+  });
+
+  it("#1c blocks update before backup or writes when Smart Search readiness fails", async () => {
+    await setupProject();
+
+    const targetFull = path.join(tmpDir, MANAGED_FILE);
+    fs.writeFileSync(targetFull, "user customized content");
+
+    vi.mocked(execSync).mockImplementation(((cmd: string) => {
+      if (cmd === "smart-search doctor --format json") {
+        const error = new Error("Command failed: smart-search doctor");
+        Object.assign(error, {
+          status: 2,
+          stdout: JSON.stringify({
+            ok: false,
+            minimum_profile_ok: false,
+            minimum_profile_missing: ["docs_search"],
+            error_type: "config_error",
+            error: "standard minimum profile is not configured",
+          }),
+        });
+        throw error;
+      }
+      return "";
+    }) as typeof execSync);
+
+    await expect(update({ force: true })).rejects.toThrow(
+      /Smart Search readiness failed[\s\S]*trellis update --skip-readiness/,
+    );
+    expect(fs.readFileSync(targetFull, "utf-8")).toBe(
+      "user customized content",
+    );
+    const entries = fs.readdirSync(path.join(tmpDir, DIR_NAMES.WORKFLOW));
+    expect(entries.filter((e) => e.startsWith(".backup-"))).toEqual([]);
+  });
+
+  it("#1d --skip-readiness bypasses Smart Search doctor and allows update writes", async () => {
+    await setupProject();
+
+    const targetFull = path.join(tmpDir, MANAGED_FILE);
+    const templateContent = fs.readFileSync(targetFull, "utf-8");
+    fs.writeFileSync(targetFull, "user customized content");
+
+    vi.mocked(execSync).mockClear();
+
+    await update({ force: true, skipReadiness: true });
+
+    const calls = vi.mocked(execSync).mock.calls;
+    expect(
+      calls.some(([cmd]) => cmd === "smart-search doctor --format json"),
+    ).toBe(false);
+    expect(fs.readFileSync(targetFull, "utf-8")).toBe(templateContent);
+    expect(console.warn).toHaveBeenCalledWith(
+      expect.stringContaining("framework readiness is not verified"),
+    );
+  });
+
+  it("#1e keeps selected project capability templates stable on same-version update", async () => {
+    await init({
+      yes: true,
+      codex: true,
+      claude: true,
+      cursor: true,
+      capability: ["fast-context-mcp", "playwright-mcp"],
+    });
+
+    const trackedFiles = [
+      `${DIR_NAMES.WORKFLOW}/capabilities.json`,
+      `${DIR_NAMES.WORKFLOW}/capabilities.md`,
+      ".codex/config.toml",
+      ".mcp.json",
+      ".cursor/mcp.json",
+    ];
+    const before = new Map(
+      trackedFiles.map((relativePath) => [
+        relativePath,
+        readProjectFile(relativePath),
+      ]),
+    );
+
+    await update({});
+
+    expect(execSync).toHaveBeenCalledWith(
+      capabilityLookupCommand("fast-context-mcp"),
+      expect.objectContaining({
+        encoding: "utf-8",
+        stdio: "pipe",
+      }),
+    );
+    expect(execSync).toHaveBeenCalledWith(
+      capabilityLookupCommand("npx"),
+      expect.objectContaining({
+        encoding: "utf-8",
+        stdio: "pipe",
+      }),
+    );
+
+    for (const relativePath of trackedFiles) {
+      expect(readProjectFile(relativePath)).toBe(before.get(relativePath));
+    }
+    const entries = fs.readdirSync(path.join(tmpDir, DIR_NAMES.WORKFLOW));
+    expect(entries.filter((e) => e.startsWith(".backup-"))).toEqual([]);
+  });
+
+  it("#1f blocks update before writes when selected capability readiness fails", async () => {
+    await init({
+      yes: true,
+      capability: ["fast-context-mcp"],
+      force: true,
+    });
+
+    const targetFull = path.join(tmpDir, MANAGED_FILE);
+    fs.writeFileSync(targetFull, "user customized content");
+
+    vi.mocked(execSync).mockImplementation(((cmd: string) => {
+      if (cmd === "smart-search doctor --format json") {
+        return JSON.stringify({ ok: true, minimum_profile_ok: true });
+      }
+      if (cmd === capabilityLookupCommand("fast-context-mcp")) {
+        throw new Error("fast-context-mcp not found");
+      }
+      return "";
+    }) as typeof execSync);
+
+    await expect(update({ force: true })).rejects.toThrow(
+      /Selected project capability readiness failed[\s\S]*fast-context-mcp[\s\S]*trellis update --skip-readiness/,
+    );
+    expect(fs.readFileSync(targetFull, "utf-8")).toBe(
+      "user customized content",
+    );
+    const entries = fs.readdirSync(path.join(tmpDir, DIR_NAMES.WORKFLOW));
+    expect(entries.filter((e) => e.startsWith(".backup-"))).toEqual([]);
   });
 
   it("#2 dry run makes no file changes even when changes exist", async () => {

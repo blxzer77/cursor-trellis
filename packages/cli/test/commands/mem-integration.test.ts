@@ -46,8 +46,8 @@ const { runMem } = await import("../../src/commands/mem.js");
 // =============================================================================
 
 const CLAUDE_PROJECTS = nodePath.join(fakeHome, ".claude", "projects");
-const projectCwd = "/tmp/mem-int-project";
-const encodedCwd = projectCwd.replace(/[/_]/g, "-");
+const projectCwd = nodePath.resolve("/tmp/mem-int-project");
+const encodedCwd = projectCwd.replace(/[\\/:_]/g, "-");
 const projectDir = nodePath.join(CLAUDE_PROJECTS, encodedCwd);
 const sessionId = "deadbeef-1234-5678-9abc-def012345678";
 const sessionFile = nodePath.join(projectDir, `${sessionId}.jsonl`);
@@ -302,7 +302,7 @@ describe("runMem subcommand integration", () => {
         timestamp: "2026-04-15T11:00:02Z",
         message: { role: "user", content: "brainstorm-content-Y" },
       },
-      // turn 3: assistant runs `task.py start` (transition to implement)
+      // turn 3: assistant runs `task.py start-execution` (transition to implement)
       {
         type: "assistant",
         timestamp: "2026-04-15T11:00:03Z",
@@ -315,7 +315,7 @@ describe("runMem subcommand integration", () => {
               name: "Bash",
               input: {
                 command:
-                  "python3 ./.trellis/scripts/task.py start .trellis/tasks/demo",
+                  "python3 ./.trellis/scripts/task.py start-execution .trellis/tasks/demo --approved",
               },
             },
           ],
@@ -330,7 +330,7 @@ describe("runMem subcommand integration", () => {
     ]);
   }
 
-  it("extract --phase brainstorm: returns only [create, start) turns", () => {
+  it("extract --phase brainstorm: returns only [create, start-execution) turns", () => {
     seedPhaseSession();
     runMem([
       "extract",
@@ -419,7 +419,9 @@ describe("runMem subcommand integration", () => {
       "brainstorm",
     ]);
     const errsJoined = errs.join("\n");
-    expect(errsJoined).toMatch(/no task\.py create\/start boundary/);
+    expect(errsJoined).toMatch(
+      /no task\.py create\/start-execution boundary/,
+    );
     const joined = logs.join("\n");
     expect(joined).toContain("memory leak");
   });
@@ -435,7 +437,9 @@ describe("runMem subcommand integration", () => {
       "--json",
     ]);
     const errsJoined = errs.join("\n");
-    expect(errsJoined).toMatch(/no task\.py create\/start boundary/);
+    expect(errsJoined).toMatch(
+      /no task\.py create\/start-execution boundary/,
+    );
     const parsed = JSON.parse(logs.join("\n")) as {
       turns: unknown[];
       windows: unknown[];

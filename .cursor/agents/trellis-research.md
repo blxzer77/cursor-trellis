@@ -26,9 +26,9 @@ Conversations get compacted; files don't. Every research output MUST end up as a
 
 ## Workflow
 
-### Step 1: Resolve Current Task
+### Step 1: Resolve Selected Task
 
-Run `python3 ./.trellis/scripts/task.py current --source` → active task path. If no active task is set, ask the user where to write output; do NOT guess.
+Run `python ./.trellis/scripts/task.py selected --source` → selected task path. If no task is selected, ask the user where to write output; do NOT guess.
 
 Ensure `{TASK_DIR}/research/` exists:
 

@@ -233,7 +233,7 @@ def _persist_context_key_for_bash(context_key: str | None) -> None:
 
     Claude Code SessionStart hooks can append exports to CLAUDE_ENV_FILE; those
     variables are then available to Bash tools in the same conversation. Without
-    this bridge, `task.py start` has hook stdin during SessionStart but no
+    this bridge, `task.py select` has hook stdin during SessionStart but no
     session identity when the AI later runs it as a normal shell command.
     """
     if not context_key:
@@ -248,13 +248,13 @@ def _persist_context_key_for_bash(context_key: str | None) -> None:
         pass
 
 
-def _resolve_active_task(trellis_dir: Path, input_data: dict):
+def _resolve_selected_task(trellis_dir: Path, input_data: dict):
     scripts_dir = trellis_dir / "scripts"
     if str(scripts_dir) not in sys.path:
         sys.path.insert(0, str(scripts_dir))
-    from common.active_task import resolve_active_task  # type: ignore[import-not-found]
+    from common.active_task import resolve_selected_task  # type: ignore[import-not-found]
 
-    return resolve_active_task(
+    return resolve_selected_task(
         trellis_dir.parent,
         input_data,
         platform=_detect_platform(input_data),
@@ -321,23 +321,24 @@ def _resolve_task_dir(trellis_dir: Path, task_ref: str) -> Path:
 
 
 def _get_task_status(trellis_dir: Path, input_data: dict) -> str:
-    """Return compact active-task status, artifact presence, and next action."""
-    active = _resolve_active_task(trellis_dir, input_data)
+    """Return compact selected-task status, artifact presence, and next action."""
+    active = _resolve_selected_task(trellis_dir, input_data)
 
     if not active.task_path:
         return (
-            "Status: NO ACTIVE TASK\n"
-            "Next-Action: Classify the current turn before creating any Trellis task. "
-            "Simple conversation / small task asks only whether this turn should create a Trellis task. "
-            "Complex task asks whether task creation and planning are allowed."
+            "Trellis framework: active\n"
+            "Selected task: none\n"
+            "Next-Action: Use the Task Dashboard to choose select/create/inspect/continue-without-task. "
+            "Do not auto-select an existing task."
         )
 
     task_ref = active.task_path
     task_dir = _resolve_task_dir(trellis_dir, task_ref)
     if active.stale or not task_dir.is_dir():
         return (
-            f"Status: STALE POINTER\nTask: {task_ref}\n"
-            f"Next-Action: Run `python3 ./.trellis/scripts/task.py finish` to clear the stale pointer, "
+            f"Trellis framework: active\nSelected task: {task_ref}\n"
+            "Status: STALE SELECTION\n"
+            f"Next-Action: Run `python ./.trellis/scripts/task.py exit` to clear the stale selection, "
             "then ask the user what to work on next."
         )
 
@@ -393,16 +394,16 @@ def _get_task_status(trellis_dir: Path, input_data: dict) -> str:
         if missing_complex:
             next_bits.append(
                 "Lightweight task can request start review with PRD-only; "
-                f"complex task must add {', '.join(missing_complex)} before start"
+                f"complex task must add {', '.join(missing_complex)} before `task.py start-execution --check`"
             )
         else:
-            next_bits.append("Planning artifacts are present; ask for review before `task.py start`")
+            next_bits.append("Planning artifacts are present; run `task.py start-execution <task> --check`, report PASS, then ask for explicit execution approval")
         if not jsonl_ready:
             next_bits.append("curate `implement.jsonl` and `check.jsonl` before sub-agent mode start")
         return (
             f"Status: PLANNING\nTask: {task_title}\n"
             f"Present: {present_line}\n"
-            f"Next-Action: {'; '.join(next_bits)}. Do not enter implementation until the user confirms start."
+            f"Next-Action: {'; '.join(next_bits)}. Do not enter implementation until explicit execution approval is granted."
         )
 
     return (
@@ -425,22 +426,22 @@ def _load_trellis_config(trellis_dir: Path, input_data: dict) -> tuple:
 
     try:
         from common.config import get_default_package, get_packages, get_spec_scope, is_monorepo  # type: ignore[import-not-found]
-        from common.paths import get_current_task  # type: ignore[import-not-found]
+        from common.paths import get_selected_task  # type: ignore[import-not-found]
 
         repo_root = trellis_dir.parent
         is_mono = is_monorepo(repo_root)
         packages = get_packages(repo_root) or {}
         scope = get_spec_scope(repo_root)
 
-        # Get active task's package
+        # Get selected task's package
         task_pkg = None
-        current = get_current_task(
+        selected = get_selected_task(
             repo_root,
             input_data,
             platform=_detect_platform(input_data),
         )
-        if current:
-            task_json = repo_root / current / "task.json"
+        if selected:
+            task_json = repo_root / selected / "task.json"
             if task_json.is_file():
                 try:
                     data = json.loads(task_json.read_text(encoding="utf-8"))
@@ -540,10 +541,10 @@ def _resolve_spec_scope(
                 )
 
         if valid:
-            # Warn if active task is out of scope
+            # Warn if selected task is out of scope
             if task_pkg and task_pkg not in valid:
                 print(
-                    f"Warning: active task package '{task_pkg}' is out of configured spec_scope",
+                    f"Warning: selected task package '{task_pkg}' is out of configured spec_scope",
                     file=sys.stderr,
                 )
             return valid
@@ -615,7 +616,7 @@ def _build_compact_current_state(
     lines.append(f"Developer: {developer or '(not initialized)'}")
     lines.append(_format_git_state(repo_root))
 
-    active = _resolve_active_task(trellis_dir, input_data)
+    active = _resolve_selected_task(trellis_dir, input_data)
     if active.task_path:
         task_dir = _resolve_task_dir(trellis_dir, active.task_path)
         status = "unknown"
@@ -627,15 +628,17 @@ def _build_compact_current_state(
                     status = str(data.get("status") or "unknown")
             except (json.JSONDecodeError, OSError):
                 pass
-        lines.append(f"Current task: {_repo_relative(repo_root, task_dir)}; status={status}.")
+        lines.append("Trellis framework: active")
+        lines.append(f"Selected task: {_repo_relative(repo_root, task_dir)}; status={status}.")
     else:
-        lines.append("Current task: none.")
+        lines.append("Trellis framework: active")
+        lines.append("Selected task: none.")
 
     if get_tasks_dir and iter_active_tasks:
         try:
             task_count = sum(1 for _ in iter_active_tasks(get_tasks_dir(repo_root)))
             lines.append(
-                f"Active tasks: {task_count} total. Use `python3 ./.trellis/scripts/task.py list --mine` only if needed."
+                f"Active tasks: {task_count} total. Use the Task Dashboard for routing; use `python ./.trellis/scripts/task.py list --mine` only for raw inspection."
             )
         except Exception:
             pass
@@ -651,6 +654,22 @@ def _build_compact_current_state(
         lines.append(f"Spec indexes: {len(spec_index_paths)} available.")
 
     return "\n".join(lines)
+
+
+def _build_task_dashboard(trellis_dir: Path, input_data: dict) -> str:
+    scripts_dir = trellis_dir / "scripts"
+    if str(scripts_dir) not in sys.path:
+        sys.path.insert(0, str(scripts_dir))
+    try:
+        from common.task_dashboard import render_task_dashboard  # type: ignore[import-not-found]
+
+        return render_task_dashboard(
+            trellis_dir.parent,
+            input_data,
+            _detect_platform(input_data),
+        )
+    except Exception:
+        return "Task Dashboard unavailable. Run: python ./.trellis/scripts/task.py dashboard"
 
 
 def _extract_range(content: str, start_header: str, end_header: str) -> str:
@@ -707,7 +726,7 @@ def _build_workflow_overview(workflow_path: Path) -> str:
 
     out_lines = [
         "# Development Workflow - Session Summary",
-        "Full guide: .trellis/workflow.md. Step detail: `python3 ./.trellis/scripts/get_context.py --mode phase --step <X.Y>`.",
+        "Full guide: .trellis/workflow.md. Step detail: `python ./.trellis/scripts/get_context.py --mode phase --step <X.Y>`.",
         "",
     ]
 
@@ -781,6 +800,10 @@ Trellis compact SessionStart context. Use it to orient the session; load details
     output.write(_build_compact_current_state(trellis_dir, hook_input, spec_index_paths))
     output.write("\n</current-state>\n\n")
 
+    output.write("<task-dashboard>\n")
+    output.write(_build_task_dashboard(trellis_dir, hook_input))
+    output.write("\n</task-dashboard>\n\n")
+
     output.write("<trellis-workflow>\n")
     output.write(_build_workflow_overview(trellis_dir / "workflow.md"))
     output.write("\n</trellis-workflow>\n\n")
@@ -800,7 +823,7 @@ Trellis compact SessionStart context. Use it to orient the session; load details
 
     output.write(
         "Discover more via: "
-        "`python3 ./.trellis/scripts/get_context.py --mode packages`\n"
+        "`python ./.trellis/scripts/get_context.py --mode packages`\n"
     )
     output.write("</guidelines>\n\n")
 

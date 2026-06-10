@@ -113,6 +113,25 @@ describe("codex sub-agent recursion guard (issue #234)", () => {
   }
 });
 
+describe("codex check quality gate adapter", () => {
+  it("declares Codex reviewer id and record-gate boundary", () => {
+    const tomlPath = path.join(
+      repoRoot,
+      "packages/cli/src/templates/codex/agents/trellis-check.toml",
+    );
+    const content = fs.readFileSync(tomlPath, "utf-8");
+
+    expect(content).toContain("Reviewer id: `codex`");
+    expect(content).toContain("task.py record-gate");
+    expect(content).toContain("--reviewer codex");
+    expect(content).toContain(
+      "--root-cause implementation-defect|contract-changing-defect|validation-environment-blocker",
+    );
+    expect(content).toContain("Never record `baseline-check`");
+    expect(content).toContain("verify.md");
+  });
+});
+
 describe("codex session-start.py compact SessionStart context", () => {
   const hookPath = path.join(
     repoRoot,

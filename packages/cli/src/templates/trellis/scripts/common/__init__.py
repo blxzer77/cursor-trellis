@@ -73,6 +73,12 @@ from .paths import (
     get_workspace_dir,
     get_active_journal_file,
     count_lines,
+    get_selected_task,
+    get_selected_task_abs,
+    get_selected_task_source,
+    set_selected_task,
+    clear_selected_task,
+    has_selected_task,
     get_current_task,
     get_current_task_abs,
     normalize_task_ref,
@@ -85,8 +91,13 @@ from .paths import (
 
 from .active_task import (
     ActiveTask,
+    SelectedTask,
+    clear_selected_task,
+    get_selected_task_source,
+    resolve_selected_task,
     clear_active_task,
     resolve_active_task,
     resolve_context_key,
+    set_selected_task,
     set_active_task,
 )

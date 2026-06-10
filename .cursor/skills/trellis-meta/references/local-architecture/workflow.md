@@ -39,11 +39,11 @@ The bottom of `workflow.md` can contain state blocks like this:
 [/workflow-state:no_task]
 ```
 
-Hooks choose the right block based on current task status and inject it into the conversation. Common states include:
+Hooks choose the right block based on selected task status and inject it into the conversation. Common states include:
 
 | State | Meaning |
 | --- | --- |
-| `no_task` | The current session has no active task. |
+| `no_task` | The current session has no selected task. |
 | `planning` | The task is still in requirements, research, or context configuration. |
 | `in_progress` | The task has entered implementation and checking. |
 | `completed` | The task is complete and waiting for wrap-up or archive. |

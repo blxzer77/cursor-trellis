@@ -6,8 +6,8 @@ When the user wants to change `trellis-research`, `trellis-implement`, or `trell
 
 1. Target platform agent directory
 2. `.trellis/workflow.md` Phase 2 / research routing
-3. Current task `prd.md`
-4. Current task `implement.jsonl` / `check.jsonl`
+3. Selected task `prd.md`
+4. Selected task `implement.jsonl` / `check.jsonl`
 5. Relevant hook or agent prelude
 
 ## Common Paths
@@ -41,7 +41,7 @@ Use the actual paths in the user project as authoritative.
 
 1. **Preserve role boundaries**: research investigates and persists; implement writes implementation; check reviews and fixes.
 2. **Do not hard-code project specs into agents**: long-term specs belong in `.trellis/spec/`; agents are responsible for reading them.
-3. **Make read order explicit**: active task -> PRD -> info -> JSONL -> spec/research.
+3. **Make read order explicit**: selected task -> PRD -> info -> JSONL -> spec/research.
 4. **Make write boundaries explicit**: which directories may be written and which may not.
 5. **Synchronize across platforms**: when the user configured multiple platforms, decide whether to change only the current platform or all platform agents.
 

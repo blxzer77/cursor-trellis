@@ -229,7 +229,7 @@ def _get_task_status(trellis_dir: Path, hook_input: dict) -> str:
     active = _resolve_active_task(trellis_dir, hook_input)
     if not active.task_path:
         return (
-            "Status: NO ACTIVE TASK\n"
+            "Status: NO SELECTED TASK\n"
             "Next: Classify the current turn and ask for task-creation consent "
             "before creating any Trellis task."
         )
@@ -239,7 +239,7 @@ def _get_task_status(trellis_dir: Path, hook_input: dict) -> str:
     if active.stale or not task_dir.is_dir():
         return (
             f"Status: STALE POINTER\nTask: {task_ref}\n"
-            "Next: Task directory not found. Run: python3 ./.trellis/scripts/task.py finish"
+            "Next: Task directory not found. Run: python3 ./.trellis/scripts/task.py exit, then select or create a task."
         )
 
     task_json_path = task_dir / "task.json"
@@ -278,11 +278,11 @@ def _get_task_status(trellis_dir: Path, hook_input: dict) -> str:
 
     if task_status == "planning":
         if has_design and has_implement:
-            next_action = "Review planning artifacts with the user before `task.py start`."
+            next_action = "Run `task.py start-execution <task> --check`, report PASS, then ask for explicit execution approval."
         else:
             next_action = (
-                "Lightweight task can ask for start review with PRD-only; "
-                "complex task must add design.md and implement.md before `task.py start`."
+                "Lightweight task can request execution readiness review with PRD-only; "
+                "complex task must add design.md and implement.md before `task.py start-execution --check`."
             )
         return (
             f"Status: PLANNING\nTask: {task_title}\nPresent: {present_line}\n"
@@ -392,9 +392,9 @@ def _build_compact_current_state(
                     status = str(data.get("status") or "unknown")
             except (json.JSONDecodeError, OSError):
                 pass
-        lines.append(f"Current task: {_repo_relative(repo_root, task_dir)}; status={status}.")
+        lines.append(f"Selected task: {_repo_relative(repo_root, task_dir)}; status={status}.")
     else:
-        lines.append("Current task: none.")
+        lines.append("Selected task: none.")
 
     if get_tasks_dir and iter_active_tasks:
         try:

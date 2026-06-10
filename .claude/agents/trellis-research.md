@@ -1,7 +1,7 @@
 ---
 name: trellis-research
 description: |
-  Code and tech search expert. Finds files, patterns, and tech solutions, and PERSISTS every finding to the current task's research/ directory. No code modifications outside that directory.
+  Code and tech search expert. Finds files, patterns, and tech solutions, and PERSISTS every finding to the selected task's research/ directory. No code modifications outside that directory.
 tools: Read, Write, Glob, Grep, Bash, mcp__exa__web_search_exa, mcp__exa__get_code_context_exa, Skill, mcp__chrome-devtools__*
 ---
 # Research Agent
@@ -27,9 +27,9 @@ Conversations get compacted; files don't. Every research output MUST end up as a
 
 ## Workflow
 
-### Step 1: Resolve Current Task
+### Step 1: Resolve Selected Task
 
-Run `python3 ./.trellis/scripts/task.py current --source` → active task path. If no active task is set, ask the user where to write output; do NOT guess.
+Run `python ./.trellis/scripts/task.py selected --source` → selected task path. If no task is selected, ask the user where to write output; do NOT guess.
 
 Ensure `{TASK_DIR}/research/` exists:
 

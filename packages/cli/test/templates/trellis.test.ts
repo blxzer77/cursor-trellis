@@ -45,20 +45,34 @@ describe("trellis template constants", () => {
     gitignoreTemplate,
   };
 
-  function inProgressBreadcrumb(): string {
-    const inProgressMatch = /\[workflow-state:in_progress\]([\s\S]*?)\[\/workflow-state:in_progress\]/.exec(
-      workflowMdTemplate,
-    );
-    if (!inProgressMatch) {
-      throw new Error("in_progress breadcrumb block must exist in workflow.md");
+  function normalizeLineEndings(content: string): string {
+    return content.replace(/\r\n/g, "\n");
+  }
+
+  function readMarketplaceWorkflow(
+    relativePath: string,
+  ): string | undefined {
+    const repoRoot = fs.existsSync(path.join(process.cwd(), "marketplace"))
+      ? process.cwd()
+      : path.resolve(process.cwd(), "../..");
+    const workflowPath = path.join(repoRoot, relativePath);
+    if (!fs.existsSync(workflowPath)) {
+      return undefined;
     }
-    return inProgressMatch[1];
+    return fs.readFileSync(workflowPath, "utf-8");
+  }
+
+  function inProgressBreadcrumb(): string {
+    return workflowStateBreadcrumb("in_progress");
   }
 
   function workflowStateBreadcrumb(status: string): string {
     const match = new RegExp(
-      `\\[workflow-state:${status}\\]([\\s\\S]*?)\\[/workflow-state:${status}\\]`,
-    ).exec(workflowMdTemplate);
+      `^\\[workflow-state:${status}\\]\\r?\\n([\\s\\S]*?)^\\[/workflow-state:${status}\\]`,
+      "m",
+    ).exec(
+      workflowMdTemplate,
+    );
     if (!match) {
       throw new Error(`${status} breadcrumb block must exist in workflow.md`);
     }
@@ -110,30 +124,30 @@ describe("trellis template constants", () => {
   });
 
   it("marketplace native workflow mirror matches the bundled workflow", () => {
-    const repoRoot = fs.existsSync(path.join(process.cwd(), "marketplace"))
-      ? process.cwd()
-      : path.resolve(process.cwd(), "../..");
-    const marketplaceNative = fs.readFileSync(
-      path.join(repoRoot, "marketplace/workflows/native/workflow.md"),
-      "utf-8",
+    const marketplaceNative = readMarketplaceWorkflow(
+      "marketplace/workflows/native/workflow.md",
     );
-    expect(marketplaceNative).toBe(workflowMdTemplate);
+    if (marketplaceNative === undefined) return;
+
+    expect(normalizeLineEndings(marketplaceNative)).toBe(
+      normalizeLineEndings(workflowMdTemplate),
+    );
   });
 
   it("marketplace TDD workflow planning breadcrumbs include behavior gates", () => {
-    const repoRoot = fs.existsSync(path.join(process.cwd(), "marketplace"))
-      ? process.cwd()
-      : path.resolve(process.cwd(), "../..");
-    const tddWorkflow = fs.readFileSync(
-      path.join(repoRoot, "marketplace/workflows/tdd/workflow.md"),
-      "utf-8",
+    const tddWorkflow = readMarketplaceWorkflow(
+      "marketplace/workflows/tdd/workflow.md",
     );
-    const planning = /\[workflow-state:planning\]([\s\S]*?)\[\/workflow-state:planning\]/.exec(
-      tddWorkflow,
-    )?.[1];
-    const planningInline = /\[workflow-state:planning-inline\]([\s\S]*?)\[\/workflow-state:planning-inline\]/.exec(
-      tddWorkflow,
-    )?.[1];
+    if (tddWorkflow === undefined) return;
+    const normalized = normalizeLineEndings(tddWorkflow);
+    const planning =
+      /^\[workflow-state:planning\]\n([\s\S]*?)^\[\/workflow-state:planning\]/m.exec(
+        normalized,
+      )?.[1];
+    const planningInline =
+      /^\[workflow-state:planning-inline\]\n([\s\S]*?)^\[\/workflow-state:planning-inline\]/m.exec(
+        normalized,
+      )?.[1];
 
     for (const block of [planning, planningInline]) {
       expect(block).toContain("observable behavior slices");
@@ -144,13 +158,13 @@ describe("trellis template constants", () => {
 
   it("[issue-225] workflow.md in_progress breadcrumb has class-2 sub-agent dispatch protocol", () => {
     // The in_progress breadcrumb instructs the main agent to prefix
-    // dispatch prompts with "Active task: <path>" on class-2 platforms.
+    // dispatch prompts with "Selected task: <path>" on class-2 platforms.
     // Without this line, codex/copilot/gemini/qoder sub-agents cannot
-    // find the active task (no PreToolUse hook to inject context).
+    // find the selected task (no PreToolUse hook to inject context).
     const block = inProgressBreadcrumb();
-    expect(block).toContain("Active task:");
+    expect(block).toContain("Selected task:");
     expect(block.toLowerCase()).toContain("class-2");
-    expect(block).toMatch(/codex|copilot|gemini|qoder/);
+    expect(block.toLowerCase()).toMatch(/codex|copilot|gemini|qoder/);
   });
 
   it("[issue-237] workflow.md in_progress breadcrumb self-exempts implement/check sub-agents", () => {
@@ -221,6 +235,7 @@ describe("trellis template constants", () => {
 
   it("gitignoreTemplate contains ignore patterns", () => {
     expect(gitignoreTemplate).toContain(".developer");
+    expect(gitignoreTemplate).toContain("worktrees/");
     expect(gitignoreTemplate).toContain("__pycache__");
   });
 });

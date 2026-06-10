@@ -30,7 +30,7 @@ Use this skill only after task-creation consent has been given and the user is r
 If no task exists yet, create one:
 
 ```bash
-TASK_DIR=$(python3 ./.trellis/scripts/task.py create "<short task title>" --slug <slug>)
+TASK_DIR=$(python ./.trellis/scripts/task.py create "<short task title>" --slug <slug>)
 ```
 
 Use a concise title from the user's request. Use a slug without a date prefix. `task.py create` adds the `MM-DD-` directory prefix automatically.
@@ -93,9 +93,9 @@ Do not ask process questions such as whether to search, inspect files, or contin
 - ordered implementation checklist
 - validation commands
 - risky files or rollback points
-- follow-up checks before `task.py start`
+- follow-up checks before `task.py start-execution --check`
 
-Lightweight tasks may have only `prd.md`. Complex tasks must have `prd.md`, `design.md`, and `implement.md` before `task.py start`.
+Lightweight tasks may have only `prd.md`. Complex tasks must have `prd.md`, `design.md`, and `implement.md` before `task.py start-execution --check`.
 
 `implement.md` is not a replacement for `implement.jsonl`. Use JSONL files only for manifest-style spec and research references when the task needs them.
 

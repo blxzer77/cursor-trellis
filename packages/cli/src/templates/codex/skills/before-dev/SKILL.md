@@ -7,7 +7,7 @@ Read the relevant development guidelines before starting your task.
 
 Execute these steps:
 
-1. **Read current task artifacts**:
+1. **Read selected task artifacts**:
    - `prd.md` for requirements and acceptance criteria
    - `design.md` if present for technical design
    - `implement.md` if present for execution order and validation plan

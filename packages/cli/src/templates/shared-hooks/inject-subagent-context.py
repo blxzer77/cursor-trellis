@@ -12,7 +12,7 @@ Core Design Philosophy:
 
 Trigger: PreToolUse (before Task tool call)
 
-Context Source: Trellis active task resolver points to task directory
+Context Source: Trellis selected task resolver points to task directory
 - implement.jsonl - Implement agent dedicated context
 - check.jsonl     - Check agent dedicated context
 - prd.md          - Requirements document
@@ -113,22 +113,22 @@ def _detect_platform(input_data: dict) -> str | None:
     return None
 
 
-def get_current_task(repo_root: str, input_data: dict) -> str | None:
-    """Resolve current task directory through the unified active task resolver."""
+def get_selected_task(repo_root: str, input_data: dict) -> str | None:
+    """Resolve selected task directory through the unified selected task resolver."""
     scripts_dir = Path(repo_root) / DIR_WORKFLOW / "scripts"
     if str(scripts_dir) not in sys.path:
         sys.path.insert(0, str(scripts_dir))
     try:
-        from common.active_task import resolve_active_task  # type: ignore[import-not-found]
+        from common.active_task import resolve_selected_task  # type: ignore[import-not-found]
     except Exception:
         return None
 
-    active = resolve_active_task(
+    selected = resolve_selected_task(
         Path(repo_root),
         input_data,
         platform=_detect_platform(input_data),
     )
-    return active.task_path
+    return selected.task_path
 
 
 def read_file_content(base_path: str, file_path: str) -> str | None:
@@ -705,8 +705,8 @@ def main():
     if not repo_root:
         sys.exit(0)
 
-    # Get current task directory (research doesn't require it)
-    task_dir = get_current_task(repo_root, input_data)
+    # Get selected task directory (research doesn't require it)
+    task_dir = get_selected_task(repo_root, input_data)
 
     # implement/check need task directory
     if subagent_type in AGENTS_REQUIRE_TASK:

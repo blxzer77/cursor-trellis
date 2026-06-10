@@ -25,7 +25,7 @@
 Run this the first time:
 
 ```bash
-python3 ./.trellis/scripts/init_developer.py <name>
+python ./.trellis/scripts/init_developer.py <name>
 ```
 
 This creates `.trellis/.developer` and the corresponding workspace directory. The AI should not change developer identity casually; if the identity is wrong, first confirm who is using the current project.
@@ -37,7 +37,7 @@ This creates `.trellis/.developer` and the corresponding workspace directory. Th
 Common command for recording a session:
 
 ```bash
-python3 ./.trellis/scripts/add_session.py \
+python ./.trellis/scripts/add_session.py \
   --title "Session title" \
   --summary "What changed" \
   --commit "abc1234"
@@ -53,8 +53,8 @@ Planning or review work without a commit can also be recorded by using `--no-com
 | `.trellis/workspace/` | Work records across tasks and sessions. |
 | `.trellis/spec/` | Engineering knowledge preserved as long-term conventions. |
 
-If information is only useful for the current task, put it in the task directory.  
-If information describes what happened in the current session, put it in the workspace journal.  
+If information is only useful for the selected task, put it in the task directory.
+If information describes what happened in the current session, put it in the workspace journal.
 If information should be followed every time code is written in the future, put it in spec.
 
 ## Local Customization Points
@@ -68,4 +68,4 @@ If information should be followed every time code is written in the future, put 
 
 ## AI Usage Rules
 
-The AI should not treat workspace as the only source of truth. When resuming a task, read the current task first, then use workspace for background. After a task is complete, record important process notes in workspace; if long-term rules emerged, update spec.
+The AI should not treat workspace as the only source of truth. When resuming a task, read the selected task first, then use workspace for background. After a task is complete, record important process notes in workspace; if long-term rules emerged, update spec.

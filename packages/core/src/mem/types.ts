@@ -139,7 +139,8 @@ export interface MemProjectSummary {
   by_platform: Record<MemSourceKind, number>;
 }
 
-/** Parsed `task.py create|start` invocation recovered from a raw shell call. */
+/** Parsed `task.py create|start-execution` invocation recovered from a raw shell call.
+ * Legacy `task.py start` logs are normalized to `start` for compatibility. */
 export type ParsedTaskPyCommand =
   | { action: "create"; slug?: string; titleArg?: string }
   | { action: "start"; taskDir?: string };

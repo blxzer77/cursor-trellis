@@ -1,6 +1,6 @@
 # Change Local Context Loading
 
-Context loading determines when AI reads workflow, task, spec, research, workspace, and git status. Read this page when the user says "AI does not know the current task," "the agent did not read specs," or "there is too much/too little context."
+Context loading determines when AI reads workflow, task, spec, research, workspace, and git status. Read this page when the user says "AI does not know the selected task," "the agent did not read specs," or "there is too much/too little context."
 
 ## Read These Files First
 
@@ -10,14 +10,14 @@ Context loading determines when AI reads workflow, task, spec, research, workspa
 4. `.trellis/scripts/common/task_context.py`
 5. `.trellis/scripts/common/active_task.py`
 6. Current platform hooks or agent files
-7. The current task's `implement.jsonl` / `check.jsonl`
+7. The selected task's `implement.jsonl` / `check.jsonl`
 
 ## Context Sources
 
 | Source | Purpose |
 | --- | --- |
 | `.trellis/workflow.md` | Workflow and next-action hints. |
-| `.trellis/tasks/<task>/prd.md` | Current task requirements. |
+| `.trellis/tasks/<task>/prd.md` | Selected task requirements. |
 | `.trellis/tasks/<task>/design.md` | Complex task technical design. |
 | `.trellis/tasks/<task>/implement.md` | Complex task execution plan. |
 | `.trellis/tasks/<task>/implement.jsonl` | Spec/research to read before implementation. |
@@ -33,7 +33,7 @@ Context loading determines when AI reads workflow, task, spec, research, workspa
 | Inject more/less information in new sessions | `session_context.py` or the platform `session-start` hook. |
 | Change hints on each user input | `[workflow-state:STATUS]` block in `.trellis/workflow.md`. The `inject-workflow-state` hook is parser-only and reads the block verbatim. |
 | Agent did not read specs | Task JSONL, agent prelude, `inject-subagent-context` hook. |
-| Active task is lost | `active_task.py` and platform session identity propagation. |
+| Selected task is lost | `active_task.py` and platform session identity propagation. |
 | Change JSONL validation rules | `task_context.py`. |
 
 ## JSONL Rules
@@ -65,7 +65,7 @@ First determine which mode the platform uses:
 
 In both modes, make sure the agent ultimately reads:
 
-1. active task
+1. selected task
 2. the corresponding JSONL
 3. spec/research referenced by the JSONL
 4. `prd.md`
@@ -75,7 +75,7 @@ In both modes, make sure the agent ultimately reads:
 ## Troubleshooting Order
 
 ```bash
-python3 ./.trellis/scripts/task.py current --source
+python3 ./.trellis/scripts/task.py selected --source
 python3 ./.trellis/scripts/task.py list-context <task>
 python3 ./.trellis/scripts/task.py validate <task>
 python3 ./.trellis/scripts/get_context.py --mode packages

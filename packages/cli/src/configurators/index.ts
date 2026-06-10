@@ -456,6 +456,16 @@ const PLATFORM_FUNCTIONS: Record<AITool, PlatformFunctions> = {
 /** All platform IDs */
 export const PLATFORM_IDS = Object.keys(AI_TOOLS) as AITool[];
 
+/** Actively targeted platform IDs for this fork. */
+export const FIRST_CLASS_PLATFORM_IDS = PLATFORM_IDS.filter(
+  (id) => AI_TOOLS[id].tier === "first-class",
+);
+
+/** Legacy adapter IDs retained for explicit compatibility, not default targeting. */
+export const LEGACY_PLATFORM_IDS = PLATFORM_IDS.filter(
+  (id) => AI_TOOLS[id].tier === "legacy",
+);
+
 /** All platform config directory names (e.g., [".claude", ".cursor", ".opencode"]) */
 export const CONFIG_DIRS = PLATFORM_IDS.map((id) => AI_TOOLS[id].configDir);
 
@@ -546,7 +556,16 @@ export function getInitToolChoices(): {
   defaultChecked: boolean;
   platformId: AITool;
 }[] {
-  return PLATFORM_IDS.map((id) => ({
+  const sorted = [...PLATFORM_IDS].sort((a, b) => {
+    const aFirstClass = AI_TOOLS[a].tier === "first-class";
+    const bFirstClass = AI_TOOLS[b].tier === "first-class";
+    if (aFirstClass === bFirstClass) {
+      return 0;
+    }
+    return aFirstClass ? -1 : 1;
+  });
+
+  return sorted.map((id) => ({
     key: AI_TOOLS[id].cliFlag,
     name: AI_TOOLS[id].name,
     defaultChecked: AI_TOOLS[id].defaultChecked,

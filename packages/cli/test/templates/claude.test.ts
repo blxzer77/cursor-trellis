@@ -80,6 +80,20 @@ describe("getAllAgents", () => {
       expect(agent.content.length).toBeGreaterThan(0);
     }
   });
+
+  it("trellis-check declares Claude Code reviewer id and record-gate boundary", () => {
+    const checkAgent = getAllAgents().find(
+      (agent) => agent.name === "trellis-check",
+    );
+    expect(checkAgent?.content).toContain("Reviewer id: `claude-code`");
+    expect(checkAgent?.content).toContain("task.py record-gate");
+    expect(checkAgent?.content).toContain("--reviewer claude-code");
+    expect(checkAgent?.content).toContain(
+      "--root-cause implementation-defect|contract-changing-defect|validation-environment-blocker",
+    );
+    expect(checkAgent?.content).toContain("Never record `baseline-check`");
+    expect(checkAgent?.content).toContain("verify.md");
+  });
 });
 
 // =============================================================================

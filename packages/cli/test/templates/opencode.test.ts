@@ -136,7 +136,7 @@ describe("opencode bash session context", () => {
     const hooks = await createOpenCodeInjectHooks();
     const output = {
       args: {
-        command: "python3 ./.trellis/scripts/task.py start .trellis/tasks/demo",
+        command: "python3 ./.trellis/scripts/task.py select .trellis/tasks/demo",
       },
     };
 
@@ -146,7 +146,7 @@ describe("opencode bash session context", () => {
     );
 
     expect(output.args.command).toBe(
-      "export TRELLIS_CONTEXT_ID='opencode_oc-a'; python3 ./.trellis/scripts/task.py start .trellis/tasks/demo",
+      "export TRELLIS_CONTEXT_ID='opencode_oc-a'; python3 ./.trellis/scripts/task.py select .trellis/tasks/demo",
     );
   });
 
@@ -154,7 +154,7 @@ describe("opencode bash session context", () => {
     const hooks = await createOpenCodeInjectHooks("win32");
     const output = {
       args: {
-        command: "python ./.trellis/scripts/task.py start .trellis/tasks/demo",
+        command: "python ./.trellis/scripts/task.py select .trellis/tasks/demo",
       },
     };
 
@@ -164,7 +164,7 @@ describe("opencode bash session context", () => {
     );
 
     expect(output.args.command).toBe(
-      "$env:TRELLIS_CONTEXT_ID = 'opencode_oc-a'; python ./.trellis/scripts/task.py start .trellis/tasks/demo",
+      "$env:TRELLIS_CONTEXT_ID = 'opencode_oc-a'; python ./.trellis/scripts/task.py select .trellis/tasks/demo",
     );
   });
 
@@ -273,7 +273,7 @@ describe("opencode bash session context", () => {
     const output = {
       args: {
         command:
-          "TRELLIS_CONTEXT_ID=manual python3 ./.trellis/scripts/task.py current",
+          "TRELLIS_CONTEXT_ID=manual python3 ./.trellis/scripts/task.py selected",
       },
     };
 
@@ -283,7 +283,7 @@ describe("opencode bash session context", () => {
     );
 
     expect(output.args.command).toBe(
-      "TRELLIS_CONTEXT_ID=manual python3 ./.trellis/scripts/task.py current",
+      "TRELLIS_CONTEXT_ID=manual python3 ./.trellis/scripts/task.py selected",
     );
   });
 
@@ -292,7 +292,7 @@ describe("opencode bash session context", () => {
     const output = {
       args: {
         command:
-          "export TRELLIS_CONTEXT_ID=manual; python3 ./.trellis/scripts/task.py current",
+          "export TRELLIS_CONTEXT_ID=manual; python3 ./.trellis/scripts/task.py selected",
       },
     };
 
@@ -302,7 +302,7 @@ describe("opencode bash session context", () => {
     );
 
     expect(output.args.command).toBe(
-      "export TRELLIS_CONTEXT_ID=manual; python3 ./.trellis/scripts/task.py current",
+      "export TRELLIS_CONTEXT_ID=manual; python3 ./.trellis/scripts/task.py selected",
     );
   });
 
@@ -311,7 +311,7 @@ describe("opencode bash session context", () => {
     const output = {
       args: {
         command:
-          "env FOO=bar TRELLIS_CONTEXT_ID=manual python3 ./.trellis/scripts/task.py current",
+          "env FOO=bar TRELLIS_CONTEXT_ID=manual python3 ./.trellis/scripts/task.py selected",
       },
     };
 
@@ -321,7 +321,7 @@ describe("opencode bash session context", () => {
     );
 
     expect(output.args.command).toBe(
-      "env FOO=bar TRELLIS_CONTEXT_ID=manual python3 ./.trellis/scripts/task.py current",
+      "env FOO=bar TRELLIS_CONTEXT_ID=manual python3 ./.trellis/scripts/task.py selected",
     );
   });
 
@@ -330,7 +330,7 @@ describe("opencode bash session context", () => {
     const output = {
       args: {
         command:
-          "$env:TRELLIS_CONTEXT_ID = 'manual'; python ./.trellis/scripts/task.py current",
+          "$env:TRELLIS_CONTEXT_ID = 'manual'; python ./.trellis/scripts/task.py selected",
       },
     };
 
@@ -340,7 +340,7 @@ describe("opencode bash session context", () => {
     );
 
     expect(output.args.command).toBe(
-      "$env:TRELLIS_CONTEXT_ID = 'manual'; python ./.trellis/scripts/task.py current",
+      "$env:TRELLIS_CONTEXT_ID = 'manual'; python ./.trellis/scripts/task.py selected",
     );
   });
 
@@ -399,6 +399,18 @@ function setupTrellisProject(): string {
   const taskDir = join(dir, ".trellis", "tasks", "demo-task");
   mkdirSync(taskDir, { recursive: true });
   mkdirSync(join(dir, ".trellis", ".runtime", "sessions"), { recursive: true });
+  writeFileSync(
+    join(taskDir, "task.json"),
+    JSON.stringify(
+      {
+        title: "Demo task",
+        status: "in_progress",
+        assignee: "test-dev",
+      },
+      null,
+      2,
+    ),
+  );
   writeFileSync(join(taskDir, "prd.md"), "# Demo PRD\n\nGoal: verify injection.");
   writeFileSync(join(taskDir, "implement.jsonl"), "");
   writeFileSync(join(taskDir, "check.jsonl"), "");
@@ -408,7 +420,7 @@ function setupTrellisProject(): string {
       "# Workflow",
       "",
       "[workflow-state:in_progress]",
-      "Active task: <task path>. Dispatch trellis-implement or trellis-check.",
+      "Selected task: <task path>. Dispatch trellis-implement or trellis-check.",
       "[/workflow-state:in_progress]",
       "",
     ].join("\n"),
@@ -418,7 +430,7 @@ function setupTrellisProject(): string {
 
 function writeSessionFile(dir: string, key: string, taskRef: string): void {
   const file = join(dir, ".trellis", ".runtime", "sessions", `${key}.json`);
-  writeFileSync(file, JSON.stringify({ current_task: taskRef }, null, 2));
+  writeFileSync(file, JSON.stringify({ selected_task: taskRef }, null, 2));
 }
 
 describe("opencode subagent helper", () => {
@@ -437,7 +449,7 @@ describe("opencode subagent helper", () => {
   });
 });
 
-describe("opencode TrellisContext single-session fallback", () => {
+describe("opencode TrellisContext selected-task resolution", () => {
   let dir: string;
 
   beforeEach(() => {
@@ -448,13 +460,13 @@ describe("opencode TrellisContext single-session fallback", () => {
     rmSync(dir, { recursive: true, force: true });
   });
 
-  it("returns the only session file when exactly one exists", () => {
+  it("does not infer a selected task from another session file", () => {
     writeSessionFile(dir, "opencode_sole", ".trellis/tasks/demo-task");
     const ctx = new TrellisContext(dir);
     const active = ctx.getActiveTask({ sessionID: "missing-key" });
 
-    expect(active.taskPath).toBe(".trellis/tasks/demo-task");
-    expect(active.source).toBe("session-fallback:opencode_sole");
+    expect(active.taskPath).toBeNull();
+    expect(active.source).toBe("none");
     expect(active.stale).toBe(false);
   });
 
@@ -477,17 +489,55 @@ describe("opencode TrellisContext single-session fallback", () => {
     expect(active.source).toBe("none");
   });
 
-  it("prefers an exact context-key match over the fallback", () => {
-    writeSessionFile(dir, "opencode_session_exact", ".trellis/tasks/demo-task");
+  it("uses an exact context-key match", () => {
+    writeSessionFile(dir, "opencode_exact", ".trellis/tasks/demo-task");
     writeSessionFile(dir, "opencode_other", ".trellis/tasks/demo-task");
     const ctx = new TrellisContext(dir);
     const active = ctx.getActiveTask({ sessionID: "exact" });
 
-    // sessionID="exact" maps to "opencode_exact" via buildContextKey; we
-    // wrote "opencode_session_exact" so the exact lookup misses, but the
-    // presence of ≥2 files means fallback should also refuse — proving
-    // exact match is attempted first.
-    expect(active.taskPath).toBeNull();
+    expect(active.taskPath).toBe(".trellis/tasks/demo-task");
+    expect(active.source).toBe("session:opencode_exact");
+    expect(active.stale).toBe(false);
+  });
+});
+
+describe("opencode SessionStart Task Dashboard", () => {
+  let dir: string;
+
+  beforeEach(() => {
+    dir = setupTrellisProject();
+  });
+
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("renders dashboard routing without inferring a task from another session", () => {
+    writeSessionFile(dir, "opencode_other", ".trellis/tasks/demo-task");
+    const ctx = new TrellisContext(dir);
+    const context = buildSessionContext(ctx, { sessionID: "fresh-session" });
+
+    expect(context).toContain("<current-state>");
+    expect(context).toContain("Trellis framework: active");
+    expect(context).toContain("<task-dashboard>");
+    expect(context).toContain("Task Dashboard");
+    expect(context).toContain("Selected task: none");
+    expect(context).toContain(".trellis/tasks/demo-task (in_progress)");
+    expect(context).toContain("Suggested actions:");
+    expect(context).toContain("task.py select <task>");
+  });
+
+  it("renders the exact live-session selected_task in the dashboard", () => {
+    writeSessionFile(dir, "opencode_dash", ".trellis/tasks/demo-task");
+    const ctx = new TrellisContext(dir);
+    const context = buildSessionContext(ctx, { sessionID: "dash" });
+
+    expect(context).toContain(
+      "Selected task: .trellis/tasks/demo-task; status=in_progress.",
+    );
+    expect(context).toContain(
+      "Selected task: .trellis/tasks/demo-task (session:opencode_dash)",
+    );
   });
 });
 
@@ -508,8 +558,8 @@ describe("opencode inject-subagent-context (issue #264)", () => {
     rmSync(dir, { recursive: true, force: true });
   });
 
-  it("mutates implement prompt using single-session fallback when sessionID misses", async () => {
-    writeSessionFile(dir, "opencode_sole", ".trellis/tasks/demo-task");
+  it("mutates implement prompt using exact-session selected_task", async () => {
+    writeSessionFile(dir, "opencode_stranger", ".trellis/tasks/demo-task");
     const output: TaskToolOutput = {
       args: {
         subagent_type: "trellis-implement",
@@ -543,7 +593,7 @@ describe("opencode inject-subagent-context (issue #264)", () => {
       join(dir, ".trellis", "tasks", "demo-task", "implement.jsonl"),
       JSON.stringify({ file: ".trellis/spec/demo.md", reason: "test" }) + "\n",
     );
-    writeSessionFile(dir, "opencode_sole", ".trellis/tasks/demo-task");
+    writeSessionFile(dir, "opencode_stranger", ".trellis/tasks/demo-task");
 
     const output: TaskToolOutput = {
       args: {
@@ -563,13 +613,12 @@ describe("opencode inject-subagent-context (issue #264)", () => {
     expect(output.args.prompt).toContain("Demo PRD");
   });
 
-  it("mutates check prompt using Active task hint when runtime resolution fails", async () => {
-    // No session file → both session lookup and single-session fallback miss.
-    // Hint is the only resolver.
+  it("mutates check prompt using Selected task hint when runtime resolution fails", async () => {
+    // No session file: hint is the only resolver.
     const output: TaskToolOutput = {
       args: {
         subagent_type: "trellis-check",
-        prompt: "Active task: .trellis/tasks/demo-task\n\nplease check",
+        prompt: "Selected task: .trellis/tasks/demo-task\n\nplease check",
       },
     };
 
@@ -583,9 +632,9 @@ describe("opencode inject-subagent-context (issue #264)", () => {
     expect(output.args.prompt).toContain("Demo PRD");
   });
 
-  it("Active task hint takes precedence over single-session fallback", async () => {
-    // Set up TWO matches: a session file pointing at demo-task AND a hint
-    // pointing at a different task path. Hint should win.
+  it("uses Selected task hint when exact-session selected_task is absent", async () => {
+    // Session file points at demo-task but does not match the input sessionID.
+    // The prompt hint points at a different task path and should be used.
     writeSessionFile(dir, "opencode_sole", ".trellis/tasks/another-task");
     const hintTask = join(dir, ".trellis", "tasks", "hint-task");
     mkdirSync(hintTask, { recursive: true });
@@ -595,7 +644,7 @@ describe("opencode inject-subagent-context (issue #264)", () => {
     const output: TaskToolOutput = {
       args: {
         subagent_type: "trellis-implement",
-        prompt: "Active task: .trellis/tasks/hint-task\n\ngo",
+        prompt: "Selected task: .trellis/tasks/hint-task\n\ngo",
       },
     };
 

@@ -11,7 +11,16 @@ Skills and commands are textual entry points for user interaction with Trellis. 
 | prompt | Explicit user invocation or platform selection | Similar to command, but in a platform prompt format. |
 | workflow | Explicit user selection or platform auto-match | Guides the main session when no sub-agent/hook exists. |
 
-Trellis workflow skills usually share one semantic set: brainstorm, before-dev, check, update-spec, break-loop. Multi-file built-in skills such as `trellis-meta` use layered references.
+Trellis has two skill families:
+
+- Workflow skills: `brainstorm`, `before-dev`, `check`, `update-spec`, and `break-loop`.
+- Multi-file bundled skills: `trellis-meta`, `smart-search-cli`, and `trellis-micro-grill`.
+
+Bundled skills are installed as directories and may include nested `agents/`, `examples/`, `references/`, or other lazy-loadable files. Do not describe bundled skills as a closed `trellis-*` list: `smart-search-cli` intentionally keeps its existing non-`trellis-` name.
+
+`smart-search-cli` is CLI-backed source retrieval. The Trellis package exposes the `smart-search` executable through its runtime wrapper; the skill documents how agents should use that CLI and cite retrieved sources.
+
+`trellis-micro-grill` is the Trellis clarification adapter. It asks one high-value question at a time and escalates to Lite, Full, or Parent/Child task modes only when durable artifacts or broader risk require it.
 
 ## Common Paths
 
@@ -42,12 +51,19 @@ A common skill is a directory:
 trellis-meta/
 ├── SKILL.md
 └── references/
+smart-search-cli/
+├── SKILL.md
+├── agents/
+├── examples/
+└── references/
+trellis-micro-grill/
+└── SKILL.md
 ```
 
 `SKILL.md` should tell the AI:
 
 - When to use this skill.
-- Which reference to read first for the current task.
+- Which reference to read first for the selected task.
 - What not to do.
 
 References hold longer explanations so the entry file does not contain everything.
@@ -62,6 +78,17 @@ Commands, prompts, and workflows are usually single files. Their content should 
 - How to report after completion.
 
 They should not store task state; task state belongs in `.trellis/tasks/` and `.trellis/.runtime/`.
+
+Task selection uses `selected_task`, not legacy current/active task commands. The current command chain is:
+
+- `task.py dashboard` for routing without selecting a task.
+- `task.py select <task>` to select a task for the live session without changing `task.status`.
+- `task.py selected [--source]` to inspect the live-session selection.
+- `task.py start-execution <task> --check` and then `--approved` for the execution boundary.
+- `task.py exit` to clear the live-session selection without changing `task.status`.
+- `task.py archive <task>` for guarded completion.
+
+Do not reintroduce `task.py start`, `task.py current`, or `task.py finish` into platform commands or docs.
 
 ## Local Change Scenarios
 

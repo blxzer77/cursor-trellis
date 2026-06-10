@@ -5,7 +5,7 @@ import { execFileSync } from "child_process"
 import { platform } from "os"
 import { debugLog } from "./trellis-context.js"
 
-const PYTHON_CMD = platform() === "win32" ? "python" : "python3"
+const PYTHON_CMD = platform() === "win32" ? "python" : "python"
 
 const FIRST_REPLY_NOTICE = `<first-reply-notice>
 First visible reply: say once in Chinese that Trellis SessionStart context is loaded, then answer directly.
@@ -38,17 +38,21 @@ function getTaskStatus(ctx, platformInput = null) {
   const taskRef = active.taskPath
   if (!taskRef) {
     return (
-      "Status: NO ACTIVE TASK\n" +
-      "Next-Action: Classify the current turn before creating any Trellis task. " +
-      "Simple conversation / small task asks only whether this turn should create a Trellis task. " +
-      "Complex task asks whether task creation and planning are allowed."
+      "Trellis framework: active\n" +
+      "Selected task: none\n" +
+      "Next-Action: Use the Task Dashboard to choose select/create/inspect/continue-without-task. " +
+      "Do not auto-select an existing task."
     )
   }
 
   const taskDir = ctx.resolveTaskDir(taskRef)
 
   if (active.stale || !taskDir || !existsSync(taskDir)) {
-    return `Status: STALE POINTER\nTask: ${taskRef}\nNext-Action: Task directory not found. Run: python3 ./.trellis/scripts/task.py finish`
+    return (
+      `Trellis framework: active\nSelected task: ${taskRef}\n` +
+      "Status: STALE SELECTION\n" +
+      "Next-Action: Task directory not found. Run: python ./.trellis/scripts/task.py exit"
+    )
   }
 
   let taskData = {}
@@ -92,15 +96,15 @@ function getTaskStatus(ctx, platformInput = null) {
     const nextBits = []
     if (missingComplex.length > 0) {
       nextBits.push(
-        `Lightweight task can request start review with PRD-only; complex task must add ${missingComplex.join(", ")} before start`,
+        `Lightweight task can request execution readiness review with PRD-only; complex task must add ${missingComplex.join(", ")} before start-execution --check`,
       )
     } else {
-      nextBits.push("Planning artifacts are present; ask for review before `task.py start`")
+      nextBits.push("Planning artifacts are present; run `task.py start-execution <task> --check`, report PASS, then ask for explicit execution approval")
     }
     if (!jsonlReady) {
       nextBits.push("curate `implement.jsonl` and `check.jsonl` before sub-agent mode start")
     }
-    return `Status: PLANNING\nTask: ${taskTitle}\nPresent: ${presentLine}\nNext-Action: ${nextBits.join("; ")}. Do not enter implementation until the user confirms start.`
+    return `Status: PLANNING\nTask: ${taskTitle}\nPresent: ${presentLine}\nNext-Action: ${nextBits.join("; ")}. Do not enter implementation until explicit execution approval is granted.`
   }
 
   return (
@@ -305,6 +309,7 @@ function buildCompactCurrentState(ctx, platformInput, specIndexPaths) {
   lines.push(`Git: branch ${branch}; ${dirtyCount === 0 ? "clean" : `dirty ${dirtyCount} paths`}.`)
 
   const active = ctx.getActiveTask(platformInput)
+  lines.push("Trellis framework: active")
   if (active.taskPath) {
     const taskDir = ctx.resolveTaskDir(active.taskPath)
     let status = "unknown"
@@ -316,9 +321,9 @@ function buildCompactCurrentState(ctx, platformInput, specIndexPaths) {
         // Ignore parse errors
       }
     }
-    lines.push(`Current task: ${active.taskPath}; status=${status}.`)
+    lines.push(`Selected task: ${active.taskPath}; status=${status}.`)
   } else {
-    lines.push("Current task: none.")
+    lines.push("Selected task: none.")
   }
 
   const tasksDir = join(directory, ".trellis", "tasks")
@@ -326,7 +331,7 @@ function buildCompactCurrentState(ctx, platformInput, specIndexPaths) {
     try {
       const activeTasks = readdirSync(tasksDir, { withFileTypes: true })
         .filter(entry => entry.isDirectory() && entry.name !== "archive" && existsSync(join(tasksDir, entry.name, "task.json")))
-      lines.push(`Active tasks: ${activeTasks.length} total. Use \`python3 ./.trellis/scripts/task.py list --mine\` only if needed.`)
+      lines.push(`Active tasks: ${activeTasks.length} total. Use the Task Dashboard for routing; use \`python ./.trellis/scripts/task.py list --mine\` only for raw inspection.`)
     } catch {
       // Ignore task list errors
     }
@@ -357,6 +362,143 @@ function buildCompactCurrentState(ctx, platformInput, specIndexPaths) {
   return lines.join("\n")
 }
 
+function readTaskData(taskDir) {
+  try {
+    return JSON.parse(readFileSync(join(taskDir, "task.json"), "utf-8"))
+  } catch {
+    return null
+  }
+}
+
+function readActiveTasks(directory) {
+  const tasksDir = join(directory, ".trellis", "tasks")
+  const tasks = new Map()
+  if (!existsSync(tasksDir)) return tasks
+
+  try {
+    const entries = readdirSync(tasksDir, { withFileTypes: true })
+      .filter(entry => entry.isDirectory() && entry.name !== "archive")
+      .sort((a, b) => a.name.localeCompare(b.name))
+    for (const entry of entries) {
+      const taskDir = join(tasksDir, entry.name)
+      const data = readTaskData(taskDir)
+      if (!data || typeof data !== "object") continue
+      tasks.set(entry.name, {
+        dirName: entry.name,
+        status: data.status || "unknown",
+        assignee: data.assignee || "-",
+        parent: data.parent || null,
+        children: Array.isArray(data.children) ? data.children : [],
+      })
+    }
+  } catch {
+    // Ignore task directory read errors
+  }
+  return tasks
+}
+
+function childrenProgress(children, statuses) {
+  if (!Array.isArray(children) || children.length === 0) return ""
+  const done = children.filter(
+    child => !statuses.has(child) || ["completed", "done"].includes(statuses.get(child)),
+  ).length
+  return ` [${done}/${children.length} done]`
+}
+
+function appendDashboardTask(lines, name, tasks, statuses, printed, indent = 0) {
+  const task = tasks.get(name)
+  if (!task) return
+  printed.add(name)
+  const prefix = "  ".repeat(indent) + "  - "
+  const progress = childrenProgress(task.children, statuses)
+  lines.push(`${prefix}.trellis/tasks/${name} (${task.status})${progress} [${task.assignee || "-"}]`)
+  for (const childName of task.children) {
+    if (tasks.has(childName)) {
+      appendDashboardTask(lines, childName, tasks, statuses, printed, indent + 1)
+    }
+  }
+}
+
+function buildFallbackTaskDashboard(ctx, platformInput) {
+  const active = ctx.getActiveTask(platformInput)
+  const lines = [
+    "Task Dashboard",
+    "Trellis framework: active",
+    active.taskPath
+      ? `Selected task: ${active.taskPath}${active.source ? ` (${active.source})` : ""}`
+      : "Selected task: none",
+    "",
+  ]
+
+  const tasks = readActiveTasks(ctx.directory)
+  const statuses = new Map([...tasks.entries()].map(([name, task]) => [name, task.status]))
+  if (tasks.size === 0) {
+    lines.push("Tasks: none")
+  } else {
+    const printed = new Set()
+    for (const status of ["planning", "in_progress", "review", "blocked"]) {
+      const names = [...tasks.keys()]
+        .filter(name => tasks.get(name)?.status === status && !tasks.get(name)?.parent)
+        .sort()
+      if (names.length === 0) continue
+      lines.push(`${status.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}:`)
+      for (const name of names) {
+        appendDashboardTask(lines, name, tasks, statuses, printed)
+      }
+      lines.push("")
+    }
+
+    const otherNames = [...tasks.keys()]
+      .filter(name => !printed.has(name) && !tasks.get(name)?.parent)
+      .sort()
+    if (otherNames.length > 0) {
+      lines.push("Other:")
+      for (const name of otherNames) {
+        appendDashboardTask(lines, name, tasks, statuses, printed)
+      }
+      lines.push("")
+    }
+  }
+
+  lines.push("Suggested actions:")
+  lines.push("  - Select a task: python ./.trellis/scripts/task.py select <task>")
+  lines.push("  - Create a task: python ./.trellis/scripts/task.py create \"<title>\" --slug <slug>")
+  lines.push("  - Inspect raw list: python ./.trellis/scripts/task.py list")
+  lines.push("  - Continue without a task only for No Task or Micro-Grill work")
+
+  const developer = readDeveloper(ctx.directory)
+  if (developer !== "(not initialized)") {
+    lines.push(`Developer: ${developer}`)
+  }
+
+  return lines.map(line => line.trimEnd()).join("\n").trimEnd()
+}
+
+function buildPythonTaskDashboard(directory, contextKey) {
+  const scriptPath = join(directory, ".trellis", "scripts", "task.py")
+  if (!existsSync(scriptPath)) return ""
+
+  try {
+    return execFileSync(PYTHON_CMD, [scriptPath, "dashboard"], {
+      cwd: directory,
+      timeout: 5000,
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"],
+      env: {
+        ...process.env,
+        ...(contextKey ? { TRELLIS_CONTEXT_ID: contextKey } : {}),
+      },
+    }).trim()
+  } catch {
+    return ""
+  }
+}
+
+function buildTaskDashboard(ctx, platformInput, contextKey) {
+  return buildPythonTaskDashboard(ctx.directory, contextKey) ||
+    buildFallbackTaskDashboard(ctx, platformInput)
+}
+
 export function buildSessionContext(ctx, platformInput = null) {
   const directory = ctx.directory
   const contextKey = typeof ctx.getContextKey === "function"
@@ -383,12 +525,16 @@ Trellis compact SessionStart context. Use it to orient the session; load details
   parts.push(buildCompactCurrentState(ctx, platformInput, paths))
   parts.push("</current-state>")
 
+  parts.push("<task-dashboard>")
+  parts.push(buildTaskDashboard(ctx, platformInput, contextKey))
+  parts.push("</task-dashboard>")
+
   const workflowContent = ctx.readProjectFile(".trellis/workflow.md")
   if (workflowContent) {
     const allLines = workflowContent.split("\n")
     const overviewLines = [
       "# Development Workflow - Session Summary",
-      "Full guide: .trellis/workflow.md. Step detail: `python3 ./.trellis/scripts/get_context.py --mode phase --step <X.Y>`.",
+      "Full guide: .trellis/workflow.md. Step detail: `python ./.trellis/scripts/get_context.py --mode phase --step <X.Y>`.",
       "",
     ]
 
@@ -436,7 +582,7 @@ Trellis compact SessionStart context. Use it to orient the session; load details
 
   parts.push(
     "Discover more via: " +
-    "`python3 ./.trellis/scripts/get_context.py --mode packages`"
+    "`python ./.trellis/scripts/get_context.py --mode packages`"
   )
   parts.push("</guidelines>")
 

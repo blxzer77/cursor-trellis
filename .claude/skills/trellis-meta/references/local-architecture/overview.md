@@ -30,7 +30,7 @@ All three layers live inside the user project, so an AI can read and modify them
 | `.trellis/tasks/` | Each task's PRD, technical notes, research files, and JSONL context. |
 | `.trellis/workspace/` | Per-developer journals and cross-session memory. |
 | `.trellis/scripts/` | Local Python runtime used by commands, hooks, and context injection. |
-| `.trellis/.runtime/` | Session-level runtime state, such as the current task pointer. |
+| `.trellis/.runtime/` | Session-level runtime state, such as the selected task pointer. |
 | `.trellis/.template-hashes.json` | Template hashes for Trellis-managed files, used by update to determine whether local files were modified by the user. |
 
 ## AI Customization Principles
@@ -45,7 +45,7 @@ All three layers live inside the user project, so an AI can read and modify them
 
 - To understand which files exist after init, read `generated-files.md`.
 - To change phases, routing, or next actions, read `workflow.md`.
-- To change the task model, JSONL context, or active task behavior, read `task-system.md`.
+- To change the task model, JSONL context, or selected task behavior, read `task-system.md`.
 - To change coding convention injection, read `spec-system.md`.
 - To understand journals and cross-session memory, read `workspace-memory.md`.
 - To change hooks or sub-agent context loading, read `context-injection.md`.

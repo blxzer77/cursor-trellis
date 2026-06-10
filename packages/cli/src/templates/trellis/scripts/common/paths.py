@@ -204,7 +204,7 @@ def count_lines(file_path: Path) -> int:
 
 
 # =============================================================================
-# Current Task Management
+# Selected Task Management
 # =============================================================================
 
 def normalize_task_ref(task_ref: str) -> str:
@@ -251,70 +251,70 @@ def resolve_task_ref(task_ref: str, repo_root: Path | None = None) -> Path | Non
     return repo_root / DIR_WORKFLOW / DIR_TASKS / path_obj
 
 
-def get_current_task(
+def get_selected_task(
     repo_root: Path | None = None,
     platform_input: dict | None = None,
     platform: str | None = None,
 ) -> str | None:
-    """Get current task directory path (relative to repo_root).
+    """Get selected task directory path (relative to repo_root).
 
     Args:
         repo_root: Repository root path. Defaults to auto-detected.
 
     Returns:
-        Relative path to current task directory or None.
+        Relative path to selected task directory or None.
     """
     if repo_root is None:
         repo_root = get_repo_root()
 
-    from .active_task import resolve_active_task
+    from .active_task import resolve_selected_task
 
-    return resolve_active_task(repo_root, platform_input, platform).task_path
+    return resolve_selected_task(repo_root, platform_input, platform).task_path
 
 
-def get_current_task_abs(
+def get_selected_task_abs(
     repo_root: Path | None = None,
     platform_input: dict | None = None,
     platform: str | None = None,
 ) -> Path | None:
-    """Get current task directory absolute path.
+    """Get selected task directory absolute path.
 
     Args:
         repo_root: Repository root path. Defaults to auto-detected.
 
     Returns:
-        Absolute path to current task directory or None.
+        Absolute path to selected task directory or None.
     """
     if repo_root is None:
         repo_root = get_repo_root()
 
-    relative = get_current_task(repo_root, platform_input, platform)
+    relative = get_selected_task(repo_root, platform_input, platform)
     if relative:
         return resolve_task_ref(relative, repo_root)
     return None
 
 
-def get_current_task_source(
+def get_selected_task_source(
     repo_root: Path | None = None,
     platform_input: dict | None = None,
     platform: str | None = None,
 ) -> tuple[str, str | None, str | None]:
-    """Get active task source as (`source`, `context_key`, `task_path`)."""
+    """Get selected task source as (`source`, `context_key`, `task_path`)."""
     if repo_root is None:
         repo_root = get_repo_root()
 
-    from .active_task import get_current_task_source as _get_source
+    from .active_task import get_selected_task_source as _get_source
 
     return _get_source(repo_root, platform_input, platform)
 
 
-def set_current_task(
+def set_selected_task(
     task_path: str,
     repo_root: Path | None = None,
     platform_input: dict | None = None,
     platform: str | None = None,
 ) -> bool:
-    """Set current task in session scope.
+    """Set selected task in session scope.
 
     Args:
         task_path: Task directory path (relative to repo_root).
@@ -326,9 +326,9 @@ def set_current_task(
     if repo_root is None:
         repo_root = get_repo_root()
 
-    from .active_task import set_active_task
+    from .active_task import set_selected_task as _set_selected_task
 
-    return set_active_task(
+    return _set_selected_task(
         task_path,
         repo_root,
         platform_input=platform_input,
@@ -336,12 +336,12 @@ def set_current_task(
     ) is not None
 
 
-def clear_current_task(
+def clear_selected_task(
     repo_root: Path | None = None,
     platform_input: dict | None = None,
     platform: str | None = None,
 ) -> bool:
-    """Clear current task in session scope.
+    """Clear selected task in session scope.
 
     Args:
         repo_root: Repository root path. Defaults to auto-detected.
@@ -352,9 +352,9 @@ def clear_current_task(
     if repo_root is None:
         repo_root = get_repo_root()
 
-    from .active_task import clear_active_task
+    from .active_task import clear_selected_task as _clear_selected_task
 
-    clear_active_task(
+    _clear_selected_task(
         repo_root,
         platform_input=platform_input,
         platform=platform,
@@ -362,16 +362,26 @@ def clear_current_task(
     return True
 
 
-def has_current_task(repo_root: Path | None = None) -> bool:
-    """Check if has current task.
+def has_selected_task(repo_root: Path | None = None) -> bool:
+    """Check if a selected task exists.
 
     Args:
         repo_root: Repository root path. Defaults to auto-detected.
 
     Returns:
-        True if current task is set.
+        True if selected task is set.
     """
-    return get_current_task(repo_root) is not None
+    return get_selected_task(repo_root) is not None
+
+
+# Internal compatibility aliases. New user-facing code should use selected-task
+# names; existing internal helpers can migrate incrementally.
+get_current_task = get_selected_task
+get_current_task_abs = get_selected_task_abs
+get_current_task_source = get_selected_task_source
+set_current_task = set_selected_task
+clear_current_task = clear_selected_task
+has_current_task = has_selected_task
 
 
 # =============================================================================
@@ -444,4 +454,4 @@ if __name__ == "__main__":
     print(f"Tasks dir: {get_tasks_dir(repo)}")
     print(f"Workspace dir: {get_workspace_dir(repo)}")
     print(f"Journal file: {get_active_journal_file(repo)}")
-    print(f"Current task: {get_current_task(repo)}")
+    print(f"Selected task: {get_selected_task(repo)}")

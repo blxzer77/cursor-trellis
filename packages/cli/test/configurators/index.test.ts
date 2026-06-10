@@ -378,6 +378,20 @@ describe("collectPlatformTemplates", () => {
           `${skillRoot}/trellis-spec-bootstarp/references/spec-writing.md`,
         ),
       ).toBe(true);
+      expect(result?.has(`${skillRoot}/smart-search-cli/SKILL.md`)).toBe(true);
+      expect(
+        result?.has(
+          `${skillRoot}/smart-search-cli/references/cli-contract.md`,
+        ),
+      ).toBe(true);
+      expect(
+        [...(result?.keys() ?? [])]
+          .filter((key) => key.includes("/smart-search-cli/"))
+          .every((key) => !key.includes("\\")),
+      ).toBe(true);
+      expect(
+        result?.has(`${skillRoot}/trellis-micro-grill/SKILL.md`),
+      ).toBe(true);
     }
   });
 

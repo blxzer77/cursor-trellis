@@ -427,7 +427,7 @@ def get_spec_scope(repo_root: Path | None = None) -> list[str] | str | None:
 
     Returns:
         list[str]: Package names to include in spec scanning.
-        str: "active_task" to use current task's package.
+        str: "active_task" to use the selected task's package.
         None: No scope configured (scan all packages).
     """
     config = _load_config(repo_root)

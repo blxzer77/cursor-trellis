@@ -3,7 +3,7 @@
 
 Cursor's shell command environment does not inherit SessionStart data. This
 hook writes a short-lived runtime ticket before Cursor runs a shell command
-that calls `task.py start/current/finish`. The task script then consumes the
+that calls `task.py select/selected/exit`. The task script then consumes the
 ticket only when it has no native session environment.
 """
 from __future__ import annotations
@@ -21,7 +21,7 @@ from typing import Any
 DIR_WORKFLOW = ".trellis"
 DIR_RUNTIME = ".runtime"
 DIR_CURSOR_SHELL = "cursor-shell"
-SESSION_SUBCOMMANDS = {"start", "current", "finish"}
+SESSION_SUBCOMMANDS = {"select", "selected", "exit"}
 TICKET_TTL_SECONDS = 30
 CONTEXT_IDENTITY_KEYS = (
     "session_id",
@@ -80,7 +80,7 @@ def _extract_task_subcommands(command: str) -> list[dict[str, str]]:
         if name not in SESSION_SUBCOMMANDS:
             continue
         item = {"name": name}
-        if name == "start" and index + 2 < len(tokens):
+        if name == "select" and index + 2 < len(tokens):
             item["task_ref"] = tokens[index + 2]
         subcommands.append(item)
     return subcommands

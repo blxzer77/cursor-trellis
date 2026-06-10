@@ -8,6 +8,7 @@
  */
 
 import { describe, it, expect } from "vitest";
+import path from "node:path";
 
 import {
   parseArgv,
@@ -83,7 +84,7 @@ describe("buildFilter", () => {
 
   it("--cwd overrides process.cwd() and resolves relative paths", () => {
     const f = buildFilter({ cwd: "/some/abs/path" });
-    expect(f.cwd).toBe("/some/abs/path");
+    expect(f.cwd).toBe(path.resolve("/some/abs/path"));
   });
 });
 

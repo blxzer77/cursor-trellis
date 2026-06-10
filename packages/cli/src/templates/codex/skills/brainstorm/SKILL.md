@@ -93,9 +93,9 @@ Do not ask process questions such as whether to search, inspect files, or contin
 - ordered implementation checklist
 - validation commands
 - risky files or rollback points
-- follow-up checks before `task.py start`
+- follow-up checks before `task.py start-execution --check`
 
-Lightweight tasks may have only `prd.md`. Complex tasks must have `prd.md`, `design.md`, and `implement.md` before `task.py start`.
+Lightweight tasks may have only `prd.md`. Complex tasks must have `prd.md`, `design.md`, and `implement.md` before `task.py start-execution --check`.
 
 `implement.md` is not a replacement for `implement.jsonl`. Use JSONL files only for manifest-style spec and research references when the task needs them.
 

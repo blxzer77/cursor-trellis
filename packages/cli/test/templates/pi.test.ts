@@ -118,8 +118,8 @@ describe("pi templates", () => {
       'enum: ["off", "minimal", "low", "medium", "high", "xhigh"]',
     );
 
-    // Dispatch protocol carries the "Active task: <path>" prefix rule.
-    expect(extension).toContain("Active task:");
+    // Dispatch protocol carries the "Selected task: <path>" prefix rule.
+    expect(extension).toContain("Selected task:");
   });
 
   it("extension wires the four Pi events Trellis needs for context flow", () => {
@@ -139,7 +139,7 @@ describe("pi templates", () => {
     const extension = getExtensionTemplate();
 
     // Bash tool calls get TRELLIS_CONTEXT_ID exported in front so spawned
-    // python scripts (e.g. task.py current) inherit session identity.
+    // python scripts (e.g. task.py selected) inherit session identity.
     expect(extension).toContain('ev.toolName === "bash"');
     expect(extension).toContain("export TRELLIS_CONTEXT_ID=");
     expect(extension).toContain("cmdHasTrellisCtx");
@@ -301,7 +301,7 @@ fallbackModels:
     const extension = getExtensionTemplate();
 
     // The child pi process must inherit TRELLIS_CONTEXT_ID so sub-agent
-    // task.py current resolves to the same task.
+    // task.py selected resolves to the same task.
     expect(extension).toContain("TRELLIS_CONTEXT_ID:");
     expect(extension).toContain("...process.env");
   });
