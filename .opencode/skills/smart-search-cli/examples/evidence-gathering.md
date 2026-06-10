@@ -25,18 +25,18 @@ New-Item -ItemType Directory -Force -Path $EvidenceDir | Out-Null
 
 ## Step 1: Discover Candidate Sources
 
-Choose the discovery command by intent. Use one or two, not all of them by default.
+Run the bilingual broad-search pair first, then add intent-specific discovery only when needed.
 
-Broad or mixed intent:
+Chinese-source broad pass:
 
 ```powershell
-smart-search search "query" --validation balanced --extra-sources 1 --format json --output "$EvidenceDir\01-search.json"
+smart-search search "中文搜索，优先检索中文来源，并回答原问题：query" --validation balanced --extra-sources 1 --format json --output "$EvidenceDir\01-search-zh.json"
 ```
 
-Chinese, domestic, or current intent:
+English-source broad pass:
 
 ```powershell
-smart-search zhipu-search "query" --count 5 --format json --output "$EvidenceDir\01-zhipu.json"
+smart-search search "Search English-language sources and answer the original question: query" --validation balanced --extra-sources 1 --format json --output "$EvidenceDir\02-search-en.json"
 ```
 
 Official domains, papers, product pages, or trusted sites:
@@ -81,7 +81,7 @@ Answer:
 <short answer grounded in fetched text>
 
 Unverified candidates:
-- <candidate URL or source from search/exa/zhipu output, if relevant>
+- <candidate URL or source from search/exa output, if relevant>
 
 Commands:
 - smart-search ...

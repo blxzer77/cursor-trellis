@@ -89,15 +89,16 @@ Exa domain filters:
 
 Fetch output includes `ok`, `url`, `provider`, `content`, `provider_attempts`, `fallback_used`, and `elapsed_ms`.
 
-Zhipu Web Search API setup:
+Zhipu Web Search API legacy setup:
 
 - `ZHIPU_API_URL` defaults to `https://open.bigmodel.cn/api`.
 - `ZHIPU_SEARCH_ENGINE` defaults to `search_std`.
 - Official Web Search API service values include `search_std`, `search_pro`, `search_pro_sogou`, and `search_pro_quark`.
 - `smart-search setup --zhipu-api-url URL --zhipu-search-engine ENGINE` saves these values in non-interactive mode.
-- Interactive setup asks for Zhipu API key, API URL, and search service when optional `web_search` reinforcement selects Zhipu.
+- Interactive setup no longer recommends or prompts for Zhipu in the default flow. Use `config set` or non-interactive flags only for explicit manual legacy compatibility.
 - `config set ZHIPU_SEARCH_ENGINE VALUE` must remain free-form so newly added official services do not require a CLI release.
 - `zhipu-search` corresponds to Zhipu Web Search API, not Zhipu Chat Completions `tools=[web_search]`, not Search Agent, and not the MCP Server.
+- `zhipu-search` is deprecated and not used by default routing because quota may be unavailable. Default source discovery uses bilingual `search` through Tavily / Firecrawl when configured.
 - `TAVILY_API_URL` only affects Tavily and does not proxy Zhipu.
 - `TAVILY_TIMEOUT_SECONDS` controls the Tavily `doctor` connectivity timeout. It defaults to `60` so slower pooled/community endpoints are not incorrectly marked unhealthy by the diagnostic check.
 
@@ -156,12 +157,12 @@ Deep Research must not require fixed topic recipe ids such as `current_market_re
 - `gap_check`: how the executor verifies that key claims have fetched evidence or downgrades unsupported claims to unverified candidates.
 - `final_answer_policy`: how to cite fetched evidence and list unverified candidates.
 
-Each `steps[]` item must include `id`, `subquestion_id`, `tool`, `purpose`, `command`, and `output_path`. Allowed `tool` values are `search`, `exa-search`, `exa-similar`, `zhipu-search`, `context7-library`, `context7-docs`, `fetch`, and `map`; these map to existing CLI commands only. `doctor` is a `preflight` action, not a `steps[]` item. Use `C:\tmp\smart-search-evidence\<timestamp>-<slug>\` or an equivalent absolute evidence directory for `output_path` values.
+Each `steps[]` item must include `id`, `subquestion_id`, `tool`, `purpose`, `command`, and `output_path`. Allowed `tool` values are `search`, `exa-search`, `exa-similar`, `context7-library`, `context7-docs`, `fetch`, and `map`; these map to existing CLI commands only. `doctor` is a `preflight` action, not a `steps[]` item. Use `C:\tmp\smart-search-evidence\<timestamp>-<slug>\` or an equivalent absolute evidence directory for `output_path` values.
 
 Capability boundaries:
 
-- `search`: broad discovery and synthesis through `main_search`; use returned `routing_decision`, `provider_attempts`, `fallback_used`, and `source_warning` as orchestration signals, not as claim proof.
-- `zhipu-search`: Chinese, domestic, current, policy/regulatory, announcement, and China-local source discovery.
+- `search`: broad bilingual discovery and synthesis through `main_search`; use returned `routing_decision`, `provider_attempts`, `fallback_used`, and `source_warning` as orchestration signals, not as claim proof.
+- `zhipu-search`: deprecated manual compatibility command. Do not include it in default research plans.
 - `context7-library` and `context7-docs`: library, SDK, API, framework, and documentation intent. Prefer Context7 before Exa for docs/API questions.
 - `exa-search`: low-noise source discovery for official domains, papers, product pages, known domains, and trusted pages. It is not the default second hop for every high-risk or verification task.
 - `exa-similar`: adjacent-source discovery when a known reliable URL is available.
@@ -173,8 +174,8 @@ Default Deep Research orchestration:
 
 1. Run `smart-search doctor --format json` as preflight when configuration is uncertain.
 2. `research` generates `intent_signals`, `decomposition`, and `capability_plan` internally instead of selecting a fixed topic recipe.
-3. Use planned `search ... --validation balanced --extra-sources 1..3` steps for broad discovery.
-4. Add planned `zhipu-search` for Chinese/current/domestic topics, `context7-library` plus `context7-docs` for docs/API/library topics, `exa-search` for official/trusted-domain or paper discovery, `exa-similar` for URL-neighbor discovery, or `map` only when the capability boundary matches the intent.
+3. Use planned bilingual `search ... --validation balanced --extra-sources 1..3` steps for Chinese-source and English-source broad discovery.
+4. Add planned `context7-library` plus `context7-docs` for docs/API/library topics, `exa-search` for official/trusted-domain or paper discovery, `exa-similar` for URL-neighbor discovery, or `map` only when the capability boundary matches the intent.
 5. Use `fetch` for key URLs before making claim-level statements.
 6. Run `gap_check`: fetch missing evidence for key claims or downgrade them to unverified candidates.
 
@@ -192,8 +193,7 @@ Research provider advantage routing:
 
 - Context7 first for library/API/framework docs and docs retrieval.
 - Exa for official domains, papers, product/company pages, date/domain-filtered low-noise discovery, and adjacent-source discovery.
-- Zhipu REST for Chinese, domestic, current, policy, and announcement searches.
-- Tavily for broad source discovery and site maps.
+- Tavily for broad bilingual source discovery and site maps.
 - Jina for known public URL, PDF, and arXiv clean extraction; ReaderLM-v2 requires `JINA_API_KEY`.
 - Firecrawl for robust fetch fallback, JS-heavy/dynamic/browser-like extraction, OCR/PDF/structured extraction.
 
@@ -262,10 +262,10 @@ Agent timeout handling contract:
 - Jina satisfies fetch capability only when `JINA_API_KEY` is configured. Anonymous Jina Reader does not satisfy `standard`.
 - Same-capability fallback is allowed; cross-capability fallback is not. Context7 is not used for unrelated broad web queries, and page extraction providers are not used as docs search providers.
 - `main_search`: OpenAI-compatible Chat Completions.
-- `web_search`: `search` automatically routes `web_search` only for Chinese, domestic, or current intent. Zhipu Web Search API is first when routed in, then Tavily / Firecrawl source search when configured.
+- `web_search`: `search` runs bilingual web_search source discovery through Tavily / Firecrawl when configured. Zhipu is deprecated from default routing and is not selected automatically for Chinese/current/domestic searches.
 - `docs_search`: explicit keyword-based docs/API/library/framework intent. Context7 is first for library/API/docs intent, then Exa for official-domain, paper, product-page, trusted-site, or low-noise supplemental discovery.
 - Fetch capability: Tavily first, then Jina Reader with `JINA_API_KEY`, then Firecrawl.
-- `search --validation strict` does not automatically route `web_search`. Strict evergreen queries without primary, docs, fetch, or explicit source evidence can fail with `evidence_error`; use `--extra-sources N`, source-first commands such as `zhipu-search` / `exa-search`, or `fetch` when citable evidence is required.
+- `search --validation strict` uses the same bilingual web_search policy as balanced mode when source discovery providers are configured. Strict queries without primary, docs, fetch, or explicit source evidence can still fail with `evidence_error`; use `--extra-sources N`, source-first commands such as `exa-search`, or `fetch` when citable evidence is required.
 - `search` calls Tavily and/or Firecrawl for `extra_sources` only when `--extra-sources` is greater than 0.
 - If both Tavily and Firecrawl are configured, `search --extra-sources N` gives about 60% of extra source slots to Tavily and the remainder to Firecrawl.
 - `extra_sources` are retrieved in parallel and are not automatically used by the primary model to verify its answer.
@@ -274,7 +274,7 @@ Agent timeout handling contract:
 - `research` uses capability-first plus provider-advantage routing. Fallback remains same-capability only; low-quality fetches, challenge pages, empty content, auth/rate/timeout/provider errors, and runtime errors are failed attempts that may trigger same-capability fallback.
 - `map` uses Tavily only.
 - `exa-search` and `exa-similar` use Exa only.
-- `zhipu-search` uses Zhipu only.
+- `zhipu-search` uses Zhipu only and is retained as a deprecated manual compatibility command.
 - `context7-library` and `context7-docs` use Context7 only.
 - Runtime config priority is environment variables first, then local config file, then defaults.
 - `setup` and `config` read/write the local Smart Search config file and do not call providers.
@@ -284,7 +284,7 @@ Agent timeout handling contract:
 
 - Use `exa-search --include-domains` when official documentation domains are known.
 - Use `context7-library` / `context7-docs` for explicit docs/API/SDK/library/framework intent when Context7 is configured.
-- Use `zhipu-search` for Chinese, domestic, current, or domain-filtered source discovery when Zhipu is configured.
+- Use the bilingual `search` pair for Chinese, domestic, current, or mixed-language source discovery. Do not use Zhipu unless the user explicitly asks for the deprecated manual route.
 - Use `exa-search --start-published-date` for recency-constrained source discovery.
 - Use `exa-similar` when a known good page is available and adjacent sources are needed.
 - Use `search --format content` when a human wants only the generated answer body.
