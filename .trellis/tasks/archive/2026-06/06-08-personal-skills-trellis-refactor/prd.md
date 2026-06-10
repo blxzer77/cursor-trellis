@@ -1,0 +1,489 @@
+# Custom Trellis Workflow Framework
+
+## Goal
+
+Turn Trellis `0.6.0-beta.22` into a new custom workflow framework authored by the user. The framework should ship the custom workflow rules, built-in skills, approved MCP capability surfaces, and required runtimes so installing Trellis itself produces the intended AI development environment instead of requiring separate skill/runtime setup.
+
+## Background
+
+The user is converting Trellis from a general workflow framework into a custom Trellis-derived workflow framework. Earlier planning treated bundled skills as the first narrow implementation slice. The user has now clarified that the scope must include workflow customization, MCP configuration integration, and runtime bundling because the target is a complete new framework, not a generic Trellis profile.
+
+Current source and reference assets:
+
+- `smart-search-cli` is maintained in `D:\MyHarness\smartsearch-private\skills\smart-search-cli`. It is the user's CLI-first, source-backed web research skill.
+- `trellis-micro-grill` exists in `D:\MyHarness\Trellis\.agents\skills\trellis-micro-grill`. It adapts the user's `grill-me` habit into Trellis's task ladder.
+- `riverfjs/skills` is cloned at `D:\MyHarness\riverfjs-skills` and `D:\MyHarness\riverfjs-skills-research`. Use both as skill-authoring and skill-research references when creating or revising Trellis skills.
+- The current customized `.trellis/workflow.md` is the behavior reference for the custom workflow shape.
+- `D:\MyHarness\Trellis` is the upstream/reference Trellis implementation.
+- The private marketplace at `D:\MyHarness\Trellis\marketplace` and the historical tasks under `D:\MyKnowledgeSystem\.trellis` are reference material for the user's original Trellis-first operating-system intent.
+- The old code retrieval child task `.trellis/tasks/archive/2026-06/06-08-code-retrieval-architecture-evaluation` is now reference evidence, not a scope boundary. This parent task owns the final framework decision that `fast-context-mcp`, `colbymchenry/codegraph`, and Graphify must be integrated as selectable project capabilities in this refactor.
+- `https://github.com/LonelyHerbivore/Trellis-Herbivore` is a mechanism reference only. Borrow its contract/gate/isolation ideas where useful; do not copy its Claude-only gates or channel runtime as default required behavior.
+
+The desired behavior is install-time availability: Trellis itself should ship the workflow, skills, MCP capability configuration, and runtime support needed by the custom framework.
+
+## Requirements
+
+- Make the fork default to the personal workflow framework. Do not require a `--profile personal`, `trellis personal ...`, or separate opt-in profile for intended behavior.
+- Do not preserve upstream Trellis as a full generic multi-user tool. Keep upstream mechanics only where they support the user's personal workflow with low maintenance cost.
+- Target only Codex, Claude Code, and Cursor. Remove, disable, or degrade non-target platform behavior by default instead of carrying full support for unused platforms.
+- Modify Trellis's generated `.trellis/workflow.md` to reflect the custom workflow, using the currently customized workflow and the confirmed decisions in this task as the primary references.
+- Preserve Trellis's useful three-phase task skeleton, but add a non-lifecycle `Framework Entry / Routing` layer before task phases and split `Execution Gate` into its own hard transition boundary.
+- Generated workflow main chain must be:
+  - `Framework Entry / Routing`
+  - `Planning`
+  - `Execution Gate`
+  - `Execution`
+  - `Verification / Review`
+  - `Integration` for Parent/Child work only
+  - `Archive / Learning`
+- The main workflow chain is considered closed at the node-design level. Further workflow analysis should focus on cross-cutting routing and guard rules: task ladder classification, upgrade/downgrade triggers, return-to-Planning triggers, review failure routing, Parent/Child integration routing, and archive readiness.
+- `Framework Entry / Routing` must not mutate task lifecycle status. It handles `.trellis/` detection, `Selected task: none`, Task Dashboard, task selection, task creation choice, Micro-Grill routing, and continue-without-task routing.
+- `Execution Gate` must be separate from both Planning and Execution. It owns artifact gate checks, baseline-check, reviewer gate records, `--check`, explicit user approval, and `start-execution --approved`.
+- `Planning` must stop at execution readiness. Its responsibilities are classification, create/select choice, artifact writing, research/capability routing, requirements/architecture review readiness, reviewer gate recording, and `task.py start-execution <task> --check`. It must not perform source implementation or mutate execution status.
+- `Planning` canonical flow must be `classify -> create/select -> prd.md -> design.md/implement.md/Development Strategy Contract -> research/capability routing -> requirements-review and any required pre-execution review -> task.py record-gate -> task.py start-execution <task> --check`.
+- After `task.py start-execution <task> --approved`, changes to `prd.md`, `design.md`, `implement.md`, the Development Strategy Contract, quality gate configuration, or reviewed execution scope are treated as re-plan/scope-change events. The previous execution approval and matching gate records become stale and must not authorize continued execution without refreshed gates and approval.
+- Ordinary conversational agreement, such as "confirm", "agree", or "start", must not by itself authorize execution. Before execution, the AI must run or show a passing `task.py start-execution <task> --check` result, explicitly report that artifact gates are ready, ask the user for execution approval, and only then run `task.py start-execution <task> --approved`.
+- `Execution` must stay inside the approved Development Strategy Contract. It may perform the approved code/file changes, run validation, update `verify.md`, and record execution evidence, but it must not reclassify the request globally, auto-switch tasks, auto-create new task scope, or change `prd.md`, `design.md`, or the contract to fit discovered work.
+- If execution discovers requirement drift, scope conflict, missing design decisions, invalid contract assumptions, or a need to change `prd.md`, `design.md`, `implement.md`, the Development Strategy Contract, quality gate configuration, Parent `contract_epoch`, or selected capability assumptions, execution must stop and return to Planning plus refreshed gates and approval.
+- `Verification / Review` must prove whether the executed work satisfies `prd.md`, `design.md`, `implement.md`, and the approved Development Strategy Contract. It must not silently continue implementation or expand scope.
+- If Verification / Review finds implementation defects inside the approved contract, the task returns to Execution for fixes and reruns the relevant validation/review. If it finds requirement, design, contract, capability, or scope errors, the task returns to Planning for refreshed artifacts, gates, and approval.
+- Return-to-Planning must be a hard cross-cutting rule. Execution or Verification / Review must stop and return to Planning when any of these change or prove invalid: PRD scope/acceptance criteria, design boundary/dependency/rollback/validation matrix, Development Strategy Contract, quality gate configuration, selected capability/runtime assumptions, Parent `contract_epoch`, Child boundary, selected-task fit, or reviewer-gate failure caused by requirements/design/contract rather than implementation.
+- Implementation defects inside the approved contract must route back to Execution, not Planning. Planning is for contract changes and invalid assumptions; Execution is for fixes within the approved contract.
+- `verify.md` is the single human-readable evidence center for validation output, review notes, screenshots/browser evidence, acceptance evidence, and "No durable learning" decisions. `task.json.quality_gate_results` stores only machine-checkable summaries, fingerprints, result status, and evidence references.
+- `Integration` exists only for Parent/Child workflow. Ordinary Lite Tasks and Full Tasks move from Verification / Review toward Archive / Learning without an Integration phase.
+- Parent is the only integration authority. Child Workers may submit `verify.md`, `handoff.md`, and reviewed ref/diff evidence, but they must not mark themselves `accepted`, `integrating`, `integrated`, `changes`, or `cancelled`.
+- Parent integration defaults to `merge_limit: 1` and serially integrates accepted Child work from Git refs, not local directories. Merge conflicts, semantic conflicts, failed validation, or integration uncertainty must be recorded in Parent `task-map.md` Event Log and route the Child to `changes`, `cancelled`, or Planning as appropriate.
+- Do not introduce complex lifecycle statuses for ordinary Full Tasks just to represent every workflow step. Keep the main task lifecycle lightweight and use artifacts, quality gate records, `verify.md`, and Parent `task-map.md` for finer-grained workflow evidence.
+- Split Trellis session entry into two independent concepts:
+  - entering the Trellis Framework Context by detecting `.trellis/`;
+  - entering a Task Selection Context only after the user explicitly selects a task.
+- A new session in a Trellis project must start with the framework active and `Selected task: none`. It must not auto-select a task, even if there is exactly one active/in-progress task or a previous session selected one.
+- Session start must show a lightweight Task Dashboard listing available tasks, parent tasks, child summaries, and suggested actions, but it must not enter any task automatically.
+- Add `task.py dashboard` as the shared AI-routing renderer used by SessionStart, manual inspection, and platform commands/skills. It shows compact task state, parent/child summaries, and suggested next actions without selecting or mutating anything.
+- Keep `task.py list` as a raw task list command. Do not overload it with routing copy, workflow advice, or session selection behavior.
+- Replace the old `active task` user-facing concept with `selected_task` for current live-session task context.
+- `selected_task` must be live-session state only. It persists within the current live session until the user exits, switches, archives the task, or selects another task; it must not be restored automatically in a new session.
+- `selected_task` and `task.status` must be fully decoupled:
+  - selecting a task does not change status;
+  - exiting a task does not change status;
+  - switching tasks does not change status;
+  - only explicit execution start may move `planning` to `in_progress`;
+  - only guarded archive may mark a task completed.
+- Delete the old `task.py start` command and behavior. Do not keep a compatibility alias or deprecation shim.
+- Add explicit task commands:
+  - `task.py dashboard` shows the Task Dashboard and suggested routing actions without changing `selected_task` or `task.status`;
+  - `task.py list` remains a raw list/inspection command and does not replace the dashboard;
+  - `task.py select <task>` selects a task for the current live session without changing `task.status`;
+  - `task.py selected [--source]` reports the current live-session selection and, when requested, its source;
+  - `task.py start-execution <task> --approved` starts execution only after artifact gates and explicit user approval, and may move `planning` to `in_progress`;
+  - `task.py exit` clears `selected_task` for the current live session without changing `task.status`.
+- `task.py create` must create artifacts only. It must not auto-select, auto-activate, or start execution. An AI may run create followed by select only when the user explicitly wants to enter that newly created task.
+- Delete the old `task.py finish` command and behavior. Do not keep it as a completion command or as an exit alias; it overlaps with `task.py exit` and its name is misleading in the custom framework.
+- Delete the old `task.py current` command and user-facing concept. Do not keep it as a compatibility alias; the custom framework uses `task.py selected` for live-session task selection inspection.
+- Keep `task.py archive <task>` as the only task completion/archive action, but turn it into a guarded completion transition:
+  - Full Tasks require `verify.md`, `quality_gate_results.transitions.full-task-complete`, required `PASS` or valid `SKIPPED` gate records, and explicit completion evidence;
+  - Child Tasks can be archived only after the Parent has marked them `integrated` or `cancelled`;
+  - Parent Tasks can be archived only after all Child Workers are `integrated` or `cancelled` and required final integration evidence exists.
+- `task.py archive <task> --check` must be the non-mutating completion preflight. It runs the same completion guards as real archive but must not change status, move files, clear selected-task pointers, stage/commit files, or run archive hooks.
+- Real `task.py archive <task>` is the only command that may mark a task completed and move it into `.trellis/tasks/archive/<YYYY-MM>/`.
+- `verify.md` is mandatory before guarded archive for Lite, Full, Child, and Parent tasks that reached execution. It must contain validation commands/results, quality gate evidence references, screenshots or browser evidence when applicable, and final acceptance evidence.
+- Archive readiness is evidence-based:
+  - `No Task` and `Micro-Grill` have no archive because they create no durable task by default;
+  - executed Lite Tasks require `verify.md` with validation result and acceptance evidence;
+  - Full Tasks require `verify.md`, non-stale `quality_gate_results.transitions.full-task-complete`, required gates `PASS` or user-approved `SKIPPED`, and complete acceptance evidence;
+  - Child Workers require Parent state `integrated` or `cancelled`; normally completed Children also require `handoff.md`, `verify.md`, and reviewed ref/diff evidence;
+  - Parent Supervisors require every Child to be `integrated` or `cancelled` and final integration evidence to be complete.
+- `retrospective.md` and spec updates are conditional learning artifacts, not mandatory Phase 3 chores. Require them only when the task produced durable lessons: repeated failure loops, requirement drift, architecture decisions, reusable conventions, toolchain pitfalls, or other long-lived knowledge. If no durable learning exists, record that decision in `verify.md` before archive.
+- Every executed Lite, Full, Child, or Parent task must record the durable-learning decision before archive, either by linking the learning artifact/spec update or by writing "No durable learning" evidence in `verify.md`.
+- Archive / Learning is terminal. Once a task is archived, later learning or follow-up work should be a new task or explicit user-approved archive amendment, not hidden post-archive mutation.
+- Remove or disable single-session selected-task fallback. Trellis must not infer a selected task from the existence of one runtime session file.
+- Preserve the custom task ladder:
+  - `No Task`
+  - `Micro-Grill`
+  - `Lite Task`
+  - `Full Task`
+  - `Parent Task / Child Tasks`
+- Task ladder classification must be driven by risk and persistence, not raw effort size:
+  - `No Task` for one-off, low-risk work with no durable artifact value;
+  - `Micro-Grill` for unclear requirements that need one-question-at-a-time clarification before task creation;
+  - `Lite Task` for a single low-risk deliverable that needs `prd.md` and `verify.md` but not full design or execution gate;
+  - `Full Task` for code/template/config/workflow changes, regression risk, cross-module impact, external research, or review-gate needs;
+  - `Parent Task / Child Tasks` for multiple independently deliverable, verifiable, parallelizable, staged, or integration-dependent work units.
+- Requests involving Trellis framework semantics, task model, platform adapters, MCP/capability setup, runtime integration, Parent/Child orchestration, retrieval/graph tooling, or quality gates default to at least `Full Task`. Upgrade to `Parent Task / Child Tasks` only when there are multiple independent deliverables or staged/parallel integration needs.
+- Use repo-first entry classification when `Selected task: none`: read project-local instructions, `.trellis/workflow.md`, task index/dashboard, and relevant task artifacts before deciding whether a user request is `No Task`, `Micro-Grill`, `Lite Task`, `Full Task`, or `Parent Task / Child Tasks`.
+- When `Selected task: none`, implementation requests must not be automatically assigned to an existing task. Trellis may suggest a likely task, but the user must choose whether to select it, create a new task, or continue without a task.
+- Once a user explicitly selects a task, subsequent requests default to that selected task's session and artifacts. Global entry classification only re-enters if the user explicitly exits/switches/creates a task or if the request clearly conflicts with the selected task scope.
+- Under an existing `selected_task`, new requests are treated as part of that task unless a strong conflict appears. Strong conflicts are: the user explicitly asks to exit/switch/create another task; the request exceeds `prd.md` or Parent `task-map.md` scope; the request targets another task's artifacts or archive; the request introduces a new independent deliverable; the request changes the approved contract and therefore returns to Planning; or continuing would pollute `verify.md` or gate evidence for the selected task.
+- A contract-changing request under `selected_task` returns to that task's Planning flow; it does not automatically switch to another task unless the user explicitly chooses that route.
+- `/trellis:continue` continues the currently selected task only when `selected_task` exists. If no task is selected, it must show the Task Dashboard and ask the user to select, create, inspect, or continue without a task. It must never auto-resume the only available task.
+- `$start` and `/trellis:start` must be reframed as framework/dashboard entry commands, not task-start commands. They activate the workflow context and show routing choices; they must not replace explicit `task.py select` or `task.py start-execution`.
+- Allow automatic upgrade suggestions across the task ladder, but do not automatically execute upgrades without user confirmation when the upgrade creates artifacts, changes task mode, adds gates, or changes execution approval requirements.
+- Upgrade triggers:
+  - `No Task -> Micro-Grill` when the request is underspecified and needs one-question-at-a-time clarification;
+  - `Micro-Grill -> Lite Task` when clarification reveals a single low-risk durable deliverable;
+  - `Micro-Grill -> Full Task` when clarification reveals code/template/config/workflow risk, external research, or review-gate need;
+  - `Lite Task -> Full Task` when design, external research, cross-file/template/config impact, review gates, or execution approval become necessary;
+  - `Full Task -> Parent Task / Child Tasks` when multiple independent deliverables, independent verification surfaces, parallelizable work, staged execution, or Parent-controlled integration appear.
+- Never automatically downgrade an already selected or approved task mode. Downgrade requires explicit user confirmation because it reduces artifact requirements, review gates, validation strength, or approval safeguards.
+- Enforce a hard artifact gate plus explicit user approval before execution for Full Tasks and Parent/Child work.
+- Preserve the artifact contract:
+  - `prd.md` = WHAT
+  - `design.md` = HOW
+  - `implement.md` = DO
+  - `verify.md` = EVIDENCE
+  - `retrospective.md` = conditional learning only
+- Add a lightweight `Development Strategy Contract` to `implement.md` for Full Tasks and Child Workers. It must declare `execution_mode`, `isolation`, `verification_profile`, `retrieval_profile`, `optional_capabilities`, and `quality_gates`.
+- `verification_profile` replaces Herbivore-style Claude-only review gates. It must support:
+  - `standard` for normal task validation;
+  - `strict` for cross-module, stateful, template, CLI, migration, or high-regression-risk changes;
+  - `architecture` for architecture, workflow, task-model, Parent/Child, retrieval, MCP/capability, or runtime integration changes.
+- `verification_profile: architecture` requires `design.md` to define boundaries, dependencies, rollback strategy, and validation matrix before execution can start.
+- Add `Quality Gate Contract v1` under the Development Strategy Contract. It must support profile-driven defaults and explicit task-level overrides without binding the workflow to Claude-only Herbivore agents.
+- Keep `baseline-check` always enabled and non-optional. It verifies required artifacts, contract completeness, selected execution mode, and minimum validation expectations before execution or handoff can be claimed.
+- `baseline-check` is a deterministic CLI check, not an AI reviewer. It must not judge whether requirements, code, or architecture are good; semantic judgment belongs to `requirements-review`, `code-review`, `architecture-review`, `architecture-deep-review`, and `integration-review`.
+- The CLI must run `baseline-check` automatically for protected transitions that require it. On pass, it writes or refreshes `task.json.quality_gate_results.transitions[transition]["baseline-check"]`; on fail, it blocks the transition and reports missing/invalid facts plus next actions.
+- For `start-execution`, `baseline-check` must verify task existence, legal transition from `planning`, required artifact presence, parseable strategy contract, valid quality gate configuration, computable fingerprints, required reviewer gate records with matching fingerprints, and `--approved`.
+- Support quality gate names `requirements-review`, `code-review`, `architecture-review`, `architecture-deep-review`, and `integration-review`.
+- Quality gates are read-only review points. They report `PASS` or `FAIL`, blocking issues, evidence reviewed, and next actions; the main agent or Child Worker performs fixes and reruns the same gate.
+- Non-baseline reviewer gate results must be recorded through one focused CLI entry point, `task.py record-gate <task>`, rather than separate commands per gate. Reviewer adapters provide semantic judgment; the CLI validates and stores the structured record.
+- `task.py record-gate <task>` must reject attempts to manually record `baseline-check`; `baseline-check` is CLI-run only.
+- `task.py record-gate <task>` minimum required inputs are task, transition, gate, result, reviewer, and evidence reference. `PASS` needs no extra fields.
+- `task.py record-gate <task>` must require `--issue-fingerprint` for `FAIL`; `--issue-summary` is optional and should stay short.
+- `task.py record-gate <task>` must require `--skip-approved-by user` and `--skip-reason` for `SKIPPED`; skip approval timestamp is generated by the CLI.
+- `task.py record-gate <task>` must validate transition key, gate name, result, reviewer id, evidence reference, fingerprints, minimal `FAIL`/`SKIPPED` metadata, and repeated-failure fields before writing `task.json.quality_gate_results`.
+- `task.py record-gate <task>` must not accept large review bodies, blocking issue lists, command output, or screenshot payloads as CLI arguments. Human-readable review detail belongs in `verify.md` or Parent `task-map.md`.
+- If the same quality gate blocks the same task on the same issue more than three times, Trellis must report the repeated blocker to the user, check for requirement drift, and ask whether to re-plan, continue fixing, or explicitly skip the gate.
+- Quality gate `FAIL` handling must be root-cause based:
+  - implementation defect inside the approved contract returns to Execution, then reruns validation and the same gate;
+  - requirement, design, contract, scope, capability, runtime, Parent contract, or Child boundary defect returns to Planning for refreshed artifacts, gates, and approval;
+  - validation environment blocker stays in Verification / Review long enough to document the blocker and decide whether it can be recovered without changing the contract;
+  - repeated same `gate` plus same `issue_fingerprint` failures over three loops require user escalation with choices to re-plan, continue fixing, or user-approved skip where allowed.
+- `baseline-check` can never be skipped. Non-baseline gate `SKIPPED` records require explicit user approval, a reason, generated timestamp, matching fingerprints, and must not be treated as a silent pass.
+- Quality gates must be enforced as CLI transition guards, not only as workflow/prompt instructions. The CLI owns whether a task may cross protected state transitions; reviewer adapters own semantic review judgment.
+- `task.py start-execution <task>` must reject execution start unless required artifacts exist, the Development Strategy Contract is parseable and complete, required quality gates are configured, CLI-run `baseline-check` passes, required pre-execution reviewer gate records are `PASS` or validly `SKIPPED`, and explicit user approval is provided through `--approved`.
+- `task.py start-execution <task> --approved` must write `task.json.execution_approval` with `approved_by: "user"`, approval timestamp, `contract_fingerprint`, `artifact_fingerprint`, and approval source before mutating `task.status`.
+- Execution approval is valid only for matching current fingerprints. If the Development Strategy Contract, quality gate configuration, required artifacts, or reviewed change set changes, the old approval is stale and must not allow execution start.
+- Do not add a standalone `check-gates` or `gate-dry-run` command in v1. Non-mutating preflight belongs to the protected transition command itself.
+- Protected transition commands that would mutate task state, archive tasks, integrate children, or run hooks must support `--check` as a non-mutating preflight mode.
+- `--check` must run the same guard functions used by the real transition, report pass/fail and missing/invalid facts, and never write task artifacts, mutate `task.status`, archive/move files, clear `selected_task`, record approval, or run hooks.
+- `task.py start-execution <task> --check` checks readiness without requiring or recording `--approved`; a passing check means the task is ready to rerun with `--approved` after user approval.
+- CLI guards must block invalid gate configuration, including disabling `baseline-check`, unknown gate names, missing enabled/disabled lists in explicit mode, and `architecture-deep-review` without `architecture-review`.
+- CLI guards must also protect Parent/Child transitions: Child `review`, Parent `changes`, Parent `accepted`, Parent `integrating`, Parent `integrated`, and Parent `cancelled` transitions must validate required artifacts, gate records, handoff evidence, and Parent authority.
+- Gate evidence must stay high-cohesion inside existing task artifacts. Machine-checkable gate state belongs in `task.json.quality_gate_results`; human-readable evidence belongs in `verify.md`; Parent orchestration evidence belongs in `task-map.md` Event Log entries. Do not add a separate gate ledger file in v1.
+- `task.json.quality_gate_results` must store a compact v1 schema with `schema_version`, `contract_fingerprint`, `artifact_fingerprint`, and latest result records per protected transition and gate.
+- Gate records must be scoped by transition key so the same gate, such as `architecture-review`, can run before execution and after implementation without overwriting unrelated evidence.
+- Use layered fingerprints. `contract_fingerprint` is task-level and covers the strategy contract plus gate configuration. `artifact_fingerprint` is scoped by transition and gate, so unrelated artifact changes do not invalidate every gate.
+- `contract_fingerprint` must exclude runtime/result fields such as `quality_gate_results`, `execution_approval`, runtime paths, timestamps, and other self-mutating state.
+- `artifact_fingerprint` for pre-execution gates must not include `verify.md`; writing later evidence must not invalidate requirements or architecture pre-review.
+- `artifact_fingerprint` for post-implementation gates must include reviewed change-set identity or diff evidence so code changes invalidate stale review records.
+- Parent/Child gate fingerprints must include Parent `contract_epoch` when Child or integration validity depends on Parent contract.
+- CLI guards must treat stale gate results as invalid when `contract_fingerprint` or the transition/gate-scoped `artifact_fingerprint` no longer matches current task artifacts, quality gate configuration, reviewed change set, or Parent contract epoch.
+- `PASS` means the gate passed for the matching fingerprints; `FAIL` blocks protected transitions and increments repeated-failure tracking; `SKIPPED` requires explicit user approval and can never apply to `baseline-check`.
+- Guarded archive must also clear any live-session `selected_task` pointers that still reference the archived task and then run archive hooks. Completion semantics belong to archive, not exit.
+- Replace Trellis's native parent/child task semantics with the confirmed `Parent Supervisor / Child Worker` model:
+  - keep `task.json.parent` and `children` as structural indexes;
+  - keep a single live-session `selected_task`, with `selected_task` pointing to the Parent Supervisor during parallel child work after explicit selection;
+  - make Parent `task-map.md` the orchestration authority;
+  - make Child artifacts `prd.md`, `design.md`, `implement.md`, `verify.md`, and `handoff.md`;
+  - require `handoff.md` plus `verify.md` before a Child can enter review;
+  - use `execution_topology: serial | parallel | staged`;
+  - default parallel work to Git worktree isolation;
+  - integrate Child work from Git refs, not local directories;
+  - keep `worktree_path` in ignored `.trellis/.runtime/` data only;
+  - default to serial integration with `merge_limit: 1`;
+  - make Parent the only actor that can mark Child work `accepted`, `integrating`, `integrated`, `changes`, or `cancelled`;
+  - record conflict and state events in `task-map.md` Event Log.
+- Add `smart-search-cli` under Trellis's existing bundled multi-file skill system.
+- Add `trellis-micro-grill` under the same bundled skill system.
+- Preserve `smart-search-cli` as the skill name. Do not rename it to `trellis-smart-search`.
+- Preserve `smartsearch-private` as the canonical implementation and contract source for Smart Search.
+- Treat `smartsearch-private` as the customized Smart Search implementation that Trellis must ship with, not an optional upstream-compatible helper.
+- Treat Trellis's Smart Search skill files as a vendored snapshot of the customized Smart Search contract.
+- Keep Smart Search CLI-backed. Do not convert it to MCP.
+- Keep Micro-Grill Trellis-specific. Do not directly bundle generic `grill-me`.
+- Treat `smart-search-cli` and `trellis-micro-grill` as core/global workflow capabilities that always ship with the framework.
+- Treat `fast-context-mcp`, `colbymchenry/codegraph`, Graphify, GitHub MCP, and Playwright MCP as selectable project capabilities. Support for selecting, configuring, routing, and diagnosing all five must land in this refactor, but they must not all be installed unconditionally into every project.
+- Prefer project-level MCP configuration:
+  - Codex: `.codex/config.toml`
+  - Claude Code: `.mcp.json`
+  - Cursor: `.cursor/mcp.json`
+- MCP/capability integration must provide capability routing, generated project-level setup material, and availability diagnostics. It must not silently mutate global MCP/client configuration.
+- Initialization should be AI-guided from the user's perspective: the user describes that they want to initialize the workflow and selects desired project capabilities; Trellis/AI handles the high-cohesion setup details behind that flow.
+- Use the retrieval ownership model:
+  - semantic code discovery belongs to `fast-context-mcp`;
+  - exact proof belongs to `rg`, Git, and direct file reads;
+  - code structure belongs to `colbymchenry/codegraph`;
+  - architecture/wiki/mixed-corpus memory belongs to Graphify;
+  - GitHub actions belong to GitHub MCP;
+  - browser/UI verification belongs to Playwright MCP.
+- Capability routing must be stable and evidence-aware:
+  - do not claim a selectable capability was used unless it was selected, ready, and actually invoked;
+  - use `fast-context-mcp` for fast semantic discovery, then confirm final claims with `rg`, Git, or direct file reads;
+  - require CodeGraph initialization, indexing, and freshness/status checks before treating CodeGraph as authoritative for code structure or impact;
+  - treat Graphify as artifact-first by default: read existing `graphify-out/GRAPH_REPORT.md`, `graphify-out/graph.json`, or wiki output before starting Graphify MCP or rebuilding graph artifacts;
+  - require explicit selection and approval before Graphify indexing, CodeGraph indexing, watchers, browser automation, long-running MCP servers, or remote/credential-bearing GitHub actions;
+  - prefer GitHub MCP read-only mode and narrow toolsets unless the selected task explicitly requires write-capable GitHub operations;
+  - use Playwright MCP only for browser/UI verification or exploratory browser state that benefits from persistent MCP context, not as a replacement for ordinary local tests or exact code evidence.
+- Add runtime bundling support for required workflow dependencies. Smart Search runtime support is required, must be vendored into Trellis from `D:\MyHarness\smartsearch-private`, and must be available from the Trellis install/runtime path.
+- Use `packages/cli/vendor/smart-search/` as the vendored Smart Search runtime location, preserving Smart Search's original package, Python, npm wrapper, skill, README, and license structure.
+- Keep Graphify and CodeGraph runtime installation external/selectable in v1 unless selected by the project capability setup flow. Do not run heavy indexing, watchers, or MCP servers during ordinary install.
+- Define Trellis readiness as capability readiness, not just file generation.
+- Smart Search readiness requires `smart-search doctor --format json` to pass.
+- Selected project capabilities must be initialized or verified as available for the target AI environment before init/update claims the framework is ready.
+- Readiness checks must be capability-specific:
+  - `fast-context-mcp` requires an MCP tool call or equivalent smoke search against the project path, with actionable handling for missing Windsurf API credentials or protocol/API failure;
+  - `colbymchenry/codegraph` requires the `codegraph` runtime plus project init/index/status freshness before structure, impact, or affected-test answers are trusted;
+  - Graphify requires the `graphify` runtime and, for query use, existing graph artifacts; building or updating graph artifacts is a separate approved operation;
+  - GitHub MCP requires a configured server, valid credentials, and the selected read/write/toolset posture;
+  - Playwright MCP requires a configured server and browser availability; browser startup or session creation remains explicit.
+- If a selected capability is missing, stale, unauthenticated, or unavailable, Trellis must either run the approved setup/repair flow, fall back to a lower layer while reporting that fallback, or block readiness. It must not silently degrade while still reporting the capability as ready.
+- Default `trellis init` / `trellis init --yes` must fail if required core readiness or selected capability readiness fails. A successful init means generated files are current and the selected framework capabilities are ready.
+- Default `trellis update` must also fail if required core readiness or selected capability readiness fails. A successful update means generated files are current and selected framework capabilities are ready.
+- Provide an explicit `--skip-readiness` escape hatch for repair/debug scenarios on both init and update. Skipped readiness must be reported clearly and must not be described as a ready framework.
+- Keep MCP credentials and secret-bearing user configuration out of the repository.
+- Keep skill writing consistent with `riverfjs/skills/skill-creator`: concise `SKILL.md`, trigger-rich description, lowercase hyphenated names, `## Hard Constraints`, progressive disclosure for details, and no unrelated auxiliary docs inside the skill folder.
+
+## Non-Goals
+
+- Do not store API keys, OAuth tokens, or provider secrets in Trellis templates.
+- Do not publish, release, push, or commit.
+- Do not redesign Trellis's marketplace or workflow-template subsystem.
+- Do not preserve full upstream platform behavior for platforms the user does not use.
+- Do not keep upstream Trellis's generic multi-user behavior when it conflicts with the user's personal workflow.
+- Do not install every selectable external capability into every project by default.
+- Do not make Graphify, CodeGraph, GitHub MCP, Playwright MCP, or `fast-context-mcp` global always-on dependencies. They are project-selected capabilities.
+- Do not run Graphify indexing, CodeGraph indexing, watchers, browser automation, or MCP servers during ordinary install unless the project capability setup flow explicitly selected and approved that work.
+- Do not introduce `task-map.json`, a database, multiple selected-task pointers, or a complex scheduler in Parent/Child v1.
+- Do not change global machine configuration silently. Any global MCP/client config mutation must be explicit, documented, and approved.
+
+## User-Facing Behavior
+
+After implementation:
+
+- `trellis init` defaults to the custom framework behavior.
+- `trellis init` writes the custom `.trellis/workflow.md` rather than the generic workflow.
+- Opening a new session in an initialized project automatically enters the Trellis framework context but shows `Selected task: none`.
+- Session start shows a Task Dashboard with open/planning/in-progress/review/blocked tasks and Parent/Child summaries, without entering any task.
+- The user can explicitly select a task, create a new task, continue without a task, or view task details.
+- `task.py dashboard` renders the shared Task Dashboard; `task.py list` remains a raw list command.
+- Selecting a task does not start execution or change `task.status`.
+- Creating a task does not select it. Entering that task still requires explicit selection by the user or an AI action that directly follows an explicit user instruction to enter it.
+- `task.py start` is not available in the custom framework. Users and agents must use `task.py select`, `task.py start-execution <task> --approved`, and `task.py exit`.
+- `/trellis:continue` continues only the selected task; without a selected task it shows the dashboard and asks what to enter or whether to continue without a task.
+- `$start` and `/trellis:start` open the framework/dashboard surface and do not start or select a task.
+- Existing per-turn `workflow-state` / `task-status` injection is reused and updated to express framework-active plus `selected_task`; no separate heavy session header is introduced.
+- `task.py current` is not available in the custom framework. Users and agents must use `task.py selected [--source]` when they need to inspect the current live-session task selection.
+- SessionStart, per-turn hooks, generated commands, skills, and docs should not instruct agents to use "active task" or "current task" as the user-facing task-selection concept. They must use `selected_task` / "Selected task" instead.
+- `trellis init --codex --yes` writes:
+  - `.agents/skills/smart-search-cli/SKILL.md`
+  - `.agents/skills/smart-search-cli/agents/openai.yaml`
+  - `.agents/skills/smart-search-cli/examples/**`
+  - `.agents/skills/smart-search-cli/references/cli-contract.md`
+  - `.agents/skills/trellis-micro-grill/SKILL.md`
+- Default platform generation targets only Codex, Claude Code, and Cursor.
+- Default `trellis init --yes` writes both new skills into target platform skill roots, currently `.agents/skills/`, `.claude/skills/`, and `.cursor/skills/`.
+- `trellis update` can add or update the same files through the existing hash-managed template flow.
+- If the `smart-search` executable is missing, the skill should guide the agent to report a blocker and setup path; Trellis should not silently pretend web research was performed.
+- Trellis exposes a capability selection, setup, routing, and diagnostic path for `fast-context-mcp`, `colbymchenry/codegraph`, Graphify, GitHub MCP, and Playwright MCP without committing secrets.
+- Project-level capability config is preferred:
+  - Codex: `.codex/config.toml`
+  - Claude Code: `.mcp.json`
+  - Cursor: `.cursor/mcp.json`
+- Interactive/AI-guided initialization should ask which selectable capabilities this project should enable instead of dumping low-level install commands on the user.
+- Non-interactive initialization must either use an explicit saved/default capability selection or report that optional project capabilities were not selected.
+- Any command that writes global Codex, Claude, or other client MCP configuration must be explicit and user-invoked.
+- `trellis init` runs framework readiness checks. In interactive mode it should guide setup for missing Smart Search provider configuration or selected capability wiring; in non-interactive mode it should report not-ready capabilities with actionable recovery instead of silently claiming readiness.
+- `trellis init --yes` exits non-zero on Smart Search or selected capability readiness failure unless `--skip-readiness` is provided.
+- `trellis init --skip-readiness` may generate files, but output must clearly say readiness was skipped and the framework is not verified ready.
+- `trellis update` exits non-zero on Smart Search or selected capability readiness failure unless `--skip-readiness` is provided.
+- `trellis update --skip-readiness` may update files, but output must clearly say readiness was skipped and the framework is not verified ready.
+- Trellis vendors and ships the customized Smart Search runtime from `smartsearch-private` as part of Trellis's own package/runtime, not through `trellis personal setup smart-search`.
+- Installing Trellis exposes both Trellis commands and the Smart Search CLI command:
+  - `trellis`
+  - `tl`
+  - `smart-search`
+- Parent/Child work is visible through `task-map.md`; Child work enters review only with `handoff.md` and `verify.md`; final integration remains Parent-controlled.
+- Herbivore's review-gate idea is exposed as `verification_profile`, not as fixed Claude-only review agents.
+
+## Acceptance Criteria
+
+- [ ] Generated `.trellis/workflow.md` matches the approved personal workflow behavior and does not require a profile flag or `trellis personal ...` command.
+- [ ] Generated workflow preserves a three-phase task skeleton while adding non-lifecycle `Framework Entry / Routing` before task phases.
+- [ ] Generated workflow separates `Execution Gate` as a hard transition boundary between Planning and Execution.
+- [ ] Main workflow node design is closed around `Framework Entry / Routing -> Planning -> Execution Gate -> Execution -> Verification / Review -> Integration (Parent/Child only) -> Archive / Learning`; remaining workflow analysis is handled as cross-cutting routing and guard rules.
+- [ ] Planning stops at execution readiness and cannot perform source implementation or execution-status mutation.
+- [ ] Planning follows `classify -> create/select -> artifacts -> research/capability routing -> required pre-execution review -> record-gate -> start-execution --check`.
+- [ ] After approved execution starts, changes to `prd.md`, `design.md`, `implement.md`, the Development Strategy Contract, quality gate configuration, or execution scope invalidate prior approval and gate records until refreshed.
+- [ ] Conversational agreement alone cannot authorize execution; the workflow requires a passing `start-execution --check`, an explicit execution-approval prompt, user approval in that execution context, and then `start-execution --approved`.
+- [ ] Execution stays inside the approved Development Strategy Contract and does not reclassify globally, auto-switch tasks, auto-create scope, or alter planning artifacts to fit discovered work.
+- [ ] Requirement drift, scope conflict, missing design decisions, or changed contract/capability assumptions during execution stop execution and return the task to Planning for refreshed gates and approval.
+- [ ] Verification / Review proves conformance against approved artifacts and contract; it does not silently continue implementation or expand scope.
+- [ ] Verification / Review routes implementation defects back to Execution and requirement/design/contract/scope defects back to Planning.
+- [ ] Return-to-Planning is required when PRD scope/acceptance criteria, design boundary/dependency/rollback/validation matrix, Development Strategy Contract, quality gate configuration, selected capability/runtime assumptions, Parent `contract_epoch`, Child boundary, selected-task fit, or non-implementation reviewer-gate failure changes the contract.
+- [ ] Implementation defects inside the approved contract route back to Execution rather than Planning.
+- [ ] `verify.md` remains the single human-readable evidence center, while `task.json.quality_gate_results` stores only compact machine-checkable gate summaries and evidence references.
+- [ ] Integration exists only for Parent/Child workflow; ordinary Lite/Full Tasks do not enter an Integration phase.
+- [ ] Child Workers submit `verify.md`, `handoff.md`, and reviewed ref/diff evidence but cannot self-accept, self-integrate, or set Parent-only states.
+- [ ] Parent integrates accepted Child work serially by default with `merge_limit: 1`, from Git refs, and records conflicts/decisions in `task-map.md` Event Log.
+- [ ] `Framework Entry / Routing` never mutates task lifecycle status.
+- [ ] Ordinary Full Tasks do not gain complex scheduler-like statuses only to represent workflow substeps.
+- [ ] A new session in a Trellis project enters framework context with `Selected task: none`.
+- [ ] Session start shows a Task Dashboard without automatically selecting a task.
+- [ ] `task.py dashboard` renders the same compact Task Dashboard used by SessionStart without changing `selected_task` or `task.status`.
+- [ ] `task.py list` remains a raw task list command and is not used as the AI-routing dashboard.
+- [ ] `selected_task` is live-session state and is not auto-restored in new sessions.
+- [ ] Selecting, exiting, or switching a task does not change `task.status`.
+- [ ] `task.py create` does not auto-select, auto-activate, or start execution.
+- [ ] `task.py start` is removed from generated scripts, docs, commands, and workflow text.
+- [ ] `task.py select <task>` selects a live-session task without status mutation.
+- [ ] `task.py selected [--source]` reports the live-session selected task and source without status mutation.
+- [ ] `task.py current` is removed from generated scripts, docs, commands, hooks, agents, skills, and tests.
+- [ ] `task.py start-execution <task> --approved` is the only task command that can move `planning` to `in_progress`, and only after artifact gates and user approval.
+- [ ] `task.py exit` clears the live-session selected task without status mutation.
+- [ ] `task.py finish` is removed from generated scripts, docs, commands, hooks, and tests.
+- [ ] `task.py archive <task>` is the only completion/archive command and is protected by CLI completion guards.
+- [ ] `task.py archive <task> --check` runs archive guards without changing status, moving files, clearing selected-task pointers, staging/committing, or running hooks.
+- [ ] Real `task.py archive <task>` is the only path that can mark a task completed and move it to archive.
+- [ ] Guarded archive requires `verify.md` and valid `quality_gate_results.transitions.full-task-complete` for executed Lite/Full tasks.
+- [ ] No Task and Micro-Grill produce no archive unless they upgrade into a durable task mode.
+- [ ] Guarded archive rejects Child Tasks that are not Parent-marked `integrated` or `cancelled`.
+- [ ] Guarded archive rejects Parent Tasks until every Child Worker is `integrated` or `cancelled` and required final integration evidence exists.
+- [ ] Guarded archive clears live-session selected-task pointers that still reference the archived task.
+- [ ] Generated workflow treats `retrospective.md` and spec updates as conditional learning artifacts, with "no durable learning" recorded in `verify.md` when skipped.
+- [ ] Every executed Lite, Full, Child, or Parent task records durable-learning decision evidence before archive.
+- [ ] Archive / Learning is terminal; post-archive learning or follow-up work requires a new task or explicit user-approved archive amendment.
+- [ ] Single-session fallback is removed or disabled so Trellis never infers `selected_task` from one runtime session file.
+- [ ] Existing `workflow-state` / `task-status` injection reports framework-active and `selected_task` without introducing a separate heavy session header.
+- [ ] Generated workflow documents the task ladder: `No Task`, `Micro-Grill`, `Lite Task`, `Full Task`, and `Parent Task / Child Tasks`.
+- [ ] Task ladder classification is based on risk and persistence rather than raw effort size.
+- [ ] Trellis framework semantics, task model, platform adapters, MCP/capability setup, runtime integration, Parent/Child orchestration, retrieval/graph tooling, and quality gates default to at least Full Task.
+- [ ] Parent/Child is used only when multiple independent deliverables, staged execution, parallel execution, or final integration authority is needed.
+- [ ] Entry classification is repo-first when `Selected task: none`.
+- [ ] `Selected task: none` requests cannot be automatically assigned to an existing task.
+- [ ] Once a task is explicitly selected, later requests default to that selected task unless the user exits/switches/creates a task or the request clearly conflicts with the selected task scope.
+- [ ] Under `selected_task`, global classification is not rerun unless a strong conflict exists.
+- [ ] Strong selected-task conflicts include explicit exit/switch/create, out-of-scope request, another task artifact/archive target, new independent deliverable, contract-changing request, or evidence pollution risk.
+- [ ] Contract-changing requests under `selected_task` return to that task's Planning flow rather than silently switching tasks.
+- [ ] `/trellis:continue` continues only an existing `selected_task`; when none is selected it shows the dashboard and asks for an explicit route.
+- [ ] `$start` and `/trellis:start` are framework/dashboard entry surfaces and never start/select a task by themselves.
+- [ ] Task classification results are persisted only for durable task modes: Lite in `prd.md`, Full in `prd.md` plus `implement.md`, Parent in `task-map.md` and Child `prd.md`.
+- [ ] The ladder permits automatic upgrade suggestions but requires user confirmation for downgrade.
+- [ ] Upgrade suggestions follow the confirmed ladder triggers from No Task through Parent/Child.
+- [ ] Upgrades that create artifacts, change task mode, add gates, or change approval requirements require user confirmation before execution.
+- [ ] Downgrades always require explicit user confirmation because they reduce artifact/gate/validation strength.
+- [ ] Generated workflow enforces hard artifact gate plus explicit user approval before Full Task or Child Worker execution.
+- [ ] Generated Full Task / Child Worker templates include the lightweight `Development Strategy Contract`.
+- [ ] `Development Strategy Contract` supports `verification_profile: standard | strict | architecture`.
+- [ ] `Development Strategy Contract` supports `quality_gates.mode: profile | explicit`, profile defaults, enabled gates, and disabled gates.
+- [ ] `verification_profile: architecture` requires `design.md` boundaries, dependencies, rollback strategy, and validation matrix before execution.
+- [ ] `baseline-check` is always enabled and cannot be disabled by task-level overrides.
+- [ ] `baseline-check` is run automatically by the CLI for protected transitions that require it.
+- [ ] Passing `baseline-check` writes or refreshes `task.json.quality_gate_results.transitions[transition]["baseline-check"]`.
+- [ ] Failing `baseline-check` blocks the protected transition and reports concrete missing/invalid facts plus next actions.
+- [ ] `baseline-check` does not perform semantic requirements, code, or architecture review.
+- [ ] Quality gate names include `requirements-review`, `code-review`, `architecture-review`, `architecture-deep-review`, and `integration-review`.
+- [ ] Quality gates are read-only and report `PASS` / `FAIL`, blocking issues, evidence reviewed, and next actions without editing code or artifacts directly.
+- [ ] Non-baseline reviewer gates are recorded through one `task.py record-gate <task>` CLI entry point.
+- [ ] `task.py record-gate <task>` rejects manual `baseline-check` records.
+- [ ] `task.py record-gate <task>` requires only task, transition, gate, result, reviewer, and evidence for `PASS`.
+- [ ] `task.py record-gate <task>` requires `--issue-fingerprint` for `FAIL`, with optional short `--issue-summary`.
+- [ ] `task.py record-gate <task>` requires `--skip-approved-by user` and `--skip-reason` for `SKIPPED`, with approval timestamp generated by the CLI.
+- [ ] `task.py record-gate <task>` rejects large review bodies, command output, screenshot payloads, or full blocking issue lists as CLI arguments.
+- [ ] `task.py record-gate <task>` validates transition key, gate name, result, reviewer id, evidence reference, fingerprints, and minimal result metadata before writing `task.json.quality_gate_results`.
+- [ ] Failed quality gates require fixes by the main agent or Child Worker and rerun of the same gate before progress is claimed.
+- [ ] Repeated same-gate blockers are escalated to the user after more than three failed loops.
+- [ ] Quality gate `FAIL` routing is root-cause based: implementation defects return to Execution, contract-changing defects return to Planning, and validation-environment blockers stay in Verification / Review for blocker evidence and recovery decision.
+- [ ] Repeated same `gate` plus same `issue_fingerprint` failures over three loops require user choice between re-plan, continue fixing, or user-approved skip where allowed.
+- [ ] Required quality gates are enforced by CLI transition guards, not only by workflow text or reviewer prompts.
+- [ ] `task.py start-execution <task>` without `--approved` never mutates `task.status`.
+- [ ] Protected transition commands support `--check` as non-mutating preflight instead of adding a standalone `check-gates` command.
+- [ ] `--check` uses the same guard functions as the real transition.
+- [ ] `--check` never writes artifacts, mutates status, archives/moves files, clears selected-task state, records approval, or runs hooks.
+- [ ] `task.py start-execution <task> --check` verifies readiness without requiring or writing `execution_approval`.
+- [ ] `task.py start-execution <task> --approved` rejects missing artifacts, invalid Development Strategy Contract, invalid quality gate configuration, missing required pre-execution reviewer gate records, invalid skips, or stale fingerprints.
+- [ ] `task.py start-execution <task> --approved` records `task.json.execution_approval` before changing `planning -> in_progress`.
+- [ ] Stale `task.json.execution_approval` records are rejected when current contract or artifact fingerprints no longer match.
+- [ ] CLI guards reject `architecture-deep-review` unless `architecture-review` is enabled and passed.
+- [ ] CLI guards protect Child `review` and Parent-controlled `changes` / `accepted` / `integrating` / `integrated` / `cancelled` transitions.
+- [ ] Gate records are machine-checkable through `task.json.quality_gate_results` and link to human-readable evidence in `verify.md` or Parent `task-map.md` Event Log entries.
+- [ ] No v1 implementation introduces a separate gate ledger file.
+- [ ] `task.json.quality_gate_results` includes `schema_version`, `contract_fingerprint`, `artifact_fingerprint`, and latest result records per protected transition and gate.
+- [ ] Gate records are scoped by transition key so pre-execution and post-implementation gates cannot overwrite each other.
+- [ ] CLI guards invalidate stale `PASS` records when contract or artifact fingerprints change.
+- [ ] `SKIPPED` gate records require explicit user approval, reason, and timestamp; `baseline-check` cannot be skipped.
+- [ ] Non-baseline `SKIPPED` gate records are not silent passes and remain fingerprint-scoped.
+- [ ] Herbivore-style review gates are not copied as fixed Claude-only gates.
+- [ ] Generated Parent/Child workflow replaces Trellis native parent-child semantics with `Parent Supervisor / Child Worker`.
+- [ ] Parent workflow uses `task-map.md` as the orchestration authority.
+- [ ] Child workflow requires `prd.md`, `design.md`, `implement.md`, `verify.md`, and `handoff.md`.
+- [ ] `task-map.md` supports `execution_topology: serial | parallel | staged`, `contract_epoch`, child state snapshots, `integration_queue`, and an Event Log.
+- [ ] Parent/Child state model supports `open`, `working`, `blocked`, `review`, `changes`, `accepted`, `integrating`, `integrated`, and `cancelled`.
+- [ ] Parent/Child condition model supports `ContractStale`, `LeaseInvalid`, `DependencyBlocked`, `ScopeConflict`, `VerificationMissing`, `VerificationFailed`, `MergeConflict`, `IntegrationFailed`, and `UserDecisionRequired`.
+- [ ] Child Workers cannot mark themselves `accepted`, `integrating`, `integrated`, `changes`, or `cancelled`.
+- [ ] Parallel Child work defaults to Git worktree isolation and Parent-controlled Git ref integration.
+- [ ] Default Parent integration uses `merge_limit: 1`.
+- [ ] No v1 implementation introduces `task-map.json`, a database, multiple selected-task pointers, or a complex scheduler.
+- [ ] `packages/cli/src/templates/common/bundled-skills/smart-search-cli/` exists.
+- [ ] Smart Search bundled files include `SKILL.md`, `agents/openai.yaml`, `examples/batch-search.md`, `examples/evidence-gathering.md`, and `references/cli-contract.md`.
+- [ ] `packages/cli/src/templates/common/bundled-skills/trellis-micro-grill/SKILL.md` exists.
+- [ ] Micro-Grill `SKILL.md` has `name: trellis-micro-grill`, a trigger-rich `description`, and a `## Hard Constraints` section.
+- [ ] No bundled skill file contains API keys, local credential values, provider secrets, private logs, or machine-specific config files.
+- [ ] `trellis init --codex --yes` installs both skills under `.agents/skills/`.
+- [ ] Target platform generation covers Codex, Claude Code, and Cursor.
+- [ ] Non-target platform behavior is removed, disabled, or degraded instead of maintained as full first-class behavior.
+- [ ] `trellis update` hash tracking includes installed skill and workflow files.
+- [ ] Build output copies both skills into `dist/templates/common/bundled-skills/**`.
+- [ ] Selectable project capability setup supports `fast-context-mcp`, `colbymchenry/codegraph`, Graphify, GitHub MCP, and Playwright MCP.
+- [ ] Capability routing distinguishes semantic search, exact proof, code structure, architecture/wiki memory, GitHub operations, and browser/UI verification.
+- [ ] Capability routing includes a no-capability-hallucination rule: unselected, unavailable, or uninvoked capabilities cannot be reported as used.
+- [ ] `fast-context-mcp` semantic discovery results are confirmed with `rg`, Git, or direct file reads before being used as final evidence.
+- [ ] CodeGraph readiness verifies runtime availability plus project init/index/status freshness before structure, impact, or affected-test answers are trusted.
+- [ ] Graphify readiness distinguishes existing artifact use from approved graph build/update and optional MCP startup.
+- [ ] GitHub MCP readiness distinguishes read-only/narrow-toolset mode from write-capable remote actions.
+- [ ] Playwright MCP readiness verifies browser/server availability and keeps browser startup explicit.
+- [ ] Project-level capability config is generated or documented for Codex `.codex/config.toml`, Claude Code `.mcp.json`, and Cursor `.cursor/mcp.json`.
+- [ ] No global MCP/client config is changed silently during init or update.
+- [ ] Capability availability can be checked through an explicit diagnostic path.
+- [ ] `trellis init` includes readiness checks for Smart Search and selected project capabilities.
+- [ ] `trellis init` treats `smart-search doctor --format json` success as the Smart Search readiness gate.
+- [ ] Non-ready Smart Search or selected capability produces actionable recovery instead of silently completing as ready.
+- [ ] `trellis init --yes` fails non-zero when required readiness fails.
+- [ ] `trellis init --skip-readiness` is explicit, reports the skipped checks, and does not claim the framework is ready.
+- [ ] `trellis update` fails non-zero when required readiness fails.
+- [ ] `trellis update --skip-readiness` is explicit, reports the skipped checks, and does not claim the framework is ready.
+- [ ] Smart Search runtime is vendored into Trellis's install/runtime path and is based on `smartsearch-private`, not only the public package.
+- [ ] Vendored Smart Search runtime lives under `packages/cli/vendor/smart-search/`.
+- [ ] The Trellis package exposes a `smart-search` executable entry point.
+- [ ] The `smart-search` executable uses a Trellis-owned thin wrapper that locates the vendored Smart Search runtime without modifying Smart Search's internal CLI logic.
+- [ ] Trellis includes a sync or drift-check path comparing the vendored Smart Search runtime to `D:\MyHarness\smartsearch-private`.
+- [ ] Tests allow `smart-search-cli` as a valid bundled skill even though it does not start with `trellis-`.
+- [ ] Targeted configurator/init/workflow tests pass.
+
+## Risks
+
+- Smart Search snapshot drift: Trellis can fall behind `smartsearch-private` unless a sync check or maintenance habit is added.
+- Hidden name assumptions: existing tests or code may assume every bundled skill starts with `trellis-`.
+- Large skill context: Smart Search `SKILL.md` is long. Future work may need to split more details into references without breaking the canonical contract.
+- Platform cleanup risk: upstream Trellis still has many platform configurators; reducing first-class behavior to Codex, Claude Code, and Cursor may expose assumptions in tests, templates, or docs.
+- Parent/Child migration risk: replacing native semantics while reusing `task.json.parent` and `children` may require careful CLI wording and tests so users do not confuse structural links with orchestration authority.
+- Session migration risk: removing `task.py start`, `task.py current`, `task.py finish`, and single-session fallback will require updates across workflow text, hook output, command docs, tests, agents, skills, and bundled meta references that currently assume "active task" or "current task" terminology.
+- Parallel integration risk: Git worktree isolation reduces local conflicts but does not eliminate semantic conflicts; Parent review and `merge_limit: 1` must stay strict.
+- Fast Context stability risk: `fast-context-mcp` depends on Windsurf credentials, a remote model/API, and a reverse-engineered protocol. Keep it as semantic discovery and require exact evidence confirmation.
+- Graphify dependency weight: `graphifyy` depends on NetworkX, graspologic, tree-sitter language packages, optional MCP/PDF/watch dependencies, and Claude-oriented skill behavior. Keep it selectable/project-scoped rather than an unconditional runtime.
+- CodeGraph candidate risk: the required CodeGraph target is `colbymchenry/codegraph`; its actual install/index/query contract must be smoke-tested before final adapter implementation.
+- Capability freshness risk: CodeGraph and Graphify can become stale relative to the working tree. Readiness and routing must surface stale/missing indexes and fall back to direct evidence rather than silently trusting old graph data.
+- MCP client differences: Codex, Claude Code, and Cursor use different project-level config shapes, so capability setup must keep a shared routing model while emitting platform-specific files.
+- Over-automation risk: the install flow should feel AI-guided and simple to the user, but implementation still needs explicit consent for remote, global, credential-bearing, or heavyweight actions.
+
+## Future Framework Roadmap
+
+This task owns the full custom framework shape. Implementation should still be split into independently verifiable functional slices:
+
+- Workflow/task ladder: route unclear asks to Micro-Grill, source-backed research to Smart Search, Lite Tasks to lightweight artifacts, Full Tasks to artifact-gated execution, and Parent/Child work to Supervisor/Worker orchestration.
+- Session/task selection: enter Trellis framework automatically, show Task Dashboard, require explicit `selected_task`, delete `task.py start` / `task.py current` / `task.py finish`, add `select`, `selected`, `start-execution --approved`, and `exit`, and remove single-session fallback.
+- Parent/Child orchestration: implement `task-map.md`, topology, child state transitions, Git worktree/ref integration, and Parent-only acceptance/integration semantics.
+- Platform scope cleanup: keep Codex, Claude Code, and Cursor first-class; remove, disable, or degrade non-target platform behavior.
+- Core/global capabilities: bundle `trellis-micro-grill`, bundle `smart-search-cli`, and vendor the Smart Search runtime with drift checks back to `smartsearch-private`.
+- Selectable project capabilities: add AI-guided setup, project-level config generation, routing, and diagnostics for `fast-context-mcp`, `colbymchenry/codegraph`, Graphify, GitHub MCP, and Playwright MCP.
+- Retrieval routing: provide a concise framework surface that routes semantic search, exact proof, code-structure graph lookup, and architecture/wiki memory without treating those tools as duplicates.
+- Readiness and diagnostics: make init/update fail when required core or selected project capabilities are not ready, with `--skip-readiness` as the explicit repair/debug escape hatch.
