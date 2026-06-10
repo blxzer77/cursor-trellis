@@ -17,7 +17,7 @@ import {
   getPythonCommandForPlatform,
   setResolvedPythonCommand,
 } from "../configurators/shared.js";
-import { AI_TOOLS, type CliFlag } from "../types/ai-tools.js";
+import { AI_TOOLS, type AITool, type CliFlag } from "../types/ai-tools.js";
 import { DIR_NAMES, FILE_NAMES, PATHS } from "../constants/paths.js";
 import { VERSION } from "../constants/version.js";
 import { agentsMdContent } from "../templates/markdown/index.js";
@@ -60,6 +60,16 @@ import {
   type RegistryBackend,
 } from "../utils/template-fetcher.js";
 import { setupProxy, maskProxyUrl } from "../utils/proxy.js";
+import {
+  checkProjectCapabilityReadiness,
+  checkSmartSearchReadiness,
+} from "../utils/readiness.js";
+import {
+  getProjectCapabilityChoices,
+  parseProjectCapabilities,
+  writeProjectCapabilityFiles,
+  type ProjectCapabilityId,
+} from "../utils/project-capabilities.js";
 
 const MIN_PYTHON_MAJOR = 3;
 const MIN_PYTHON_MINOR = 9;
@@ -496,7 +506,6 @@ When the developer confirms the checklist items above are done with real
 examples (not placeholders), guide them to run:
 
 \`\`\`bash
-${pythonCmd} ./.trellis/scripts/task.py finish
 ${pythonCmd} ./.trellis/scripts/task.py archive 00-bootstrap-guidelines
 \`\`\`
 
@@ -627,7 +636,7 @@ function getJoinerPrdContent(developer: string, pythonCmd: string): string {
 \`${developer}\` just ran \`trellis init\` on a fresh clone, saw "Developer
 initialized", and will now start asking you questions in chat. This joiner task
 exists under \`.trellis/tasks/\`; when they want to work on it, they should
-start it from a session that provides Trellis session identity.
+select it from a session that provides Trellis session identity.
 
 Your job is to orient them to Trellis. Don't dump all of this at them — open
 with a short greeting, ask where they want to start, and fill in the rest as
@@ -648,18 +657,18 @@ code every session.
 - **Task lifecycle**: planning → in_progress → done → archive, under
   \`.trellis/tasks/\`.
 - **Core slash commands**:
-  - \`/trellis:continue\` — resume the current session's active task
+  - \`/trellis:continue\` — continue the current live session's selected task
   - \`/trellis:finish-work\` — wrap up a finished task
-  - \`/trellis:start\` — session boot from scratch (not needed here; the
+  - \`/trellis:start\` — framework/dashboard entry (not needed here; the
     SessionStart hook does its job automatically)
 
 ### 2. Runtime mechanics (explain when they ask "how does it know what to do")
 
 - **SessionStart hook** runs \`get_context.py\` and injects identity, git
-  status, session active task, active tasks, and workflow phase into the AI
+  status, selected task, active task list, and workflow phase into the AI
   conversation at every session start.
 - **\`<workflow-state>\` tag** is auto-injected with every user message,
-  carrying the current task + phase hint.
+  carrying the selected task + phase hint.
 - **\`/trellis:continue\`** loads the Phase Index, reads \`prd.md\` + recent
   activity, and routes to the right skill (\`trellis-brainstorm\` for planning,
   \`trellis-implement\` for coding, \`trellis-check\` for verification).
@@ -671,7 +680,7 @@ code every session.
   — reviews changes against specs, auto-fixes issues, runs lint/typecheck.
 
 File layout (mention when they ask "where does what live"):
-- \`.trellis/.runtime/sessions/<session>.json\` — session active-task state, gitignored
+- \`.trellis/.runtime/sessions/<session>.json\` — live-session selected-task state, gitignored
 - \`.trellis/tasks/<task>/{implement,check}.jsonl\` — per-task context manifests
 - \`.trellis/spec/\` — project-wide conventions (source of truth)
 - \`.trellis/workspace/${developer}/journal-*.md\` — their session log,
@@ -712,7 +721,6 @@ When they feel oriented (or after you've covered the four topics with
 reasonable back-and-forth), guide them to run:
 
 \`\`\`bash
-${pythonCmd} ./.trellis/scripts/task.py finish
 ${pythonCmd} ./.trellis/scripts/task.py archive 00-join-${slug}
 \`\`\`
 
@@ -950,6 +958,8 @@ interface InitOptions {
   user?: string;
   force?: boolean;
   skipExisting?: boolean;
+  skipReadiness?: boolean;
+  capability?: string[];
   template?: string;
   overwrite?: boolean;
   append?: boolean;
@@ -1016,6 +1026,134 @@ interface InitAnswers {
   tools: string[];
   template?: string;
   existingDirAction?: TemplateStrategy;
+  capabilities?: ProjectCapabilityId[];
+  smartSearchSetupAction?: "setup" | "abort";
+  capabilitySetupAction?: "recheck" | "abort";
+}
+
+async function checkSmartSearchReadinessForInit(options: {
+  interactive: boolean;
+  skipReadiness?: boolean;
+}): Promise<void> {
+  const skipReadinessCommand = "trellis init --skip-readiness";
+
+  try {
+    checkSmartSearchReadiness({
+      skipReadiness: options.skipReadiness,
+      skipReadinessCommand,
+    });
+    return;
+  } catch (error) {
+    if (!options.interactive || options.skipReadiness) {
+      throw error;
+    }
+
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(chalk.yellow(message));
+
+    const answer = await inquirer.prompt<InitAnswers>([
+      {
+        type: "list",
+        name: "smartSearchSetupAction",
+        message:
+          "Smart Search provider configuration is missing or not ready. What should Trellis do?",
+        choices: [
+          {
+            name: "Run `smart-search setup` now, then re-check readiness",
+            value: "setup",
+          },
+          {
+            name: "Abort init so I can configure Smart Search manually",
+            value: "abort",
+          },
+        ],
+        default: "setup",
+      },
+    ]);
+
+    if (answer.smartSearchSetupAction !== "setup") {
+      throw error;
+    }
+
+    console.log(chalk.blue("🔧 Running smart-search setup..."));
+    try {
+      execSync("smart-search setup", { stdio: "inherit" });
+    } catch (setupError) {
+      const setupMessage =
+        setupError instanceof Error ? setupError.message : String(setupError);
+      throw new Error(
+        [
+          "Smart Search setup failed.",
+          `Details: ${setupMessage}`,
+          "Recovery:",
+          "  smart-search setup",
+          `  ${skipReadinessCommand}`,
+        ].join("\n"),
+      );
+    }
+
+    checkSmartSearchReadiness({
+      skipReadiness: false,
+      skipReadinessCommand,
+    });
+  }
+}
+
+async function checkProjectCapabilityReadinessForInit(options: {
+  cwd: string;
+  selected: readonly ProjectCapabilityId[];
+  interactive: boolean;
+  skipReadiness?: boolean;
+}): Promise<void> {
+  const skipReadinessCommand = "trellis init --skip-readiness";
+
+  try {
+    checkProjectCapabilityReadiness({
+      cwd: options.cwd,
+      selected: options.selected,
+      skipReadiness: options.skipReadiness,
+      skipReadinessCommand,
+    });
+    return;
+  } catch (error) {
+    if (!options.interactive || options.skipReadiness) {
+      throw error;
+    }
+
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(chalk.yellow(message));
+
+    const answer = await inquirer.prompt<InitAnswers>([
+      {
+        type: "list",
+        name: "capabilitySetupAction",
+        message:
+          "Selected project capability readiness failed. Fix setup/config outside Trellis, then choose whether to re-check.",
+        choices: [
+          {
+            name: "I have fixed the selected capability setup/config; re-check readiness",
+            value: "recheck",
+          },
+          {
+            name: "Abort init without writing project files",
+            value: "abort",
+          },
+        ],
+        default: "recheck",
+      },
+    ]);
+
+    if (answer.capabilitySetupAction !== "recheck") {
+      throw error;
+    }
+
+    checkProjectCapabilityReadiness({
+      cwd: options.cwd,
+      selected: options.selected,
+      skipReadiness: false,
+      skipReadinessCommand,
+    });
+  }
 }
 
 export async function init(options: InitOptions): Promise<void> {
@@ -1041,7 +1179,7 @@ export async function init(options: InitOptions): Promise<void> {
   console.log(chalk.cyan(`\n${banner.trimEnd()}`));
   console.log(
     chalk.gray(
-      "\n   All-in-one AI framework & toolkit for Claude Code & Cursor\n",
+      "\n   All-in-one AI framework & toolkit for Codex, Claude Code & Cursor\n",
     ),
   );
 
@@ -1378,6 +1516,36 @@ export async function init(options: InitOptions): Promise<void> {
     );
     return;
   }
+
+  const explicitCapabilities = parseProjectCapabilities(options.capability);
+  let selectedCapabilities: ProjectCapabilityId[] = explicitCapabilities;
+
+  if (!options.yes && !options.capability?.length) {
+    const capabilityAnswers = await inquirer.prompt<InitAnswers>([
+      {
+        type: "checkbox",
+        name: "capabilities",
+        message: "Select optional project capabilities:",
+        choices: getProjectCapabilityChoices().map((choice) => ({
+          name: choice.name,
+          value: choice.id,
+          checked: false,
+        })),
+      },
+    ]);
+    selectedCapabilities = capabilityAnswers.capabilities ?? [];
+  }
+
+  await checkSmartSearchReadinessForInit({
+    interactive: !options.yes,
+    skipReadiness: options.skipReadiness,
+  });
+  await checkProjectCapabilityReadinessForInit({
+    cwd,
+    selected: selectedCapabilities,
+    interactive: !options.yes,
+    skipReadiness: options.skipReadiness,
+  });
 
   // ==========================================================================
   // Template Selection (single-repo only; monorepo handles templates above)
@@ -1807,15 +1975,23 @@ export async function init(options: InitOptions): Promise<void> {
     fs.writeFileSync(versionPath, VERSION);
 
     // Configure selected tools by copying entire directories (dogfooding)
+    const selectedPlatformIds: AITool[] = [];
     for (const tool of tools) {
       const platformId = resolveCliFlag(tool);
       if (platformId) {
+        selectedPlatformIds.push(platformId);
         console.log(
           chalk.blue(`📝 Configuring ${AI_TOOLS[platformId].name}...`),
         );
         await configurePlatform(platformId, cwd);
       }
     }
+
+    await writeProjectCapabilityFiles(
+      cwd,
+      selectedCapabilities,
+      selectedPlatformIds,
+    );
 
     const pythonPlatforms = getPlatformsWithPythonHooks();
     const hasSelectedPythonPlatform = pythonPlatforms.some((id) =>

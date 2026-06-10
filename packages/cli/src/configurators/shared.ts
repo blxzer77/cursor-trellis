@@ -549,8 +549,8 @@ export async function writeSharedHooks(
 // inject sub-agent prompts: gemini, qoder, codex, copilot)
 //
 // Only implement & check need task-level context (task artifacts + jsonl specs).
-// research is orthogonal: it searches the spec tree and doesn't depend on an
-// active task. Hook-based platforms mirror this (their `get_research_context`
+// research is orthogonal: it searches the spec tree and doesn't depend on a
+// selected task. Hook-based platforms mirror this (their `get_research_context`
 // injects a spec-tree overview, not prd/jsonl). We leave research untouched.
 // ---------------------------------------------------------------------------
 
@@ -566,13 +566,13 @@ export function buildPullBasedPrelude(agentType: SubAgentType): string {
 
 This platform does NOT auto-inject task context via hook. Before doing anything else, you MUST load context yourself.
 
-### Step 1: Find the active task path
+### Step 1: Find the selected task path
 
 Try in order — stop at the first one that yields a task path:
 
-1. **Look at the dispatch prompt** you received from the main agent. If its first line is \`Active task: <path>\` (e.g. \`Active task: .trellis/tasks/04-17-foo\`), use that path. The main agent is required to include this line on class-2 platforms.
-2. **Run** \`python3 ./.trellis/scripts/task.py current --source\` and read the \`Current task:\` line.
-3. **If both fail** (no \`Active task:\` line in the prompt and \`task.py current\` returns no task), ask the user which task to work on; do NOT guess.
+1. **Look at the dispatch prompt** you received from the main agent. If its first line is \`Selected task: <path>\` (e.g. \`Selected task: .trellis/tasks/04-17-foo\`), use that path. The main agent is required to include this line on class-2 platforms.
+2. **Run** \`python3 ./.trellis/scripts/task.py selected --source\` and read the \`Selected task:\` line.
+3. **If both fail** (no \`Selected task:\` line in the prompt and \`task.py selected\` returns no task), ask the user which task to work on; do NOT guess.
 
 ### Step 2: Load task context from the resolved path
 

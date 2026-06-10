@@ -17,6 +17,10 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+function normalizeLineEndings(content: string): string {
+  return content.replace(/\r\n/g, "\n");
+}
+
 // =============================================================================
 // getInstallPath — pure function (EASY)
 // =============================================================================
@@ -662,9 +666,11 @@ gitDescribe("git-backed registry backend", () => {
 
         expect(result.success).toBe(true);
         expect(
-          fs.readFileSync(
-            path.join(cwd, ".trellis", "spec", "rules.md"),
-            "utf-8",
+          normalizeLineEndings(
+            fs.readFileSync(
+              path.join(cwd, ".trellis", "spec", "rules.md"),
+              "utf-8",
+            ),
           ),
         ).toBe("remote rules\n");
       },
@@ -716,9 +722,11 @@ gitDescribe("git-backed registry backend", () => {
 
         expect(result.success).toBe(true);
         expect(
-          fs.readFileSync(
-            path.join(cwd, ".trellis", "spec", "rules.md"),
-            "utf-8",
+          normalizeLineEndings(
+            fs.readFileSync(
+              path.join(cwd, ".trellis", "spec", "rules.md"),
+              "utf-8",
+            ),
           ),
         ).toBe("remote rules\n");
       },
@@ -751,7 +759,11 @@ gitDescribe("git-backed registry backend", () => {
         expect(fs.readFileSync(path.join(specDir, "keep.md"), "utf-8")).toBe(
           "local keep\n",
         );
-        expect(fs.readFileSync(path.join(specDir, "new.md"), "utf-8")).toBe(
+        expect(
+          normalizeLineEndings(
+            fs.readFileSync(path.join(specDir, "new.md"), "utf-8"),
+          ),
+        ).toBe(
           "remote new\n",
         );
       },

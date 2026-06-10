@@ -7,7 +7,8 @@
   "types": "./dist/index.d.ts",
   "bin": {
     "trellis": "./bin/trellis.js",
-    "tl": "./bin/trellis.js"
+    "tl": "./bin/trellis.js",
+    "smart-search": "./bin/smart-search.js"
   },
   "publishConfig": {
     "access": "public"
@@ -16,6 +17,9 @@
     "build": "pnpm run clean && tsc && pnpm run copy-templates",
     "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
     "copy-templates": "node scripts/copy-templates.js",
+    "postinstall": "node scripts/postinstall.js",
+    "sync:smart-search": "node scripts/sync-smart-search-vendor.js",
+    "check:smart-search": "node scripts/check-smart-search-vendor.js",
     "dev": "tsc --watch",
     "start": "node ./dist/cli/index.js",
     "test": "vitest run",
@@ -80,6 +84,8 @@
   "files": [
     "dist",
     "bin",
+    "scripts/postinstall.js",
+    "vendor/smart-search",
     "README.md",
     "LICENSE"
   ],

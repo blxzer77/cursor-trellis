@@ -5,6 +5,10 @@ import {
   upgrade,
 } from "../../src/commands/upgrade.js";
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 describe("upgrade command", () => {
   it("defaults stable versions to latest", () => {
     expect(resolveUpgradeTag("0.5.12")).toBe("latest");
@@ -76,18 +80,21 @@ describe("upgrade command", () => {
   it("executes npm install for real upgrades", async () => {
     const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
     const runner = vi.fn(() => ({ status: 0, signal: null }));
+    const plan = buildUpgradeCommand({ tag: "latest" });
 
     await upgrade({ tag: "latest" }, runner);
 
     expect(runner).toHaveBeenCalledWith(
-      "npm",
-      ["install", "-g", "@mindfoldhq/trellis@latest"],
-      { stdio: "inherit", shell: false },
+      plan.command,
+      plan.args,
+      plan.spawnOptions,
     );
     expect(log).toHaveBeenCalledWith(
       expect.stringContaining("trellis --version"),
     );
-    expect(log).toHaveBeenCalledWith(expect.stringContaining("which trellis"));
+    expect(log).toHaveBeenCalledWith(
+      expect.stringContaining(plan.binaryCheckCommand),
+    );
 
     log.mockRestore();
   });
@@ -95,9 +102,16 @@ describe("upgrade command", () => {
   it("fails when npm exits non-zero", async () => {
     const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
     const runner = vi.fn(() => ({ status: 1, signal: null }));
+    const plan = buildUpgradeCommand({ tag: "latest" });
 
     await expect(upgrade({ tag: "latest" }, runner)).rejects.toThrow(
-      /npm install failed with exit code 1\.[\s\S]*Troubleshooting:[\s\S]*Manual command: npm install -g @mindfoldhq\/trellis@latest[\s\S]*npm config get prefix[\s\S]*which trellis/,
+      new RegExp(
+        `npm install failed with exit code 1\\.[\\s\\S]*Troubleshooting:[\\s\\S]*Manual command: ${escapeRegExp(
+          plan.displayCommand,
+        )}[\\s\\S]*npm config get prefix[\\s\\S]*${escapeRegExp(
+          plan.binaryCheckCommand,
+        )}`,
+      ),
     );
 
     log.mockRestore();

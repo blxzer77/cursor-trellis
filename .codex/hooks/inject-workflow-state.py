@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Trellis per-turn breadcrumb hook (UserPromptSubmit / BeforeAgent equivalent).
 
-Runs on every user prompt. Resolves the active task through Trellis'
-session-aware active task resolver and emits a short <workflow-state>
-block reminding the main AI what task is active and its expected flow.
+Runs on every user prompt. Resolves the selected task through Trellis'
+session-aware selected task resolver and emits a short <workflow-state>
+block reminding the main AI what task is selected and its expected flow.
 
 The emitted ``hookEventName`` field is platform-aware: most hosts expect
 ``UserPromptSubmit`` (Claude Code naming, also accepted by Cursor / Qoder /
@@ -58,7 +58,7 @@ if sys.platform.startswith("win"):
 from typing import Optional
 
 
-# Bootstrap notice for Codex while the session has no active task. Codex does not
+# Bootstrap notice for Codex while the session has no selected task. Codex does not
 # get the full SessionStart overview; this short reminder points the main session
 # at the start skill once and leaves the per-turn state block compact.
 CODEX_NO_TASK_BOOTSTRAP_NOTICE = """<trellis-bootstrap>
@@ -85,7 +85,7 @@ def find_trellis_root(start: Path) -> Optional[Path]:
 
 
 # ---------------------------------------------------------------------------
-# Active task discovery
+# Selected task discovery
 # ---------------------------------------------------------------------------
 
 def _detect_platform(input_data: dict) -> str | None:
@@ -124,18 +124,18 @@ def _detect_platform(input_data: dict) -> str | None:
     return None
 
 
-def _resolve_active_task(root: Path, input_data: dict):
+def _resolve_selected_task(root: Path, input_data: dict):
     scripts_dir = root / ".trellis" / "scripts"
     if str(scripts_dir) not in sys.path:
         sys.path.insert(0, str(scripts_dir))
-    from common.active_task import resolve_active_task  # type: ignore[import-not-found]
+    from common.active_task import resolve_selected_task  # type: ignore[import-not-found]
 
-    return resolve_active_task(root, input_data, platform=_detect_platform(input_data))
+    return resolve_selected_task(root, input_data, platform=_detect_platform(input_data))
 
 
-def get_active_task(root: Path, input_data: dict) -> Optional[tuple[str, str, str]]:
-    """Return (task_id, status, source) from the current active task."""
-    active = _resolve_active_task(root, input_data)
+def get_selected_task(root: Path, input_data: dict) -> Optional[tuple[str, str, str]]:
+    """Return (task_id, status, source) from the selected task."""
+    active = _resolve_selected_task(root, input_data)
     if not active.task_path:
         return None
 
@@ -292,7 +292,11 @@ def build_breadcrumb(
         body = templates.get(status)
     if body is None:
         body = "Refer to workflow.md for current step."
-    header = f"Status: {status}" if task_id is None else f"Task: {task_id} ({status})"
+    header = (
+        f"Selected task: none\nStatus: {status}"
+        if task_id is None
+        else f"Selected task: {task_id} ({status})"
+    )
     return f"<workflow-state>\n{header}\n{body}\n</workflow-state>"
 
 
@@ -319,10 +323,9 @@ def main() -> int:
     templates = load_breadcrumbs(root)
     platform = _detect_platform(data)
     config = _read_trellis_config(root)
-    task = get_active_task(root, data)
+    task = get_selected_task(root, data)
     if task is None:
-        # No active task — still emit a breadcrumb nudging AI toward
-        # trellis-brainstorm + task.py create when user describes real work.
+        # No selected task — still emit the framework-entry breadcrumb.
         no_task_key = resolve_breadcrumb_key("no_task", platform, config)
         breadcrumb = build_breadcrumb(
             None, "no_task", templates, breadcrumb_key=no_task_key

@@ -13,11 +13,13 @@ import type {
 } from "./types.js";
 
 /**
- * Find ALL `task.py create|start` invocations in a single Bash command string.
+ * Find ALL `task.py create|start-execution` invocations in a single Bash command string.
+ * Legacy `task.py start` logs are still accepted as the same execution-start
+ * boundary.
  * A real Bash invocation can contain several (e.g.
- * `SMOKE=$(task.py create …); task.py start "$SMOKE"`). Returned in source
- * order; each entry's args are bounded to the next `task.py` invocation or
- * end-of-line.
+ * `SMOKE=$(task.py create …); task.py start-execution "$SMOKE" --approved`).
+ * Returned in source order; each entry's args are bounded to the next
+ * `task.py` invocation or end-of-line.
  *
  * False-positive guard: `task.py` must appear at the start of the command,
  * after whitespace, or after a path separator — never embedded inside a flag
@@ -26,10 +28,12 @@ import type {
 export function parseTaskPyCommandsAll(cmd: string): ParsedTaskPyCommand[] {
   if (typeof cmd !== "string" || cmd.length === 0) return [];
   const all: ParsedTaskPyCommand[] = [];
-  const findRe = /(^|[\s/\\])task\.py\s+(create|start)(?:\s+|$)/g;
+  const findRe =
+    /(^|[\s/\\])task\.py\s+(create|start-execution|start)(?:\s+|$)/g;
   const matches: { action: "create" | "start"; bodyStart: number }[] = [];
   for (const m of cmd.matchAll(findRe)) {
-    const action = m[2] as "create" | "start";
+    const rawAction = m[2] as "create" | "start-execution" | "start";
+    const action = rawAction === "create" ? "create" : "start";
     const bodyStart = m.index + m[0].length;
     matches.push({ action, bodyStart });
   }

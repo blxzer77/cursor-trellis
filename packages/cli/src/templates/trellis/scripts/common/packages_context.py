@@ -17,7 +17,7 @@ from .config import _is_true_config_value, get_default_package, get_packages, ge
 from .paths import (
     DIR_SPEC,
     DIR_WORKFLOW,
-    get_current_task,
+    get_selected_task,
     get_repo_root,
 )
 from .tasks import load_task
@@ -41,12 +41,12 @@ def _scan_spec_layers(spec_dir: Path, package: str | None = None) -> list[str]:
     )
 
 
-def _get_active_task_package(repo_root: Path) -> str | None:
-    """Get the package field from the active task's task.json."""
-    current = get_current_task(repo_root)
-    if not current:
+def _get_selected_task_package(repo_root: Path) -> str | None:
+    """Get the package field from the selected task's task.json."""
+    selected = get_selected_task(repo_root)
+    if not selected:
         return None
-    ct = load_task(repo_root / current)
+    ct = load_task(repo_root / selected)
     return ct.package if ct and ct.package else None
 
 
@@ -175,7 +175,7 @@ def get_context_packages_text(repo_root: Path | None = None) -> str:
     packages_dict = get_packages(repo_root) or {}
     default_pkg = get_default_package(repo_root)
     spec_scope = get_spec_scope(repo_root)
-    task_pkg = _get_active_task_package(repo_root)
+    task_pkg = _get_selected_task_package(repo_root)
     scope_set = _resolve_scope_set(packages_dict, spec_scope, task_pkg, default_pkg)
 
     lines.append("## PACKAGES")
@@ -235,4 +235,5 @@ def get_context_packages_json(repo_root: Path | None = None) -> dict:
         "defaultPackage": default_pkg,
         "specScope": spec_scope,
         "activeTaskPackage": task_pkg,
+        "selectedTaskPackage": task_pkg,
     }

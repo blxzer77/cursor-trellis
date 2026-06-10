@@ -12,7 +12,7 @@ File locations and formats differ by platform, but responsibility boundaries sho
 
 | Agent | Responsibility |
 | --- | --- |
-| `trellis-research` | Investigate the question and write findings into the current task's `research/`. |
+| `trellis-research` | Investigate the question and write findings into the selected task's `research/`. |
 | `trellis-implement` | Implement against `prd.md`, optional `design.md` / `implement.md`, `implement.jsonl`, and related spec/research. |
 | `trellis-check` | Review changes, fix discovered issues, and run necessary checks. |
 
@@ -49,10 +49,10 @@ Common on platforms that support agent hooks.
 
 The agent file instructs the agent to read after startup:
 
-- `python3 ./.trellis/scripts/task.py current --source`
+- `python3 ./.trellis/scripts/task.py selected --source`
 - `implement.jsonl` or `check.jsonl`
 - spec/research files referenced by JSONL
-- current task `prd.md`
+- selected task `prd.md`
 - `design.md` if present
 - `implement.md` if present
 
@@ -71,7 +71,7 @@ This mode fits platforms whose hooks cannot reliably rewrite sub-agent prompts.
 ## Modification Principles
 
 1. **Keep responsibilities single-purpose**. Do not mix research, implement, and check responsibilities into one agent.
-2. **Specify the read order**. Agents must know to start from the active task, read jsonl/spec context, then read `prd.md`, `design.md` if present, and `implement.md` if present.
+2. **Specify the read order**. Agents must know to start from the selected task, read jsonl/spec context, then read `prd.md`, `design.md` if present, and `implement.md` if present.
 3. **Specify write boundaries**. Research usually only writes `research/`; implement can write code; check can fix issues.
 4. **Keep semantics synchronized in multi-platform projects**. If the user configured Claude, Codex, and Cursor together, decide whether changes to one platform's agent also need to be applied to others.
 

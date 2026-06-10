@@ -14,7 +14,7 @@ Usage:
 
 Branch resolution order:
     1. --branch CLI arg (explicit)
-    2. task.json branch field (from active task)
+    2. task.json branch field (from selected task)
     3. git branch --show-current (auto-detect)
     4. None (omitted gracefully)
 """
@@ -30,7 +30,7 @@ from pathlib import Path
 from common.paths import (
     FILE_JOURNAL_PREFIX,
     get_repo_root,
-    get_current_task,
+    get_selected_task,
     get_developer,
     get_workspace_dir,
 )
@@ -322,7 +322,7 @@ def _auto_commit_workspace(repo_root: Path) -> None:
     """Stage Trellis-owned workspace + task paths and commit.
 
     Path scope is restricted to specific products (journal files, index.md,
-    active task dirs, the archive subtree). We never `git add` the whole
+    selected task dirs, the archive subtree). We never `git add` the whole
     `.trellis/` tree, and if `.gitignore` blocks the specific paths we
     warn + skip — never retry with ``-f``.
 
@@ -502,10 +502,10 @@ def main() -> int:
     elif args.stdin:
         extra_content = sys.stdin.read()
 
-    # Load active task once — shared by package and branch resolution
+    # Load selected task once — shared by package and branch resolution
     repo_root = get_repo_root()
-    current = get_current_task(repo_root)
-    task_data = load_task(repo_root / current) if current else None
+    selected = get_selected_task(repo_root)
+    task_data = load_task(repo_root / selected) if selected else None
 
     package = args.package
     if package:
@@ -519,7 +519,7 @@ def main() -> int:
             print(f"Error: unknown package '{package}'. Available: {available}", file=sys.stderr)
             return 1
     else:
-        # Inferred: active task's task.json.package → default_package → None
+        # Inferred: selected task's task.json.package → default_package → None
         task_package = task_data.package if task_data else None
         package = resolve_package(task_package, repo_root)
 

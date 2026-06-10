@@ -32,9 +32,22 @@ import { DIR_NAMES, FILE_NAMES, PATHS } from "../../src/constants/paths.js";
 import { collectPlatformTemplates } from "../../src/configurators/index.js";
 import { computeHash } from "../../src/utils/template-hash.js";
 import { execSync } from "node:child_process";
+import inquirer from "inquirer";
 
 // eslint-disable-next-line @typescript-eslint/no-empty-function
 const noop = () => {};
+
+function capabilityLookupCommand(command: string): string {
+  return process.platform === "win32"
+    ? `where "${command}"`
+    : `command -v '${command}'`;
+}
+
+function capabilityHelpCommand(command: string): string {
+  return process.platform === "win32"
+    ? `"${command}" --help`
+    : `'${command}' --help`;
+}
 
 describe("init() integration", () => {
   let tmpDir: string;
@@ -43,13 +56,19 @@ describe("init() integration", () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-init-int-"));
     vi.spyOn(process, "cwd").mockReturnValue(tmpDir);
     vi.spyOn(console, "log").mockImplementation(noop);
+    vi.spyOn(console, "warn").mockImplementation(noop);
     vi.spyOn(console, "error").mockImplementation(noop);
+    vi.mocked(inquirer.prompt).mockReset();
+    vi.mocked(inquirer.prompt).mockResolvedValue({});
     vi.mocked(execSync).mockClear();
     vi.mocked(execSync).mockImplementation(((cmd: string) => {
       const expectedPythonCmd =
         process.platform === "win32" ? "python" : "python3";
       if (cmd === `${expectedPythonCmd} --version`) {
         return "Python 3.11.12";
+      }
+      if (cmd === "smart-search doctor --format json") {
+        return JSON.stringify({ ok: true, minimum_profile_ok: true });
       }
       return "";
     }) as typeof execSync);
@@ -90,6 +109,13 @@ describe("init() integration", () => {
 
     // Root files
     expect(fs.existsSync(path.join(tmpDir, "AGENTS.md"))).toBe(true);
+    expect(
+      fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW, "capabilities.json")),
+    ).toBe(false);
+    expect(fs.existsSync(path.join(tmpDir, ".mcp.json"))).toBe(false);
+    expect(fs.existsSync(path.join(tmpDir, ".cursor", "mcp.json"))).toBe(
+      false,
+    );
 
     // Built-in multi-file skills are installed for default platforms.
     expect(
@@ -110,6 +136,34 @@ describe("init() integration", () => {
     ).toBe(true);
     expect(
       fs.existsSync(
+        path.join(tmpDir, ".claude", "skills", "smart-search-cli", "SKILL.md"),
+      ),
+    ).toBe(true);
+    expect(
+      fs.existsSync(
+        path.join(
+          tmpDir,
+          ".claude",
+          "skills",
+          "smart-search-cli",
+          "references",
+          "cli-contract.md",
+        ),
+      ),
+    ).toBe(true);
+    expect(
+      fs.existsSync(
+        path.join(
+          tmpDir,
+          ".cursor",
+          "skills",
+          "trellis-micro-grill",
+          "SKILL.md",
+        ),
+      ),
+    ).toBe(true);
+    expect(
+      fs.existsSync(
         path.join(
           tmpDir,
           ".cursor",
@@ -121,6 +175,120 @@ describe("init() integration", () => {
         ),
       ),
     ).toBe(true);
+  });
+
+  it("#1f writes selected project capability config for first-class platforms", async () => {
+    await init({
+      yes: true,
+      codex: true,
+      claude: true,
+      cursor: true,
+      capability: ["fast-context-mcp", "playwright"],
+    });
+
+    const capabilities = JSON.parse(
+      fs.readFileSync(
+        path.join(tmpDir, DIR_NAMES.WORKFLOW, "capabilities.json"),
+        "utf-8",
+      ),
+    ) as { selected: string[] };
+    expect(capabilities.selected).toEqual([
+      "fast-context-mcp",
+      "playwright-mcp",
+    ]);
+
+    const capabilitiesMd = fs.readFileSync(
+      path.join(tmpDir, DIR_NAMES.WORKFLOW, "capabilities.md"),
+      "utf-8",
+    );
+    expect(capabilitiesMd).toContain(
+      "Unselected, unavailable, skipped, or uninvoked capabilities",
+    );
+    expect(capabilitiesMd).toContain(
+      "`fast-context-mcp` semantic discovery must be confirmed",
+    );
+    expect(capabilitiesMd).toContain("## Fallback Guidance");
+    expect(capabilitiesMd).toContain(
+      "Install or expose `fast-context-mcp` on PATH",
+    );
+
+    const codexConfig = fs.readFileSync(
+      path.join(tmpDir, ".codex", "config.toml"),
+      "utf-8",
+    );
+    expect(codexConfig).toContain(
+      "# TRELLIS:PROJECT-CAPABILITIES:START",
+    );
+    expect(codexConfig).toContain("[mcp_servers.fast-context]");
+    expect(codexConfig).toContain("[mcp_servers.playwright]");
+    expect(codexConfig).not.toContain("[mcp_servers.github]");
+
+    const claudeMcp = JSON.parse(
+      fs.readFileSync(path.join(tmpDir, ".mcp.json"), "utf-8"),
+    ) as {
+      mcpServers: Record<string, { command: string; args: string[] }>;
+    };
+    expect(claudeMcp.mcpServers["fast-context"]).toEqual({
+      command: "fast-context-mcp",
+      args: [],
+    });
+    expect(claudeMcp.mcpServers.playwright).toEqual({
+      command: "npx",
+      args: ["-y", "@playwright/mcp@latest"],
+    });
+
+    const cursorMcp = JSON.parse(
+      fs.readFileSync(path.join(tmpDir, ".cursor", "mcp.json"), "utf-8"),
+    ) as {
+      mcpServers: Record<string, { command: string; args: string[] }>;
+    };
+    expect(cursorMcp).toEqual(claudeMcp);
+
+    const hashFile = path.join(
+      tmpDir,
+      DIR_NAMES.WORKFLOW,
+      ".template-hashes.json",
+    );
+    const hashesFile = JSON.parse(fs.readFileSync(hashFile, "utf-8")) as {
+      hashes?: Record<string, string>;
+    };
+    const trackedPaths = Object.keys(hashesFile.hashes ?? {}).map((p) =>
+      p.replace(/\\/g, "/"),
+    );
+    expect(trackedPaths).toContain(".trellis/capabilities.json");
+    expect(trackedPaths).toContain(".trellis/capabilities.md");
+    expect(trackedPaths).toContain(".codex/config.toml");
+    expect(trackedPaths).toContain(".mcp.json");
+    expect(trackedPaths).toContain(".cursor/mcp.json");
+    expect(execSync).toHaveBeenCalledWith(
+      capabilityLookupCommand("fast-context-mcp"),
+      expect.objectContaining({
+        encoding: "utf-8",
+        stdio: "pipe",
+      }),
+    );
+    expect(execSync).toHaveBeenCalledWith(
+      capabilityHelpCommand("fast-context-mcp"),
+      expect.objectContaining({
+        encoding: "utf-8",
+        stdio: "pipe",
+        timeout: 5000,
+      }),
+    );
+    expect(execSync).toHaveBeenCalledWith(
+      capabilityLookupCommand("npx"),
+      expect.objectContaining({
+        encoding: "utf-8",
+        stdio: "pipe",
+      }),
+    );
+    expect(
+      vi
+        .mocked(execSync)
+        .mock.calls.some(
+          ([cmd]) => typeof cmd === "string" && cmd.includes("@playwright/mcp"),
+        ),
+    ).toBe(false);
   });
 
   it("#1b does not print the promotional pain-point block", async () => {
@@ -135,6 +303,286 @@ describe("init() integration", () => {
     expect(logOutput).not.toContain("Sound familiar?");
     expect(logOutput).not.toContain("You'll never say these again!!");
     expect(logOutput).not.toContain("Wrote CLAUDE.md, AI ignored it");
+  });
+
+  it("#1c verifies Smart Search readiness during init", async () => {
+    await init({ yes: true });
+
+    expect(execSync).toHaveBeenCalledWith(
+      "smart-search doctor --format json",
+      expect.objectContaining({
+        encoding: "utf-8",
+        stdio: "pipe",
+      }),
+    );
+  });
+
+  it("#1d blocks init when Smart Search readiness fails", async () => {
+    vi.mocked(execSync).mockImplementation(((cmd: string) => {
+      const expectedPythonCmd =
+        process.platform === "win32" ? "python" : "python3";
+      if (cmd === `${expectedPythonCmd} --version`) {
+        return "Python 3.11.12";
+      }
+      if (cmd === "smart-search doctor --format json") {
+        const error = new Error("Command failed: smart-search doctor");
+        Object.assign(error, {
+          status: 2,
+          stdout: JSON.stringify({
+            ok: false,
+            minimum_profile_ok: false,
+            minimum_profile_missing: ["main_search"],
+            error_type: "config_error",
+            error: "standard minimum profile is not configured",
+          }),
+        });
+        throw error;
+      }
+      return "";
+    }) as typeof execSync);
+
+    await expect(init({ yes: true })).rejects.toThrow(
+      /Smart Search readiness failed[\s\S]*smart-search setup/,
+    );
+    expect(execSync).not.toHaveBeenCalledWith(
+      "smart-search setup",
+      expect.anything(),
+    );
+    expect(fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW))).toBe(false);
+  });
+
+  it("#1d.1 interactive init can run smart-search setup and re-check readiness", async () => {
+    let doctorCalls = 0;
+    vi.mocked(execSync).mockImplementation(((cmd: string) => {
+      const expectedPythonCmd =
+        process.platform === "win32" ? "python" : "python3";
+      if (cmd === `${expectedPythonCmd} --version`) {
+        return "Python 3.11.12";
+      }
+      if (cmd === "smart-search doctor --format json") {
+        doctorCalls += 1;
+        if (doctorCalls === 1) {
+          const error = new Error("Command failed: smart-search doctor");
+          Object.assign(error, {
+            status: 2,
+            stdout: JSON.stringify({
+              ok: false,
+              minimum_profile_ok: false,
+              minimum_profile_missing: ["main_search"],
+              error_type: "config_error",
+              error: "standard minimum profile is not configured",
+            }),
+          });
+          throw error;
+        }
+        return JSON.stringify({ ok: true, minimum_profile_ok: true });
+      }
+      if (cmd === "smart-search setup") {
+        return "";
+      }
+      return "";
+    }) as typeof execSync);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ version: 1, templates: [] }),
+      }),
+    );
+    vi.mocked(inquirer.prompt)
+      .mockResolvedValueOnce({ tools: ["claude"] })
+      .mockResolvedValueOnce({ capabilities: [] })
+      .mockResolvedValueOnce({ smartSearchSetupAction: "setup" });
+
+    await init({ user: "test-dev" });
+
+    expect(doctorCalls).toBe(2);
+    expect(execSync).toHaveBeenCalledWith("smart-search setup", {
+      stdio: "inherit",
+    });
+    expect(fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW))).toBe(true);
+    expect(inquirer.prompt).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: "smartSearchSetupAction",
+          message: expect.stringContaining("Smart Search provider configuration"),
+        }),
+      ]),
+    );
+  });
+
+  it("#1e --skip-readiness bypasses Smart Search doctor and reports unverified readiness", async () => {
+    await init({ yes: true, skipReadiness: true });
+
+    const calls = vi.mocked(execSync).mock.calls;
+    expect(
+      calls.some(([cmd]) => cmd === "smart-search doctor --format json"),
+    ).toBe(false);
+    expect(fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW))).toBe(true);
+    expect(console.warn).toHaveBeenCalledWith(
+      expect.stringContaining("framework readiness is not verified"),
+    );
+  });
+
+  it("#1g blocks init before writes when selected capability readiness fails", async () => {
+    vi.mocked(execSync).mockImplementation(((cmd: string) => {
+      const expectedPythonCmd =
+        process.platform === "win32" ? "python" : "python3";
+      if (cmd === `${expectedPythonCmd} --version`) {
+        return "Python 3.11.12";
+      }
+      if (cmd === "smart-search doctor --format json") {
+        return JSON.stringify({ ok: true, minimum_profile_ok: true });
+      }
+      if (cmd === capabilityLookupCommand("fast-context-mcp")) {
+        throw new Error("fast-context-mcp not found");
+      }
+      return "";
+    }) as typeof execSync);
+
+    await expect(
+      init({ yes: true, capability: ["fast-context-mcp"] }),
+    ).rejects.toThrow(
+      /Selected project capability readiness failed[\s\S]*fast-context-mcp[\s\S]*trellis init --skip-readiness/,
+    );
+    expect(fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW))).toBe(false);
+  });
+
+  it("#1h --skip-readiness bypasses selected capability probes", async () => {
+    await init({
+      yes: true,
+      skipReadiness: true,
+      capability: ["fast-context-mcp"],
+    });
+
+    const calls = vi.mocked(execSync).mock.calls;
+    expect(
+      calls.some(([cmd]) => cmd === capabilityLookupCommand("fast-context-mcp")),
+    ).toBe(false);
+    expect(fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW))).toBe(true);
+    expect(console.warn).toHaveBeenCalledWith(
+      expect.stringContaining("Selected project capability readiness skipped"),
+    );
+  });
+
+  it("#1h.1 interactive init can re-check selected capability readiness after user-approved setup", async () => {
+    let capabilityLookups = 0;
+    vi.mocked(execSync).mockImplementation(((cmd: string) => {
+      const expectedPythonCmd =
+        process.platform === "win32" ? "python" : "python3";
+      if (cmd === `${expectedPythonCmd} --version`) {
+        return "Python 3.11.12";
+      }
+      if (cmd === "smart-search doctor --format json") {
+        return JSON.stringify({ ok: true, minimum_profile_ok: true });
+      }
+      if (cmd === capabilityLookupCommand("fast-context-mcp")) {
+        capabilityLookups += 1;
+        if (capabilityLookups === 1) {
+          throw new Error("fast-context-mcp not found");
+        }
+        return "";
+      }
+      return "";
+    }) as typeof execSync);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ version: 1, templates: [] }),
+      }),
+    );
+    vi.mocked(inquirer.prompt).mockResolvedValueOnce({
+      capabilitySetupAction: "recheck",
+    });
+
+    await init({
+      user: "test-dev",
+      claude: true,
+      capability: ["fast-context-mcp"],
+    });
+
+    expect(capabilityLookups).toBe(2);
+    expect(fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW))).toBe(true);
+    expect(fs.existsSync(path.join(tmpDir, ".mcp.json"))).toBe(true);
+    expect(inquirer.prompt).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: "capabilitySetupAction",
+          message: expect.stringContaining(
+            "Selected project capability readiness failed",
+          ),
+        }),
+      ]),
+    );
+  });
+
+  it("#1i warns when CodeGraph index freshness is not proven", async () => {
+    await init({ yes: true, capability: ["codegraph"] });
+
+    expect(execSync).toHaveBeenCalledWith(
+      capabilityLookupCommand("codegraph"),
+      expect.objectContaining({
+        encoding: "utf-8",
+        stdio: "pipe",
+      }),
+    );
+    expect(fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW))).toBe(true);
+    const capabilitiesMd = fs.readFileSync(
+      path.join(tmpDir, DIR_NAMES.WORKFLOW, "capabilities.md"),
+      "utf-8",
+    );
+    expect(capabilitiesMd).toContain("## CLI Automation Guidance");
+    expect(capabilitiesMd).toContain(
+      "`codegraph impact <symbol> --path <path> --depth <n> --json`",
+    );
+    expect(capabilitiesMd).toContain(
+      "`codegraph affected <changed-files...> --path <path> --json`",
+    );
+    expect(console.warn).toHaveBeenCalledWith(
+      expect.stringContaining("No common CodeGraph index marker was found"),
+    );
+  });
+
+  it("#1j allows Graphify artifact-only fallback without treating artifacts as proof", async () => {
+    const graphifyOut = path.join(tmpDir, "graphify-out");
+    fs.mkdirSync(graphifyOut, { recursive: true });
+    fs.writeFileSync(path.join(graphifyOut, "GRAPH_REPORT.md"), "# Graph\n");
+
+    vi.mocked(execSync).mockImplementation(((cmd: string) => {
+      const expectedPythonCmd =
+        process.platform === "win32" ? "python" : "python3";
+      if (cmd === `${expectedPythonCmd} --version`) {
+        return "Python 3.11.12";
+      }
+      if (cmd === "smart-search doctor --format json") {
+        return JSON.stringify({ ok: true, minimum_profile_ok: true });
+      }
+      if (cmd === capabilityLookupCommand("graphify")) {
+        throw new Error("graphify not found");
+      }
+      return "";
+    }) as typeof execSync);
+
+    await init({ yes: true, capability: ["graphify"] });
+
+    expect(fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW))).toBe(true);
+    const capabilitiesMd = fs.readFileSync(
+      path.join(tmpDir, DIR_NAMES.WORKFLOW, "capabilities.md"),
+      "utf-8",
+    );
+    expect(capabilitiesMd).toContain("## MCP Query Guidance");
+    expect(capabilitiesMd).toContain("`query_graph`");
+    expect(capabilitiesMd).toContain("`shortest_path`");
+    expect(capabilitiesMd).toContain(
+      "explicitly approves any MCP runtime startup",
+    );
+    expect(console.warn).toHaveBeenCalledWith(
+      expect.stringContaining("artifact-only fallback is available"),
+    );
+    expect(console.warn).toHaveBeenCalledWith(
+      expect.stringContaining("cannot prove current-code behavior"),
+    );
   });
 
   it("#2 single platform creates only that platform directory", async () => {
@@ -159,6 +607,11 @@ describe("init() integration", () => {
     expect(
       fs.existsSync(
         path.join(tmpDir, ".claude", "skills", "trellis-meta", "SKILL.md"),
+      ),
+    ).toBe(true);
+    expect(
+      fs.existsSync(
+        path.join(tmpDir, ".claude", "skills", "smart-search-cli", "SKILL.md"),
       ),
     ).toBe(true);
   });
@@ -218,6 +671,34 @@ describe("init() integration", () => {
     ).toBe(true);
     expect(
       fs.existsSync(
+        path.join(tmpDir, ".agents", "skills", "smart-search-cli", "SKILL.md"),
+      ),
+    ).toBe(true);
+    expect(
+      fs.existsSync(
+        path.join(
+          tmpDir,
+          ".agents",
+          "skills",
+          "smart-search-cli",
+          "references",
+          "cli-contract.md",
+        ),
+      ),
+    ).toBe(true);
+    expect(
+      fs.existsSync(
+        path.join(
+          tmpDir,
+          ".agents",
+          "skills",
+          "trellis-micro-grill",
+          "SKILL.md",
+        ),
+      ),
+    ).toBe(true);
+    expect(
+      fs.existsSync(
         path.join(
           tmpDir,
           ".agents",
@@ -271,6 +752,13 @@ describe("init() integration", () => {
     );
     expect(trackedPaths).toContain(
       ".agents/skills/trellis-spec-bootstarp/references/spec-writing.md",
+    );
+    expect(trackedPaths).toContain(".agents/skills/smart-search-cli/SKILL.md");
+    expect(trackedPaths).toContain(
+      ".agents/skills/smart-search-cli/references/cli-contract.md",
+    );
+    expect(trackedPaths).toContain(
+      ".agents/skills/trellis-micro-grill/SKILL.md",
     );
   });
 
@@ -843,7 +1331,7 @@ describe("init() integration", () => {
     expect(prd).toContain("spec/");
     expect(prd).toContain("- [ ] Fill guidelines for core");
     expect(prd).toContain("- [ ] Fill guidelines for ui");
-    expect(prd).toContain(
+    expect(prd).not.toContain(
       `${expectedPythonCmd} ./.trellis/scripts/task.py finish`,
     );
     expect(prd).toContain(

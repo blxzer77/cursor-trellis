@@ -25,6 +25,10 @@ This directory contains guidelines for backend development. Fill in each file wi
 | [Platform Integration](./platform-integration.md) | How to add support for new AI CLI platforms | Done |
 | [Workflow-State Contract](./workflow-state-contract.md) | Per-turn breadcrumb subsystem: marker syntax, status writers, lifecycle events, reachability | Done |
 | [Configurator Shared Helpers](./configurator-shared.md) | `configurators/shared.ts` public surface: placeholder substitution, write helpers, pull-based prelude, cross-configurator invariants | Done |
+| [Project Capabilities](./project-capabilities.md) | Selectable project capability registry, generated MCP config files, readiness/fallback reporting, routing evidence, and safety boundaries | Done |
+| [Parent/Child Task Map](./parent-child-task-map.md) | Parent-owned task-map state boundary, Child handoff evidence, integration queue, and merge-limit guards | Done |
+| [Archive / Learning Guards](./archive-learning-guards.md) | Guarded archive preflight, verify.md evidence requirements, durable-learning decisions, and completion boundary | Done |
+| [Quality Gate Fingerprints](./quality-gate-fingerprints.md) | Execution approval freshness, quality gate records, transition-scoped fingerprints, and repeated-failure escalation | Done |
 | [`tl mem` Command](./commands-mem.md) | Cross-platform AI session memory: subcommands, schemas, indexing, cleaning pipeline, search relevance | Done |
 | [`trellis upgrade` Command](./commands-upgrade.md) | Global CLI self-upgrade wrapper: channel inference, npm invocation, failure behavior | Done |
 | [`trellis update` Command](./commands-update.md) | Update pipeline: flags, plan composition, migration trigger semantics, apply phase, idempotency, boundaries with `migrations.md` | Done |
@@ -49,6 +53,10 @@ Before writing backend code, read the relevant guidelines based on your task:
 - Adding any native (`.node` / C++ / `node-gyp`) dependency → [quality-guidelines.md "Native dependency policy"](./quality-guidelines.md)
 - Editing `[workflow-state:STATUS]` breadcrumb blocks / `task.json.status` writers / lifecycle hooks → [workflow-state-contract.md](./workflow-state-contract.md)
 - Editing `configurators/shared.ts` (placeholder substitution, write helpers, prelude injection) → [configurator-shared.md](./configurator-shared.md)
+- Editing selected capability setup, `.trellis/capabilities.*`, or generated MCP config output → [project-capabilities.md](./project-capabilities.md)
+- Editing Parent/Child task-map state, `set-child-state`, `integrate-child`, archive guards, or integration queue behavior → [parent-child-task-map.md](./parent-child-task-map.md)
+- Editing archive guards, `verify.md` completion evidence, durable-learning decisions, or completion status writes → [archive-learning-guards.md](./archive-learning-guards.md)
+- Editing execution approval, quality gates, gate fingerprints, or `task.py record-gate` → [quality-gate-fingerprints.md](./quality-gate-fingerprints.md)
 - Editing `commands/mem.ts` (subcommands, platform indexers, search/cleaning pipeline) → [commands-mem.md](./commands-mem.md)
 - Editing `commands/upgrade.ts` (global CLI self-upgrade behavior) → [commands-upgrade.md](./commands-upgrade.md)
 - Editing `commands/update.ts` (flags, plan, apply phases, idempotency) → [commands-update.md](./commands-update.md) — manifest mechanics still in [migrations.md](./migrations.md)

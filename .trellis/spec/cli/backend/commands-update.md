@@ -33,6 +33,7 @@ trellis update
   [-n, --create-new]     write `.new` copies for changed files
   [--allow-downgrade]    permit CLI < project version
   [--migrate]            apply pending file migrations (renames/deletes)
+  [--skip-readiness]     skip Smart Search and selected capability readiness checks and report readiness as unverified
 ```
 
 The action handler in `cli/index.ts` constructs `UpdateOptions` and calls `commands/update.ts:update`. There is no env override surface today — flags are the only knobs. (Note: `setupProxy()` in `commands/update.ts:update` reads `HTTP_PROXY` / `HTTPS_PROXY` for the npm version check, but that's the only env input.)
@@ -47,6 +48,7 @@ interface UpdateOptions {
   createNew?: boolean;
   allowDowngrade?: boolean;
   migrate?: boolean;
+  skipReadiness?: boolean;
 }
 ```
 
@@ -68,6 +70,7 @@ Note that `force` / `skipAll` / `createNew` are mutually exclusive in spirit but
 | `.trellis/workflow.md` | `templates/trellis/index.ts:workflowMdTemplate` (whole-file hash-gated, see below) |
 | Root `AGENTS.md` | `commands/update.ts:buildAgentsMdTemplate` (managed-block merge) |
 | Per-platform files | `configurators/index.ts:collectPlatformTemplates` for each detected platform via `configurators/index.ts:getConfiguredPlatforms` |
+| Selected project capability files | `utils/project-capabilities.ts:collectProjectCapabilityTemplates` from `.trellis/capabilities.json` |
 | `.claude/settings.json` `statusLine` | preserved through `commands/update.ts:preserveExistingClaudeStatusLine` |
 
 Platforms are auto-discovered by directory existence in `cwd`. There is one exception: if `commands/update.ts:needsCodexUpgrade` returns true (legacy Trellis tracked `.agents/skills/` but no `.codex/` exists yet), `commands/update.ts:update` passes `extraPlatforms: new Set(["codex"])` to force Codex template collection so the upgrade can create `.codex/`.
@@ -145,6 +148,12 @@ Opt-in to apply file migrations (renames/deletes/dir renames). Without it: migra
 2. The hardcoded 0.2.0 `traces-*.md → journal-*.md` rename in `update()` runs (workspace/<dev>/ pattern walk; cannot live in the manifest because the path includes a variable developer slug).
 
 `safe-file-delete` migrations are independent of `--migrate` — they always run when their hash gate passes (see Apply Phase). Rationale in `migrations.md`.
+
+### `--skip-readiness`
+
+Bypasses the required Smart Search readiness check and selected project capability probes for repair/debug runs. Normal `trellis update` runs `smart-search doctor --format json` and then checks capabilities recorded in `.trellis/capabilities.json` after confirming the project is initialized and before collecting update state, backups, migrations, or template writes. If Smart Search or a selected capability hard-fails readiness, update throws and the CLI exits non-zero through the top-level command handler.
+
+`--skip-readiness` lets the update pipeline continue, but output must say framework readiness was not verified. It does not mark Smart Search or any selected capability as ready, and selected capability output remains config intent rather than runtime evidence.
 
 ### Tag flag (`--tag <beta|rc|latest>`)
 

@@ -866,7 +866,7 @@ function sessionOverview(root: string, key: string | null): string {
   const script = join(root, ".trellis", "scripts", "get_context.py");
   if (!exists(script)) return "";
   try {
-    const py = process.platform === "win32" ? "python" : "python3";
+    const py = process.platform === "win32" ? "python" : "python";
     const result = spawnSync(py, [script], {
       cwd: root,
       env: key ? { ...process.env, TRELLIS_CONTEXT_ID: key } : process.env,
@@ -1394,11 +1394,11 @@ export default function trellisExtension(pi: {
   pi.registerTool?.({
     name: "trellis_subagent",
     label: "Trellis Subagent",
-    description: "Run a Trellis project sub-agent with active task context.",
+    description: "Run a Trellis project sub-agent with selected task context.",
     promptSnippet:
-      'Sub-agent dispatch protocol (Trellis): your dispatch prompt MUST start with one line "Active task: <task path from `task.py current`>" before any other instructions.',
+      'Sub-agent dispatch protocol (Trellis): your dispatch prompt MUST start with one line "Selected task: <task path from `task.py selected`>" before any other instructions.',
     promptGuidelines: [
-      'Use subagent for task delegation. Your dispatch prompt MUST start with "Active task: <task path from `task.py current`>".',
+      'Use subagent for task delegation. Your dispatch prompt MUST start with "Selected task: <task path from `task.py selected`>".',
     ],
     parameters: {
       type: "object",

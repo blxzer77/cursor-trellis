@@ -32,6 +32,14 @@ import {
 import { compareVersions } from "../utils/compare-versions.js";
 import { toPosix } from "../utils/posix.js";
 import { setupProxy } from "../utils/proxy.js";
+import {
+  checkProjectCapabilityReadiness,
+  checkSmartSearchReadiness,
+} from "../utils/readiness.js";
+import {
+  collectProjectCapabilityTemplates,
+  loadProjectCapabilities,
+} from "../utils/project-capabilities.js";
 import { emptyTaskJson } from "../utils/task-json.js";
 
 // Import templates for comparison
@@ -61,6 +69,7 @@ export interface UpdateOptions {
   createNew?: boolean;
   allowDowngrade?: boolean;
   migrate?: boolean;
+  skipReadiness?: boolean;
 }
 
 interface FileChange {
@@ -656,6 +665,13 @@ function collectTemplateFiles(
         files.set(filePath, content);
       }
     }
+  }
+
+  for (const [filePath, content] of collectProjectCapabilityTemplates(
+    cwd,
+    platforms,
+  )) {
+    files.set(filePath, content);
   }
 
   preserveExistingClaudeStatusLine(cwd, files);
@@ -1693,6 +1709,17 @@ export async function update(options: UpdateOptions): Promise<void> {
 
   // Set up proxy before any network calls (npm version check)
   setupProxy();
+
+  checkSmartSearchReadiness({
+    skipReadiness: options.skipReadiness,
+    skipReadinessCommand: "trellis update --skip-readiness",
+  });
+  checkProjectCapabilityReadiness({
+    cwd,
+    selected: loadProjectCapabilities(cwd),
+    skipReadiness: options.skipReadiness,
+    skipReadinessCommand: "trellis update --skip-readiness",
+  });
 
   // Get versions
   const projectVersion = getInstalledVersion(cwd);

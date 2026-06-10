@@ -7,7 +7,7 @@ Hooks/settings are the entry layer that connects a platform to Trellis. They dec
 settings/config files usually register:
 
 - session-start hook: injects a Trellis overview when a new session starts or context resets.
-- workflow-state hook: parses `[workflow-state:STATUS]` blocks from `.trellis/workflow.md` and emits the body matching the current task `status` on each user input. Parser-only; the script does not embed fallback content.
+- workflow-state hook: parses `[workflow-state:STATUS]` blocks from `.trellis/workflow.md` and emits the body matching the selected task `status` on each user input. Parser-only; the script does not embed fallback content.
 - sub-agent context hook: injects task context when implementation/check/research agents start.
 - shell/session bridge: lets shell commands see the same Trellis session identity.
 - platform plugin or extension entry points.
@@ -35,7 +35,7 @@ Whether these files exist in a project depends on which `trellis init --<platfor
 | Script | Purpose |
 | --- | --- |
 | `session-start.py` | Generates session-start context. |
-| `inject-workflow-state.py` | Parses `[workflow-state:STATUS]` blocks in `.trellis/workflow.md` and emits the body matching the current task status. Falls back to `Refer to workflow.md for current step.` when no matching block exists. |
+| `inject-workflow-state.py` | Parses `[workflow-state:STATUS]` blocks in `.trellis/workflow.md` and emits the body matching the selected task status. Falls back to `Refer to workflow.md for current step.` when no matching block exists. |
 | `inject-subagent-context.py` | Injects PRD, JSONL context, and related spec/research into sub-agents. |
 | `inject-shell-session-context.py` | Lets shell commands inherit Trellis session identity. |
 
@@ -48,7 +48,7 @@ Not every platform has every hook. Do not copy files from another platform just 
 | AI should see more/less context in a new session | Platform `session-start` hook. |
 | Per-turn hint policy should change | `[workflow-state:STATUS]` block in `.trellis/workflow.md`. The hook parses workflow.md verbatim — no script edit required. |
 | Sub-agent cannot read PRD/spec | `inject-subagent-context` hook or agent prelude. |
-| `task.py current` in shell has no active task | Shell/session bridge hook or platform environment variable configuration. |
+| `task.py selected` in shell has no selected task | Shell/session bridge hook or platform environment variable configuration. |
 | Disable an automatic injection | The corresponding hook registration in settings/config. |
 
 ## Modification Principles
@@ -64,6 +64,6 @@ If the user says "AI did not read Trellis state":
 
 1. Check whether the platform settings register the hook.
 2. Check whether the hook file exists.
-3. Manually run the `.trellis/scripts/get_context.py` or `task.py current --source` command that the hook depends on.
-4. Check whether active task state exists in `.trellis/.runtime/sessions/`.
+3. Manually run the `.trellis/scripts/get_context.py` or `task.py selected --source` command that the hook depends on.
+4. Check whether selected task state exists in `.trellis/.runtime/sessions/`.
 5. Check whether the platform shell passes session identity.

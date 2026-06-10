@@ -3,36 +3,43 @@ name: trellis-continue
 description: "Resume work on the current task. Loads the workflow Phase Index, figures out which phase/step to pick up at, then pulls the step-level detail via get_context.py --mode phase. Use when coming back to an in-progress task and you need to know what to do next."
 ---
 
-# Continue Current Task
+# Continue Selected Task
 
-Resume work on the current task — pick up at the right phase/step in `.trellis/workflow.md`.
+Resume work only when this live session already has a `selected_task`. If no task is selected, show the Task Dashboard and ask for an explicit route.
 
 ---
 
-## Step 1: Load Current Context
+## Step 1: Load Framework Context
 
 ```bash
-python3 ./.trellis/scripts/get_context.py
+python ./.trellis/scripts/get_context.py
 ```
 
-Confirms: current task, git state, recent commits.
+Confirms: selected task, Task Dashboard, git state, recent commits.
+
+If the output says `Selected task: none`, do not auto-resume a previous or unique task. Show the dashboard and ask the user to choose one route:
+
+- select a task with `python ./.trellis/scripts/task.py select <task>`
+- create a task
+- inspect details
+- continue without a task for No Task / Micro-Grill work
 
 ## Step 2: Load the Phase Index
 
 ```bash
-python3 ./.trellis/scripts/get_context.py --mode phase
+python ./.trellis/scripts/get_context.py --mode phase
 ```
 
 Shows the Phase Index (Plan / Execute / Finish) with routing + skill mapping.
 
 ## Step 3: Decide Where You Are
 
-`get_context.py` shows the active task's `status` field. Route by `status` + artifact presence. This command replaces the user needing to remember the Trellis flow; it does not itself approve implementation.
+When a task is selected, `get_context.py` shows the selected task's `status` field. Route by `status` + artifact presence. This command replaces the user needing to remember the Trellis flow; it does not itself approve implementation.
 
 - `status=planning` + no `prd.md` → **1.1** (load `trellis-brainstorm`)
 - `status=planning` + `prd.md` only → decide whether the task is lightweight or complex. Lightweight can move to **1.4** review; complex returns to **1.1** to add `design.md` + `implement.md`.
 - `status=planning` + complex artifacts complete + sub-agent jsonl not curated (only the seed `_example` row) → **1.3**
-- `status=planning` + required artifacts complete + required jsonl curated or inline mode → **1.4** (ask for start review; only run `task.py start` after user confirms)
+- `status=planning` + required artifacts complete + required jsonl curated or inline mode → execution gate (run `task.py start-execution <task> --check`, report PASS, ask for explicit execution approval, then run `task.py start-execution <task> --approved`)
 - `status=in_progress` + implementation not started → **2.1**
 - `status=in_progress` + implementation done, not yet checked → **2.2**
 - `status=in_progress` + check passed → **3.1**
@@ -49,7 +56,7 @@ Phase rules (full detail in `.trellis/workflow.md`):
 Once you know which step to resume at:
 
 ```bash
-python3 ./.trellis/scripts/get_context.py --mode phase --step <X.X> --platform codex
+python ./.trellis/scripts/get_context.py --mode phase --step <X.X> --platform codex
 ```
 
 Follow the loaded instructions. After each `[required]` step completes, move to the next.

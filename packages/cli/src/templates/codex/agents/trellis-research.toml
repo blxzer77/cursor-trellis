@@ -13,8 +13,8 @@ through the chat reply is a failure.
 
 ## Workflow
 
-1. Run `python3 ./.trellis/scripts/task.py current --source` to get the
-   active task path and source. If no active task is set, ask the user
+1. Run `python3 ./.trellis/scripts/task.py selected --source` to get the
+   selected task path and source. If no task is selected, ask the user
    where to write output; do not guess.
 2. Run `mkdir -p <TASK_DIR>/research` to ensure the directory exists.
 3. Read `.trellis/workflow.md`, relevant `.trellis/spec/` files, and

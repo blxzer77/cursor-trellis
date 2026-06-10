@@ -1,0 +1,42 @@
+{
+  "name": "@konbakuyomu/smart-search",
+  "version": "0.1.14",
+  "description": "CLI-first bilingual web research with OpenAI-compatible search, Exa, Context7, Tavily, Firecrawl, and staged Deep Research execution.",
+  "license": "MIT",
+  "homepage": "https://github.com/konbakuyomu/smartsearch#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/konbakuyomu/smartsearch.git"
+  },
+  "bugs": {
+    "url": "https://github.com/konbakuyomu/smartsearch/issues"
+  },
+  "bin": {
+    "smart-search": "npm/bin/smart-search.js"
+  },
+  "files": [
+    "npm/",
+    "skills/smart-search-cli/**",
+    "src/smart_search/**/*.py",
+    "src/smart_search/assets/skills/smart-search-cli/**",
+    "pyproject.toml",
+    "README.md",
+    "README.zh-CN.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "postinstall": "node npm/scripts/postinstall.js",
+    "test": "node npm/scripts/test.js",
+    "set-version": "node npm/scripts/set-package-version.js",
+    "sync:python-version": "node npm/scripts/sync-python-version.js",
+    "version": "node npm/scripts/sync-python-version.js && git add pyproject.toml package.json package-lock.json",
+    "pack:dry": "npm pack --dry-run",
+    "publish:dry": "npm publish --dry-run --access public"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -7,14 +7,14 @@ Read the relevant development guidelines before starting your task.
 
 Execute these steps:
 
-1. **Read current task artifacts**:
+1. **Read selected task artifacts**:
    - `prd.md` for requirements and acceptance criteria
    - `design.md` if present for technical design
    - `implement.md` if present for execution order and validation plan
 
 2. **Discover packages and their spec layers**:
    ```bash
-   python3 ./.trellis/scripts/get_context.py --mode packages
+   python ./.trellis/scripts/get_context.py --mode packages
    ```
 
 3. **Identify which specs apply** to your task based on:

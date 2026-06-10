@@ -62,13 +62,13 @@ If the content is a coding convention, write it to spec. Examples:
 
 After writing it, update the corresponding `index.md` so AI can find the new rule from the entry point.
 
-## Make The Current Task Use New Conventions
+## Make The Selected Task Use New Conventions
 
-After writing a spec, add it to the current task context:
+After writing a spec, add it to the selected task context:
 
 ```bash
-python3 ./.trellis/scripts/task.py add-context <task> implement ".trellis/spec/backend/error-handling.md" "Error handling conventions"
-python3 ./.trellis/scripts/task.py add-context <task> check ".trellis/spec/backend/error-handling.md" "Review error handling"
+python ./.trellis/scripts/task.py add-context <task> implement ".trellis/spec/backend/error-handling.md" "Error handling conventions"
+python ./.trellis/scripts/task.py add-context <task> check ".trellis/spec/backend/error-handling.md" "Review error handling"
 ```
 
 ## Do Not Store Project-Private Rules In `trellis-meta`
@@ -77,7 +77,7 @@ python3 ./.trellis/scripts/task.py add-context <task> check ".trellis/spec/backe
 
 - `.trellis/spec/`
 - a project-local skill
-- the current task
+- the selected task
 - workspace journal
 
 This prevents future updates to Trellis's built-in `trellis-meta` from overwriting the team's own conventions.

@@ -18,7 +18,7 @@ git status
 
 ## Step 2: Read Task Artifacts and Applicable Specs
 
-Read the current task artifacts in order:
+Read the selected task artifacts in order:
 
 - `prd.md`
 - `design.md` if present

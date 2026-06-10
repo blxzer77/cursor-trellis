@@ -1,7 +1,7 @@
 /**
  * Tests for brainstorm-window phase slicing.
  *
- * brainstorm window = [task.py create, task.py start)
+ * brainstorm window = [task.py create, task.py start-execution)
  *
  * Boundary signals are recovered from raw Claude JSONL `tool_use` blocks, so
  * `collectClaudeTurnsAndEvents` does its own pass producing both cleaned turns
@@ -77,9 +77,9 @@ describe("parseTaskPyCommand", () => {
     expect(r?.action).toBe("create");
   });
 
-  it("matches Windows backslash path (single)", () => {
+  it("matches Windows backslash start-execution path (single)", () => {
     const r = parseTaskPyCommand(
-      "python3 .trellis\\scripts\\task.py start .trellis\\tasks\\05-08-foo",
+      "python3 .trellis\\scripts\\task.py start-execution .trellis\\tasks\\05-08-foo --approved",
     );
     expect(r).toEqual({
       action: "start",
@@ -94,7 +94,17 @@ describe("parseTaskPyCommand", () => {
     expect(r?.action).toBe("create");
   });
 
-  it("matches `task.py start` with no invoker prefix", () => {
+  it("matches `task.py start-execution` with no invoker prefix", () => {
+    const r = parseTaskPyCommand(
+      "task.py start-execution --approved .trellis/tasks/05-08-foo/",
+    );
+    expect(r).toEqual({
+      action: "start",
+      taskDir: ".trellis/tasks/05-08-foo/",
+    });
+  });
+
+  it("matches legacy `task.py start` logs", () => {
     const r = parseTaskPyCommand("task.py start .trellis/tasks/05-08-foo/");
     expect(r).toEqual({
       action: "start",
@@ -131,7 +141,7 @@ describe("parseTaskPyCommand", () => {
     expect(parseTaskPyCommand("see task.py for details")).toBeNull();
   });
 
-  it("does NOT match `task.py update` (only create/start are signals)", () => {
+  it("does NOT match `task.py update` (only create/start-execution are signals)", () => {
     expect(
       parseTaskPyCommand("python3 .trellis/scripts/task.py update foo"),
     ).toBeNull();
@@ -173,7 +183,7 @@ describe("parseTaskPyCommandsAll (dogfood-driven edge cases)", () => {
 
   it("captures BOTH task.py invocations in one Bash command", () => {
     const cmd =
-      'SMOKE_TASK=$(python3 ./.trellis/scripts/task.py create "smoke" 2>&1); python3 ./.trellis/scripts/task.py start ".trellis/tasks/$SMOKE_TASK" 2>&1 | tail -3';
+      'SMOKE_TASK=$(python3 ./.trellis/scripts/task.py create "smoke" 2>&1); python3 ./.trellis/scripts/task.py start-execution ".trellis/tasks/$SMOKE_TASK" --approved 2>&1 | tail -3';
     const all = parseTaskPyCommandsAll(cmd);
     expect(all).toHaveLength(2);
     expect(all[0]).toMatchObject({ action: "create" });
@@ -190,9 +200,9 @@ describe("parseTaskPyCommandsAll (dogfood-driven edge cases)", () => {
   });
 
   it("rejects empty restRaw (no positional, just trailing whitespace)", () => {
-    expect(parseTaskPyCommandsAll("python3 ./scripts/task.py start  ")).toEqual(
-      [],
-    );
+    expect(
+      parseTaskPyCommandsAll("python3 ./scripts/task.py start-execution  "),
+    ).toEqual([]);
   });
 
   it("does not match action embedded in flag value (--something=task.py-create-foo)", () => {
@@ -237,7 +247,7 @@ describe("buildBrainstormWindows", () => {
     expect(buildBrainstormWindows([], 10)).toEqual([]);
   });
 
-  it("pairs a single create→start in order", () => {
+  it("pairs a single create→execution-start in order", () => {
     const events = [ev("create", 2, { slug: "foo" }), ev("start", 8)];
     expect(buildBrainstormWindows(events, 12)).toEqual([
       { label: "foo", startTurn: 2, endTurn: 8 },
@@ -339,7 +349,7 @@ describe("collectClaudeTurnsAndEvents", () => {
     return { platform: "claude", id: sessionId, filePath: file };
   }
 
-  it("captures task.py create + start events with correct turnIndex", () => {
+  it("captures task.py create + start-execution events with correct turnIndex", () => {
     const s = buildSession("session-a", [
       {
         type: "user",
@@ -389,13 +399,13 @@ describe("collectClaudeTurnsAndEvents", () => {
         message: {
           role: "assistant",
           content: [
-            { type: "text", text: "starting the task" },
+            { type: "text", text: "starting execution" },
             {
               type: "tool_use",
               name: "Bash",
               input: {
                 command:
-                  "python3 ./.trellis/scripts/task.py start .trellis/tasks/task-x",
+                  "python3 ./.trellis/scripts/task.py start-execution .trellis/tasks/task-x --approved",
               },
             },
           ],
@@ -567,8 +577,10 @@ describe("commandFromCodexArguments", () => {
 
   it("extracts `cmd` from a stringified JSON object", () => {
     expect(
-      commandFromCodexArguments(JSON.stringify({ cmd: "task.py start bar" })),
-    ).toBe("task.py start bar");
+      commandFromCodexArguments(
+        JSON.stringify({ cmd: "task.py start-execution bar" }),
+      ),
+    ).toBe("task.py start-execution bar");
   });
 
   it("extracts `command` from a stringified JSON object", () => {
@@ -669,8 +681,9 @@ describe("collectCodexTurnsAndEvents", () => {
             argv: [
               "python3",
               ".trellis/scripts/task.py",
-              "start",
+              "start-execution",
               ".trellis/tasks/05-08-codex-task",
+              "--approved",
             ],
           }),
         },

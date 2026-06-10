@@ -93,7 +93,7 @@ warnings.filterwarnings("ignore")
 
 FIRST_REPLY_NOTICE = """<first-reply-notice>
 On the first visible assistant reply in this session, begin with exactly one short Chinese sentence:
-Trellis SessionStart 已注入：workflow、当前任务状态、开发者身份、git 状态、active tasks、spec 索引已加载。
+Trellis SessionStart 已注入：workflow、selected task 状态、开发者身份、git 状态、Task Dashboard、spec 索引已加载。
 Then continue directly with the user's request. This notice is one-shot: do not repeat it after the first assistant reply in the same session.
 </first-reply-notice>"""
 
@@ -160,13 +160,13 @@ def _resolve_context_key(project_dir: Path, hook_input: dict) -> str | None:
     return resolve_context_key(hook_input, platform="codex")
 
 
-def _resolve_active_task(trellis_dir: Path, hook_input: dict):
+def _resolve_selected_task(trellis_dir: Path, hook_input: dict):
     scripts_dir = trellis_dir / "scripts"
     if str(scripts_dir) not in sys.path:
         sys.path.insert(0, str(scripts_dir))
-    from common.active_task import resolve_active_task  # type: ignore[import-not-found]
+    from common.active_task import resolve_selected_task  # type: ignore[import-not-found]
 
-    return resolve_active_task(trellis_dir.parent, hook_input, platform="codex")
+    return resolve_selected_task(trellis_dir.parent, hook_input, platform="codex")
 
 
 def run_script(script_path: Path, context_key: str | None = None) -> str:
@@ -221,20 +221,22 @@ def _resolve_task_dir(trellis_dir: Path, task_ref: str) -> Path:
 
 
 def _get_task_status(trellis_dir: Path, hook_input: dict) -> str:
-    active = _resolve_active_task(trellis_dir, hook_input)
+    active = _resolve_selected_task(trellis_dir, hook_input)
     if not active.task_path:
         return (
-            "Status: NO ACTIVE TASK\n"
-            "Next: Classify the current turn and ask for task-creation consent "
-            "before creating any Trellis task."
+            "Trellis framework: active\n"
+            "Selected task: none\n"
+            "Next: Use the Task Dashboard to choose select/create/inspect/continue-without-task. "
+            "Do not auto-select an existing task."
         )
 
     task_ref = active.task_path
     task_dir = _resolve_task_dir(trellis_dir, task_ref)
     if active.stale or not task_dir.is_dir():
         return (
-            f"Status: STALE POINTER\nTask: {task_ref}\n"
-            "Next: Task directory not found. Run: python3 ./.trellis/scripts/task.py finish"
+            f"Trellis framework: active\nSelected task: {task_ref}\n"
+            "Status: STALE SELECTION\n"
+            "Next: Task directory not found. Run: python3 ./.trellis/scripts/task.py exit"
         )
 
     task_json_path = task_dir / "task.json"
@@ -273,11 +275,11 @@ def _get_task_status(trellis_dir: Path, hook_input: dict) -> str:
 
     if task_status == "planning":
         if has_design and has_implement:
-            next_action = "Review planning artifacts with the user before `task.py start`."
+            next_action = "Run `task.py start-execution <task> --check`, report PASS, then ask for explicit execution approval."
         else:
             next_action = (
                 "Lightweight task can ask for start review with PRD-only; "
-                "complex task must add design.md and implement.md before `task.py start`."
+                "complex task must add design.md and implement.md before `task.py start-execution --check`."
             )
         return (
             f"Status: PLANNING\nTask: {task_title}\nPresent: {present_line}\n"
@@ -375,7 +377,7 @@ def _build_compact_current_state(
     lines.append(f"Developer: {developer or '(not initialized)'}")
     lines.append(_format_git_state(repo_root))
 
-    active = _resolve_active_task(trellis_dir, hook_input)
+    active = _resolve_selected_task(trellis_dir, hook_input)
     if active.task_path:
         task_dir = _resolve_task_dir(trellis_dir, active.task_path)
         status = "unknown"
@@ -387,15 +389,17 @@ def _build_compact_current_state(
                     status = str(data.get("status") or "unknown")
             except (json.JSONDecodeError, OSError):
                 pass
-        lines.append(f"Current task: {_repo_relative(repo_root, task_dir)}; status={status}.")
+        lines.append(f"Trellis framework: active")
+        lines.append(f"Selected task: {_repo_relative(repo_root, task_dir)}; status={status}.")
     else:
-        lines.append("Current task: none.")
+        lines.append("Trellis framework: active")
+        lines.append("Selected task: none.")
 
     if get_tasks_dir and iter_active_tasks:
         try:
             task_count = sum(1 for _ in iter_active_tasks(get_tasks_dir(repo_root)))
             lines.append(
-                f"Active tasks: {task_count} total. Use `python3 ./.trellis/scripts/task.py list --mine` only if needed."
+                f"Active tasks: {task_count} total. Use the Task Dashboard for routing; use `python3 ./.trellis/scripts/task.py list --mine` only for raw inspection."
             )
         except Exception:
             pass
@@ -411,6 +415,18 @@ def _build_compact_current_state(
         lines.append(f"Spec indexes: {len(spec_index_paths)} available.")
 
     return "\n".join(lines)
+
+
+def _build_task_dashboard(trellis_dir: Path, hook_input: dict) -> str:
+    scripts_dir = trellis_dir / "scripts"
+    if str(scripts_dir) not in sys.path:
+        sys.path.insert(0, str(scripts_dir))
+    try:
+        from common.task_dashboard import render_task_dashboard  # type: ignore[import-not-found]
+
+        return render_task_dashboard(trellis_dir.parent, hook_input, "codex")
+    except Exception:
+        return "Task Dashboard unavailable. Run: python3 ./.trellis/scripts/task.py dashboard"
 
 
 def _extract_range(content: str, start_header: str, end_header: str) -> str:
@@ -497,6 +513,10 @@ Trellis compact SessionStart context. Use it to orient the session; load details
     output.write("<current-state>\n")
     output.write(_build_compact_current_state(trellis_dir, hook_input, spec_index_paths))
     output.write("\n</current-state>\n\n")
+
+    output.write("<task-dashboard>\n")
+    output.write(_build_task_dashboard(trellis_dir, hook_input))
+    output.write("\n</task-dashboard>\n\n")
 
     output.write("<trellis-workflow>\n")
     output.write(_build_workflow_toc(trellis_dir / "workflow.md"))

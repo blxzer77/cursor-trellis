@@ -64,6 +64,16 @@ export type CliFlag =
   | "pi";
 
 /**
+ * Platform support tier.
+ *
+ * First-class platforms are the actively targeted framework surfaces for this
+ * fork. Legacy platforms remain available through explicit init flags and
+ * update tracking, but new workflow/runtime semantics should not treat them as
+ * equal launch targets without a dedicated compatibility pass.
+ */
+export type PlatformTier = "first-class" | "legacy";
+
+/**
  * Template context for placeholder resolution.
  * Controls how common templates are rendered per platform.
  */
@@ -98,6 +108,8 @@ export interface TemplateContext {
 export interface AIToolConfig {
   /** Display name of the tool */
   name: string;
+  /** Active support tier for this platform */
+  tier: PlatformTier;
   /** Command template directory names to include */
   templateDirs: TemplateDir[];
   /** Config directory name in the project root (e.g., ".claude") */
@@ -134,6 +146,7 @@ export interface AIToolConfig {
 export const AI_TOOLS: Record<AITool, AIToolConfig> = {
   "claude-code": {
     name: "Claude Code",
+    tier: "first-class",
     templateDirs: ["common", "claude"],
     configDir: ".claude",
     cliFlag: "claude",
@@ -150,6 +163,7 @@ export const AI_TOOLS: Record<AITool, AIToolConfig> = {
   },
   cursor: {
     name: "Cursor",
+    tier: "first-class",
     templateDirs: ["common", "cursor"],
     configDir: ".cursor",
     cliFlag: "cursor",
@@ -166,6 +180,7 @@ export const AI_TOOLS: Record<AITool, AIToolConfig> = {
   },
   opencode: {
     name: "OpenCode",
+    tier: "legacy",
     templateDirs: ["common", "opencode"],
     configDir: ".opencode",
     cliFlag: "opencode",
@@ -182,6 +197,7 @@ export const AI_TOOLS: Record<AITool, AIToolConfig> = {
   },
   codex: {
     name: "Codex (also writes .agents/skills/ — read by Cursor, Gemini CLI, GitHub Copilot, Amp, Kimi Code)",
+    tier: "first-class",
     templateDirs: ["common", "codex"],
     configDir: ".codex",
     supportsAgentSkills: true,
@@ -199,6 +215,7 @@ export const AI_TOOLS: Record<AITool, AIToolConfig> = {
   },
   kilo: {
     name: "Kilo CLI",
+    tier: "legacy",
     templateDirs: ["common", "kilo"],
     configDir: ".kilocode",
     cliFlag: "kilo",
@@ -215,6 +232,7 @@ export const AI_TOOLS: Record<AITool, AIToolConfig> = {
   },
   kiro: {
     name: "Kiro Code",
+    tier: "legacy",
     templateDirs: ["common", "kiro"],
     configDir: ".kiro/skills",
     extraManagedPaths: [".kiro/agents", ".kiro/hooks"],
@@ -232,6 +250,7 @@ export const AI_TOOLS: Record<AITool, AIToolConfig> = {
   },
   gemini: {
     name: "Gemini CLI",
+    tier: "legacy",
     templateDirs: ["common", "gemini"],
     configDir: ".gemini",
     supportsAgentSkills: true,
@@ -249,6 +268,7 @@ export const AI_TOOLS: Record<AITool, AIToolConfig> = {
   },
   antigravity: {
     name: "Antigravity",
+    tier: "legacy",
     templateDirs: ["common", "antigravity"],
     configDir: ".agent/workflows",
     extraManagedPaths: [".agent/skills"],
@@ -266,6 +286,7 @@ export const AI_TOOLS: Record<AITool, AIToolConfig> = {
   },
   windsurf: {
     name: "Windsurf",
+    tier: "legacy",
     templateDirs: ["common", "windsurf"],
     configDir: ".windsurf/workflows",
     extraManagedPaths: [".windsurf/skills"],
@@ -283,6 +304,7 @@ export const AI_TOOLS: Record<AITool, AIToolConfig> = {
   },
   qoder: {
     name: "Qoder",
+    tier: "legacy",
     templateDirs: ["common", "qoder"],
     configDir: ".qoder",
     cliFlag: "qoder",
@@ -299,6 +321,7 @@ export const AI_TOOLS: Record<AITool, AIToolConfig> = {
   },
   codebuddy: {
     name: "CodeBuddy",
+    tier: "legacy",
     templateDirs: ["common", "codebuddy"],
     configDir: ".codebuddy",
     cliFlag: "codebuddy",
@@ -315,6 +338,7 @@ export const AI_TOOLS: Record<AITool, AIToolConfig> = {
   },
   copilot: {
     name: "GitHub Copilot",
+    tier: "legacy",
     templateDirs: ["common", "copilot"],
     configDir: ".github/copilot",
     extraManagedPaths: [
@@ -337,6 +361,7 @@ export const AI_TOOLS: Record<AITool, AIToolConfig> = {
   },
   droid: {
     name: "Factory Droid",
+    tier: "legacy",
     templateDirs: ["common", "droid"],
     configDir: ".factory",
     cliFlag: "droid",
@@ -353,6 +378,7 @@ export const AI_TOOLS: Record<AITool, AIToolConfig> = {
   },
   pi: {
     name: "Pi Agent",
+    tier: "legacy",
     templateDirs: ["common", "pi"],
     configDir: ".pi",
     cliFlag: "pi",

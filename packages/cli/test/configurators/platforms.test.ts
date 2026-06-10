@@ -36,7 +36,12 @@ import {
   replacePythonCommandLiterals,
 } from "../../src/configurators/shared.js";
 
-const BUNDLED_SKILL_NAMES = ["trellis-meta", "trellis-spec-bootstarp"];
+const BUNDLED_SKILL_NAMES = [
+  "trellis-meta",
+  "trellis-spec-bootstarp",
+  "smart-search-cli",
+  "trellis-micro-grill",
+];
 const BUNDLED_SKILL_NAME = BUNDLED_SKILL_NAMES[0];
 const BUNDLED_REFERENCE = path.join(
   BUNDLED_SKILL_NAME,
@@ -49,6 +54,12 @@ const SPEC_BOOTSTARP_REFERENCE = path.join(
   "references",
   "spec-writing.md",
 );
+const SMART_SEARCH_REFERENCE = path.join(
+  "smart-search-cli",
+  "references",
+  "cli-contract.md",
+);
+const MICRO_GRILL_SKILL = path.join("trellis-micro-grill", "SKILL.md");
 
 function readConfiguredFile(root: string, relativePath: string): string {
   return fs.readFileSync(path.join(root, ...relativePath.split("/")), "utf-8");
@@ -286,6 +297,10 @@ describe("configurePlatform", () => {
     }
     expect(fs.existsSync(path.join(skillsRoot, BUNDLED_REFERENCE))).toBe(true);
     expect(
+      fs.existsSync(path.join(skillsRoot, SMART_SEARCH_REFERENCE)),
+    ).toBe(true);
+    expect(fs.existsSync(path.join(skillsRoot, MICRO_GRILL_SKILL))).toBe(true);
+    expect(
       fs.existsSync(path.join(skillsRoot, "trellis-start", "SKILL.md")),
     ).toBe(true);
   });
@@ -316,7 +331,7 @@ describe("configurePlatform", () => {
       );
       if (needsPrelude) {
         expect(written).toContain("Required: Load Trellis Context First");
-        expect(written).toContain("task.py current --source");
+        expect(written).toContain("task.py selected --source");
         // Original body must still be present (prepend, not replace)
         const originalBody = agent.content
           .split("developer_instructions")[1]
@@ -416,7 +431,10 @@ describe("configurePlatform", () => {
         ).length,
     );
     for (const dir of skillDirs) {
-      expect(dir.name.startsWith("trellis-")).toBe(true);
+      expect(
+        dir.name.startsWith("trellis-") ||
+          BUNDLED_SKILL_NAMES.includes(dir.name),
+      ).toBe(true);
       expect(fs.existsSync(path.join(skillsDir, dir.name, "SKILL.md"))).toBe(
         true,
       );
@@ -546,6 +564,10 @@ describe("configurePlatform", () => {
       expect(fs.readFileSync(filePath, "utf-8")).toBe(skill.content);
     }
     expect(fs.existsSync(path.join(skillsDir, BUNDLED_REFERENCE))).toBe(true);
+    expect(
+      fs.existsSync(path.join(skillsDir, SMART_SEARCH_REFERENCE)),
+    ).toBe(true);
+    expect(fs.existsSync(path.join(skillsDir, MICRO_GRILL_SKILL))).toBe(true);
 
     expect(actualSkillDirs).not.toContain("trellis-finish-work");
     expect(actualSkillDirs).not.toContain("trellis-continue");

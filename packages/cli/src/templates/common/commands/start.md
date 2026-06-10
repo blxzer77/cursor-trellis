@@ -1,11 +1,11 @@
-# Start Session
+# Framework Start
 
-Initialize a Trellis-managed development session. This platform has no session-start hook, so manually load the equivalent compact context by following these steps.
+Enter or refresh the Trellis Framework Context. This is a dashboard entry surface; it must not select, resume, or start a task by itself.
 
 ---
 
-## Step 1: Current state
-Identity, git status, current task, active tasks, journal location.
+## Step 1: Framework state
+Identity, git status, selected task, Task Dashboard, journal location.
 
 ```bash
 {{PYTHON_CMD}} ./.trellis/scripts/get_context.py
@@ -34,15 +34,17 @@ cat .trellis/spec/<package>/<layer>/index.md   # for each relevant layer
 Index files list the specific guideline docs to read when you actually start coding.
 
 ## Step 4: Decide next action
-From Step 1 you know the current task and status. Check the task directory:
+From Step 1 you know whether a task is selected. If `Selected task: none`, show the Task Dashboard and ask the user to choose: select a task, create a task, inspect details, or continue without a task.
 
-- **Active task status `planning` + no `prd.md`** → Phase 1.1. Load the `trellis-brainstorm` skill.
-- **Active task status `planning` + `prd.md` exists** → stay in Phase 1. Lightweight tasks can be PRD-only; complex tasks need `design.md` + `implement.md`. Load the relevant Phase 1 step detail before `task.py start`.
-- **Active task status `in_progress`** → Phase 2 step 2.1. Load the step detail:
+If a task is selected, check the task directory:
+
+- **Selected task status `planning` + no `prd.md`** → Phase 1.1. Load the `trellis-brainstorm` skill.
+- **Selected task status `planning` + `prd.md` exists** → stay in Planning / Execution Gate. Lightweight tasks can be PRD-only; complex tasks need `design.md` + `implement.md`. Run `task.py start-execution <task> --check` and request explicit execution approval before execution.
+- **Selected task status `in_progress`** → Phase 2 step 2.1. Load the step detail:
   ```bash
   {{PYTHON_CMD}} ./.trellis/scripts/get_context.py --mode phase --step 2.1 --platform {{CLI_FLAG}}
   ```
-- **No active task** → classify first. For simple conversation / small task, ask only whether this turn should create a Trellis task. For complex work, ask whether you may create a Trellis task and enter planning. If the user says no, skip Trellis for this session.
+- **No selected task** → use dashboard routing. Do not auto-select an existing task.
 
 ---
 

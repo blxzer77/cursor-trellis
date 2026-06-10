@@ -58,10 +58,14 @@ if (fs.existsSync(path.join(cwd, DIR_NAMES.WORKFLOW))) {
 
 const program = new Command();
 
+function collectOption(value: string, previous: string[]): string[] {
+  return [...previous, value];
+}
+
 program
   .name("trellis")
   .description(
-    "AI-assisted development workflow framework for Cursor, Claude Code and more",
+    "AI-assisted development workflow framework for Codex, Claude Code, and Cursor",
   )
   .version(VERSION, "-v, --version", "output the version number");
 
@@ -89,6 +93,16 @@ program
   )
   .option("-f, --force", "Overwrite existing files without asking")
   .option("-s, --skip-existing", "Skip existing files without asking")
+  .option(
+    "--skip-readiness",
+    "Skip Smart Search and selected capability readiness checks and report framework readiness as unverified",
+  )
+  .option(
+    "--capability <id>",
+    "Enable an optional project capability (repeatable; use 'all' for every selectable capability)",
+    collectOption,
+    [],
+  )
   .option("--monorepo", "Force monorepo mode")
   .option("--no-monorepo", "Skip monorepo detection")
   .option(
@@ -136,6 +150,10 @@ program
   .option("-n, --create-new", "Create .new copies for all changed files")
   .option("--allow-downgrade", "Allow downgrading to an older version")
   .option("--migrate", "Apply pending file migrations (renames/deletions)")
+  .option(
+    "--skip-readiness",
+    "Skip Smart Search and selected capability readiness checks and report framework readiness as unverified",
+  )
   .action(async (options: Record<string, unknown>) => {
     try {
       await update({
@@ -145,6 +163,7 @@ program
         createNew: options.createNew as boolean,
         allowDowngrade: options.allowDowngrade as boolean,
         migrate: options.migrate as boolean,
+        skipReadiness: options.skipReadiness as boolean,
       });
     } catch (error) {
       console.error(

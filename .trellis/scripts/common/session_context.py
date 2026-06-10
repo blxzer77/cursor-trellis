@@ -24,6 +24,7 @@ from .config import get_git_packages
 from .git import run_git
 from .packages_context import get_packages_section
 from .tasks import iter_active_tasks, load_task, get_all_statuses, children_progress
+from .task_dashboard import render_task_dashboard
 from .paths import (
     DIR_SCRIPTS,
     DIR_SPEC,
@@ -32,8 +33,8 @@ from .paths import (
     DIR_WORKSPACE,
     count_lines,
     get_active_journal_file,
-    get_current_task,
-    get_current_task_source,
+    get_selected_task,
+    get_selected_task_source,
     get_developer,
     get_repo_root,
     get_tasks_dir,
@@ -528,7 +529,7 @@ def get_context_text(repo_root: Path | None = None) -> str:
     lines.append("## DEVELOPER")
     if not developer:
         lines.append(
-            f"ERROR: Not initialized. Run: python3 ./{DIR_WORKFLOW}/{DIR_SCRIPTS}/init_developer.py <name>"
+            f"ERROR: Not initialized. Run: python ./{DIR_WORKFLOW}/{DIR_SCRIPTS}/init_developer.py <name>"
         )
         return "\n".join(lines)
 
@@ -547,18 +548,18 @@ def get_context_text(repo_root: Path | None = None) -> str:
         ),
     )
 
-    # Current task
-    lines.append("## CURRENT TASK")
-    current_task = get_current_task(repo_root)
-    if current_task:
-        current_task_dir = repo_root / current_task
-        source_type, context_key, _ = get_current_task_source(repo_root)
-        lines.append(f"Path: {current_task}")
+    # Selected task
+    lines.append("## SELECTED TASK")
+    selected_task = get_selected_task(repo_root)
+    if selected_task:
+        selected_task_dir = repo_root / selected_task
+        source_type, context_key, _ = get_selected_task_source(repo_root)
+        lines.append(f"Path: {selected_task}")
         lines.append(
             f"Source: {source_type}" + (f":{context_key}" if context_key else "")
         )
 
-        ct = load_task(current_task_dir)
+        ct = load_task(selected_task_dir)
         if ct:
             lines.append(f"Name: {ct.name}")
             lines.append(f"Status: {ct.status}")
@@ -567,12 +568,16 @@ def get_context_text(repo_root: Path | None = None) -> str:
                 lines.append(f"Description: {ct.description}")
 
         # Check for prd.md
-        prd_file = current_task_dir / "prd.md"
+        prd_file = selected_task_dir / "prd.md"
         if prd_file.is_file():
             lines.append("")
             lines.append("[!] This task has prd.md - read it for task details")
     else:
         lines.append("(none)")
+    lines.append("")
+
+    lines.append("## TASK DASHBOARD")
+    lines.extend(render_task_dashboard(repo_root).splitlines())
     lines.append("")
 
     # Active tasks
@@ -657,7 +662,7 @@ def get_context_text(repo_root: Path | None = None) -> str:
 def get_context_record_json(repo_root: Path | None = None) -> dict:
     """Get record-mode context as a dictionary.
 
-    Focused on: my active tasks, git status, current task.
+    Focused on: my active tasks, git status, selected task.
     """
     if repo_root is None:
         repo_root = get_repo_root()
@@ -689,15 +694,15 @@ def get_context_record_json(repo_root: Path | None = None) -> dict:
                 "meta": t.meta,
             })
 
-    # Current task
-    current_task_info = None
-    current_task = get_current_task(repo_root)
-    if current_task:
-        source_type, context_key, _ = get_current_task_source(repo_root)
-        ct = load_task(repo_root / current_task)
+    # Selected task
+    selected_task_info = None
+    selected_task = get_selected_task(repo_root)
+    if selected_task:
+        source_type, context_key, _ = get_selected_task_source(repo_root)
+        ct = load_task(repo_root / selected_task)
         if ct:
-            current_task_info = {
-                "path": current_task,
+            selected_task_info = {
+                "path": selected_task,
                 "name": ct.name,
                 "status": ct.status,
                 "source": source_type,
@@ -720,7 +725,7 @@ def get_context_record_json(repo_root: Path | None = None) -> dict:
             "recentCommits": root_git_info["recentCommits"],
         },
         "myTasks": my_tasks,
-        "currentTask": current_task_info,
+        "selectedTask": selected_task_info,
     }
 
     if pkg_git_info:
@@ -733,7 +738,7 @@ def get_context_text_record(repo_root: Path | None = None) -> str:
     """Get context as formatted text for record-session mode.
 
     Focused output: MY ACTIVE TASKS first (with [!!!] emphasis),
-    then GIT STATUS, RECENT COMMITS, CURRENT TASK.
+    then GIT STATUS, RECENT COMMITS, SELECTED TASK.
     """
     if repo_root is None:
         repo_root = get_repo_root()
@@ -747,7 +752,7 @@ def get_context_text_record(repo_root: Path | None = None) -> str:
     developer = get_developer(repo_root)
     if not developer:
         lines.append(
-            f"ERROR: Not initialized. Run: python3 ./{DIR_WORKFLOW}/{DIR_SCRIPTS}/init_developer.py <name>"
+            f"ERROR: Not initialized. Run: python ./{DIR_WORKFLOW}/{DIR_SCRIPTS}/init_developer.py <name>"
         )
         return "\n".join(lines)
 
@@ -784,16 +789,16 @@ def get_context_text_record(repo_root: Path | None = None) -> str:
         ),
     )
 
-    # CURRENT TASK
-    lines.append("## CURRENT TASK")
-    current_task = get_current_task(repo_root)
-    if current_task:
-        source_type, context_key, _ = get_current_task_source(repo_root)
-        lines.append(f"Path: {current_task}")
+    # SELECTED TASK
+    lines.append("## SELECTED TASK")
+    selected_task = get_selected_task(repo_root)
+    if selected_task:
+        source_type, context_key, _ = get_selected_task_source(repo_root)
+        lines.append(f"Path: {selected_task}")
         lines.append(
             f"Source: {source_type}" + (f":{context_key}" if context_key else "")
         )
-        ct = load_task(repo_root / current_task)
+        ct = load_task(repo_root / selected_task)
         if ct:
             lines.append(f"Name: {ct.name}")
             lines.append(f"Status: {ct.status}")

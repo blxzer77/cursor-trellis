@@ -21,7 +21,7 @@ You are already the `trellis-check` sub-agent that the main session dispatched. 
 Look for the `<!-- trellis-hook-injected -->` marker in your input above.
 
 - **If the marker is present**: task artifacts, spec, and research files have already been auto-loaded for you above. Proceed with the check work directly.
-- **If the marker is absent**: hook injection didn't fire (Windows + Claude Code, `--continue` resume, fork distribution, hooks disabled, etc.). Find the active task path from your dispatch prompt's first line `Active task: <path>`, then Read `<task-path>/check.jsonl`, each listed file, `<task-path>/prd.md`, `<task-path>/design.md` if present, and `<task-path>/implement.md` if present before doing the work.
+- **If the marker is absent**: hook injection didn't fire (Windows + Claude Code, `--continue` resume, fork distribution, hooks disabled, etc.). Find the selected task path from your dispatch prompt's first line `Selected task: <path>`, then Read `<task-path>/check.jsonl`, each listed file, `<task-path>/prd.md`, `<task-path>/design.md` if present, and `<task-path>/implement.md` if present before doing the work.
 
 ## Context
 
@@ -39,6 +39,15 @@ Before checking, read:
 3. **Check against specs** - Verify code follows guidelines
 4. **Self-fix** - Fix issues yourself, not just report them
 5. **Run verification** - typecheck and lint
+
+## Quality Gate Adapter
+
+- Reviewer id: `claude-code`.
+- When `implement.md` quality_gates requires a reviewer gate for the current transition, write human-readable evidence in `verify.md` before recording the machine-checkable gate result. Parent/Child integration evidence may also belong in Parent `task-map.md`.
+- Record non-baseline gates with `python ./.trellis/scripts/task.py record-gate <task> --transition <transition> --gate <gate> --result PASS --reviewer claude-code --evidence verify.md`.
+- For FAIL, add `--root-cause implementation-defect|contract-changing-defect|validation-environment-blocker` and `--issue-fingerprint <short-stable-id>`. Route implementation defects back to Execution, contract-changing defects to Planning, and validation blockers to Verification / Review.
+- For SKIPPED, use only explicit user approval: `--skip-approved-by user --skip-reason <reason>`.
+- Never record `baseline-check`; the CLI owns it. Do not pass review bodies, logs, screenshots, or long issue lists through `record-gate` arguments.
 
 ## Important
 

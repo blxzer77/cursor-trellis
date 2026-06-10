@@ -19,6 +19,20 @@ describe("cursor getAllAgents", () => {
     const names = agents.map((a) => a.name).sort();
     expect(names).toEqual(EXPECTED_AGENT_NAMES);
   });
+
+  it("trellis-check declares Cursor reviewer id and record-gate boundary", () => {
+    const checkAgent = getAllAgents().find(
+      (agent) => agent.name === "trellis-check",
+    );
+    expect(checkAgent?.content).toContain("Reviewer id: `cursor`");
+    expect(checkAgent?.content).toContain("task.py record-gate");
+    expect(checkAgent?.content).toContain("--reviewer cursor");
+    expect(checkAgent?.content).toContain(
+      "--root-cause implementation-defect|contract-changing-defect|validation-environment-blocker",
+    );
+    expect(checkAgent?.content).toContain("Never record `baseline-check`");
+    expect(checkAgent?.content).toContain("verify.md");
+  });
 });
 
 // Cursor's agent UI parser only accepts a single-line literal `description:`
@@ -34,7 +48,7 @@ describe("cursor agents frontmatter single-line description", () => {
         "packages/cli/src/templates/cursor/agents",
         `${name}.md`,
       );
-      const content = fs.readFileSync(filePath, "utf-8");
+      const content = fs.readFileSync(filePath, "utf-8").replace(/\r\n/g, "\n");
       const fm = content.split("---\n")[1] ?? "";
 
       // Block-scalar markers must be absent on the description line.

@@ -11,6 +11,9 @@ Provides:
     cmd_set_scope      - Set scope for PR title
     cmd_add_subtask    - Link child task to parent
     cmd_remove_subtask - Unlink child task from parent
+    cmd_prepare_child_worktree - Create/register Child git worktree
+    cmd_set_child_state - Set Child-reported task-map state
+    cmd_integrate_child - Set Parent-controlled Child integration state
 """
 
 from __future__ import annotations
@@ -46,6 +49,18 @@ from .safe_commit import (
     print_gitignore_warning,
     safe_archive_paths_to_add,
     safe_git_add,
+)
+from .task_gates import BASELINE_GATE, validate_archive, write_gate_record
+from .task_map import (
+    CHILD_STATES,
+    CHILD_REPORT_STATES,
+    PARENT_CONTROLLED_STATES,
+    ensure_task_map,
+    record_child_worktree,
+    remove_child_from_task_map,
+    set_child_state,
+    set_parent_child_integration_state,
+    validate_parent_child_integration,
 )
 from .task_utils import (
     archive_task_complete,
@@ -105,6 +120,100 @@ def _repo_relative_path(path: Path, repo_root: Path) -> str:
         return path.relative_to(repo_root).as_posix()
     except ValueError:
         return str(path)
+
+
+def _short_cli_ref(value: str | None) -> bool:
+    """Return True for a compact single-argument ref/path value."""
+    if not value or not isinstance(value, str):
+        return False
+    if value.startswith("-"):
+        return False
+    if len(value) > 240:
+        return False
+    return "\n" not in value and "\r" not in value
+
+
+def _validate_git_repo(repo_root: Path) -> list[str]:
+    rc, out, err = run_git(["rev-parse", "--is-inside-work-tree"], cwd=repo_root)
+    if rc != 0 or out.strip() != "true":
+        detail = err.strip() or out.strip() or "not a Git worktree"
+        return [f"Git repository required: {detail}"]
+    return []
+
+
+def _validate_branch_name(repo_root: Path, branch: str) -> list[str]:
+    if not _short_cli_ref(branch):
+        return ["branch must be a short git branch name"]
+    rc, _, err = run_git(["check-ref-format", "--branch", branch], cwd=repo_root)
+    if rc != 0:
+        return [f"invalid branch name: {branch} ({err.strip() or 'git check-ref-format failed'})"]
+    return []
+
+
+def _git_commit_exists(repo_root: Path, ref: str | None) -> bool:
+    if not _short_cli_ref(ref):
+        return False
+    rc, _, _ = run_git(["rev-parse", "--verify", f"{ref}^{{commit}}"], cwd=repo_root)
+    return rc == 0
+
+
+def _git_branch_exists(repo_root: Path, branch: str) -> bool:
+    rc, _, _ = run_git(
+        ["rev-parse", "--verify", "--quiet", f"refs/heads/{branch}"],
+        cwd=repo_root,
+    )
+    return rc == 0
+
+
+def _default_child_worktree_path(repo_root: Path, child_dir: Path) -> Path:
+    return repo_root / DIR_WORKFLOW / "worktrees" / child_dir.name
+
+
+def _resolve_child_worktree_path(repo_root: Path, child_dir: Path, raw_path: str | None) -> tuple[Path | None, str | None]:
+    path = Path(raw_path) if raw_path else _default_child_worktree_path(repo_root, child_dir)
+    if not path.is_absolute():
+        path = repo_root / path
+    resolved = path.resolve()
+    worktree_root = (repo_root / DIR_WORKFLOW / "worktrees").resolve()
+    try:
+        resolved.relative_to(worktree_root)
+    except ValueError:
+        return None, f"worktree path must stay under {_repo_relative_path(worktree_root, repo_root)}"
+    return resolved, None
+
+
+def _non_trellis_dirty_paths(repo_root: Path) -> list[str]:
+    rc, out, err = run_git(["status", "--porcelain"], cwd=repo_root)
+    if rc != 0:
+        return [err.strip() or "git status failed"]
+
+    dirty: list[str] = []
+    for raw_line in out.splitlines():
+        path = raw_line[3:].strip()
+        if " -> " in path:
+            path = path.split(" -> ", 1)[1].strip()
+        path = path.replace("\\", "/").strip('"')
+        if path and path != ".trellis" and not path.startswith(".trellis/"):
+            dirty.append(path)
+    return dirty
+
+
+def _validate_merge_execution(repo_root: Path, state: str, ref: str | None) -> list[str]:
+    errors = _validate_git_repo(repo_root)
+    if state != "integrated":
+        errors.append("--execute-merge is only valid with state `integrated`")
+    if not _short_cli_ref(ref):
+        errors.append("--execute-merge requires --ref")
+    elif not _git_commit_exists(repo_root, ref):
+        errors.append(f"merge ref does not resolve to a commit: {ref}")
+
+    dirty = _non_trellis_dirty_paths(repo_root)
+    if dirty:
+        errors.append(
+            "non-Trellis working tree changes block merge execution: "
+            + ", ".join(dirty[:8])
+        )
+    return errors
 
 
 # =============================================================================
@@ -184,7 +293,7 @@ def _default_prd_content(title: str, description: str | None = None) -> str:
 
 - Keep `prd.md` focused on requirements, constraints, and acceptance criteria.
 - Lightweight tasks can remain PRD-only.
-- For complex tasks, add `design.md` for technical design and `implement.md` for execution planning before `task.py start`.
+- For complex tasks, add `design.md` for technical design and `implement.md` for execution planning before `task.py start-execution --check`.
 """
 
 
@@ -328,31 +437,22 @@ def cmd_create(args: argparse.Namespace) -> int:
                 # Set parent in child's task.json
                 task_data["parent"] = parent_dir.name
                 write_json(task_json_path, task_data)
+                ensure_task_map(
+                    parent_dir,
+                    parent_data,
+                    list(parent_data.get("children", [])),
+                    f"Linked Child `{dir_name}`.",
+                )
 
                 print(colored(f"Linked as child of: {parent_dir.name}", Colors.GREEN), file=sys.stderr)
-
-    # Auto-activate the new task so the per-turn breadcrumb fires planning
-    # state. Best-effort: gracefully degrade if no session identity (CLI run
-    # outside an AI session) — the task is still created, the user can run
-    # task.py start later. Pointer is session-scoped so this never affects
-    # other AI sessions.
-    try:
-        from .active_task import resolve_context_key, set_active_task
-        if resolve_context_key():
-            try:
-                rel_dir = task_dir.relative_to(repo_root).as_posix()
-            except ValueError:
-                rel_dir = str(task_dir)
-            set_active_task(rel_dir, repo_root)
-    except Exception:
-        pass
 
     print(colored(f"Created task: {dir_name}", Colors.GREEN), file=sys.stderr)
     print("", file=sys.stderr)
     print(colored("Next steps:", Colors.BLUE), file=sys.stderr)
     print("  - Fill prd.md with requirements and acceptance criteria", file=sys.stderr)
+    print(f"  - Select it when ready: python3 ./.trellis/scripts/task.py select {DIR_WORKFLOW}/{DIR_TASKS}/{dir_name}", file=sys.stderr)
     print("  - Lightweight task: PRD-only is valid", file=sys.stderr)
-    print("  - Complex task: add design.md and implement.md before task.py start", file=sys.stderr)
+    print("  - Complex task: add design.md and implement.md before task.py start-execution --check", file=sys.stderr)
     if seeded_jsonl:
         print(
             "  - Curate implement.jsonl / check.jsonl as spec/research manifests when sub-agents need context",
@@ -397,37 +497,59 @@ def cmd_archive(args: argparse.Namespace) -> int:
 
     dir_name = task_dir.name
     task_json_path = task_dir / FILE_TASK_JSON
+    task_data = read_json(task_json_path) if task_json_path.is_file() else None
+
+    guard = validate_archive(task_dir, task_data)
+    if getattr(args, "check", False):
+        if not guard.ok:
+            print(colored("Archive check: FAIL", Colors.RED))
+            for item in guard.errors:
+                print(f"  - {item}")
+            return 1
+        print(colored("Archive check: PASS", Colors.GREEN))
+        print(f"Contract fingerprint: {guard.contract_fingerprint}")
+        if guard.required_gates:
+            print(f"Required completion gates: {', '.join(guard.required_gates)}")
+        return 0
+
+    if not guard.ok:
+        print(colored("Error: cannot archive task; completion check failed.", Colors.RED), file=sys.stderr)
+        for item in guard.errors:
+            print(f"  - {item}", file=sys.stderr)
+        print("Run `task.py archive <task> --check` for a non-mutating preflight.", file=sys.stderr)
+        return 1
 
     # Update status before archiving
     today = datetime.now().strftime("%Y-%m-%d")
     # Names of child task dirs whose task.json gets modified below; passed
     # into safe_archive_paths_to_add so they're staged in this commit.
     modified_children: list[str] = []
-    if task_json_path.is_file():
-        data = read_json(task_json_path)
-        if data:
-            data["status"] = "completed"
-            data["completedAt"] = today
-            write_json(task_json_path, data)
+    if task_data:
+        data = task_data
+        if guard.baseline_record:
+            write_gate_record(data, "full-task-complete", BASELINE_GATE, guard.baseline_record)
+        data["status"] = "completed"
+        data["completedAt"] = today
+        write_json(task_json_path, data)
 
-            # Handle subtask relationships on archive.
-            # Keep this task in its parent's children list so progress
-            # counters (children_progress) stay consistent — children
-            # missing from the active set are treated as completed.
-            task_children = data.get("children", [])
+        # Handle subtask relationships on archive.
+        # Keep this task in its parent's children list so progress
+        # counters (children_progress) stay consistent — children
+        # missing from the active set are treated as completed.
+        task_children = data.get("children", [])
 
-            # If this is a parent, clear parent field in all children
-            if task_children:
-                for child_name in task_children:
-                    child_dir_path = find_task_by_name(child_name, tasks_dir)
-                    if child_dir_path:
-                        child_json = child_dir_path / FILE_TASK_JSON
-                        if child_json.is_file():
-                            child_data = read_json(child_json)
-                            if child_data:
-                                child_data["parent"] = None
-                                write_json(child_json, child_data)
-                                modified_children.append(child_dir_path.name)
+        # If this is a parent, clear parent field in all children
+        if task_children:
+            for child_name in task_children:
+                child_dir_path = find_task_by_name(child_name, tasks_dir)
+                if child_dir_path:
+                    child_json = child_dir_path / FILE_TASK_JSON
+                    if child_json.is_file():
+                        child_data = read_json(child_json)
+                        if child_data:
+                            child_data["parent"] = None
+                            write_json(child_json, child_data)
+                            modified_children.append(child_dir_path.name)
 
     # Clear any session that still points at this task before the path moves.
     from .active_task import clear_task_from_sessions
@@ -597,6 +719,12 @@ def cmd_add_subtask(args: argparse.Namespace) -> int:
     # Write both
     write_json(parent_json_path, parent_data)
     write_json(child_json_path, child_data)
+    ensure_task_map(
+        parent_dir,
+        parent_data,
+        list(parent_data.get("children", [])),
+        f"Linked Child `{child_dir_name}`.",
+    )
 
     print(colored(f"Linked: {child_dir.name} -> {parent_dir.name}", Colors.GREEN), file=sys.stderr)
     return 0
@@ -644,8 +772,289 @@ def cmd_remove_subtask(args: argparse.Namespace) -> int:
     # Write both
     write_json(parent_json_path, parent_data)
     write_json(child_json_path, child_data)
+    remove_child_from_task_map(parent_dir, parent_data, child_dir_name)
 
     print(colored(f"Unlinked: {child_dir.name} from {parent_dir.name}", Colors.GREEN), file=sys.stderr)
+    return 0
+
+
+# =============================================================================
+# Command: prepare-child-worktree
+# =============================================================================
+
+def cmd_prepare_child_worktree(args: argparse.Namespace) -> int:
+    """Create and register a Git worktree for a Child task."""
+    repo_root = get_repo_root()
+
+    parent_dir = resolve_task_dir(args.parent_dir, repo_root)
+    child_dir = resolve_task_dir(args.child_dir, repo_root)
+
+    parent_json_path = parent_dir / FILE_TASK_JSON
+    child_json_path = child_dir / FILE_TASK_JSON
+
+    if not parent_json_path.is_file():
+        print(colored(f"Error: Parent task.json not found: {args.parent_dir}", Colors.RED), file=sys.stderr)
+        return 1
+    if not child_json_path.is_file():
+        print(colored(f"Error: Child task.json not found: {args.child_dir}", Colors.RED), file=sys.stderr)
+        return 1
+
+    parent_data = read_json(parent_json_path)
+    child_data = read_json(child_json_path)
+    if not parent_data or not child_data:
+        print(colored("Error: Failed to read task.json", Colors.RED), file=sys.stderr)
+        return 1
+
+    if child_data.get("parent") != parent_dir.name:
+        print(colored(f"Error: Child is not linked to parent: {child_dir.name}", Colors.RED), file=sys.stderr)
+        return 1
+
+    branch = args.branch
+    base_ref = getattr(args, "base", None) or child_data.get("base_branch") or parent_data.get("base_branch") or "HEAD"
+    worktree_path, path_error = _resolve_child_worktree_path(
+        repo_root,
+        child_dir,
+        getattr(args, "path", None),
+    )
+
+    errors: list[str] = []
+    errors.extend(_validate_git_repo(repo_root))
+    errors.extend(_validate_branch_name(repo_root, branch))
+    if path_error:
+        errors.append(path_error)
+    if worktree_path and worktree_path.exists():
+        errors.append(f"worktree path already exists: {_repo_relative_path(worktree_path, repo_root)}")
+    if not _git_commit_exists(repo_root, base_ref):
+        errors.append(f"base ref does not resolve to a commit: {base_ref}")
+
+    if errors:
+        print("Prepare-child-worktree check: FAIL" if getattr(args, "check", False) else colored("Error: cannot prepare child worktree.", Colors.RED), file=sys.stderr)
+        for item in errors:
+            print(f"  - {item}", file=sys.stderr)
+        return 1
+
+    assert worktree_path is not None
+    worktree_rel = _repo_relative_path(worktree_path, repo_root)
+    if getattr(args, "check", False):
+        print("Prepare-child-worktree check: PASS")
+        print(f"Branch: {branch}")
+        print(f"Base: {base_ref}")
+        print(f"Path: {worktree_rel}")
+        print("No files changed.")
+        return 0
+
+    worktree_path.parent.mkdir(parents=True, exist_ok=True)
+    if _git_branch_exists(repo_root, branch):
+        git_args = ["worktree", "add", str(worktree_path), branch]
+    else:
+        git_args = ["worktree", "add", "-b", branch, str(worktree_path), base_ref]
+    rc, _, err = run_git(git_args, cwd=repo_root)
+    if rc != 0:
+        print(colored("Error: git worktree add failed.", Colors.RED), file=sys.stderr)
+        print(err.strip() or "unknown git error", file=sys.stderr)
+        return 1
+
+    child_data["branch"] = branch
+    child_data["worktree_path"] = worktree_rel
+    write_json(child_json_path, child_data)
+
+    ok, map_errors = record_child_worktree(
+        parent_dir,
+        parent_data,
+        child_dir.name,
+        branch,
+        worktree_rel,
+        base_ref,
+    )
+    if not ok:
+        print(colored("Error: worktree created, but Parent task-map update failed.", Colors.RED), file=sys.stderr)
+        for item in map_errors:
+            print(f"  - {item}", file=sys.stderr)
+        return 1
+
+    print(colored(f"✓ Child worktree prepared: {child_dir.name}", Colors.GREEN))
+    print(f"Branch: {branch}")
+    print(f"Path: {worktree_rel}")
+    print(f"Parent map: {_repo_relative_path(parent_dir / 'task-map.md', repo_root)}")
+    return 0
+
+
+# =============================================================================
+# Command: set-child-state
+# =============================================================================
+
+def cmd_set_child_state(args: argparse.Namespace) -> int:
+    """Set a Child Worker-reported state in the Parent task-map.md."""
+    repo_root = get_repo_root()
+
+    parent_dir = resolve_task_dir(args.parent_dir, repo_root)
+    child_dir = resolve_task_dir(args.child_dir, repo_root)
+    state = args.state
+
+    parent_json_path = parent_dir / FILE_TASK_JSON
+    child_json_path = child_dir / FILE_TASK_JSON
+
+    if not parent_json_path.is_file():
+        print(colored(f"Error: Parent task.json not found: {args.parent_dir}", Colors.RED), file=sys.stderr)
+        return 1
+    if not child_json_path.is_file():
+        print(colored(f"Error: Child task.json not found: {args.child_dir}", Colors.RED), file=sys.stderr)
+        return 1
+
+    parent_data = read_json(parent_json_path)
+    child_data = read_json(child_json_path)
+    if not parent_data or not child_data:
+        print(colored("Error: Failed to read task.json", Colors.RED), file=sys.stderr)
+        return 1
+
+    if child_data.get("parent") != parent_dir.name:
+        print(colored(f"Error: Child is not linked to parent: {child_dir.name}", Colors.RED), file=sys.stderr)
+        return 1
+
+    if state in CHILD_STATES and not getattr(args, "evidence", None):
+        print(colored("Error: --evidence is required when setting child state", Colors.RED), file=sys.stderr)
+        return 1
+    if state in PARENT_CONTROLLED_STATES:
+        print(
+            colored(
+                "Error: Parent-controlled Child states require `task.py integrate-child`.",
+                Colors.RED,
+            ),
+            file=sys.stderr,
+        )
+        print(
+            "Allowed set-child-state values: "
+            + ", ".join(sorted(CHILD_REPORT_STATES)),
+            file=sys.stderr,
+        )
+        return 1
+
+    ok, errors = set_child_state(
+        parent_dir,
+        parent_data,
+        child_dir.name,
+        state,
+        args.evidence,
+        getattr(args, "reason", None),
+    )
+    if not ok:
+        print(colored("Error: cannot set child state.", Colors.RED), file=sys.stderr)
+        for item in errors:
+            print(f"  - {item}", file=sys.stderr)
+        return 1
+
+    print(colored(f"✓ Child state updated: {child_dir.name} -> {state}", Colors.GREEN))
+    print(f"Parent map: {_repo_relative_path(parent_dir / 'task-map.md', repo_root)}")
+    return 0
+
+
+# =============================================================================
+# Command: integrate-child
+# =============================================================================
+
+def cmd_integrate_child(args: argparse.Namespace) -> int:
+    """Set a Parent-controlled Child integration state."""
+    repo_root = get_repo_root()
+
+    parent_dir = resolve_task_dir(args.parent_dir, repo_root)
+    child_dir = resolve_task_dir(args.child_dir, repo_root)
+    state = args.state
+
+    parent_json_path = parent_dir / FILE_TASK_JSON
+    child_json_path = child_dir / FILE_TASK_JSON
+
+    if not parent_json_path.is_file():
+        print(colored(f"Error: Parent task.json not found: {args.parent_dir}", Colors.RED), file=sys.stderr)
+        return 1
+    if not child_json_path.is_file():
+        print(colored(f"Error: Child task.json not found: {args.child_dir}", Colors.RED), file=sys.stderr)
+        return 1
+
+    parent_data = read_json(parent_json_path)
+    child_data = read_json(child_json_path)
+    if not parent_data or not child_data:
+        print(colored("Error: Failed to read task.json", Colors.RED), file=sys.stderr)
+        return 1
+
+    if state not in PARENT_CONTROLLED_STATES:
+        print(
+            colored("Error: state is not Parent-controlled.", Colors.RED),
+            file=sys.stderr,
+        )
+        print(
+            "Allowed integrate-child values: "
+            + ", ".join(sorted(PARENT_CONTROLLED_STATES)),
+            file=sys.stderr,
+        )
+        return 1
+
+    evidence = args.evidence
+    ref = getattr(args, "ref", None)
+    reason = getattr(args, "reason", None)
+    execute_merge = getattr(args, "execute_merge", False)
+    if getattr(args, "check", False):
+        errors = validate_parent_child_integration(
+            parent_dir,
+            parent_data,
+            child_dir,
+            child_data,
+            state,
+            evidence,
+            ref,
+            reason,
+        )
+        if execute_merge:
+            errors.extend(_validate_merge_execution(repo_root, state, ref))
+        if errors:
+            print("Integrate-child check: FAIL")
+            for item in errors:
+                print(f"  - {item}")
+            return 1
+        print("Integrate-child check: PASS")
+        if execute_merge:
+            print("Merge execution check: PASS")
+        print("No files changed.")
+        return 0
+
+    merge_ref = None
+    if execute_merge:
+        merge_errors = _validate_merge_execution(repo_root, state, ref)
+        if merge_errors:
+            print(colored("Error: cannot execute child merge.", Colors.RED), file=sys.stderr)
+            for item in merge_errors:
+                print(f"  - {item}", file=sys.stderr)
+            return 1
+
+        rc, _, err = run_git(["merge", "--no-ff", "--no-commit", ref], cwd=repo_root)
+        if rc != 0:
+            print(colored("Error: git merge failed; Parent task-map was not advanced to integrated.", Colors.RED), file=sys.stderr)
+            if err.strip():
+                print(err.strip(), file=sys.stderr)
+            print("Resolve the merge manually, abort it with `git merge --abort`, or record a `changes` / `cancelled` Parent decision.", file=sys.stderr)
+            return 1
+        merge_ref = ref
+
+    ok, errors = set_parent_child_integration_state(
+        parent_dir,
+        parent_data,
+        child_dir,
+        child_data,
+        state,
+        evidence,
+        ref,
+        reason,
+        merge_ref,
+    )
+    if not ok:
+        print(colored("Error: cannot integrate child.", Colors.RED), file=sys.stderr)
+        for item in errors:
+            print(f"  - {item}", file=sys.stderr)
+        return 1
+
+    print(colored(f"✓ Child integration updated: {child_dir.name} -> {state}", Colors.GREEN))
+    if merge_ref:
+        print(f"Merge executed: git merge --no-ff --no-commit {merge_ref}")
+    print(f"Parent map: {_repo_relative_path(parent_dir / 'task-map.md', repo_root)}")
     return 0
 
 

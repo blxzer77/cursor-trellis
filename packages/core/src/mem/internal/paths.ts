@@ -14,10 +14,11 @@ export const HOME = os.homedir();
 export const CLAUDE_PROJECTS = path.join(HOME, ".claude", "projects");
 export const CODEX_SESSIONS = path.join(HOME, ".codex", "sessions");
 
-/** Claude sanitizes a cwd into its on-disk project dir name by replacing
- * every `/` and `_` with `-`. */
+/** Claude sanitizes a cwd into its on-disk project dir name by replacing path
+ * separators and `_` with `-`. Windows drive separators are normalized too so
+ * a scoped lookup never tries to create nested or invalid project paths. */
 export function claudeProjectDirFromCwd(cwd: string): string {
-  return path.join(CLAUDE_PROJECTS, cwd.replace(/[/_]/g, "-"));
+  return path.join(CLAUDE_PROJECTS, cwd.replace(/[\\/:_]/g, "-"));
 }
 
 /** Lazy stack-based recursive file walk — yields every file path under

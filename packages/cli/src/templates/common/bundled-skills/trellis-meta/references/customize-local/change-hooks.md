@@ -43,7 +43,7 @@ If the hook ultimately calls `.trellis/scripts/get_context.py` or `session_conte
 First confirm:
 
 ```bash
-python3 ./.trellis/scripts/task.py current --source
+python3 ./.trellis/scripts/task.py selected --source
 python3 ./.trellis/scripts/task.py validate <task>
 ```
 

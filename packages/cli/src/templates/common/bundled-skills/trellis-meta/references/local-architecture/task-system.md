@@ -73,17 +73,17 @@ python3 ./.trellis/scripts/task.py remove-subtask <parent-dir> <child-dir>
 
 The AI should not treat phase numbers as task status. Task progress is mainly determined by `status`, artifact presence (`prd.md`, optional `design.md` / `implement.md`), whether JSONL context is configured for sub-agent mode, and the phase descriptions in `workflow.md`.
 
-## Active Task
+## Selected Task
 
-The user sees a "current task," but Trellis stores active task state per session.
+The user sees a "selected task," and Trellis stores that selection per live session.
 
 ```text
 .trellis/.runtime/sessions/<context-key>.json
 ```
 
-`task.py start` writes the task path into the runtime session file for the current session. `task.py current --source` shows the current task and where it came from. Different AI windows can point to different tasks without overwriting each other.
+`task.py select <task>` writes the task path into the runtime session file for the current session. `task.py selected --source` shows the selected task and where it came from. Different AI windows can point to different tasks without overwriting each other.
 
-If the platform or shell environment has no stable session identity, `task.py start` may be unable to set the active task. The AI should read the error, inspect the platform hook/session environment, and not fall back to a shared global pointer.
+If the platform or shell environment has no stable session identity, `task.py select` may be unable to set the selected task. The AI should read the error, inspect the platform hook/session environment, and not fall back to a shared global pointer.
 
 ## JSONL Context
 
@@ -107,11 +107,14 @@ Rules:
 
 ```bash
 python3 ./.trellis/scripts/task.py create "<title>" --slug <slug>
-python3 ./.trellis/scripts/task.py start <task>
-python3 ./.trellis/scripts/task.py current --source
+python3 ./.trellis/scripts/task.py dashboard
+python3 ./.trellis/scripts/task.py select <task>
+python3 ./.trellis/scripts/task.py selected --source
+python3 ./.trellis/scripts/task.py start-execution <task> --check
+python3 ./.trellis/scripts/task.py start-execution <task> --approved
 python3 ./.trellis/scripts/task.py add-context <task> implement <file> <reason>
 python3 ./.trellis/scripts/task.py validate <task>
-python3 ./.trellis/scripts/task.py finish
+python3 ./.trellis/scripts/task.py exit
 python3 ./.trellis/scripts/task.py archive <task>
 ```
 

@@ -12,6 +12,9 @@
 import { describe, expect, it } from "vitest";
 import { AI_TOOLS } from "../src/types/ai-tools.js";
 import {
+  FIRST_CLASS_PLATFORM_IDS,
+  LEGACY_PLATFORM_IDS,
+  getInitToolChoices,
   PLATFORM_IDS,
 } from "../src/configurators/index.js";
 
@@ -68,6 +71,33 @@ describe("registry internal consistency", () => {
     for (const id of PLATFORM_IDS) {
       expect(AI_TOOLS[id].name.length).toBeGreaterThan(0);
     }
+  });
+
+  it("only Codex, Claude Code, and Cursor are first-class platforms", () => {
+    expect(new Set(FIRST_CLASS_PLATFORM_IDS)).toEqual(
+      new Set(["codex", "claude-code", "cursor"]),
+    );
+    expect(FIRST_CLASS_PLATFORM_IDS).toHaveLength(3);
+    expect(LEGACY_PLATFORM_IDS).not.toContain("codex");
+    expect(LEGACY_PLATFORM_IDS).not.toContain("claude-code");
+    expect(LEGACY_PLATFORM_IDS).not.toContain("cursor");
+    expect(FIRST_CLASS_PLATFORM_IDS.length + LEGACY_PLATFORM_IDS.length).toBe(
+      PLATFORM_IDS.length,
+    );
+  });
+
+  it("interactive init lists first-class platforms before legacy adapters", () => {
+    const choices = getInitToolChoices();
+    expect(
+      choices
+        .slice(0, FIRST_CLASS_PLATFORM_IDS.length)
+        .map((c) => c.platformId),
+    ).toEqual(["claude-code", "cursor", "codex"]);
+    expect(
+      choices
+        .slice(FIRST_CLASS_PLATFORM_IDS.length)
+        .every((choice) => AI_TOOLS[choice.platformId].tier === "legacy"),
+    ).toBe(true);
   });
 
   it("every platform templateDirs includes common", () => {

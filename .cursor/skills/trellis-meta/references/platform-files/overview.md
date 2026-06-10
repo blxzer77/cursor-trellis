@@ -5,9 +5,11 @@ Trellis connects the same local architecture to different AI tools. `.trellis/` 
 When a local AI modifies Trellis, it should distinguish two file categories first:
 
 - **Shared files**: `.trellis/workflow.md`, `.trellis/tasks/`, `.trellis/spec/`, `.trellis/scripts/`.
-- **Platform files**: `.claude/`, `.codex/`, `.cursor/`, `.opencode/`, `.kiro/`, `.gemini/`, `.qoder/`, `.codebuddy/`, `.github/`, `.factory/`, `.pi/`, `.kilocode/`, `.agent/`, `.windsurf/`, and similar directories.
+- **Platform files**: first-class `.claude/`, `.codex/`, `.cursor/`; legacy adapter directories such as `.opencode/`, `.kiro/`, `.gemini/`, `.qoder/`, `.codebuddy/`, `.github/`, `.factory/`, `.pi/`, `.kilocode/`, `.agent/`, `.windsurf/`, and similar directories.
 
 Platform files do not store business state. They let the corresponding AI tool read Trellis state, call Trellis scripts, and load Trellis skills/agents/hooks.
+
+This fork actively targets Claude Code, Codex, and Cursor as first-class platform surfaces. Other adapter directories may still exist when explicitly selected or already configured, but new workflow/runtime behavior should not assume they are equally verified without a dedicated compatibility pass.
 
 ## Platform File Categories
 
@@ -36,7 +38,7 @@ To change "when the AI knows what," inspect hooks/plugins/extensions and setting
 
 ### 2. Agent Prelude / Pull-Based
 
-Some platforms cannot reliably let hooks rewrite sub-agent prompts, so the agent file itself instructs the agent to read the active task, PRD, and JSONL context after startup.
+Some platforms cannot reliably let hooks rewrite sub-agent prompts, so the agent file itself instructs the agent to read the selected task, PRD, and JSONL context after startup.
 
 To change how sub-agents load context, inspect the agent files themselves.
 
