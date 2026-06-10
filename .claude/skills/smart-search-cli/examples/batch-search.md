@@ -66,10 +66,10 @@ foreach ($Url in $Urls) {
 
 Pick the command per item instead of forcing every item through one provider:
 
-- Chinese/current/domestic item: `smart-search zhipu-search "query" --count 5 --format json --output PATH`
+- Broad/current/domestic item: run the bilingual `smart-search search` pair and save separate `*-zh.json` / `*-en.json` outputs.
 - Docs/API/library item: `smart-search context7-library "library" "topic" --format json --output PATH`, then `context7-docs` for the selected library id.
 - Official/trusted-domain item: `smart-search exa-search "query" --num-results 5 --include-text --include-highlights --format json --output PATH`
-- Broad first pass: `smart-search search "query" --validation balanced --extra-sources 1 --format json --output PATH`
+- Broad first pass: `smart-search search "中文搜索，优先检索中文来源，并回答原问题：query" --validation balanced --extra-sources 1 --format json --output PATH`, then `smart-search search "Search English-language sources and answer the original question: query" --validation balanced --extra-sources 1 --format json --output PATH`
 - Known URL: `smart-search fetch "https://example.com/source" --format markdown --output PATH`
 
 ## Summarize The Batch

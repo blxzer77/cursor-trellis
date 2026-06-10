@@ -39,6 +39,15 @@ Before checking, read:
 4. **Self-fix** - Fix issues yourself, not just report them
 5. **Run verification** - typecheck and lint
 
+## Quality Gate Adapter
+
+- Reviewer id: `cursor`.
+- When `implement.md` quality_gates requires a reviewer gate for the current transition, write human-readable evidence in `verify.md` before recording the machine-checkable gate result. Parent/Child integration evidence may also belong in Parent `task-map.md`.
+- Record non-baseline gates with `python ./.trellis/scripts/task.py record-gate <task> --transition <transition> --gate <gate> --result PASS --reviewer cursor --evidence verify.md`.
+- For FAIL, add `--root-cause implementation-defect|contract-changing-defect|validation-environment-blocker` and `--issue-fingerprint <short-stable-id>`. Route implementation defects back to Execution, contract-changing defects to Planning, and validation blockers to Verification / Review.
+- For SKIPPED, use only explicit user approval: `--skip-approved-by user --skip-reason <reason>`.
+- Never record `baseline-check`; the CLI owns it. Do not pass review bodies, logs, screenshots, or long issue lists through `record-gate` arguments.
+
 ## Important
 
 **Fix issues yourself**, don't just report them.
