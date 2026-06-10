@@ -1,0 +1,6 @@
+{"file":".trellis/spec/cli/backend/configurator-shared.md","reason":"Defines bundled skill resolver, write helper, collect helper, and init/update byte-parity contracts for the implementation."}
+{"file":".trellis/spec/cli/backend/platform-integration.md","reason":"Defines platform skill roots, shared .agents/skills rules, and the bundled built-in skill contract."}
+{"file":".trellis/spec/cli/backend/commands-update.md","reason":"Defines template hash tracking, update idempotency, and managed template behavior that new bundled skill files must satisfy."}
+{"file":".trellis/spec/cli/unit-test/index.md","reason":"Defines Vitest conventions and validation commands for CLI tests."}
+{"file":".trellis/spec/guides/cross-platform-thinking-guide.md","reason":"Covers POSIX logical keys, Windows path behavior, and cross-platform command assumptions relevant to template tests."}
+{"file":".trellis/tasks/06-08-personal-skills-trellis-refactor/research/source-map.md","reason":"Records the local Smart Search, Micro-Grill, riverfjs skills, Trellis pipeline, and impacted test sources for this task."}
