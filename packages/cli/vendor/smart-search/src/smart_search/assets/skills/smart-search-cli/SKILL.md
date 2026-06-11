@@ -80,8 +80,8 @@ When `smart-search research` runs, it builds an internal `research_plan` as its 
       "subquestion_id": "sq1",
       "tool": "search",
       "purpose": "broad discovery",
-      "command": "smart-search search \"query\" --validation balanced --extra-sources 1 --format json --output C:\\tmp\\smart-search-evidence\\YYYYMMDD-HHMM-topic\\01-search.json",
-      "output_path": "C:\\tmp\\smart-search-evidence\\YYYYMMDD-HHMM-topic\\01-search.json"
+      "command": "smart-search search \"query\" --validation balanced --extra-sources 1 --format json --output <resolved_evidence_dir>\\YYYYMMDD-HHMM-topic\\01-search.json",
+      "output_path": "<resolved_evidence_dir>\\YYYYMMDD-HHMM-topic\\01-search.json"
     }
   ],
   "gap_check": {
@@ -178,7 +178,7 @@ smart-search research "https://example.com/source" --format json
 
 ## Evidence Files
 
-For multi-source research, use `--output` to save evidence under `C:\tmp\smart-search-evidence\` with a descriptive timestamped filename. Stdout should still contain the full JSON result unless markdown or content output was explicitly chosen for human reading.
+For multi-source research, use `smart-search config path --format json` and save evidence under `resolved_evidence_dir` with a descriptive timestamped filename. Stdout should still contain the full JSON result unless markdown or content output was explicitly chosen for human reading.
 
 For claim-level evidence, prefer this order:
 
@@ -189,11 +189,14 @@ For claim-level evidence, prefer this order:
 Prefer shorter, source-directed commands:
 
 ```powershell
-smart-search exa-search "Reuters Iran Hormuz latest" --num-results 5 --include-highlights --format json --output C:\tmp\smart-search-evidence\iran-hormuz-exa.json
+$Config = smart-search config path --format json | ConvertFrom-Json
+$EvidenceDir = Join-Path $Config.resolved_evidence_dir "YYYYMMDD-HHMM-topic"
+New-Item -ItemType Directory -Force -Path $EvidenceDir | Out-Null
+smart-search exa-search "Reuters Iran Hormuz latest" --num-results 5 --include-highlights --format json --output (Join-Path $EvidenceDir "01-iran-hormuz-exa.json")
 smart-search exa-search "OpenAI Responses API documentation" --include-domains platform.openai.com developers.openai.com --num-results 5 --include-text --format json
 smart-search exa-similar "https://example.com/source" --num-results 5 --format json
-smart-search fetch "https://example.com/source" --format json --output C:\tmp\smart-search-evidence\source-fetch.json
-smart-search search "Iran Hormuz latest military talks" --extra-sources 3 --timeout 90 --format json --output C:\tmp\smart-search-evidence\iran-hormuz-search.json
+smart-search fetch "https://example.com/source" --format json --output (Join-Path $EvidenceDir "02-source-fetch.json")
+smart-search search "Iran Hormuz latest military talks" --extra-sources 3 --timeout 90 --format json --output (Join-Path $EvidenceDir "03-iran-hormuz-search.json")
 ```
 
 ## Workflows
@@ -204,14 +207,14 @@ Use these recipes when the user asks for evidence, citations, repeated searches,
 
 Use this when the user needs a source-backed answer but not full Deep Research.
 
-1. Create an evidence directory such as `C:\tmp\smart-search-evidence\YYYYMMDD-HHMM-topic\`.
+1. Create an evidence directory under the system-aware Smart Search evidence root reported by `smart-search config path --format json`.
 2. Discover candidate sources by intent:
    - Always run the bilingual broad pair:
-     - `smart-search search "中文搜索，优先检索中文来源，并回答原问题：query" --validation balanced --extra-sources 1 --format json --output C:\tmp\smart-search-evidence\YYYYMMDD-HHMM-topic\01-search-zh.json`
-     - `smart-search search "Search English-language sources and answer the original question: query" --validation balanced --extra-sources 1 --format json --output C:\tmp\smart-search-evidence\YYYYMMDD-HHMM-topic\02-search-en.json`
-   - Docs/API/library/framework intent: `smart-search context7-library "library" "topic" --format json --output C:\tmp\smart-search-evidence\YYYYMMDD-HHMM-topic\01-context7-library.json`
-   - Official domains, papers, product pages, or trusted sites: `smart-search exa-search "query" --num-results 5 --include-text --include-highlights --format json --output C:\tmp\smart-search-evidence\YYYYMMDD-HHMM-topic\01-exa.json`
-3. Fetch the one or two URLs that support the answer: `smart-search fetch "https://example.com/source" --format markdown --output C:\tmp\smart-search-evidence\YYYYMMDD-HHMM-topic\02-fetch-source.md`.
+     - `smart-search search "中文搜索，优先检索中文来源，并回答原问题：query" --validation balanced --extra-sources 1 --format json --output "$EvidenceDir\01-search-zh.json"`
+     - `smart-search search "Search English-language sources and answer the original question: query" --validation balanced --extra-sources 1 --format json --output "$EvidenceDir\02-search-en.json"`
+   - Docs/API/library/framework intent: `smart-search context7-library "library" "topic" --format json --output "$EvidenceDir\01-context7-library.json"`
+   - Official domains, papers, product pages, or trusted sites: `smart-search exa-search "query" --num-results 5 --include-text --include-highlights --format json --output "$EvidenceDir\01-exa.json"`
+3. Fetch the one or two URLs that support the answer: `smart-search fetch "https://example.com/source" --format markdown --output "$EvidenceDir\02-fetch-source.md"`.
 4. Write the final answer only from fetched page text or clearly label unfetched items as candidates.
 
 See `examples/evidence-gathering.md` for a complete command sequence.
@@ -220,7 +223,7 @@ See `examples/evidence-gathering.md` for a complete command sequence.
 
 Use this when the user asks for deep research, cross-checking, serious comparison, or a multi-source investigation.
 
-1. Run the live executor: `smart-search research "question" --budget standard --format json --output C:\tmp\smart-search-evidence\YYYYMMDD-HHMM-topic\research.json`.
+1. Run the live executor: `smart-search research "question" --budget standard --format json --output "$EvidenceDir\research.json"`.
 2. Read `research_plan`, `evidence_items`, `gap_check`, `citations`, and `final_answer`.
 3. If `degraded` is true or `gap_check` lists open gaps, either fetch more sources or report the remaining gaps instead of filling them from memory.
 
@@ -262,6 +265,7 @@ Use this when the user wants work that can be inspected, resumed, or audited.
 - If PATH is changed, a new terminal or Codex restart may be needed.
 - On Windows, the default local config file is `%LOCALAPPDATA%\smart-search\config.json`. Linux/macOS default to `~/.config/smart-search/config.json`.
 - In sandboxed runtimes (Codex CLI, containers, CI) where the default config directory is not writable or must be pinned, set `SMART_SEARCH_CONFIG_DIR` to an absolute writable path. The CLI uses it for both config and relative logs and skips default-directory selection.
+- The default research evidence root is `evidence` under the active config directory. Set `SMART_SEARCH_EVIDENCE_DIR` only when evidence needs a separate absolute location; `config path` and `doctor` report both the configured and resolved evidence paths.
 - Earlier Windows source defaults used `~\.config\smart-search\config.json`, while some installs were already pinned to `%LOCALAPPDATA%\smart-search` through `SMART_SEARCH_CONFIG_DIR`. If the new default file is missing but the old file exists, `doctor` reports `legacy_windows_home` as the active source so upgrades do not silently lose configuration. It also reports the override value and whether it matches the current default.
 - Use `smart-search doctor --format json` for agent/script parsing and `smart-search doctor --format markdown` when a human wants a detailed diagnostic report.
 - If `smart-search doctor --format json` returns `ok: false`, follow the `error` field's guidance (`smart-search setup` or `smart-search config set KEY VALUE`); do not silently fall back to native web search.

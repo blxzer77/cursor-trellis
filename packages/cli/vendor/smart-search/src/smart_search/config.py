@@ -49,6 +49,7 @@ class Config:
         "SMART_SEARCH_DEBUG",
         "SMART_SEARCH_LOG_LEVEL",
         "SMART_SEARCH_LOG_DIR",
+        "SMART_SEARCH_EVIDENCE_DIR",
         "SMART_SEARCH_RETRY_MAX_ATTEMPTS",
         "SMART_SEARCH_RETRY_MULTIPLIER",
         "SMART_SEARCH_RETRY_MAX_WAIT",
@@ -249,6 +250,8 @@ class Config:
             "legacy_windows_config_exists": (self._legacy_windows_config_dir() / "config.json").exists() if sys.platform.startswith("win") else False,
             "config_dir_override_value": self._config_dir_override_value(),
             "config_dir_override_matches_default": self._config_dir_override_matches_default(),
+            "evidence_dir_config_value": self.evidence_dir_config_value,
+            "resolved_evidence_dir": str(self.evidence_dir),
             "exists": self.config_file.exists(),
         }
 
@@ -383,6 +386,19 @@ class Config:
     def log_dir_config_value(self) -> str:
         return self._get_config_value("SMART_SEARCH_LOG_DIR", "logs") or "logs"
 
+    @property
+    def evidence_dir(self) -> Path:
+        evidence_dir_str = self.evidence_dir_config_value
+        evidence_dir = Path(evidence_dir_str)
+        if evidence_dir.is_absolute():
+            return evidence_dir
+
+        return self.config_file.parent / evidence_dir
+
+    @property
+    def evidence_dir_config_value(self) -> str:
+        return self._get_config_value("SMART_SEARCH_EVIDENCE_DIR", "evidence") or "evidence"
+
     @staticmethod
     def apply_model_suffix_for_url(model: str, api_url: str) -> str:
         if "openrouter" in api_url and ":online" not in model:
@@ -514,6 +530,7 @@ class Config:
             "SMART_SEARCH_DEBUG": self.debug_enabled,
             "SMART_SEARCH_LOG_LEVEL": self.log_level,
             "SMART_SEARCH_LOG_DIR": self.log_dir_config_value,
+            "SMART_SEARCH_EVIDENCE_DIR": self.evidence_dir_config_value,
             "SMART_SEARCH_RETRY_MAX_ATTEMPTS": self.retry_max_attempts,
             "SMART_SEARCH_RETRY_MULTIPLIER": self.retry_multiplier,
             "SMART_SEARCH_RETRY_MAX_WAIT": self.retry_max_wait,
@@ -552,6 +569,8 @@ class Config:
             "config_dir_override_matches_default": self._config_dir_override_matches_default(),
             "log_dir_config_value": self.log_dir_config_value,
             "resolved_log_dir": str(self.log_dir),
+            "evidence_dir_config_value": self.evidence_dir_config_value,
+            "resolved_evidence_dir": str(self.evidence_dir),
             "file_logging_enabled": self.debug_enabled or self.log_to_file_enabled,
             "config_sources": self.get_config_sources(),
             "config_parameter_errors": config_parameter_errors,

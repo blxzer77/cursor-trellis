@@ -19,7 +19,8 @@ Use `smart-search research` instead when the user asks for deep research, cross-
 Create one directory per user question. Keep command outputs numbered so the trail is easy to inspect.
 
 ```powershell
-$EvidenceDir = "C:\tmp\smart-search-evidence\YYYYMMDD-HHMM-topic"
+$Config = smart-search config path --format json | ConvertFrom-Json
+$EvidenceDir = Join-Path $Config.resolved_evidence_dir "YYYYMMDD-HHMM-topic"
 New-Item -ItemType Directory -Force -Path $EvidenceDir | Out-Null
 ```
 
