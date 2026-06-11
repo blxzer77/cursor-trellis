@@ -12,7 +12,8 @@
       "args": [
         "-y",
         "@colbymchenry/codegraph",
-        "serve"
+        "serve",
+        "--mcp"
       ]
     },
     "github": {

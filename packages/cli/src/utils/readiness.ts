@@ -26,7 +26,7 @@ const CODEBASE_GENERATED_ADAPTER_SERVERS = [
     label: "AST CodeGraph adapter",
     serverName: "codegraph",
     missing:
-      "Generated AST MCP server `codegraph` is not launchable; remove the server from generated config or fix `npx @colbymchenry/codegraph` availability before claiming structural graph output.",
+      "Generated AST MCP server `codegraph` is not launchable; remove the server from generated config or fix `npx @colbymchenry/codegraph serve --mcp` availability before claiming structural graph output.",
   },
 ] as const;
 
