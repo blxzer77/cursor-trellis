@@ -65,25 +65,29 @@ describe("project capabilities", () => {
 
   it("renders Claude/Cursor MCP JSON without credentials", () => {
     const parsed = JSON.parse(
-      renderMcpJson(["codebase-retrieval", "playwright-mcp"]),
+      renderMcpJson(["codebase-retrieval", "github-mcp", "playwright-mcp"]),
     ) as {
       mcpServers: Record<string, { command: string; args: string[] }>;
     };
 
     expect(parsed.mcpServers["fast-context"]).toEqual({
-      command: "fast-context-mcp",
-      args: [],
+      command: "npx",
+      args: ["-y", "fast-context-mcp"],
     });
     expect(parsed.mcpServers.codegraph).toEqual({
-      command: "codegraph",
-      args: ["serve"],
+      command: "npx",
+      args: ["-y", "@colbymchenry/codegraph", "serve"],
+    });
+    expect(parsed.mcpServers.github).toEqual({
+      command: "npx",
+      args: ["-y", "@modelcontextprotocol/server-github"],
     });
     expect(parsed.mcpServers.playwright).toEqual({
       command: "npx",
       args: ["-y", "@playwright/mcp@latest"],
     });
     expect(JSON.stringify(parsed)).not.toMatch(
-      /API[_-]?KEY|ACCESS[_-]?TOKEN|SECRET/i,
+      /gh[pousr]_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9_-]{20,}|test-token/i,
     );
   });
 
@@ -123,8 +127,13 @@ describe("project capabilities", () => {
     expect(retrieval?.fallback).toContain(
       "Install or expose `rg` on PATH before claiming codebase retrieval readiness.",
     );
+    expect(retrieval?.fallback).toContain(
+      "Ensure `npx -y fast-context-mcp` and `npx -y @colbymchenry/codegraph serve` can launch before generated MCP adapter entries are claimed as usable.",
+    );
+    expect(JSON.stringify(parsed)).toContain("GITHUB_TOKEN");
+    expect(JSON.stringify(parsed)).toContain("GITHUB_PERSONAL_ACCESS_TOKEN");
     expect(JSON.stringify(parsed)).not.toMatch(
-      /API[_-]?KEY|ACCESS[_-]?TOKEN|SECRET/i,
+      /gh[pousr]_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9_-]{20,}|test-token/i,
     );
   });
 
@@ -174,6 +183,7 @@ describe("project capabilities", () => {
     expect(first).toContain("[mcp_servers.fast-context]");
     expect(first).toContain("[mcp_servers.codegraph]");
     expect(first).toContain("[mcp_servers.github]");
+    expect(first).not.toContain("[mcp_servers.graphify]");
 
     const second = applyCodexCapabilityConfig(first, ["playwright-mcp"]);
     expect(second).not.toContain("[mcp_servers.fast-context]");
@@ -210,6 +220,7 @@ describe("project capabilities", () => {
       "[mcp_servers.codegraph]",
     );
     expect(files.get(".cursor/mcp.json")).toContain('"playwright"');
+    expect(files.get(".cursor/mcp.json")).not.toContain('"graphify"');
     expect(files.has(".mcp.json")).toBe(false);
   });
 

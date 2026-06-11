@@ -86,7 +86,8 @@ export const PROJECT_CAPABILITIES: readonly ProjectCapability[] = [
       "Required exact search (`rg`) is available. Optional CodeGraph, LSP, and fast-context adapters are reported as available or unavailable without startup side effects.",
     fallback: [
       "Install or expose `rg` on PATH before claiming codebase retrieval readiness.",
-      "If CodeGraph, LSP, or fast-context adapters are unavailable, continue with exact search and direct file reads; do not claim missing adapter output.",
+      "Ensure `npx -y fast-context-mcp` and `npx -y @colbymchenry/codegraph serve` can launch before generated MCP adapter entries are claimed as usable.",
+      "If CodeGraph, LSP, or fast-context adapters are not verified, continue with exact search and direct file reads; do not claim missing adapter output.",
       "Run indexing, host MCP smoke checks, or language-server startup only after explicit user approval.",
     ],
     adapters: {
@@ -105,7 +106,7 @@ export const PROJECT_CAPABILITIES: readonly ProjectCapability[] = [
         purpose:
           "Resolve symbols, definitions, imports, callers, callees, impact, affected files, and structural relationships.",
         readiness:
-          "`codegraph` is available and index freshness is confirmed through status/query smoke or source/Git checks.",
+          "`npx -y @colbymchenry/codegraph` is available and index freshness is confirmed through status/query smoke or source/Git checks.",
         evidenceStatus:
           "Structural candidate and impact guidance until confirmed with current source, Git, or tests.",
         mcpServer: "codegraph",
@@ -126,7 +127,7 @@ export const PROJECT_CAPABILITIES: readonly ProjectCapability[] = [
         purpose:
           "Recall conceptual or poorly named code areas and return candidate files, ranges, and follow-up grep terms.",
         readiness:
-          "`fast-context-mcp` is available to the host and a project-scoped smoke search is confirmed outside ordinary init/update.",
+          "`npx -y fast-context-mcp` is available to the host and a project-scoped smoke search is confirmed outside ordinary init/update.",
         evidenceStatus:
           "Recall candidate only; never final proof without source/Git/test verification.",
         mcpServer: "fast-context",
@@ -174,13 +175,13 @@ export const PROJECT_CAPABILITIES: readonly ProjectCapability[] = [
     mcpServers: [
       {
         name: "fast-context",
-        command: "fast-context-mcp",
-        args: [],
+        command: "npx",
+        args: ["-y", "fast-context-mcp"],
       },
       {
         name: "codegraph",
-        command: "codegraph",
-        args: ["serve"],
+        command: "npx",
+        args: ["-y", "@colbymchenry/codegraph", "serve"],
       },
     ],
   },
@@ -192,16 +193,17 @@ export const PROJECT_CAPABILITIES: readonly ProjectCapability[] = [
     routing:
       "Use for explicit GitHub remote work; distinguish read-only inspection from write-capable issue, PR, branch, review, or merge actions.",
     readiness:
-      "Configured server is visible and credentials/tool posture are known before remote actions are claimed.",
+      "Configured GitHub API MCP package is visible and `GITHUB_TOKEN` or `GITHUB_PERSONAL_ACCESS_TOKEN` is present in the agent host environment before remote actions are claimed.",
     fallback: [
-      "Expose GitHub credentials to the MCP server environment or configure the agent host explicitly.",
+      "Expose `GITHUB_TOKEN` or `GITHUB_PERSONAL_ACCESS_TOKEN` to the MCP server environment or configure the agent host explicitly.",
+      "Ensure `npx -y @modelcontextprotocol/server-github` can launch before selecting this capability.",
       "Without a verified credential posture, use local Git only and do not claim GitHub remote actions.",
     ],
     mcpServers: [
       {
         name: "github",
-        command: "github-mcp-server",
-        args: ["stdio"],
+        command: "npx",
+        args: ["-y", "@modelcontextprotocol/server-github"],
       },
     ],
   },
@@ -478,7 +480,7 @@ export function renderCapabilitiesMarkdown(
     "- Exact `rg` search and direct source reads are the baseline for current-code claims.",
     "- CodeGraph output is structural guidance until index freshness and current source/Git evidence are confirmed.",
     "- fast-context output is semantic recall only and must be converted into exact source checks before final claims.",
-    "- GitHub MCP remote writes require explicit user intent and the host's credential/tool posture must be clear.",
+    "- GitHub MCP uses the GitHub API server package; remote writes require explicit user intent and the host's credential/tool posture must be clear.",
     "- Playwright MCP should be used for rendered UI evidence only when browser verification is part of the task.",
     "",
   );

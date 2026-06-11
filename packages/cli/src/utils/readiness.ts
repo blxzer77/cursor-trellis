@@ -15,18 +15,18 @@ const CODEGRAPH_INDEX_MARKERS = [
   "codegraph.json",
   ".codegraph/index.json",
 ];
-const CODEBASE_OPTIONAL_ADAPTER_COMMANDS = [
+const CODEBASE_GENERATED_ADAPTER_SERVERS = [
   {
     label: "semantic fast-context adapter",
-    command: "fast-context-mcp",
+    serverName: "fast-context",
     missing:
-      "Optional semantic adapter `fast-context-mcp` is not available; continue with exact search and source reads, and do not claim semantic recall output.",
+      "Generated semantic MCP server `fast-context` is not launchable; remove the server from generated config or fix `npx fast-context-mcp` availability before claiming semantic recall output.",
   },
   {
     label: "AST CodeGraph adapter",
-    command: "codegraph",
+    serverName: "codegraph",
     missing:
-      "Optional AST adapter `codegraph` is not available; continue with exact search and source reads, and do not claim structural graph output.",
+      "Generated AST MCP server `codegraph` is not launchable; remove the server from generated config or fix `npx @colbymchenry/codegraph` availability before claiming structural graph output.",
   },
 ] as const;
 
@@ -154,21 +154,33 @@ function shellQuote(value: string): string {
   return `'${value.replace(/'/g, "'\\''")}'`;
 }
 
+function npxPackageName(args: readonly string[]): string | undefined {
+  return args.find((arg) => arg.trim() && !arg.startsWith("-"));
+}
+
 function safeVisibilitySmokeCommand(
   id: ProjectCapabilityId,
   command: string,
+  args: readonly string[] = [],
 ): string | undefined {
-  if (id === "playwright-mcp") {
-    return undefined;
+  if (command === "npx") {
+    const packageName = npxPackageName(args);
+    return packageName
+      ? `npm view ${shellQuote(packageName)} bin --json`
+      : undefined;
   }
+
+  if (id === "playwright-mcp") return undefined;
+
   return `${shellQuote(command)} --help`;
 }
 
 function runSafeVisibilitySmoke(
   id: ProjectCapabilityId,
   command: string,
-): { info?: string; warning?: string } {
-  const smokeCommand = safeVisibilitySmokeCommand(id, command);
+  args: readonly string[] = [],
+): { info?: string; warning?: string; failure?: string } {
+  const smokeCommand = safeVisibilitySmokeCommand(id, command, args);
   if (!smokeCommand) {
     return {
       warning:
@@ -183,11 +195,11 @@ function runSafeVisibilitySmoke(
       timeout: 5_000,
     });
     return {
-      info: `host-level command visibility smoke passed with \`${smokeCommand}\``,
+      info: `host-level command/package visibility smoke passed with \`${smokeCommand}\``,
     };
   } catch {
     return {
-      warning: `Host-level command visibility smoke failed for \`${smokeCommand}\`; do not claim selected host tool visibility until verified.`,
+      failure: `Host-level command/package visibility smoke failed for \`${smokeCommand}\`; generated MCP server startup is not verified.`,
     };
   }
 }
@@ -198,12 +210,14 @@ function existingRelativePaths(cwd: string, relativePaths: string[]): string[] {
   );
 }
 
-function hasGithubCredentialEnv(): boolean {
+function hasGithubApiCredentialEnv(): boolean {
   return Boolean(
-    process.env.GITHUB_TOKEN ??
-      process.env.GH_TOKEN ??
-      process.env.GITHUB_PERSONAL_ACCESS_TOKEN,
+    process.env.GITHUB_TOKEN ?? process.env.GITHUB_PERSONAL_ACCESS_TOKEN,
   );
+}
+
+function hasLegacyGithubCredentialEnv(): boolean {
+  return Boolean(process.env.GH_TOKEN);
 }
 
 function probeProjectCapability(
@@ -236,18 +250,36 @@ function probeProjectCapability(
   }
 
   if (commandAvailable) {
-    const smoke = runSafeVisibilitySmoke(id, command);
+    const smoke = runSafeVisibilitySmoke(id, command, server.args);
     if (smoke.info) {
       infos.push(smoke.info);
     }
     if (smoke.warning) {
       warnings.push(smoke.warning);
     }
+    if (smoke.failure) {
+      failures.push(smoke.failure);
+    }
   }
 
-  if (id === "github-mcp" && commandAvailable && !hasGithubCredentialEnv()) {
+  if (
+    id === "github-mcp" &&
+    commandAvailable &&
+    !hasGithubApiCredentialEnv()
+  ) {
     failures.push(
-      "GitHub credential environment is not visible to Trellis readiness checks",
+      "`GITHUB_TOKEN` or `GITHUB_PERSONAL_ACCESS_TOKEN` is not visible to Trellis readiness checks",
+    );
+  }
+
+  if (
+    id === "github-mcp" &&
+    commandAvailable &&
+    !hasGithubApiCredentialEnv() &&
+    hasLegacyGithubCredentialEnv()
+  ) {
+    warnings.push(
+      "`GH_TOKEN` is present, but Trellis GitHub MCP readiness expects `GITHUB_TOKEN` or `GITHUB_PERSONAL_ACCESS_TOKEN`; mirror the token into one of those variables before claiming GitHub MCP readiness.",
     );
   }
 
@@ -280,28 +312,44 @@ function probeCodebaseRetrievalCapability(cwd: string): ProjectCapabilityProbe {
     }
   }
 
-  for (const adapter of CODEBASE_OPTIONAL_ADAPTER_COMMANDS) {
-    const commandAvailable = commandIsAvailable(adapter.command);
-    if (!commandAvailable) {
+  const capability = getProjectCapability(id);
+  const serversByName = new Map(
+    capability.mcpServers.map((server) => [server.name, server]),
+  );
+
+  for (const adapter of CODEBASE_GENERATED_ADAPTER_SERVERS) {
+    const server = serversByName.get(adapter.serverName);
+    if (!server) {
       warnings.push(adapter.missing);
       continue;
     }
 
-    const smoke = runSafeVisibilitySmoke(id, adapter.command);
+    const commandAvailable = commandIsAvailable(server.command);
+    if (!commandAvailable) {
+      failures.push(
+        `${adapter.missing} Missing command: \`${server.command}\`.`,
+      );
+      continue;
+    }
+
+    const smoke = runSafeVisibilitySmoke(id, server.command, server.args);
     if (smoke.info) {
       infos.push(`${adapter.label}: ${smoke.info}`);
     }
     if (smoke.warning) {
       warnings.push(`${adapter.label}: ${smoke.warning}`);
     }
+    if (smoke.failure) {
+      failures.push(`${adapter.label}: ${smoke.failure}`);
+    }
 
-    if (adapter.command === "fast-context-mcp") {
+    if (adapter.serverName === "fast-context") {
       warnings.push(
         "fast-context host MCP visibility and a project-scoped smoke search still require host-level confirmation before using semantic recall evidence.",
       );
     }
 
-    if (adapter.command === "codegraph") {
+    if (adapter.serverName === "codegraph") {
       const markers = existingRelativePaths(cwd, CODEGRAPH_INDEX_MARKERS);
       if (markers.length === 0) {
         warnings.push(
