@@ -238,12 +238,14 @@ smart-search setup --non-interactive `
 
 缺少任一最低能力时，`doctor` 和 `search` 会 fail closed 并返回缺失 capability。`SMART_SEARCH_MINIMUM_PROFILE=off` 只建议本地实验使用。
 
-本机配置文件位置：
+本机配置和证据文件位置：
 
 - Windows 默认：`%LOCALAPPDATA%\smart-search\config.json`。
 - Linux/macOS 默认：`~/.config/smart-search/config.json`。
 - `SMART_SEARCH_CONFIG_DIR` 是高级覆盖项，适合 CI、容器、沙箱或便携安装。
-- 更早的 Windows 源码默认路径曾是 `~\.config\smart-search\config.json`，但有些安装会通过 `SMART_SEARCH_CONFIG_DIR` 提前固定到 `%LOCALAPPDATA%\smart-search`。如果新版默认位置还没有配置，但旧 home 路径存在配置，Smart Search 会以 `legacy_windows_home` 方式继续读取旧配置，避免升级后配置丢失；`doctor` 会同时报告当前生效路径、默认路径、旧 home 路径、`SMART_SEARCH_CONFIG_DIR` 的值，以及这个覆盖项是不是只是等于当前默认路径。
+- `research` 证据默认保存到当前配置目录下的 `evidence`，例如 Windows 上的 `%LOCALAPPDATA%\smart-search\evidence`。
+- `SMART_SEARCH_EVIDENCE_DIR` 可覆盖证据根目录；相对路径会解析到当前配置目录下，绝对路径按原样使用。
+- 更早的 Windows 源码默认路径曾是 `~\.config\smart-search\config.json`，但有些安装会通过 `SMART_SEARCH_CONFIG_DIR` 提前固定到 `%LOCALAPPDATA%\smart-search`。如果新版默认位置还没有配置，但旧 home 路径存在配置，Smart Search 会以 `legacy_windows_home` 方式继续读取旧配置，避免升级后配置丢失；`config path` 和 `doctor` 会同时报告当前生效路径、默认路径、旧 home 路径、`SMART_SEARCH_CONFIG_DIR`、`SMART_SEARCH_EVIDENCE_DIR` 和最终解析出的证据根目录。
 
 常用环境变量：
 
@@ -272,6 +274,7 @@ smart-search setup --non-interactive `
 | `SMART_SEARCH_RESEARCH_PREFERRED_PROVIDERS` | `research` 路由优先 provider CSV，只能在同 capability 内调整顺序 |
 | `SMART_SEARCH_RESEARCH_DISABLED_PROVIDERS` | `research` 禁用 provider CSV，不能改变 provider capability 边界 |
 | `SMART_SEARCH_CONFIG_DIR` | 指定本机配置和日志根目录 |
+| `SMART_SEARCH_EVIDENCE_DIR` | 指定 `research` 默认证据根目录 |
 
 ## 常用命令
 
@@ -336,8 +339,11 @@ smart-search doctor --format content
 多来源研究建议保存证据文件：
 
 ```powershell
-smart-search exa-search "Reuters Iran Hormuz latest" --format json --output C:\tmp\smart-search-evidence\iran-hormuz\01-exa.json
-smart-search fetch "https://example.com/source" --format markdown --output C:\tmp\smart-search-evidence\iran-hormuz\02-fetch.md
+$Config = smart-search config path --format json | ConvertFrom-Json
+$EvidenceDir = Join-Path $Config.resolved_evidence_dir "iran-hormuz"
+New-Item -ItemType Directory -Force -Path $EvidenceDir | Out-Null
+smart-search exa-search "Reuters Iran Hormuz latest" --format json --output (Join-Path $EvidenceDir "01-exa.json")
+smart-search fetch "https://example.com/source" --format markdown --output (Join-Path $EvidenceDir "02-fetch.md")
 ```
 
 写 claim-level 结论时建议流程：

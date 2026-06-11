@@ -231,13 +231,15 @@ Minimum profile defaults to `standard`, requiring at least:
 
 Missing required capabilities fail closed with a configuration error. Use `SMART_SEARCH_MINIMUM_PROFILE=off` only for local experiments.
 
-Local config path:
+Local config and evidence paths:
 
 - Windows default: `%LOCALAPPDATA%\smart-search\config.json`.
 - Linux/macOS default: `~/.config/smart-search/config.json`.
 - `SMART_SEARCH_CONFIG_DIR` is an advanced override for CI, containers, sandboxes, or portable installs.
+- `research` evidence defaults to `evidence` under the active config directory, for example `%LOCALAPPDATA%\smart-search\evidence` on Windows.
+- `SMART_SEARCH_EVIDENCE_DIR` overrides the evidence root. Relative values resolve under the active config directory; absolute values are used as-is.
 - `SMART_SEARCH_RESEARCH_PREFERRED_PROVIDERS` and `SMART_SEARCH_RESEARCH_DISABLED_PROVIDERS` are advanced `research` routing overrides. They accept provider CSV values and can only reorder or disable providers inside existing capability boundaries.
-- Earlier Windows source builds defaulted to `~\.config\smart-search\config.json`, while some installs were already pinned to `%LOCALAPPDATA%\smart-search` through `SMART_SEARCH_CONFIG_DIR`. If the new Windows default file is missing but the old home config exists, Smart Search reads the old file as `legacy_windows_home` so upgrades do not lose configuration. `doctor` reports the active path, default path, old home path, `SMART_SEARCH_CONFIG_DIR`, and whether that override merely matches the current default.
+- Earlier Windows source builds defaulted to `~\.config\smart-search\config.json`, while some installs were already pinned to `%LOCALAPPDATA%\smart-search` through `SMART_SEARCH_CONFIG_DIR`. If the new Windows default file is missing but the old home config exists, Smart Search reads the old file as `legacy_windows_home` so upgrades do not lose configuration. `config path` and `doctor` report the active/default/legacy config paths, `SMART_SEARCH_CONFIG_DIR`, `SMART_SEARCH_EVIDENCE_DIR`, and the resolved evidence root.
 
 Provider timeouts:
 
@@ -310,8 +312,11 @@ smart-search doctor --format content
 Save multi-source evidence under a stable folder:
 
 ```powershell
-smart-search exa-search "Reuters Iran Hormuz latest" --format json --output C:\tmp\smart-search-evidence\iran-hormuz\01-exa.json
-smart-search fetch "https://example.com/source" --format markdown --output C:\tmp\smart-search-evidence\iran-hormuz\02-fetch.md
+$Config = smart-search config path --format json | ConvertFrom-Json
+$EvidenceDir = Join-Path $Config.resolved_evidence_dir "iran-hormuz"
+New-Item -ItemType Directory -Force -Path $EvidenceDir | Out-Null
+smart-search exa-search "Reuters Iran Hormuz latest" --format json --output (Join-Path $EvidenceDir "01-exa.json")
+smart-search fetch "https://example.com/source" --format markdown --output (Join-Path $EvidenceDir "02-fetch.md")
 ```
 
 For claim-level evidence:

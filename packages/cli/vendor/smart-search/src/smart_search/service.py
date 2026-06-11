@@ -701,7 +701,7 @@ def _slugify_query(query: str) -> str:
 
 def _default_evidence_dir(query: str) -> str:
     timestamp = time.strftime("%Y%m%d-%H%M")
-    return str(Path("C:/tmp/smart-search-evidence") / f"{timestamp}-{_slugify_query(query)}")
+    return str(config.evidence_dir / f"{timestamp}-{_slugify_query(query)}")
 
 
 def _quote_arg(value: str) -> str:

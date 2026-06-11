@@ -166,6 +166,11 @@ __pycache__/
 *.pyc
 .pytest_cache/
 
+# Vendored smart-search local Python build artifacts
+packages/cli/vendor/smart-search/.smart-search-python/
+packages/cli/vendor/smart-search/build/
+packages/cli/vendor/smart-search/src/*.egg-info/
+
 .reference
 
 .trellis/tasks/01-23-eng-blog-research

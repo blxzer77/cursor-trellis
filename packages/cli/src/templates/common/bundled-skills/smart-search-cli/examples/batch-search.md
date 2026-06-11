@@ -16,7 +16,8 @@ Keep batch work reproducible:
 Use a PowerShell loop when several independent queries need the same source-discovery treatment.
 
 ```powershell
-$EvidenceDir = "C:\tmp\smart-search-evidence\YYYYMMDD-HHMM-batch"
+$Config = smart-search config path --format json | ConvertFrom-Json
+$EvidenceDir = Join-Path $Config.resolved_evidence_dir "YYYYMMDD-HHMM-batch"
 New-Item -ItemType Directory -Force -Path $EvidenceDir | Out-Null
 
 $Queries = @(
@@ -45,7 +46,8 @@ After the loop:
 Use this when the user already provided URLs or when discovery produced a short URL list.
 
 ```powershell
-$EvidenceDir = "C:\tmp\smart-search-evidence\YYYYMMDD-HHMM-url-batch"
+$Config = smart-search config path --format json | ConvertFrom-Json
+$EvidenceDir = Join-Path $Config.resolved_evidence_dir "YYYYMMDD-HHMM-url-batch"
 New-Item -ItemType Directory -Force -Path $EvidenceDir | Out-Null
 
 $Urls = @(

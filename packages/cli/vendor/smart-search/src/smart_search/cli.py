@@ -344,6 +344,8 @@ def _format_doctor_markdown(data: dict[str, Any]) -> str:
         f"Minimum profile: {_status_label(data.get('minimum_profile_ok'))}",
         f"Log dir config value: `{data.get('log_dir_config_value', data.get('SMART_SEARCH_LOG_DIR', ''))}`",
         f"Resolved log dir: `{data.get('resolved_log_dir', '')}`",
+        f"Evidence dir config value: `{data.get('evidence_dir_config_value', data.get('SMART_SEARCH_EVIDENCE_DIR', ''))}`",
+        f"Resolved evidence dir: `{data.get('resolved_evidence_dir', '')}`",
         f"File logging enabled: {_yes_no(data.get('file_logging_enabled'))}",
     ]
     if data.get("legacy_windows_config_file"):
@@ -532,6 +534,10 @@ def _format_config_markdown(data: dict[str, Any]) -> str:
     if data.get("config_dir_override_value"):
         lines.append(f"SMART_SEARCH_CONFIG_DIR: `{data.get('config_dir_override_value')}`")
         lines.append(f"Override matches default: {_yes_no(data.get('config_dir_override_matches_default'))}")
+    if data.get("evidence_dir_config_value"):
+        lines.append(f"Evidence dir config value: `{data.get('evidence_dir_config_value')}`")
+    if data.get("resolved_evidence_dir"):
+        lines.append(f"Resolved evidence dir: `{data.get('resolved_evidence_dir')}`")
     if "exists" in data:
         lines.append(f"Exists: {_status_label(bool(data.get('exists')))}")
     if data.get("key"):

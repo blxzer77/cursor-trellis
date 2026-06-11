@@ -12,6 +12,7 @@
 - On Windows with mise, the managed package name is `npm:@konbakuyomu/smart-search`; the executable remains `smart-search`. Diagnose mise managed installs with `mise ls "npm:@konbakuyomu/smart-search"` and `mise which smart-search` (the bare name `smart-search` is the bin, not a mise tool identifier).
 - On Windows, the default config file is `%LOCALAPPDATA%\smart-search\config.json`. Linux/macOS default to `~/.config/smart-search/config.json`.
 - `SMART_SEARCH_CONFIG_DIR` is an advanced override for CI, containers, sandboxes, or portable installs. The CLI uses it for config and relative logs and skips default-directory selection.
+- The default research evidence root is `evidence` under the active config directory. `SMART_SEARCH_EVIDENCE_DIR` overrides that root; relative values resolve under the active config directory and absolute values are used as-is.
 - Earlier Windows source defaults used `~\.config\smart-search\config.json`, while some installs were already pinned to `%LOCALAPPDATA%\smart-search` through `SMART_SEARCH_CONFIG_DIR`. If the new Windows default file is missing but the old file exists, the active config source is `legacy_windows_home` so upgrades do not silently lose configuration. Diagnostics must expose the override value and whether it matches the current default.
 
 ## Commands
@@ -70,7 +71,7 @@ Successful search output includes `ok`, `query`, `primary_api_mode`, `content`, 
 
 `--format json` is the stable machine-readable contract for agents and scripts. JSON output remains parseable and uses readable non-ASCII text when the terminal encoding supports it.
 
-`--format markdown` is the human-readable report format. `doctor --format markdown` must render a detailed diagnostic report with overall status, active/default/legacy config paths, log path resolution, file-logging status, masked config values with sources, minimum profile, capability status, main-search provider checks, provider connectivity checks, model metadata, and full long error/message detail instead of falling back to raw JSON. `diagnose openai-compatible --format markdown` must render a short copy-pasteable troubleshooting report with masked config, quick chat check, real search-shape `stream=false` and `stream=true` checks, a plain-language summary, and a next command. Provider list commands such as `exa-search`, `exa-similar`, `zhipu-search`, `context7-library`, and `map` render result lists or a clear no-results message.
+`--format markdown` is the human-readable report format. `doctor --format markdown` must render a detailed diagnostic report with overall status, active/default/legacy config paths, log path resolution, evidence path resolution, file-logging status, masked config values with sources, minimum profile, capability status, main-search provider checks, provider connectivity checks, model metadata, and full long error/message detail instead of falling back to raw JSON. `diagnose openai-compatible --format markdown` must render a short copy-pasteable troubleshooting report with masked config, quick chat check, real search-shape `stream=false` and `stream=true` checks, a plain-language summary, and a next command. Provider list commands such as `exa-search`, `exa-similar`, `zhipu-search`, `context7-library`, and `map` render result lists or a clear no-results message.
 
 `--format content` prints only the `content` field for content-bearing commands such as `search`, `fetch`, `context7-docs`, and `research`. Commands without a `content` field, including `doctor` and `config`, must print a compact non-empty text summary rather than an empty stdout.
 
@@ -131,7 +132,7 @@ Map output includes `ok`, `base_url`, `results`, `response_time`, `url`, and `el
 
 Research executor output includes `ok`, `mode=deep_research_execution`, `query_mode=research`, `question`, `budget`, `research_plan`, `routing_decision`, `stage_results`, `discovery_sources`, `final_answer`, `content`, `citations`, `evidence_items`, `gap_check`, `provider_attempts`, `providers_used`, `fallback_used`, `degraded`, `route_policy_version`, `evidence_dir`, `minimum_profile_ok`, `capability_status`, and `elapsed_ms`. The embedded `research_plan` carries `intent_signals`, `decomposition`, `capability_plan`, `evidence_policy`, `steps`, and `gap_check`. Citations must come only from fetched/read `evidence_items`; discovery sources are candidates until fetched. If evidence cannot close, `research` returns degraded gaps instead of unsupported claims.
 
-Diagnostic output masks keys, reports `config_file` / `config_dir` / `config_dir_source` / `default_config_file` / Windows legacy config metadata / `config_dir_override_value` / `config_dir_override_matches_default` / `log_dir_config_value` / `resolved_log_dir` / `file_logging_enabled` / `config_sources` / `primary_api_mode` / `primary_api_mode_source` / provider timeout values / `capability_status` / `minimum_profile_ok`, and includes `main_search_connection_tests` plus connection test objects for Exa, Tavily, Zhipu, Context7, and Firecrawl. `primary_connection_test` remains as a backward-compatible alias for the first configured main provider check. OpenAI-compatible provider health must be validated through `/chat/completions`; `/models` is supplementary metadata and must not be the health gate. Firecrawl currently reports whether `FIRECRAWL_API_KEY` is configured; it is not a live Firecrawl request.
+Diagnostic output masks keys, reports `config_file` / `config_dir` / `config_dir_source` / `default_config_file` / Windows legacy config metadata / `config_dir_override_value` / `config_dir_override_matches_default` / `log_dir_config_value` / `resolved_log_dir` / `evidence_dir_config_value` / `resolved_evidence_dir` / `file_logging_enabled` / `config_sources` / `primary_api_mode` / `primary_api_mode_source` / provider timeout values / `capability_status` / `minimum_profile_ok`, and includes `main_search_connection_tests` plus connection test objects for Exa, Tavily, Zhipu, Context7, and Firecrawl. `primary_connection_test` remains as a backward-compatible alias for the first configured main provider check. OpenAI-compatible provider health must be validated through `/chat/completions`; `/models` is supplementary metadata and must not be the health gate. Firecrawl currently reports whether `FIRECRAWL_API_KEY` is configured; it is not a live Firecrawl request.
 
 When a Windows user reports that different versions seem to use different config paths, diagnose in this order: `config_dir_source`, `config_dir_override_value`, `config_dir_override_matches_default`, then `legacy_windows_config_exists`. A source of `environment` with `config_dir_override_matches_default=true` means the active path is pinned by `SMART_SEARCH_CONFIG_DIR` but is functionally the same as the current default. Do not delete either config file or the user-level override until the upgraded CLI has been verified with `config path` and `doctor` checks.
 
@@ -157,7 +158,7 @@ Deep Research must not require fixed topic recipe ids such as `current_market_re
 - `gap_check`: how the executor verifies that key claims have fetched evidence or downgrades unsupported claims to unverified candidates.
 - `final_answer_policy`: how to cite fetched evidence and list unverified candidates.
 
-Each `steps[]` item must include `id`, `subquestion_id`, `tool`, `purpose`, `command`, and `output_path`. Allowed `tool` values are `search`, `exa-search`, `exa-similar`, `context7-library`, `context7-docs`, `fetch`, and `map`; these map to existing CLI commands only. `doctor` is a `preflight` action, not a `steps[]` item. Use `C:\tmp\smart-search-evidence\<timestamp>-<slug>\` or an equivalent absolute evidence directory for `output_path` values.
+Each `steps[]` item must include `id`, `subquestion_id`, `tool`, `purpose`, `command`, and `output_path`. Allowed `tool` values are `search`, `exa-search`, `exa-similar`, `context7-library`, `context7-docs`, `fetch`, and `map`; these map to existing CLI commands only. `doctor` is a `preflight` action, not a `steps[]` item. Use the system-aware evidence root from `resolved_evidence_dir` or an explicit `--evidence-dir` absolute directory for `output_path` values.
 
 Capability boundaries:
 
@@ -184,7 +185,10 @@ Default Deep Research orchestration:
 When the user wants the CLI to execute the live workflow directly, call:
 
 ```powershell
-smart-search research "question" --budget deep --fallback auto --format json --output C:\tmp\smart-search-evidence\research.json
+$Config = smart-search config path --format json | ConvertFrom-Json
+$EvidenceDir = Join-Path $Config.resolved_evidence_dir "YYYYMMDD-HHMM-topic"
+New-Item -ItemType Directory -Force -Path $EvidenceDir | Out-Null
+smart-search research "question" --budget deep --fallback auto --format json --output (Join-Path $EvidenceDir "research.json")
 ```
 
 `research --fallback auto` permits same-capability fallback inside selected routes. `research --fallback off` tries only the first selected provider in each capability route and is for debugging or provider comparison. Dynamic routing may reorder providers only inside the same capability. Every attempt must record capability, provider, status, error type, latency, and result count.
@@ -207,7 +211,7 @@ Planner closeout lessons:
 
 Deep Research test coverage should verify trigger phrases, normal search requests that should not trigger Deep Research, required `research_plan` fields, allowed tool whitelist, `fetch_before_claim`, evidence paths, capability boundaries, `intent_signals`, `capability_plan`, `gap_check`, simple current prompts such as `深度搜索一下最近的比特币行情`, docs/API prompts, claim-verification prompts, user-provided URL fetch-first flows, missing-provider failure guidance, research provider advantage routing, same-capability research fallback, and the rule that fixed topic recipe ids are not required schema. When real keys are available, a small live `research` check confirms staged behavior end to end. If an issue is found, fix the affected docs/code/tests and rerun until it passes or is proven to be an external provider blocker.
 
-Setup and config output should include `ok` and `config_file`. Saved API keys must be masked in command output.
+Setup and config output should include `ok` and `config_file`; `config path` and `doctor` should include `resolved_evidence_dir`. Saved API keys must be masked in command output.
 
 Interactive setup behavior:
 
