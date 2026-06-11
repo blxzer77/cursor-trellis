@@ -1,5 +1,0 @@
-{"file": ".trellis/spec/cli/backend/project-capabilities.md", "reason": "Capability registry, generated MCP config, readiness, fallback, and safety boundaries for this refactor"}
-{"file": ".trellis/spec/cli/backend/commands-update.md", "reason": "Update must regenerate selected capability files without global config mutation or unsafe readiness side effects"}
-{"file": ".trellis/spec/cli/backend/configurator-shared.md", "reason": "Generated config files and placeholder/update semantics across platform configurators"}
-{"file": ".trellis/spec/cli/backend/quality-guidelines.md", "reason": "Backend implementation standards and dependency constraints"}
-{"file": ".trellis/tasks/06-11-semantic-retrieval-stack-design-fixes/research/fast-context-codegraph-capability-research.md", "reason": "Evidence-based capability boundaries for fast-context, CodeGraph, and Graphify removal from primary retrieval"}

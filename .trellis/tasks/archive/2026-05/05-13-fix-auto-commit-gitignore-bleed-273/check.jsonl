@@ -1,3 +1,0 @@
-{"file": ".trellis/spec/cli/backend/quality-guidelines.md", "reason": "Forbidden patterns, code-quality bar"}
-{"file": ".trellis/spec/cli/unit-test/conventions.md", "reason": "When + how to add unit tests; the two reproduction tests need to follow this style"}
-{"file": ".trellis/spec/cli/backend/script-conventions.md", "reason": "Cross-reference to confirm the implementation matches Python script conventions"}
