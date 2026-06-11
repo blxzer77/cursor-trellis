@@ -1,8 +1,12 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
   applyCodexCapabilityConfig,
   buildProjectCapabilityTemplates,
+  loadProjectCapabilities,
   parseProjectCapabilities,
   renderCapabilitiesJson,
   renderCapabilitiesMarkdown,
@@ -14,15 +18,13 @@ describe("project capabilities", () => {
     expect(
       parseProjectCapabilities([
         "fast-context",
-        "colbymchenry/codegraph,graphify",
+        "colbymchenry/codegraph",
         "none",
       ]),
-    ).toEqual(["fast-context-mcp", "codegraph", "graphify"]);
+    ).toEqual(["codebase-retrieval"]);
 
     expect(parseProjectCapabilities(["all"])).toEqual([
-      "fast-context-mcp",
-      "codegraph",
-      "graphify",
+      "codebase-retrieval",
       "github-mcp",
       "playwright-mcp",
     ]);
@@ -34,9 +36,36 @@ describe("project capabilities", () => {
     );
   });
 
+  it("loads stored legacy aliases while ignoring removed unknown selections", () => {
+    const tmpDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "trellis-capabilities-"),
+    );
+    try {
+      fs.mkdirSync(path.join(tmpDir, ".trellis"), { recursive: true });
+      fs.writeFileSync(
+        path.join(tmpDir, ".trellis", "capabilities.json"),
+        JSON.stringify({
+          selected: [
+            "fast-context-mcp",
+            "codegraph",
+            "legacy-architecture-graph",
+            "playwright-mcp",
+          ],
+        }),
+      );
+
+      expect(loadProjectCapabilities(tmpDir)).toEqual([
+        "codebase-retrieval",
+        "playwright-mcp",
+      ]);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
   it("renders Claude/Cursor MCP JSON without credentials", () => {
     const parsed = JSON.parse(
-      renderMcpJson(["fast-context-mcp", "playwright-mcp"]),
+      renderMcpJson(["codebase-retrieval", "playwright-mcp"]),
     ) as {
       mcpServers: Record<string, { command: string; args: string[] }>;
     };
@@ -45,52 +74,83 @@ describe("project capabilities", () => {
       command: "fast-context-mcp",
       args: [],
     });
-    expect(parsed.mcpServers.playwright).toEqual({
-      command: "npx",
-      args: ["-y", "@playwright/mcp@latest"],
-    });
-    expect(JSON.stringify(parsed)).not.toMatch(/TOKEN|KEY|SECRET/i);
-  });
-
-  it("renders readiness fallback guidance without credentials", () => {
-    const parsed = JSON.parse(renderCapabilitiesJson(["fast-context-mcp"])) as {
-      capabilities: Record<string, { fallback: string[] }>;
-    };
-
-    expect(parsed.capabilities["fast-context-mcp"].fallback).toContain(
-      "Install or expose `fast-context-mcp` on PATH for the selected agent host.",
-    );
-    expect(JSON.stringify(parsed)).not.toMatch(/TOKEN|KEY|SECRET/i);
-  });
-
-  it("renders CodeGraph MCP server with the verified serve command", () => {
-    const parsed = JSON.parse(renderMcpJson(["codegraph"])) as {
-      mcpServers: Record<string, { command: string; args: string[] }>;
-    };
-
     expect(parsed.mcpServers.codegraph).toEqual({
       command: "codegraph",
       args: ["serve"],
     });
+    expect(parsed.mcpServers.playwright).toEqual({
+      command: "npx",
+      args: ["-y", "@playwright/mcp@latest"],
+    });
+    expect(JSON.stringify(parsed)).not.toMatch(
+      /API[_-]?KEY|ACCESS[_-]?TOKEN|SECRET/i,
+    );
   });
 
-  it("renders structured CodeGraph CLI automation guidance", () => {
-    const parsed = JSON.parse(renderCapabilitiesJson(["codegraph"])) as {
+  it("renders role-based retrieval adapters and fallback guidance without credentials", () => {
+    const parsed = JSON.parse(
+      renderCapabilitiesJson(["codebase-retrieval"]),
+    ) as {
+      schema_version: number;
+      selected: string[];
       capabilities: Record<
         string,
         {
-          cli_automation_guidance?: Array<{ command: string; use: string }>;
+          adapters?: Record<
+            string,
+            { provider: string; required: boolean; evidence_status: string }
+          >;
+          fallback: string[];
+        }
+      >;
+    };
+    const retrieval = parsed.capabilities["codebase-retrieval"];
+
+    expect(parsed.schema_version).toBe(2);
+    expect(parsed.selected).toEqual(["codebase-retrieval"]);
+    expect(retrieval?.adapters?.exact).toEqual(
+      expect.objectContaining({
+        provider: "rg",
+        required: true,
+      }),
+    );
+    expect(retrieval?.adapters?.semantic).toEqual(
+      expect.objectContaining({
+        provider: "fast-context-mcp",
+        required: false,
+      }),
+    );
+    expect(retrieval?.fallback).toContain(
+      "Install or expose `rg` on PATH before claiming codebase retrieval readiness.",
+    );
+    expect(JSON.stringify(parsed)).not.toMatch(
+      /API[_-]?KEY|ACCESS[_-]?TOKEN|SECRET/i,
+    );
+  });
+
+  it("renders structured CodeGraph CLI automation guidance under retrieval", () => {
+    const parsed = JSON.parse(
+      renderCapabilitiesJson(["codebase-retrieval"]),
+    ) as {
+      capabilities: Record<
+        string,
+        {
+          cli_automation_guidance?: { command: string; use: string }[];
           routing: string;
         }
       >;
     };
-    const codegraph = parsed.capabilities.codegraph;
+    const retrieval = parsed.capabilities["codebase-retrieval"];
 
-    expect(codegraph.routing).toContain("For impact preflight");
-    expect(codegraph.cli_automation_guidance).toEqual(
+    expect(retrieval?.routing).toContain("retrieval role");
+    expect(retrieval?.cli_automation_guidance).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          command: "codegraph status --json <path>",
+          command: "rg <pattern> <path>",
+          use: expect.stringContaining("exact identifiers"),
+        }),
+        expect.objectContaining({
+          command: "codegraph status <path> --json",
           use: expect.stringContaining("pending changes"),
         }),
         expect.objectContaining({
@@ -105,49 +165,21 @@ describe("project capabilities", () => {
     );
   });
 
-  it("renders structured Graphify MCP query guidance", () => {
-    const parsed = JSON.parse(renderCapabilitiesJson(["graphify"])) as {
-      capabilities: Record<
-        string,
-        {
-          mcp_query_guidance?: Array<{ tool: string; use: string }>;
-          routing: string;
-        }
-      >;
-    };
-    const graphify = parsed.capabilities.graphify;
-
-    expect(graphify.routing).toContain("After explicit MCP approval");
-    expect(graphify.mcp_query_guidance).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          tool: "query_graph",
-          use: expect.stringContaining("Broad architecture or concept"),
-        }),
-        expect.objectContaining({
-          tool: "graph_stats",
-          use: expect.stringContaining("coverage and health"),
-        }),
-        expect.objectContaining({
-          tool: "shortest_path",
-          use: expect.stringContaining("relationship path"),
-        }),
-      ]),
-    );
-  });
-
   it("renders Codex MCP server blocks inside a replaceable managed section", () => {
     const first = applyCodexCapabilityConfig("project_doc = []\n", [
-      "fast-context-mcp",
+      "codebase-retrieval",
       "github-mcp",
     ]);
     expect(first).toContain("# TRELLIS:PROJECT-CAPABILITIES:START");
     expect(first).toContain("[mcp_servers.fast-context]");
-    expect(first).toContain('[mcp_servers.github]');
+    expect(first).toContain("[mcp_servers.codegraph]");
+    expect(first).toContain("[mcp_servers.github]");
 
-    const second = applyCodexCapabilityConfig(first, ["graphify"]);
+    const second = applyCodexCapabilityConfig(first, ["playwright-mcp"]);
     expect(second).not.toContain("[mcp_servers.fast-context]");
-    expect(second).toContain("[mcp_servers.graphify]");
+    expect(second).not.toContain("[mcp_servers.codegraph]");
+    expect(second).not.toContain("[mcp_servers.github]");
+    expect(second).toContain("[mcp_servers.playwright]");
     expect(second.match(/TRELLIS:PROJECT-CAPABILITIES:START/g)).toHaveLength(
       1,
     );
@@ -155,15 +187,18 @@ describe("project capabilities", () => {
 
   it("builds project capability templates only for selected platforms", () => {
     const files = buildProjectCapabilityTemplates(
-      ["fast-context-mcp", "playwright-mcp"],
+      ["codebase-retrieval", "playwright-mcp"],
       ["codex", "cursor"],
     );
 
     expect(files.get(".trellis/capabilities.json")).toContain(
-      '"fast-context-mcp"',
+      '"codebase-retrieval"',
     );
     expect(files.get(".trellis/capabilities.md")).toContain(
       "Unselected, unavailable, skipped, or uninvoked capabilities",
+    );
+    expect(files.get(".trellis/capabilities.md")).toContain(
+      "## Codebase Retrieval Workflow",
     );
     expect(files.get(".trellis/capabilities.md")).toContain(
       "## Fallback Guidance",
@@ -171,37 +206,27 @@ describe("project capabilities", () => {
     expect(files.get(".codex/config.toml")).toContain(
       "[mcp_servers.fast-context]",
     );
+    expect(files.get(".codex/config.toml")).toContain(
+      "[mcp_servers.codegraph]",
+    );
     expect(files.get(".cursor/mcp.json")).toContain('"playwright"');
     expect(files.has(".mcp.json")).toBe(false);
   });
 
-  it("renders graph capability freshness boundaries", () => {
-    const files = buildProjectCapabilityTemplates(["codegraph", "graphify"], [
-      "claude-code",
-    ]);
-    const capabilitiesMd = files.get(".trellis/capabilities.md");
+  it("renders selected retrieval workflow and CLI routing", () => {
+    const capabilitiesMd = renderCapabilitiesMarkdown(["codebase-retrieval"]);
 
-    expect(capabilitiesMd).toContain(
-      "CodeGraph index markers are freshness hints, not proof",
-    );
-    expect(capabilitiesMd).toContain(
-      "Graphify is artifact-first: existing `graphify-out` artifacts can orient work",
-    );
-    expect(capabilitiesMd).toContain(
-      "they do not prove current-code behavior",
-    );
-    expect(capabilitiesMd).toContain("## Fallback Guidance");
-    expect(capabilitiesMd).toContain(
-      "If artifact freshness is unknown, treat Graphify output as orientation only",
-    );
-  });
-
-  it("renders selected CodeGraph CLI automation routing", () => {
-    const capabilitiesMd = renderCapabilitiesMarkdown(["codegraph"]);
-
+    expect(capabilitiesMd).toContain("## Codebase Retrieval Workflow");
+    expect(capabilitiesMd).toContain("## Adapter Roles");
+    expect(capabilitiesMd).toContain("### exact");
+    expect(capabilitiesMd).toContain("### ast");
+    expect(capabilitiesMd).toContain("### lsp");
+    expect(capabilitiesMd).toContain("### semantic");
+    expect(capabilitiesMd).toContain("### verification");
     expect(capabilitiesMd).toContain("## CLI Automation Guidance");
-    expect(capabilitiesMd).toContain("### codegraph");
-    expect(capabilitiesMd).toContain("`codegraph status --json <path>`");
+    expect(capabilitiesMd).toContain("### codebase-retrieval");
+    expect(capabilitiesMd).toContain("`rg <pattern> <path>`");
+    expect(capabilitiesMd).toContain("`codegraph status <path> --json`");
     expect(capabilitiesMd).toContain(
       "`codegraph query <symbol-or-search> --path <path> --json`",
     );
@@ -221,26 +246,6 @@ describe("project capabilities", () => {
     expect(capabilitiesMd).toContain(
       "current source, Git, or tests confirm the claim",
     );
-  });
-
-  it("renders selected Graphify MCP query routing without implicit startup", () => {
-    const capabilitiesMd = renderCapabilitiesMarkdown(["graphify"]);
-
-    expect(capabilitiesMd).toContain("## MCP Query Guidance");
-    expect(capabilitiesMd).toContain("### graphify");
-    expect(capabilitiesMd).toContain("`query_graph`");
-    expect(capabilitiesMd).toContain("`get_node`");
-    expect(capabilitiesMd).toContain("`get_neighbors`");
-    expect(capabilitiesMd).toContain("`get_community`");
-    expect(capabilitiesMd).toContain("`god_nodes`");
-    expect(capabilitiesMd).toContain("`graph_stats`");
-    expect(capabilitiesMd).toContain("`shortest_path`");
-    expect(capabilitiesMd).toContain(
-      "explicitly approves any MCP runtime startup",
-    );
-    expect(capabilitiesMd).toContain(
-      "source reads, Git, and tests remain the proof layer",
-    );
-    expect(capabilitiesMd).not.toContain("automatically start");
+    expect(capabilitiesMd).not.toContain("## MCP Query Guidance");
   });
 });

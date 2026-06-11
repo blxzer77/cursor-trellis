@@ -9,40 +9,48 @@ import {
 } from "./project-capabilities.js";
 
 const SMART_SEARCH_READINESS_COMMAND = "smart-search doctor --format json";
+const CODEBASE_REQUIRED_EXACT_COMMAND = "rg";
 const CODEGRAPH_INDEX_MARKERS = [
   ".codegraph",
   "codegraph.json",
   ".codegraph/index.json",
 ];
-const GRAPHIFY_ARTIFACT_PATHS = [
-  "graphify-out/GRAPH_REPORT.md",
-  "graphify-out/wiki/index.md",
-  "graphify-out/graph.json",
-  "wiki/index.md",
-  "graph.json",
-];
+const CODEBASE_OPTIONAL_ADAPTER_COMMANDS = [
+  {
+    label: "semantic fast-context adapter",
+    command: "fast-context-mcp",
+    missing:
+      "Optional semantic adapter `fast-context-mcp` is not available; continue with exact search and source reads, and do not claim semantic recall output.",
+  },
+  {
+    label: "AST CodeGraph adapter",
+    command: "codegraph",
+    missing:
+      "Optional AST adapter `codegraph` is not available; continue with exact search and source reads, and do not claim structural graph output.",
+  },
+] as const;
 
-type SmartSearchDoctorResult = {
+interface SmartSearchDoctorResult {
   ok?: unknown;
   minimum_profile_ok?: unknown;
   minimum_profile_missing?: unknown;
   error_type?: unknown;
   error?: unknown;
-};
+}
 
-type ExecSyncFailure = {
+interface ExecSyncFailure {
   stdout?: unknown;
   status?: unknown;
   code?: unknown;
   signal?: unknown;
-};
+}
 
-type ProjectCapabilityProbe = {
+interface ProjectCapabilityProbe {
   id: ProjectCapabilityId;
   infos: string[];
   failures: string[];
   warnings: string[];
-};
+}
 
 function childOutputToString(output: unknown): string {
   if (typeof output === "string") return output;
@@ -192,8 +200,8 @@ function existingRelativePaths(cwd: string, relativePaths: string[]): string[] {
 
 function hasGithubCredentialEnv(): boolean {
   return Boolean(
-    process.env.GITHUB_TOKEN ||
-      process.env.GH_TOKEN ||
+    process.env.GITHUB_TOKEN ??
+      process.env.GH_TOKEN ??
       process.env.GITHUB_PERSONAL_ACCESS_TOKEN,
   );
 }
@@ -202,36 +210,28 @@ function probeProjectCapability(
   cwd: string,
   id: ProjectCapabilityId,
 ): ProjectCapabilityProbe {
+  if (id === "codebase-retrieval") {
+    return probeCodebaseRetrievalCapability(cwd);
+  }
+
   const capability = getProjectCapability(id);
-  const command = capability.mcpServer.command;
+  const [server] = capability.mcpServers;
+  if (!server) {
+    return {
+      id,
+      infos: [],
+      failures: ["capability has no MCP server template to probe"],
+      warnings: [],
+    };
+  }
+
+  const command = server.command;
   const commandAvailable = commandIsAvailable(command);
   const infos: string[] = [];
   const failures: string[] = [];
   const warnings: string[] = [];
 
-  if (id === "graphify") {
-    const artifacts = existingRelativePaths(cwd, GRAPHIFY_ARTIFACT_PATHS);
-    if (!commandAvailable && artifacts.length === 0) {
-      failures.push(
-        `command \`${command}\` is not available on PATH and no Graphify artifacts were found`,
-      );
-    }
-    if (!commandAvailable && artifacts.length > 0) {
-      warnings.push(
-        `Graphify command \`${command}\` is not available; artifact-only fallback is available via ${artifacts.join(", ")}`,
-      );
-    }
-    if (commandAvailable && artifacts.length === 0) {
-      warnings.push(
-        "No Graphify artifacts found; graph builds or updates still require explicit user approval.",
-      );
-    }
-    if (artifacts.length > 0) {
-      warnings.push(
-        "Graphify artifacts are orientation evidence only and cannot prove current-code behavior; confirm freshness with Git, source reads, or task validation before graph-derived claims.",
-      );
-    }
-  } else if (!commandAvailable) {
+  if (!commandAvailable) {
     failures.push(`command \`${command}\` is not available on PATH`);
   }
 
@@ -242,25 +242,6 @@ function probeProjectCapability(
     }
     if (smoke.warning) {
       warnings.push(smoke.warning);
-    }
-  }
-
-  if (id === "fast-context-mcp" && commandAvailable) {
-    warnings.push(
-      "MCP host visibility and a project-scoped smoke search still require host-level confirmation before using fast-context evidence.",
-    );
-  }
-
-  if (id === "codegraph" && commandAvailable) {
-    const markers = existingRelativePaths(cwd, CODEGRAPH_INDEX_MARKERS);
-    if (markers.length === 0) {
-      warnings.push(
-        "No common CodeGraph index marker was found; initialize or refresh the index, or fall back to source reads before graph-derived impact claims.",
-      );
-    } else {
-      warnings.push(
-        `CodeGraph index marker found (${markers.join(", ")}), but Trellis has not verified index freshness; run a host-level status/query smoke or confirm with Git/source evidence before graph-derived impact claims.`,
-      );
     }
   }
 
@@ -275,6 +256,68 @@ function probeProjectCapability(
       "Playwright MCP package and browser runtime were not started by readiness; run a host MCP smoke before claiming rendered UI evidence.",
     );
   }
+
+  return { id, infos, failures, warnings };
+}
+
+function probeCodebaseRetrievalCapability(cwd: string): ProjectCapabilityProbe {
+  const id: ProjectCapabilityId = "codebase-retrieval";
+  const infos: string[] = [];
+  const failures: string[] = [];
+  const warnings: string[] = [];
+
+  if (!commandIsAvailable(CODEBASE_REQUIRED_EXACT_COMMAND)) {
+    failures.push(
+      `required exact search command \`${CODEBASE_REQUIRED_EXACT_COMMAND}\` is not available on PATH`,
+    );
+  } else {
+    const smoke = runSafeVisibilitySmoke(id, CODEBASE_REQUIRED_EXACT_COMMAND);
+    if (smoke.info) {
+      infos.push(smoke.info);
+    }
+    if (smoke.warning) {
+      warnings.push(smoke.warning);
+    }
+  }
+
+  for (const adapter of CODEBASE_OPTIONAL_ADAPTER_COMMANDS) {
+    const commandAvailable = commandIsAvailable(adapter.command);
+    if (!commandAvailable) {
+      warnings.push(adapter.missing);
+      continue;
+    }
+
+    const smoke = runSafeVisibilitySmoke(id, adapter.command);
+    if (smoke.info) {
+      infos.push(`${adapter.label}: ${smoke.info}`);
+    }
+    if (smoke.warning) {
+      warnings.push(`${adapter.label}: ${smoke.warning}`);
+    }
+
+    if (adapter.command === "fast-context-mcp") {
+      warnings.push(
+        "fast-context host MCP visibility and a project-scoped smoke search still require host-level confirmation before using semantic recall evidence.",
+      );
+    }
+
+    if (adapter.command === "codegraph") {
+      const markers = existingRelativePaths(cwd, CODEGRAPH_INDEX_MARKERS);
+      if (markers.length === 0) {
+        warnings.push(
+          "No common CodeGraph index marker was found; initialize or refresh the index after explicit approval, or fall back to source reads before graph-derived impact claims.",
+        );
+      } else {
+        warnings.push(
+          `CodeGraph index marker found (${markers.join(", ")}), but Trellis has not verified index freshness; run a host-level status/query smoke or confirm with Git/source evidence before graph-derived impact claims.`,
+        );
+      }
+    }
+  }
+
+  warnings.push(
+    "LSP adapter readiness is host-specific; Trellis does not start language servers during ordinary init/update.",
+  );
 
   return { id, infos, failures, warnings };
 }

@@ -340,7 +340,21 @@ describe("update() integration", () => {
     await update({});
 
     expect(execSync).toHaveBeenCalledWith(
+      capabilityLookupCommand("rg"),
+      expect.objectContaining({
+        encoding: "utf-8",
+        stdio: "pipe",
+      }),
+    );
+    expect(execSync).toHaveBeenCalledWith(
       capabilityLookupCommand("fast-context-mcp"),
+      expect.objectContaining({
+        encoding: "utf-8",
+        stdio: "pipe",
+      }),
+    );
+    expect(execSync).toHaveBeenCalledWith(
+      capabilityLookupCommand("codegraph"),
       expect.objectContaining({
         encoding: "utf-8",
         stdio: "pipe",
@@ -364,7 +378,7 @@ describe("update() integration", () => {
   it("#1f blocks update before writes when selected capability readiness fails", async () => {
     await init({
       yes: true,
-      capability: ["fast-context-mcp"],
+      capability: ["codebase-retrieval"],
       force: true,
     });
 
@@ -375,14 +389,14 @@ describe("update() integration", () => {
       if (cmd === "smart-search doctor --format json") {
         return JSON.stringify({ ok: true, minimum_profile_ok: true });
       }
-      if (cmd === capabilityLookupCommand("fast-context-mcp")) {
-        throw new Error("fast-context-mcp not found");
+      if (cmd === capabilityLookupCommand("rg")) {
+        throw new Error("rg not found");
       }
       return "";
     }) as typeof execSync);
 
     await expect(update({ force: true })).rejects.toThrow(
-      /Selected project capability readiness failed[\s\S]*fast-context-mcp[\s\S]*trellis update --skip-readiness/,
+      /Selected project capability readiness failed[\s\S]*codebase-retrieval[\s\S]*rg[\s\S]*trellis update --skip-readiness/,
     );
     expect(fs.readFileSync(targetFull, "utf-8")).toBe(
       "user customized content",

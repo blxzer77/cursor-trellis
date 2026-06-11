@@ -6,9 +6,7 @@ import { getConfigTemplate as getCodexConfigTemplate } from "../templates/codex/
 import { ensureDir, writeFile } from "./file-writer.js";
 
 export const PROJECT_CAPABILITY_IDS = [
-  "fast-context-mcp",
-  "codegraph",
-  "graphify",
+  "codebase-retrieval",
   "github-mcp",
   "playwright-mcp",
 ] as const;
@@ -31,6 +29,15 @@ export interface CliAutomationGuidance {
   use: string;
 }
 
+export interface ProjectCapabilityAdapter {
+  provider: string;
+  required: boolean;
+  purpose: string;
+  readiness: string;
+  evidenceStatus: string;
+  mcpServer?: string;
+}
+
 export interface ProjectCapability {
   id: ProjectCapabilityId;
   aliases: string[];
@@ -39,9 +46,19 @@ export interface ProjectCapability {
   routing: string;
   readiness: string;
   fallback: string[];
+  adapters?: Record<string, ProjectCapabilityAdapter>;
   cliAutomationGuidance?: CliAutomationGuidance[];
   mcpQueryGuidance?: McpQueryGuidance[];
-  mcpServer: McpServerTemplate;
+  mcpServers: McpServerTemplate[];
+}
+
+interface RenderedCapabilityAdapter {
+  provider: string;
+  required: boolean;
+  purpose: string;
+  readiness: string;
+  evidence_status: string;
+  mcp_server?: string;
 }
 
 const CAPABILITIES_JSON_PATH = ".trellis/capabilities.json";
@@ -51,41 +68,86 @@ const CODEX_CAPABILITIES_END = "# TRELLIS:PROJECT-CAPABILITIES:END";
 
 export const PROJECT_CAPABILITIES: readonly ProjectCapability[] = [
   {
-    id: "fast-context-mcp",
-    aliases: ["fast-context", "fast_context"],
-    title: "fast-context-mcp",
-    description: "Semantic local code search and repository discovery.",
-    routing:
-      "Use for non-trivial local repository discovery, then confirm important findings with rg, Git, or direct file reads before final evidence claims.",
-    readiness:
-      "MCP server is visible to the selected agent host and can run a small project-scoped semantic search or return an actionable credential/API failure.",
-    fallback: [
-      "Install or expose `fast-context-mcp` on PATH for the selected agent host.",
-      "If semantic search is unavailable, use `rg`, Git, and direct file reads; do not report fast-context results as evidence.",
+    id: "codebase-retrieval",
+    aliases: [
+      "fast-context-mcp",
+      "fast-context",
+      "fast_context",
+      "codegraph",
+      "colbymchenry/codegraph",
+      "colbymchenry-codegraph",
     ],
-    mcpServer: {
-      name: "fast-context",
-      command: "fast-context-mcp",
-      args: [],
-    },
-  },
-  {
-    id: "codegraph",
-    aliases: ["colbymchenry/codegraph", "colbymchenry-codegraph"],
-    title: "colbymchenry/codegraph",
+    title: "Codebase retrieval",
     description:
-      "Code structure, definitions, relationships, impact, and path queries.",
+      "Role-based local code retrieval through exact search, AST/structure, LSP expansion, semantic recall, and verification.",
     routing:
-      "Use for structural graph questions after runtime/index freshness has been verified. For impact preflight, run status first, resolve symbols with query, inspect callers/callees, then use impact or affected-test automation as appropriate; do not treat stale graph output as current-code proof.",
+      "Use for codebase questions by retrieval role: collect exact identifiers and path hints with rg first, expand structural candidates with CodeGraph when available, use LSP for precise navigation when available, use fast-context for semantic recall, then verify final claims with source reads, Git, or tests.",
     readiness:
-      "Runtime is available. Common index markers are only freshness hints; current-code graph claims require a host-level status/query smoke or source/Git confirmation.",
+      "Required exact search (`rg`) is available. Optional CodeGraph, LSP, and fast-context adapters are reported as available or unavailable without startup side effects.",
     fallback: [
-      "Install or expose `codegraph` on PATH and initialize or refresh the project index.",
-      "If index freshness is missing, stale, or unverified, use source reads, tests, and Git evidence before making impact claims.",
+      "Install or expose `rg` on PATH before claiming codebase retrieval readiness.",
+      "If CodeGraph, LSP, or fast-context adapters are unavailable, continue with exact search and direct file reads; do not claim missing adapter output.",
+      "Run indexing, host MCP smoke checks, or language-server startup only after explicit user approval.",
     ],
+    adapters: {
+      exact: {
+        provider: "rg",
+        required: true,
+        purpose:
+          "Find identifiers, literals, paths, protocol constants, error codes, config keys, and test names.",
+        readiness: "`rg` is available on PATH.",
+        evidenceStatus:
+          "High-confidence candidate evidence, still confirmed by direct source reads before final claims.",
+      },
+      ast: {
+        provider: "codegraph",
+        required: false,
+        purpose:
+          "Resolve symbols, definitions, imports, callers, callees, impact, affected files, and structural relationships.",
+        readiness:
+          "`codegraph` is available and index freshness is confirmed through status/query smoke or source/Git checks.",
+        evidenceStatus:
+          "Structural candidate and impact guidance until confirmed with current source, Git, or tests.",
+        mcpServer: "codegraph",
+      },
+      lsp: {
+        provider: "language-server",
+        required: false,
+        purpose:
+          "Expand high-confidence candidates through definitions, references, implementations, hover, and workspace symbols.",
+        readiness:
+          "A project-appropriate language server is configured by the host; Trellis does not start it during init/update.",
+        evidenceStatus:
+          "Navigation candidate until the exact file and range are verified by source reads.",
+      },
+      semantic: {
+        provider: "fast-context-mcp",
+        required: false,
+        purpose:
+          "Recall conceptual or poorly named code areas and return candidate files, ranges, and follow-up grep terms.",
+        readiness:
+          "`fast-context-mcp` is available to the host and a project-scoped smoke search is confirmed outside ordinary init/update.",
+        evidenceStatus:
+          "Recall candidate only; never final proof without source/Git/test verification.",
+        mcpServer: "fast-context",
+      },
+      verification: {
+        provider: "source-git-tests",
+        required: true,
+        purpose:
+          "Prove final claims with direct source reads, exact search confirmation, Git evidence, and focused validation.",
+        readiness:
+          "Repository files are readable and task-appropriate validation commands are available or blockers are recorded.",
+        evidenceStatus: "Required proof layer for final technical claims.",
+      },
+    },
     cliAutomationGuidance: [
       {
-        command: "codegraph status --json <path>",
+        command: "rg <pattern> <path>",
+        use: "Start with exact identifiers, literals, path hints, errors, config keys, and test names before broader semantic recall.",
+      },
+      {
+        command: "codegraph status <path> --json",
         use: "Check initialization, graph size, languages, backend, and pending changes before relying on graph output.",
       },
       {
@@ -109,62 +171,18 @@ export const PROJECT_CAPABILITIES: readonly ProjectCapability[] = [
         use: "Map changed source files to affected tests when preparing validation scope.",
       },
     ],
-    mcpServer: {
-      name: "codegraph",
-      command: "codegraph",
-      args: ["serve"],
-    },
-  },
-  {
-    id: "graphify",
-    aliases: ["graphify-mcp"],
-    title: "Graphify",
-    description:
-      "Architecture graph, wiki/memory, mixed-corpus analysis, and graph artifact navigation.",
-    routing:
-      "Prefer existing graphify-out artifacts for architecture orientation only; ask before building/updating graphs or starting optional MCP runtime. After explicit MCP approval against an existing graph, use Graphify MCP query tools for concept, node, neighbor, community, hotspot, coverage, and shortest-path questions, then confirm current-code claims with source, Git, or tests.",
-    readiness:
-      "Graphify runtime is available or artifact-first fallback exists. Existing artifacts orient work but do not prove current-code behavior until freshness is confirmed.",
-    fallback: [
-      "Use existing `graphify-out/GRAPH_REPORT.md`, `wiki/index.md`, or `graph.json` artifacts when present.",
-      "If artifact freshness is unknown, treat Graphify output as orientation only and confirm current behavior with source reads, Git, or tests.",
-      "Ask before starting Graphify MCP, building graphs, or updating graph artifacts.",
-    ],
-    mcpQueryGuidance: [
+    mcpServers: [
       {
-        tool: "query_graph",
-        use: "Broad architecture or concept discovery across an existing `graphify-out/graph.json` graph.",
+        name: "fast-context",
+        command: "fast-context-mcp",
+        args: [],
       },
       {
-        tool: "get_node",
-        use: "Inspect exact node metadata before citing a specific Graphify node.",
-      },
-      {
-        tool: "get_neighbors",
-        use: "Explore adjacent modules, files, concepts, or dependency relationships around a known node.",
-      },
-      {
-        tool: "get_community",
-        use: "Read module/community context, labels, and architecture grouping for a known community.",
-      },
-      {
-        tool: "god_nodes",
-        use: "Find high-centrality architecture hotspots for preflight, risk scanning, or refactor orientation.",
-      },
-      {
-        tool: "graph_stats",
-        use: "Check graph coverage and health before relying on MCP query results.",
-      },
-      {
-        tool: "shortest_path",
-        use: "Trace a relationship path between two concepts, files, modules, or graph nodes.",
+        name: "codegraph",
+        command: "codegraph",
+        args: ["serve"],
       },
     ],
-    mcpServer: {
-      name: "graphify",
-      command: "graphify",
-      args: ["--mcp"],
-    },
   },
   {
     id: "github-mcp",
@@ -179,11 +197,13 @@ export const PROJECT_CAPABILITIES: readonly ProjectCapability[] = [
       "Expose GitHub credentials to the MCP server environment or configure the agent host explicitly.",
       "Without a verified credential posture, use local Git only and do not claim GitHub remote actions.",
     ],
-    mcpServer: {
-      name: "github",
-      command: "github-mcp-server",
-      args: ["stdio"],
-    },
+    mcpServers: [
+      {
+        name: "github",
+        command: "github-mcp-server",
+        args: ["stdio"],
+      },
+    ],
   },
   {
     id: "playwright-mcp",
@@ -199,11 +219,13 @@ export const PROJECT_CAPABILITIES: readonly ProjectCapability[] = [
       "Verify the Playwright MCP package and browser runtime in the selected host before claiming rendered UI evidence.",
       "If browser automation is unavailable, record the missing runtime and fall back to static checks or manual user verification.",
     ],
-    mcpServer: {
-      name: "playwright",
-      command: "npx",
-      args: ["-y", "@playwright/mcp@latest"],
-    },
+    mcpServers: [
+      {
+        name: "playwright",
+        command: "npx",
+        args: ["-y", "@playwright/mcp@latest"],
+      },
+    ],
   },
 ];
 
@@ -215,8 +237,19 @@ for (const capability of PROJECT_CAPABILITIES) {
   }
 }
 
-function selectedSet(selected: readonly ProjectCapabilityId[]): Set<string> {
+function selectedSet(
+  selected: readonly ProjectCapabilityId[],
+): Set<ProjectCapabilityId> {
   return new Set(selected);
+}
+
+function tokenizeProjectCapabilityValues(
+  values: readonly string[] | undefined,
+): string[] {
+  return (values ?? [])
+    .flatMap((value) => value.split(","))
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
 }
 
 function capabilityById(id: ProjectCapabilityId): ProjectCapability {
@@ -234,16 +267,68 @@ function uniqueInRegistryOrder(
   return PROJECT_CAPABILITY_IDS.filter((id) => requested.has(id));
 }
 
+function uniqueMcpServers(
+  selected: readonly ProjectCapabilityId[],
+): McpServerTemplate[] {
+  const servers = new Map<string, McpServerTemplate>();
+  for (const id of uniqueInRegistryOrder(selected)) {
+    for (const server of capabilityById(id).mcpServers) {
+      if (!servers.has(server.name)) {
+        servers.set(server.name, server);
+      }
+    }
+  }
+  return [...servers.values()];
+}
+
+function renderCapabilityAdapters(
+  adapters: Record<string, ProjectCapabilityAdapter> | undefined,
+): Record<string, RenderedCapabilityAdapter> | undefined {
+  if (!adapters) {
+    return undefined;
+  }
+  return Object.fromEntries(
+    Object.entries(adapters).map(([role, adapter]) => [
+      role,
+      {
+        provider: adapter.provider,
+        required: adapter.required,
+        purpose: adapter.purpose,
+        readiness: adapter.readiness,
+        evidence_status: adapter.evidenceStatus,
+        ...(adapter.mcpServer ? { mcp_server: adapter.mcpServer } : {}),
+      },
+    ]),
+  );
+}
+
+function parseStoredProjectCapabilities(
+  values: readonly string[] | undefined,
+): ProjectCapabilityId[] {
+  const selected = new Set<ProjectCapabilityId>();
+  for (const token of tokenizeProjectCapabilityValues(values)) {
+    if (token === "none") {
+      continue;
+    }
+    if (token === "all") {
+      for (const id of PROJECT_CAPABILITY_IDS) {
+        selected.add(id);
+      }
+      continue;
+    }
+    const id = CAPABILITY_BY_TOKEN.get(token);
+    if (id) {
+      selected.add(id);
+    }
+  }
+  return uniqueInRegistryOrder(selected);
+}
+
 export function parseProjectCapabilities(
   values: readonly string[] | undefined,
 ): ProjectCapabilityId[] {
-  const tokens = (values ?? [])
-    .flatMap((value) => value.split(","))
-    .map((value) => value.trim().toLowerCase())
-    .filter(Boolean);
-
   const selected = new Set<ProjectCapabilityId>();
-  for (const token of tokens) {
+  for (const token of tokenizeProjectCapabilityValues(values)) {
     if (token === "none") {
       continue;
     }
@@ -269,10 +354,10 @@ export function parseProjectCapabilities(
   return uniqueInRegistryOrder(selected);
 }
 
-export function getProjectCapabilityChoices(): Array<{
+export function getProjectCapabilityChoices(): {
   id: ProjectCapabilityId;
   name: string;
-}> {
+}[] {
   return PROJECT_CAPABILITIES.map((capability) => ({
     id: capability.id,
     name: `${capability.title} - ${capability.description}`,
@@ -285,29 +370,35 @@ export function renderCapabilitiesJson(
   const selectedIds = uniqueInRegistryOrder(selected);
   const selectedLookup = selectedSet(selectedIds);
   const capabilities = Object.fromEntries(
-    PROJECT_CAPABILITIES.map((capability) => [
-      capability.id,
-      {
-        selected: selectedLookup.has(capability.id),
-        mcp_server: capability.mcpServer.name,
-        command: capability.mcpServer.command,
-        args: capability.mcpServer.args,
-        routing: capability.routing,
-        readiness: capability.readiness,
-        fallback: capability.fallback,
-        ...(capability.cliAutomationGuidance
-          ? { cli_automation_guidance: capability.cliAutomationGuidance }
-          : {}),
-        ...(capability.mcpQueryGuidance
-          ? { mcp_query_guidance: capability.mcpQueryGuidance }
-          : {}),
-      },
-    ]),
+    PROJECT_CAPABILITIES.map((capability) => {
+      const adapters = renderCapabilityAdapters(capability.adapters);
+      return [
+        capability.id,
+        {
+          selected: selectedLookup.has(capability.id),
+          mcp_servers: capability.mcpServers.map((server) => ({
+            name: server.name,
+            command: server.command,
+            args: server.args,
+          })),
+          routing: capability.routing,
+          readiness: capability.readiness,
+          fallback: capability.fallback,
+          ...(adapters ? { adapters } : {}),
+          ...(capability.cliAutomationGuidance
+            ? { cli_automation_guidance: capability.cliAutomationGuidance }
+            : {}),
+          ...(capability.mcpQueryGuidance
+            ? { mcp_query_guidance: capability.mcpQueryGuidance }
+            : {}),
+        },
+      ];
+    }),
   );
 
   return `${JSON.stringify(
     {
-      schema_version: 1,
+      schema_version: 2,
       note:
         "Trellis-managed project capability selection. Credentials and global MCP/client config stay outside repository templates.",
       selected: selectedIds,
@@ -322,6 +413,37 @@ export function getProjectCapability(
   id: ProjectCapabilityId,
 ): ProjectCapability {
   return capabilityById(id);
+}
+
+function appendCodebaseRetrievalWorkflow(lines: string[]): void {
+  lines.push(
+    "## Codebase Retrieval Workflow",
+    "",
+    "1. Extract exact identifiers, literals, path hints, error text, config keys, and test names from the question.",
+    "2. Run exact `rg` search first and keep file/range candidates tied to source evidence.",
+    "3. Use AST/CodeGraph only when available to resolve symbols, imports, callers, callees, impact, and affected files.",
+    "4. Use LSP navigation only after candidate files or symbols exist; do not use it as the broad first-pass search.",
+    "5. Use semantic recall for conceptual or poorly named areas, then turn returned files/ranges into exact follow-up checks.",
+    "6. Fuse candidates by source proximity, tests, current Git state, and adapter freshness.",
+    "7. Read files and run task-appropriate validation before making final behavior or impact claims.",
+    "",
+    "## Adapter Roles",
+    "",
+  );
+
+  const adapters = capabilityById("codebase-retrieval").adapters ?? {};
+  for (const [role, adapter] of Object.entries(adapters)) {
+    lines.push(
+      `### ${role}`,
+      "",
+      `- Provider: ${adapter.provider}`,
+      `- Required: ${adapter.required ? "yes" : "no"}`,
+      `- Purpose: ${adapter.purpose}`,
+      `- Readiness: ${adapter.readiness}`,
+      `- Evidence status: ${adapter.evidenceStatus}`,
+      "",
+    );
+  }
 }
 
 export function renderCapabilitiesMarkdown(
@@ -352,13 +474,18 @@ export function renderCapabilitiesMarkdown(
     "",
     "- Unselected, unavailable, skipped, or uninvoked capabilities must not be reported as used.",
     "- Capability output that affects task decisions must be recorded in task research or verify evidence.",
-    "- `fast-context-mcp` semantic discovery must be confirmed with `rg`, Git, or direct file reads before final evidence claims.",
-    "- CodeGraph index markers are freshness hints, not proof; run a host-level status/query smoke or confirm with source/Git evidence before graph-derived impact claims.",
-    "- Graphify is artifact-first: existing `graphify-out` artifacts can orient work, but they do not prove current-code behavior and graph builds/updates or MCP startup require explicit approval.",
+    "- `codebase-retrieval` routes by retrieval role, not by tool brand: exact search, AST/structure, LSP navigation, semantic recall, then verification.",
+    "- Exact `rg` search and direct source reads are the baseline for current-code claims.",
+    "- CodeGraph output is structural guidance until index freshness and current source/Git evidence are confirmed.",
+    "- fast-context output is semantic recall only and must be converted into exact source checks before final claims.",
     "- GitHub MCP remote writes require explicit user intent and the host's credential/tool posture must be clear.",
     "- Playwright MCP should be used for rendered UI evidence only when browser verification is part of the task.",
     "",
   );
+
+  if (selectedIds.includes("codebase-retrieval")) {
+    appendCodebaseRetrievalWorkflow(lines);
+  }
 
   const selectedWithCliAutomation = selectedIds
     .map(capabilityById)
@@ -373,7 +500,7 @@ export function renderCapabilitiesMarkdown(
         `### ${capability.id}`,
         "",
         "- Run these commands only after the capability is selected and readiness/freshness has been verified or explicitly reported as unverified.",
-        "- Treat graph/index output as planning guidance until current source, Git, or tests confirm the claim.",
+        "- Treat adapter output as planning guidance until current source, Git, or tests confirm the claim.",
       );
       for (const hint of capability.cliAutomationGuidance ?? []) {
         lines.push(`- \`${hint.command}\`: ${hint.use}`);
@@ -395,7 +522,7 @@ export function renderCapabilitiesMarkdown(
         `### ${capability.id}`,
         "",
         "- Use these MCP query tools only after the capability is selected and the user explicitly approves any MCP runtime startup.",
-        "- Treat graph/index output as orientation unless freshness is confirmed; source reads, Git, and tests remain the proof layer for current-code claims.",
+        "- Treat tool output as orientation unless freshness is confirmed; source reads, Git, and tests remain the proof layer for current-code claims.",
       );
       for (const hint of capability.mcpQueryGuidance ?? []) {
         lines.push(`- \`${hint.tool}\`: ${hint.use}`);
@@ -450,8 +577,7 @@ function renderCodexCapabilityBlock(
     "# Credentials stay in the agent host environment or user-level config.",
   ];
 
-  for (const id of selectedIds) {
-    const server = capabilityById(id).mcpServer;
+  for (const server of uniqueMcpServers(selectedIds)) {
     lines.push(
       "",
       `[mcp_servers.${server.name}]`,
@@ -490,16 +616,13 @@ export function renderMcpJson(
   selected: readonly ProjectCapabilityId[],
 ): string {
   const servers = Object.fromEntries(
-    uniqueInRegistryOrder(selected).map((id) => {
-      const server = capabilityById(id).mcpServer;
-      return [
-        server.name,
-        {
-          command: server.command,
-          args: server.args,
-        },
-      ];
-    }),
+    uniqueMcpServers(selected).map((server) => [
+      server.name,
+      {
+        command: server.command,
+        args: server.args,
+      },
+    ]),
   );
   return `${JSON.stringify({ mcpServers: servers }, null, 2)}\n`;
 }
@@ -578,7 +701,7 @@ export function loadProjectCapabilities(cwd: string): ProjectCapabilityId[] {
     if (!Array.isArray(parsed.selected)) {
       return [];
     }
-    return parseProjectCapabilities(
+    return parseStoredProjectCapabilities(
       parsed.selected.filter(
         (item): item is string => typeof item === "string",
       ),
