@@ -26,3 +26,24 @@ project_doc_fallback_filenames = ["AGENTS.md"]
 # aborts the entire config load and blocks Codex from starting. Codex's own
 # default for multi_agent_v2 is used instead; tune it in your user-level
 # config if needed.
+
+# TRELLIS:PROJECT-CAPABILITIES:START
+# Project-local MCP servers selected through Trellis.
+# Credentials stay in the agent host environment or user-level config.
+
+[mcp_servers.fast-context]
+command = "npx"
+args = ["-y", "fast-context-mcp"]
+
+[mcp_servers.codegraph]
+command = "npx"
+args = ["-y", "@colbymchenry/codegraph", "serve"]
+
+[mcp_servers.github]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-github"]
+
+[mcp_servers.playwright]
+command = "npx"
+args = ["-y", "@playwright/mcp@latest"]
+# TRELLIS:PROJECT-CAPABILITIES:END

@@ -1,0 +1,149 @@
+{
+  "schema_version": 2,
+  "note": "Trellis-managed project capability selection. Credentials and global MCP/client config stay outside repository templates.",
+  "selected": [
+    "codebase-retrieval",
+    "github-mcp",
+    "playwright-mcp"
+  ],
+  "capabilities": {
+    "codebase-retrieval": {
+      "selected": true,
+      "mcp_servers": [
+        {
+          "name": "fast-context",
+          "command": "npx",
+          "args": [
+            "-y",
+            "fast-context-mcp"
+          ]
+        },
+        {
+          "name": "codegraph",
+          "command": "npx",
+          "args": [
+            "-y",
+            "@colbymchenry/codegraph",
+            "serve"
+          ]
+        }
+      ],
+      "routing": "Use for codebase questions by retrieval role: collect exact identifiers and path hints with rg first, expand structural candidates with CodeGraph when available, use LSP for precise navigation when available, use fast-context for semantic recall, then verify final claims with source reads, Git, or tests.",
+      "readiness": "Required exact search (`rg`) is available. Optional CodeGraph, LSP, and fast-context adapters are reported as available or unavailable without startup side effects.",
+      "fallback": [
+        "Install or expose `rg` on PATH before claiming codebase retrieval readiness.",
+        "Ensure `npx -y fast-context-mcp` and `npx -y @colbymchenry/codegraph serve` can launch before generated MCP adapter entries are claimed as usable.",
+        "If CodeGraph, LSP, or fast-context adapters are not verified, continue with exact search and direct file reads; do not claim missing adapter output.",
+        "Run indexing, host MCP smoke checks, or language-server startup only after explicit user approval."
+      ],
+      "adapters": {
+        "exact": {
+          "provider": "rg",
+          "required": true,
+          "purpose": "Find identifiers, literals, paths, protocol constants, error codes, config keys, and test names.",
+          "readiness": "`rg` is available on PATH.",
+          "evidence_status": "High-confidence candidate evidence, still confirmed by direct source reads before final claims."
+        },
+        "ast": {
+          "provider": "codegraph",
+          "required": false,
+          "purpose": "Resolve symbols, definitions, imports, callers, callees, impact, affected files, and structural relationships.",
+          "readiness": "`npx -y @colbymchenry/codegraph` is available and index freshness is confirmed through status/query smoke or source/Git checks.",
+          "evidence_status": "Structural candidate and impact guidance until confirmed with current source, Git, or tests.",
+          "mcp_server": "codegraph"
+        },
+        "lsp": {
+          "provider": "language-server",
+          "required": false,
+          "purpose": "Expand high-confidence candidates through definitions, references, implementations, hover, and workspace symbols.",
+          "readiness": "A project-appropriate language server is configured by the host; Trellis does not start it during init/update.",
+          "evidence_status": "Navigation candidate until the exact file and range are verified by source reads."
+        },
+        "semantic": {
+          "provider": "fast-context-mcp",
+          "required": false,
+          "purpose": "Recall conceptual or poorly named code areas and return candidate files, ranges, and follow-up grep terms.",
+          "readiness": "`npx -y fast-context-mcp` is available to the host and a project-scoped smoke search is confirmed outside ordinary init/update.",
+          "evidence_status": "Recall candidate only; never final proof without source/Git/test verification.",
+          "mcp_server": "fast-context"
+        },
+        "verification": {
+          "provider": "source-git-tests",
+          "required": true,
+          "purpose": "Prove final claims with direct source reads, exact search confirmation, Git evidence, and focused validation.",
+          "readiness": "Repository files are readable and task-appropriate validation commands are available or blockers are recorded.",
+          "evidence_status": "Required proof layer for final technical claims."
+        }
+      },
+      "cli_automation_guidance": [
+        {
+          "command": "rg <pattern> <path>",
+          "use": "Start with exact identifiers, literals, path hints, errors, config keys, and test names before broader semantic recall."
+        },
+        {
+          "command": "codegraph status <path> --json",
+          "use": "Check initialization, graph size, languages, backend, and pending changes before relying on graph output."
+        },
+        {
+          "command": "codegraph query <symbol-or-search> --path <path> --json",
+          "use": "Resolve candidate symbols, kinds, files, and line ranges before running impact or relationship commands."
+        },
+        {
+          "command": "codegraph callers <symbol> --path <path> --json",
+          "use": "Find direct upstream callers that may need edits or focused tests."
+        },
+        {
+          "command": "codegraph callees <symbol> --path <path> --json",
+          "use": "Find downstream calls and dependencies that constrain a safe change."
+        },
+        {
+          "command": "codegraph impact <symbol> --path <path> --depth <n> --json",
+          "use": "Estimate blast radius for a resolved symbol before editing or reviewing a refactor."
+        },
+        {
+          "command": "codegraph affected <changed-files...> --path <path> --json",
+          "use": "Map changed source files to affected tests when preparing validation scope."
+        }
+      ]
+    },
+    "github-mcp": {
+      "selected": true,
+      "mcp_servers": [
+        {
+          "name": "github",
+          "command": "npx",
+          "args": [
+            "-y",
+            "@modelcontextprotocol/server-github"
+          ]
+        }
+      ],
+      "routing": "Use for explicit GitHub remote work; distinguish read-only inspection from write-capable issue, PR, branch, review, or merge actions.",
+      "readiness": "Configured GitHub API MCP package is visible and `GITHUB_TOKEN` or `GITHUB_PERSONAL_ACCESS_TOKEN` is present in the agent host environment before remote actions are claimed.",
+      "fallback": [
+        "Expose `GITHUB_TOKEN` or `GITHUB_PERSONAL_ACCESS_TOKEN` to the MCP server environment or configure the agent host explicitly.",
+        "Ensure `npx -y @modelcontextprotocol/server-github` can launch before selecting this capability.",
+        "Without a verified credential posture, use local Git only and do not claim GitHub remote actions."
+      ]
+    },
+    "playwright-mcp": {
+      "selected": true,
+      "mcp_servers": [
+        {
+          "name": "playwright",
+          "command": "npx",
+          "args": [
+            "-y",
+            "@playwright/mcp@latest"
+          ]
+        }
+      ],
+      "routing": "Use for browser/UI verification when the task requires rendered behavior evidence; keep browser/session startup explicit.",
+      "readiness": "Configured server and browser runtime are available without silently starting unrelated browsing sessions.",
+      "fallback": [
+        "Verify the Playwright MCP package and browser runtime in the selected host before claiming rendered UI evidence.",
+        "If browser automation is unavailable, record the missing runtime and fall back to static checks or manual user verification."
+      ]
+    }
+  }
+}
