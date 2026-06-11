@@ -193,7 +193,7 @@ describe("init() integration", () => {
       ),
     ) as { selected: string[] };
     expect(capabilities.selected).toEqual([
-      "fast-context-mcp",
+      "codebase-retrieval",
       "playwright-mcp",
     ]);
 
@@ -205,11 +205,12 @@ describe("init() integration", () => {
       "Unselected, unavailable, skipped, or uninvoked capabilities",
     );
     expect(capabilitiesMd).toContain(
-      "`fast-context-mcp` semantic discovery must be confirmed",
+      "`codebase-retrieval` routes by retrieval role",
     );
+    expect(capabilitiesMd).toContain("## Codebase Retrieval Workflow");
     expect(capabilitiesMd).toContain("## Fallback Guidance");
     expect(capabilitiesMd).toContain(
-      "Install or expose `fast-context-mcp` on PATH",
+      "Install or expose `rg` on PATH",
     );
 
     const codexConfig = fs.readFileSync(
@@ -220,6 +221,7 @@ describe("init() integration", () => {
       "# TRELLIS:PROJECT-CAPABILITIES:START",
     );
     expect(codexConfig).toContain("[mcp_servers.fast-context]");
+    expect(codexConfig).toContain("[mcp_servers.codegraph]");
     expect(codexConfig).toContain("[mcp_servers.playwright]");
     expect(codexConfig).not.toContain("[mcp_servers.github]");
 
@@ -231,6 +233,10 @@ describe("init() integration", () => {
     expect(claudeMcp.mcpServers["fast-context"]).toEqual({
       command: "fast-context-mcp",
       args: [],
+    });
+    expect(claudeMcp.mcpServers.codegraph).toEqual({
+      command: "codegraph",
+      args: ["serve"],
     });
     expect(claudeMcp.mcpServers.playwright).toEqual({
       command: "npx",
@@ -261,6 +267,21 @@ describe("init() integration", () => {
     expect(trackedPaths).toContain(".mcp.json");
     expect(trackedPaths).toContain(".cursor/mcp.json");
     expect(execSync).toHaveBeenCalledWith(
+      capabilityLookupCommand("rg"),
+      expect.objectContaining({
+        encoding: "utf-8",
+        stdio: "pipe",
+      }),
+    );
+    expect(execSync).toHaveBeenCalledWith(
+      capabilityHelpCommand("rg"),
+      expect.objectContaining({
+        encoding: "utf-8",
+        stdio: "pipe",
+        timeout: 5000,
+      }),
+    );
+    expect(execSync).toHaveBeenCalledWith(
       capabilityLookupCommand("fast-context-mcp"),
       expect.objectContaining({
         encoding: "utf-8",
@@ -269,6 +290,21 @@ describe("init() integration", () => {
     );
     expect(execSync).toHaveBeenCalledWith(
       capabilityHelpCommand("fast-context-mcp"),
+      expect.objectContaining({
+        encoding: "utf-8",
+        stdio: "pipe",
+        timeout: 5000,
+      }),
+    );
+    expect(execSync).toHaveBeenCalledWith(
+      capabilityLookupCommand("codegraph"),
+      expect.objectContaining({
+        encoding: "utf-8",
+        stdio: "pipe",
+      }),
+    );
+    expect(execSync).toHaveBeenCalledWith(
+      capabilityHelpCommand("codegraph"),
       expect.objectContaining({
         encoding: "utf-8",
         stdio: "pipe",
@@ -434,16 +470,16 @@ describe("init() integration", () => {
       if (cmd === "smart-search doctor --format json") {
         return JSON.stringify({ ok: true, minimum_profile_ok: true });
       }
-      if (cmd === capabilityLookupCommand("fast-context-mcp")) {
-        throw new Error("fast-context-mcp not found");
+      if (cmd === capabilityLookupCommand("rg")) {
+        throw new Error("rg not found");
       }
       return "";
     }) as typeof execSync);
 
     await expect(
-      init({ yes: true, capability: ["fast-context-mcp"] }),
+      init({ yes: true, capability: ["codebase-retrieval"] }),
     ).rejects.toThrow(
-      /Selected project capability readiness failed[\s\S]*fast-context-mcp[\s\S]*trellis init --skip-readiness/,
+      /Selected project capability readiness failed[\s\S]*codebase-retrieval[\s\S]*rg[\s\S]*trellis init --skip-readiness/,
     );
     expect(fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW))).toBe(false);
   });
@@ -452,12 +488,12 @@ describe("init() integration", () => {
     await init({
       yes: true,
       skipReadiness: true,
-      capability: ["fast-context-mcp"],
+      capability: ["codebase-retrieval"],
     });
 
     const calls = vi.mocked(execSync).mock.calls;
     expect(
-      calls.some(([cmd]) => cmd === capabilityLookupCommand("fast-context-mcp")),
+      calls.some(([cmd]) => cmd === capabilityLookupCommand("rg")),
     ).toBe(false);
     expect(fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW))).toBe(true);
     expect(console.warn).toHaveBeenCalledWith(
@@ -476,10 +512,10 @@ describe("init() integration", () => {
       if (cmd === "smart-search doctor --format json") {
         return JSON.stringify({ ok: true, minimum_profile_ok: true });
       }
-      if (cmd === capabilityLookupCommand("fast-context-mcp")) {
+      if (cmd === capabilityLookupCommand("rg")) {
         capabilityLookups += 1;
         if (capabilityLookups === 1) {
-          throw new Error("fast-context-mcp not found");
+          throw new Error("rg not found");
         }
         return "";
       }
@@ -499,7 +535,7 @@ describe("init() integration", () => {
     await init({
       user: "test-dev",
       claude: true,
-      capability: ["fast-context-mcp"],
+      capability: ["codebase-retrieval"],
     });
 
     expect(capabilityLookups).toBe(2);
@@ -521,6 +557,13 @@ describe("init() integration", () => {
     await init({ yes: true, capability: ["codegraph"] });
 
     expect(execSync).toHaveBeenCalledWith(
+      capabilityLookupCommand("rg"),
+      expect.objectContaining({
+        encoding: "utf-8",
+        stdio: "pipe",
+      }),
+    );
+    expect(execSync).toHaveBeenCalledWith(
       capabilityLookupCommand("codegraph"),
       expect.objectContaining({
         encoding: "utf-8",
@@ -534,6 +577,9 @@ describe("init() integration", () => {
     );
     expect(capabilitiesMd).toContain("## CLI Automation Guidance");
     expect(capabilitiesMd).toContain(
+      "`codegraph status <path> --json`",
+    );
+    expect(capabilitiesMd).toContain(
       "`codegraph impact <symbol> --path <path> --depth <n> --json`",
     );
     expect(capabilitiesMd).toContain(
@@ -544,11 +590,7 @@ describe("init() integration", () => {
     );
   });
 
-  it("#1j allows Graphify artifact-only fallback without treating artifacts as proof", async () => {
-    const graphifyOut = path.join(tmpDir, "graphify-out");
-    fs.mkdirSync(graphifyOut, { recursive: true });
-    fs.writeFileSync(path.join(graphifyOut, "GRAPH_REPORT.md"), "# Graph\n");
-
+  it("#1j keeps retrieval ready when an optional semantic adapter is unavailable", async () => {
     vi.mocked(execSync).mockImplementation(((cmd: string) => {
       const expectedPythonCmd =
         process.platform === "win32" ? "python" : "python3";
@@ -558,30 +600,23 @@ describe("init() integration", () => {
       if (cmd === "smart-search doctor --format json") {
         return JSON.stringify({ ok: true, minimum_profile_ok: true });
       }
-      if (cmd === capabilityLookupCommand("graphify")) {
-        throw new Error("graphify not found");
+      if (cmd === capabilityLookupCommand("fast-context-mcp")) {
+        throw new Error("fast-context-mcp not found");
       }
       return "";
     }) as typeof execSync);
 
-    await init({ yes: true, capability: ["graphify"] });
+    await init({ yes: true, capability: ["codebase-retrieval"] });
 
     expect(fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW))).toBe(true);
     const capabilitiesMd = fs.readFileSync(
       path.join(tmpDir, DIR_NAMES.WORKFLOW, "capabilities.md"),
       "utf-8",
     );
-    expect(capabilitiesMd).toContain("## MCP Query Guidance");
-    expect(capabilitiesMd).toContain("`query_graph`");
-    expect(capabilitiesMd).toContain("`shortest_path`");
-    expect(capabilitiesMd).toContain(
-      "explicitly approves any MCP runtime startup",
-    );
+    expect(capabilitiesMd).toContain("## Codebase Retrieval Workflow");
+    expect(capabilitiesMd).toContain("### semantic");
     expect(console.warn).toHaveBeenCalledWith(
-      expect.stringContaining("artifact-only fallback is available"),
-    );
-    expect(console.warn).toHaveBeenCalledWith(
-      expect.stringContaining("cannot prove current-code behavior"),
+      expect.stringContaining("Optional semantic adapter"),
     );
   });
 
