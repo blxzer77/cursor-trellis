@@ -163,7 +163,7 @@
     ".pi/skills/trellis-brainstorm/SKILL.md": "5b7995932d3b26efbd3edd1588e659671e19520d334cff89dc40249bea052ba9",
     ".pi/settings.json": "66cc59c9b410b267cd081c5a312aea3f32d82ed30c254cef6b4d99248d3bea50",
     ".codex/hooks/inject-workflow-state.py": "97d46de831e263e2dff0a09df1749de59c2ddf910d3ebcbccf46c0b2b9a31c20",
-    ".codex/config.toml": "cd29d64a44b4631593aca8ff4b071f1156f914fc9dfb976450af6f91b735bb57",
+    ".codex/config.toml": "d150894760aeb7c678dbd31b83abc9bc7da55843441895900e8d8a3a187e7fa1",
     ".pi/extensions/trellis/index.ts": "87f1e5ef6303d0cb57e6d758be4aa62cc9f93de0980de4f2ef5d3ee79c30eca6",
     ".trellis/scripts/common/task_dashboard.py": "cc8b0160a1220cf2d3de4e4db19746bde94ac2b4fe5999fa0047097ebd310c8c",
     ".trellis/scripts/common/task_gates.py": "650f0a3befca08aacb3a01a7e7b29fcb41873711497f28370b958812c5abb622",
@@ -257,6 +257,10 @@
     ".pi/skills/trellis-break-loop/SKILL.md": "35afb53fef42cd494e566f1ef170dbf442ec2be7e19931f28a14079b4dda753f",
     ".pi/skills/trellis-check/SKILL.md": "48afc11be42854ac9a9bbc6f3ee062dc356a8f513a5d23f9d3b67595e835c135",
     ".pi/skills/trellis-update-spec/SKILL.md": "cef32aec88db973a0a0272cf18b91d4585fe6ed6625e3de06851a5d3402f65d6",
-    ".pi/agents/trellis-research.md": "3c7b27f5a18068f82d08e91c86ff5c596c21307d3edc3841c869576891c9583a"
+    ".pi/agents/trellis-research.md": "3c7b27f5a18068f82d08e91c86ff5c596c21307d3edc3841c869576891c9583a",
+    ".trellis/capabilities.json": "bc34b8e5639c9d23ab2089d29a12b11b1d5d6d20f01b0f3190b59bf5d844a657",
+    ".trellis/capabilities.md": "51ae6732af2971cee3d1e5d8c600e1682613ebcf0cc5513f8d1e1f79932f1e33",
+    ".mcp.json": "b4b52acef2ce98e5b24b38336ac6d735357ef0f19072500c24f56bf7cb0d8601",
+    ".cursor/mcp.json": "b4b52acef2ce98e5b24b38336ac6d735357ef0f19072500c24f56bf7cb0d8601"
   }
 }
