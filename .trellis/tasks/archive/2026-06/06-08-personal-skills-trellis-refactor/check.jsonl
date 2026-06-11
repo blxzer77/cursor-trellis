@@ -1,6 +1,0 @@
-{"file":".trellis/spec/cli/backend/configurator-shared.md","reason":"Check that generated files and collected templates remain byte-identical and bundled skills keep their own frontmatter."}
-{"file":".trellis/spec/cli/backend/platform-integration.md","reason":"Check that every skill-writing platform receives the new bundled skills at the expected root."}
-{"file":".trellis/spec/cli/backend/commands-update.md","reason":"Check that update tracking, hash keys, and idempotency expectations are preserved."}
-{"file":".trellis/spec/cli/unit-test/index.md","reason":"Check that updated Vitest tests follow project conventions."}
-{"file":".trellis/spec/guides/cross-platform-thinking-guide.md","reason":"Check that path keys and generated paths remain cross-platform safe."}
-{"file":".trellis/tasks/06-08-personal-skills-trellis-refactor/research/source-map.md","reason":"Check implementation against the researched source map and accepted design boundaries."}

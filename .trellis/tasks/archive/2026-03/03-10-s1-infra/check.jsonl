@@ -1,4 +1,0 @@
-{"file": ".opencode/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
-{"file": ".opencode/commands/trellis/check.md", "reason": "Code quality check spec"}
-{"file": "packages/cli/src/utils/project-detector.ts", "reason": "Verify detectMonorepo"}
-{"file": "packages/cli/src/commands/init.ts", "reason": "Verify init monorepo flow"}

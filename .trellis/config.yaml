@@ -108,3 +108,17 @@ channel:
 #
 # codex:
 #   dispatch_mode: inline  # or "sub-agent" to dispatch trellis-* sub-agents
+
+# Auto-detected monorepo packages
+packages:
+  trellis:
+    path: packages/cli
+  trellis-core:
+    path: packages/core
+  docs-site:
+    path: docs-site
+    type: submodule
+  marketplace:
+    path: marketplace
+    type: submodule
+default_package: @mindfoldhq/trellis
