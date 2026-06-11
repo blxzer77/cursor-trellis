@@ -37,7 +37,8 @@ args = ["-y", "fast-context-mcp"]
 
 [mcp_servers.codegraph]
 command = "npx"
-args = ["-y", "@colbymchenry/codegraph", "serve"]
+args = ["-y", "@colbymchenry/codegraph", "serve", "--mcp"]
+startup_timeout_sec = 120
 
 [mcp_servers.github]
 command = "npx"
@@ -46,4 +47,5 @@ args = ["-y", "@modelcontextprotocol/server-github"]
 [mcp_servers.playwright]
 command = "npx"
 args = ["-y", "@playwright/mcp@latest"]
+startup_timeout_sec = 120
 # TRELLIS:PROJECT-CAPABILITIES:END

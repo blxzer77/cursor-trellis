@@ -76,7 +76,7 @@ describe("project capabilities", () => {
     });
     expect(parsed.mcpServers.codegraph).toEqual({
       command: "npx",
-      args: ["-y", "@colbymchenry/codegraph", "serve"],
+      args: ["-y", "@colbymchenry/codegraph", "serve", "--mcp"],
     });
     expect(parsed.mcpServers.github).toEqual({
       command: "npx",
@@ -128,7 +128,7 @@ describe("project capabilities", () => {
       "Install or expose `rg` on PATH before claiming codebase retrieval readiness.",
     );
     expect(retrieval?.fallback).toContain(
-      "Ensure `npx -y fast-context-mcp` and `npx -y @colbymchenry/codegraph serve` can launch before generated MCP adapter entries are claimed as usable.",
+      "Ensure `npx -y fast-context-mcp` and `npx -y @colbymchenry/codegraph serve --mcp` can launch before generated MCP adapter entries are claimed as usable.",
     );
     expect(JSON.stringify(parsed)).toContain("GITHUB_TOKEN");
     expect(JSON.stringify(parsed)).toContain("GITHUB_PERSONAL_ACCESS_TOKEN");
@@ -218,6 +218,12 @@ describe("project capabilities", () => {
     );
     expect(files.get(".codex/config.toml")).toContain(
       "[mcp_servers.codegraph]",
+    );
+    expect(files.get(".codex/config.toml")).toContain(
+      'args = ["-y", "@colbymchenry/codegraph", "serve", "--mcp"]',
+    );
+    expect(files.get(".codex/config.toml")).toContain(
+      "startup_timeout_sec = 120",
     );
     expect(files.get(".cursor/mcp.json")).toContain('"playwright"');
     expect(files.get(".cursor/mcp.json")).not.toContain('"graphify"');

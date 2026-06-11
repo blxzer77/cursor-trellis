@@ -17,6 +17,7 @@ export interface McpServerTemplate {
   name: string;
   command: string;
   args: string[];
+  startupTimeoutSec?: number;
 }
 
 export interface McpQueryGuidance {
@@ -86,7 +87,7 @@ export const PROJECT_CAPABILITIES: readonly ProjectCapability[] = [
       "Required exact search (`rg`) is available. Optional CodeGraph, LSP, and fast-context adapters are reported as available or unavailable without startup side effects.",
     fallback: [
       "Install or expose `rg` on PATH before claiming codebase retrieval readiness.",
-      "Ensure `npx -y fast-context-mcp` and `npx -y @colbymchenry/codegraph serve` can launch before generated MCP adapter entries are claimed as usable.",
+      "Ensure `npx -y fast-context-mcp` and `npx -y @colbymchenry/codegraph serve --mcp` can launch before generated MCP adapter entries are claimed as usable.",
       "If CodeGraph, LSP, or fast-context adapters are not verified, continue with exact search and direct file reads; do not claim missing adapter output.",
       "Run indexing, host MCP smoke checks, or language-server startup only after explicit user approval.",
     ],
@@ -106,7 +107,7 @@ export const PROJECT_CAPABILITIES: readonly ProjectCapability[] = [
         purpose:
           "Resolve symbols, definitions, imports, callers, callees, impact, affected files, and structural relationships.",
         readiness:
-          "`npx -y @colbymchenry/codegraph` is available and index freshness is confirmed through status/query smoke or source/Git checks.",
+          "`npx -y @colbymchenry/codegraph serve --mcp` is available and index freshness is confirmed through status/query smoke or source/Git checks.",
         evidenceStatus:
           "Structural candidate and impact guidance until confirmed with current source, Git, or tests.",
         mcpServer: "codegraph",
@@ -181,7 +182,8 @@ export const PROJECT_CAPABILITIES: readonly ProjectCapability[] = [
       {
         name: "codegraph",
         command: "npx",
-        args: ["-y", "@colbymchenry/codegraph", "serve"],
+        args: ["-y", "@colbymchenry/codegraph", "serve", "--mcp"],
+        startupTimeoutSec: 120,
       },
     ],
   },
@@ -226,6 +228,7 @@ export const PROJECT_CAPABILITIES: readonly ProjectCapability[] = [
         name: "playwright",
         command: "npx",
         args: ["-y", "@playwright/mcp@latest"],
+        startupTimeoutSec: 120,
       },
     ],
   },
@@ -382,6 +385,9 @@ export function renderCapabilitiesJson(
             name: server.name,
             command: server.command,
             args: server.args,
+            ...(server.startupTimeoutSec
+              ? { startup_timeout_sec: server.startupTimeoutSec }
+              : {}),
           })),
           routing: capability.routing,
           readiness: capability.readiness,
@@ -586,6 +592,9 @@ function renderCodexCapabilityBlock(
       `command = ${tomlString(server.command)}`,
       `args = ${tomlArray(server.args)}`,
     );
+    if (server.startupTimeoutSec) {
+      lines.push(`startup_timeout_sec = ${server.startupTimeoutSec}`);
+    }
   }
 
   lines.push(CODEX_CAPABILITIES_END);

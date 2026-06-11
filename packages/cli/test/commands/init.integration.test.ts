@@ -243,7 +243,7 @@ describe("init() integration", () => {
     });
     expect(claudeMcp.mcpServers.codegraph).toEqual({
       command: "npx",
-      args: ["-y", "@colbymchenry/codegraph", "serve"],
+      args: ["-y", "@colbymchenry/codegraph", "serve", "--mcp"],
     });
     expect(claudeMcp.mcpServers.playwright).toEqual({
       command: "npx",
