@@ -54,6 +54,12 @@ function capabilityLookupCommand(command: string): string {
     : `command -v '${command}'`;
 }
 
+function npmPackageLookupCommand(packageName: string): string {
+  return process.platform === "win32"
+    ? `npm view "${packageName}" bin --json`
+    : `npm view '${packageName}' bin --json`;
+}
+
 /** Remove a key from a hash object (avoids eslint no-dynamic-delete) */
 function removeHashEntry(
   obj: Record<string, unknown>,
@@ -182,6 +188,7 @@ describe("update() integration", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
@@ -315,12 +322,15 @@ describe("update() integration", () => {
   });
 
   it("#1e keeps selected project capability templates stable on same-version update", async () => {
+    vi.stubEnv("GITHUB_TOKEN", "test-token");
+    vi.stubEnv("GITHUB_PERSONAL_ACCESS_TOKEN", "");
+
     await init({
       yes: true,
       codex: true,
       claude: true,
       cursor: true,
-      capability: ["fast-context-mcp", "playwright-mcp"],
+      capability: ["fast-context-mcp", "github-mcp", "playwright-mcp"],
     });
 
     const trackedFiles = [
@@ -347,17 +357,18 @@ describe("update() integration", () => {
       }),
     );
     expect(execSync).toHaveBeenCalledWith(
-      capabilityLookupCommand("fast-context-mcp"),
+      capabilityLookupCommand("npx"),
       expect.objectContaining({
         encoding: "utf-8",
         stdio: "pipe",
       }),
     );
     expect(execSync).toHaveBeenCalledWith(
-      capabilityLookupCommand("codegraph"),
+      npmPackageLookupCommand("fast-context-mcp"),
       expect.objectContaining({
         encoding: "utf-8",
         stdio: "pipe",
+        timeout: 5000,
       }),
     );
     expect(execSync).toHaveBeenCalledWith(
@@ -365,6 +376,44 @@ describe("update() integration", () => {
       expect.objectContaining({
         encoding: "utf-8",
         stdio: "pipe",
+      }),
+    );
+    expect(execSync).toHaveBeenCalledWith(
+      npmPackageLookupCommand("@colbymchenry/codegraph"),
+      expect.objectContaining({
+        encoding: "utf-8",
+        stdio: "pipe",
+        timeout: 5000,
+      }),
+    );
+    expect(execSync).toHaveBeenCalledWith(
+      capabilityLookupCommand("npx"),
+      expect.objectContaining({
+        encoding: "utf-8",
+        stdio: "pipe",
+      }),
+    );
+    expect(execSync).toHaveBeenCalledWith(
+      npmPackageLookupCommand("@modelcontextprotocol/server-github"),
+      expect.objectContaining({
+        encoding: "utf-8",
+        stdio: "pipe",
+        timeout: 5000,
+      }),
+    );
+    expect(execSync).toHaveBeenCalledWith(
+      capabilityLookupCommand("npx"),
+      expect.objectContaining({
+        encoding: "utf-8",
+        stdio: "pipe",
+      }),
+    );
+    expect(execSync).toHaveBeenCalledWith(
+      npmPackageLookupCommand("@playwright/mcp@latest"),
+      expect.objectContaining({
+        encoding: "utf-8",
+        stdio: "pipe",
+        timeout: 5000,
       }),
     );
 

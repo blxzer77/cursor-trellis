@@ -49,6 +49,12 @@ function capabilityHelpCommand(command: string): string {
     : `'${command}' --help`;
 }
 
+function npmPackageLookupCommand(packageName: string): string {
+  return process.platform === "win32"
+    ? `npm view "${packageName}" bin --json`
+    : `npm view '${packageName}' bin --json`;
+}
+
 describe("init() integration", () => {
   let tmpDir: string;
 
@@ -77,6 +83,7 @@ describe("init() integration", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
@@ -231,12 +238,12 @@ describe("init() integration", () => {
       mcpServers: Record<string, { command: string; args: string[] }>;
     };
     expect(claudeMcp.mcpServers["fast-context"]).toEqual({
-      command: "fast-context-mcp",
-      args: [],
+      command: "npx",
+      args: ["-y", "fast-context-mcp"],
     });
     expect(claudeMcp.mcpServers.codegraph).toEqual({
-      command: "codegraph",
-      args: ["serve"],
+      command: "npx",
+      args: ["-y", "@colbymchenry/codegraph", "serve"],
     });
     expect(claudeMcp.mcpServers.playwright).toEqual({
       command: "npx",
@@ -282,29 +289,14 @@ describe("init() integration", () => {
       }),
     );
     expect(execSync).toHaveBeenCalledWith(
-      capabilityLookupCommand("fast-context-mcp"),
+      capabilityLookupCommand("npx"),
       expect.objectContaining({
         encoding: "utf-8",
         stdio: "pipe",
       }),
     );
     expect(execSync).toHaveBeenCalledWith(
-      capabilityHelpCommand("fast-context-mcp"),
-      expect.objectContaining({
-        encoding: "utf-8",
-        stdio: "pipe",
-        timeout: 5000,
-      }),
-    );
-    expect(execSync).toHaveBeenCalledWith(
-      capabilityLookupCommand("codegraph"),
-      expect.objectContaining({
-        encoding: "utf-8",
-        stdio: "pipe",
-      }),
-    );
-    expect(execSync).toHaveBeenCalledWith(
-      capabilityHelpCommand("codegraph"),
+      npmPackageLookupCommand("fast-context-mcp"),
       expect.objectContaining({
         encoding: "utf-8",
         stdio: "pipe",
@@ -318,13 +310,86 @@ describe("init() integration", () => {
         stdio: "pipe",
       }),
     );
-    expect(
-      vi
-        .mocked(execSync)
-        .mock.calls.some(
-          ([cmd]) => typeof cmd === "string" && cmd.includes("@playwright/mcp"),
-        ),
-    ).toBe(false);
+    expect(execSync).toHaveBeenCalledWith(
+      npmPackageLookupCommand("@colbymchenry/codegraph"),
+      expect.objectContaining({
+        encoding: "utf-8",
+        stdio: "pipe",
+        timeout: 5000,
+      }),
+    );
+    expect(execSync).toHaveBeenCalledWith(
+      capabilityLookupCommand("npx"),
+      expect.objectContaining({
+        encoding: "utf-8",
+        stdio: "pipe",
+      }),
+    );
+    expect(execSync).toHaveBeenCalledWith(
+      npmPackageLookupCommand("@playwright/mcp@latest"),
+      expect.objectContaining({
+        encoding: "utf-8",
+        stdio: "pipe",
+        timeout: 5000,
+      }),
+    );
+  });
+
+  it("#1f.1 writes GitHub MCP config when GitHub token env is visible", async () => {
+    vi.stubEnv("GITHUB_TOKEN", "test-token");
+    vi.stubEnv("GITHUB_PERSONAL_ACCESS_TOKEN", "");
+
+    await init({
+      yes: true,
+      codex: true,
+      claude: true,
+      cursor: true,
+      capability: ["github-mcp"],
+    });
+
+    const capabilities = JSON.parse(
+      fs.readFileSync(
+        path.join(tmpDir, DIR_NAMES.WORKFLOW, "capabilities.json"),
+        "utf-8",
+      ),
+    ) as { selected: string[] };
+    expect(capabilities.selected).toEqual(["github-mcp"]);
+
+    const codexConfig = fs.readFileSync(
+      path.join(tmpDir, ".codex", "config.toml"),
+      "utf-8",
+    );
+    expect(codexConfig).toContain("[mcp_servers.github]");
+    expect(codexConfig).toContain(
+      'args = ["-y", "@modelcontextprotocol/server-github"]',
+    );
+    expect(codexConfig).not.toContain("test-token");
+    expect(codexConfig).not.toContain("[mcp_servers.fast-context]");
+    expect(codexConfig).not.toContain("[mcp_servers.playwright]");
+
+    const claudeMcp = JSON.parse(
+      fs.readFileSync(path.join(tmpDir, ".mcp.json"), "utf-8"),
+    ) as {
+      mcpServers: Record<string, { command: string; args: string[] }>;
+    };
+    expect(claudeMcp.mcpServers.github).toEqual({
+      command: "npx",
+      args: ["-y", "@modelcontextprotocol/server-github"],
+    });
+    expect(JSON.stringify(claudeMcp)).not.toContain("test-token");
+
+    const cursorMcp = JSON.parse(
+      fs.readFileSync(path.join(tmpDir, ".cursor", "mcp.json"), "utf-8"),
+    );
+    expect(cursorMcp).toEqual(claudeMcp);
+    expect(execSync).toHaveBeenCalledWith(
+      npmPackageLookupCommand("@modelcontextprotocol/server-github"),
+      expect.objectContaining({
+        encoding: "utf-8",
+        stdio: "pipe",
+        timeout: 5000,
+      }),
+    );
   });
 
   it("#1b does not print the promotional pain-point block", async () => {
@@ -564,10 +629,18 @@ describe("init() integration", () => {
       }),
     );
     expect(execSync).toHaveBeenCalledWith(
-      capabilityLookupCommand("codegraph"),
+      capabilityLookupCommand("npx"),
       expect.objectContaining({
         encoding: "utf-8",
         stdio: "pipe",
+      }),
+    );
+    expect(execSync).toHaveBeenCalledWith(
+      npmPackageLookupCommand("@colbymchenry/codegraph"),
+      expect.objectContaining({
+        encoding: "utf-8",
+        stdio: "pipe",
+        timeout: 5000,
       }),
     );
     expect(fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW))).toBe(true);
@@ -590,7 +663,7 @@ describe("init() integration", () => {
     );
   });
 
-  it("#1j keeps retrieval ready when an optional semantic adapter is unavailable", async () => {
+  it("#1j blocks retrieval when a generated semantic MCP adapter package is unavailable", async () => {
     vi.mocked(execSync).mockImplementation(((cmd: string) => {
       const expectedPythonCmd =
         process.platform === "win32" ? "python" : "python3";
@@ -600,24 +673,31 @@ describe("init() integration", () => {
       if (cmd === "smart-search doctor --format json") {
         return JSON.stringify({ ok: true, minimum_profile_ok: true });
       }
-      if (cmd === capabilityLookupCommand("fast-context-mcp")) {
+      if (cmd === npmPackageLookupCommand("fast-context-mcp")) {
         throw new Error("fast-context-mcp not found");
       }
       return "";
     }) as typeof execSync);
 
-    await init({ yes: true, capability: ["codebase-retrieval"] });
+    await expect(
+      init({ yes: true, capability: ["codebase-retrieval"] }),
+    ).rejects.toThrow(
+      /Selected project capability readiness failed[\s\S]*fast-context[\s\S]*trellis init --skip-readiness/,
+    );
+    expect(fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW))).toBe(false);
+  });
 
-    expect(fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW))).toBe(true);
-    const capabilitiesMd = fs.readFileSync(
-      path.join(tmpDir, DIR_NAMES.WORKFLOW, "capabilities.md"),
-      "utf-8",
+  it("#1k blocks GitHub MCP when the required token env is not visible", async () => {
+    vi.stubEnv("GITHUB_TOKEN", "");
+    vi.stubEnv("GITHUB_PERSONAL_ACCESS_TOKEN", "");
+    vi.stubEnv("GH_TOKEN", "legacy-token");
+
+    await expect(
+      init({ yes: true, capability: ["github-mcp"] }),
+    ).rejects.toThrow(
+      /Selected project capability readiness failed[\s\S]*github-mcp[\s\S]*GITHUB_TOKEN[\s\S]*GITHUB_PERSONAL_ACCESS_TOKEN[\s\S]*trellis init --skip-readiness/,
     );
-    expect(capabilitiesMd).toContain("## Codebase Retrieval Workflow");
-    expect(capabilitiesMd).toContain("### semantic");
-    expect(console.warn).toHaveBeenCalledWith(
-      expect.stringContaining("Optional semantic adapter"),
-    );
+    expect(fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW))).toBe(false);
   });
 
   it("#2 single platform creates only that platform directory", async () => {

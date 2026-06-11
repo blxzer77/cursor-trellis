@@ -66,10 +66,11 @@ When at least one optional capability is selected, init writes:
 
 Update uses `.trellis/capabilities.json` to reconstruct generated templates. This keeps capability files hash-tracked and idempotent without enabling unselected optional capabilities.
 
-Selecting `codebase-retrieval` may generate MCP server templates for the optional adapters that expose MCP surfaces:
+Selecting `codebase-retrieval` may generate MCP server templates for the optional adapters that expose MCP surfaces. Generated MCP entries must use package-runner commands that can be verified from a fresh host, not undeclared global binaries:
 
-- `fast-context` -> `fast-context-mcp`
-- `codegraph` -> `codegraph serve`
+- `fast-context` -> `npx -y fast-context-mcp`
+- `codegraph` -> `npx -y @colbymchenry/codegraph serve`
+- `github` -> `npx -y @modelcontextprotocol/server-github`
 
 Ordinary init/update only writes project-local templates. It does not start these servers.
 
@@ -84,7 +85,7 @@ Ordinary init/update only writes project-local templates. It does not start thes
 - Exact `rg` search and direct source reads are the baseline for current-code claims.
 - `fast-context-mcp` semantic results must be confirmed with exact search, Git, or direct file reads before final evidence claims.
 - CodeGraph index markers are only freshness hints. Graph-derived impact or relationship claims require a host-level status/query smoke or confirmation through Git/source reads/tests.
-- GitHub MCP remote writes require explicit user intent and clear credential/tool posture.
+- GitHub MCP uses the GitHub API server package, not a local Git-operation wrapper. Remote writes require explicit user intent and clear credential/tool posture.
 - Playwright MCP should be claimed only after rendered browser evidence is actually gathered.
 
 ## Readiness and Fallback Boundary
@@ -93,13 +94,14 @@ Selected capability readiness is checked only for capabilities recorded in the c
 
 The readiness check is deliberately lightweight:
 
-- It checks command availability with a PATH lookup rather than starting MCP servers.
+- It checks command runner availability with a PATH lookup and may check generated `npx` package existence without starting MCP servers.
 - For `codebase-retrieval`, missing `rg` is a hard failure because exact search is the required baseline.
-- For `codebase-retrieval`, missing CodeGraph, LSP, or fast-context adapters is a warning, not a hard failure.
+- For `codebase-retrieval`, missing LSP is a warning because Trellis does not configure host language servers. Missing generated MCP adapter launchability is a hard failure because a successful install must not leave broken MCP server entries.
 - Where a selected capability exposes a safe non-starting command surface, it may run a bounded host-level command visibility smoke such as `<command> --help`.
+- For generated `npx` MCP servers, readiness may verify package existence with `npm view <package> bin --json` without starting the MCP server.
 - Capability paths that may download packages, start MCP servers, open browsers, refresh indexes, run language servers, or perform remote actions are not run by ordinary init/update; they remain explicit user-approved smoke work.
 - It may check project-local CodeGraph index markers, but markers are freshness hints only.
-- It may check credential posture only by presence/absence, never by printing values.
+- It may check credential posture only by presence/absence, never by printing values. For the generated GitHub API MCP server, Trellis treats `GITHUB_TOKEN` or `GITHUB_PERSONAL_ACCESS_TOKEN` as the readiness credential variables; `GH_TOKEN` may be useful elsewhere but does not prove this server can authenticate.
 - It reports host-level smoke gaps as warnings when Trellis cannot safely prove them from the CLI process.
 
 Hard failures, such as unavailable required commands or missing GitHub credential posture, fail init/update before project writes or update backups. The error must name the failing capability, report concise reasons, include fallback guidance from the registry, and show the relevant `--skip-readiness` repair/debug bypass.
