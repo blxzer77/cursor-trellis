@@ -39,6 +39,7 @@ import {
 const BUNDLED_SKILL_NAMES = [
   "trellis-meta",
   "trellis-spec-bootstarp",
+  "trellis-skill-creator",
   "smart-search-cli",
   "trellis-micro-grill",
 ];
@@ -58,6 +59,11 @@ const SMART_SEARCH_REFERENCE = path.join(
   "smart-search-cli",
   "references",
   "cli-contract.md",
+);
+const SKILL_CREATOR_REFERENCE = path.join(
+  "trellis-skill-creator",
+  "references",
+  "authoring-rules.md",
 );
 const MICRO_GRILL_SKILL = path.join("trellis-micro-grill", "SKILL.md");
 
@@ -298,6 +304,9 @@ describe("configurePlatform", () => {
     expect(fs.existsSync(path.join(skillsRoot, BUNDLED_REFERENCE))).toBe(true);
     expect(
       fs.existsSync(path.join(skillsRoot, SMART_SEARCH_REFERENCE)),
+    ).toBe(true);
+    expect(
+      fs.existsSync(path.join(skillsRoot, SKILL_CREATOR_REFERENCE)),
     ).toBe(true);
     expect(fs.existsSync(path.join(skillsRoot, MICRO_GRILL_SKILL))).toBe(true);
     expect(
@@ -566,6 +575,9 @@ describe("configurePlatform", () => {
     expect(fs.existsSync(path.join(skillsDir, BUNDLED_REFERENCE))).toBe(true);
     expect(
       fs.existsSync(path.join(skillsDir, SMART_SEARCH_REFERENCE)),
+    ).toBe(true);
+    expect(
+      fs.existsSync(path.join(skillsDir, SKILL_CREATOR_REFERENCE)),
     ).toBe(true);
     expect(fs.existsSync(path.join(skillsDir, MICRO_GRILL_SKILL))).toBe(true);
 

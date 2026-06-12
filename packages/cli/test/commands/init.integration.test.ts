@@ -152,6 +152,17 @@ describe("init() integration", () => {
           tmpDir,
           ".claude",
           "skills",
+          "trellis-skill-creator",
+          "SKILL.md",
+        ),
+      ),
+    ).toBe(true);
+    expect(
+      fs.existsSync(
+        path.join(
+          tmpDir,
+          ".claude",
+          "skills",
           "smart-search-cli",
           "references",
           "cli-contract.md",
@@ -795,6 +806,17 @@ describe("init() integration", () => {
           tmpDir,
           ".agents",
           "skills",
+          "trellis-skill-creator",
+          "SKILL.md",
+        ),
+      ),
+    ).toBe(true);
+    expect(
+      fs.existsSync(
+        path.join(
+          tmpDir,
+          ".agents",
+          "skills",
           "smart-search-cli",
           "references",
           "cli-contract.md",
@@ -871,6 +893,12 @@ describe("init() integration", () => {
     expect(trackedPaths).toContain(".agents/skills/smart-search-cli/SKILL.md");
     expect(trackedPaths).toContain(
       ".agents/skills/smart-search-cli/references/cli-contract.md",
+    );
+    expect(trackedPaths).toContain(
+      ".agents/skills/trellis-skill-creator/SKILL.md",
+    );
+    expect(trackedPaths).toContain(
+      ".agents/skills/trellis-skill-creator/references/authoring-rules.md",
     );
     expect(trackedPaths).toContain(
       ".agents/skills/trellis-micro-grill/SKILL.md",
