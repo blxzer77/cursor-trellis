@@ -385,6 +385,14 @@ describe("collectPlatformTemplates", () => {
         ),
       ).toBe(true);
       expect(
+        result?.has(`${skillRoot}/trellis-skill-creator/SKILL.md`),
+      ).toBe(true);
+      expect(
+        result?.has(
+          `${skillRoot}/trellis-skill-creator/references/authoring-rules.md`,
+        ),
+      ).toBe(true);
+      expect(
         [...(result?.keys() ?? [])]
           .filter((key) => key.includes("/smart-search-cli/"))
           .every((key) => !key.includes("\\")),

@@ -14,11 +14,15 @@ Skills and commands are textual entry points for user interaction with Trellis. 
 Trellis has two skill families:
 
 - Workflow skills: `brainstorm`, `before-dev`, `check`, `update-spec`, and `break-loop`.
-- Multi-file bundled skills: `trellis-meta`, `smart-search-cli`, and `trellis-micro-grill`.
+- Multi-file bundled skills include `trellis-meta`, `trellis-spec-bootstarp`, `trellis-skill-creator`, `smart-search-cli`, and `trellis-micro-grill`.
 
 Bundled skills are installed as directories and may include nested `agents/`, `examples/`, `references/`, or other lazy-loadable files. Do not describe bundled skills as a closed `trellis-*` list: `smart-search-cli` intentionally keeps its existing non-`trellis-` name.
 
 `smart-search-cli` is CLI-backed source retrieval. The Trellis package exposes the `smart-search` executable through its runtime wrapper; the skill documents how agents should use that CLI and cite retrieved sources.
+
+`trellis-spec-bootstarp` bootstraps project-specific `.trellis/spec/` guidance from the real repository.
+
+`trellis-skill-creator` is the authoring and review guide for Trellis-compatible skills. Use it when creating or improving project-local skills, shared `.agents/skills/`, platform-specific skill directories, or upstream bundled skills. Keep `trellis-meta` focused on architecture and routing.
 
 `trellis-micro-grill` is the Trellis clarification adapter. It asks one high-value question at a time and escalates to Lite, Full, or Parent/Child task modes only when durable artifacts or broader risk require it.
 
@@ -49,6 +53,12 @@ A common skill is a directory:
 
 ```text
 trellis-meta/
+├── SKILL.md
+└── references/
+trellis-spec-bootstarp/
+├── SKILL.md
+└── references/
+trellis-skill-creator/
 ├── SKILL.md
 └── references/
 smart-search-cli/
@@ -102,7 +112,7 @@ Do not reintroduce `task.py start`, `task.py current`, or `task.py finish` into 
 
 ## Modification Principles
 
-1. **Keep entry files short; references carry long content**. This matters especially for multi-file skills like `trellis-meta`.
+1. **Keep entry files short; references carry long content**. This matters especially for multi-file skills like `trellis-meta` and `trellis-skill-creator`.
 2. **Make trigger descriptions specific**. A description that is too broad can mis-trigger; one that is too narrow may not trigger.
 3. **Keep the same semantics consistent across platforms**. File formats can differ, but behavior descriptions should match.
 4. **Put project-specific capabilities in local skills**. Do not put team-private flows into public `trellis-meta`.

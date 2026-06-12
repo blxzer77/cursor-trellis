@@ -30,6 +30,8 @@ A skill is usually:
 
 `SKILL.md` should be short and responsible for triggering/routing. Put long content in `references/` so AI can read it on demand.
 
+For detailed skill authoring and review rules, use `trellis-skill-creator`. This `trellis-meta` page only identifies where local Trellis skill, command, prompt, and workflow changes belong.
+
 The frontmatter description should specify when to use the skill. Example:
 
 ```yaml
