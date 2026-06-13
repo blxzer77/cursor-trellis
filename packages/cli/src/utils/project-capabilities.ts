@@ -82,13 +82,14 @@ export const PROJECT_CAPABILITIES: readonly ProjectCapability[] = [
     description:
       "Role-based local code retrieval through exact search, AST/structure, LSP expansion, semantic recall, and verification.",
     routing:
-      "Use for codebase questions by retrieval role: collect exact identifiers and path hints with rg first, expand structural candidates with CodeGraph when available, use LSP for precise navigation when available, use fast-context for semantic recall, then verify final claims with source reads, Git, or tests.",
+      "Use for codebase questions by retrieval role: extract exact identifiers and path hints, run rg first, expand structural candidates with CodeGraph when available and fresh enough, use LSP for navigation after candidate symbols/files exist, use fast-context for semantic recall, then promote only source/Git/test-backed findings to final claims.",
     readiness:
-      "Required exact search (`rg`) is available. Optional CodeGraph, LSP, and fast-context adapters are reported as available or unavailable without startup side effects.",
+      "Required exact search (`rg`) is available. Optional CodeGraph, LSP, and fast-context adapters are reported as available, unavailable, or unverified without startup side effects.",
     fallback: [
       "Install or expose `rg` on PATH before claiming codebase retrieval readiness.",
       "Ensure `npx -y fast-context-mcp` and `npx -y @colbymchenry/codegraph serve --mcp` can launch before generated MCP adapter entries are claimed as usable.",
-      "If CodeGraph, LSP, or fast-context adapters are not verified, continue with exact search and direct file reads; do not claim missing adapter output.",
+      "If CodeGraph, LSP, or fast-context adapters are unavailable, skipped, stale, or uninvoked, label that adapter evidence as unverified and continue with exact search plus direct file reads.",
+      "Record exploratory retrieval chains in task `research/*.md`; record final source/Git/test proof and unresolved adapter gaps in `verify.md`.",
       "Run indexing, host MCP smoke checks, or language-server startup only after explicit user approval.",
     ],
     adapters: {
@@ -99,7 +100,7 @@ export const PROJECT_CAPABILITIES: readonly ProjectCapability[] = [
           "Find identifiers, literals, paths, protocol constants, error codes, config keys, and test names.",
         readiness: "`rg` is available on PATH.",
         evidenceStatus:
-          "High-confidence candidate evidence, still confirmed by direct source reads before final claims.",
+          "Corroborated candidate evidence when current file/range matches are captured; still not final proof without source/Git/test confirmation.",
       },
       ast: {
         provider: "codegraph",
@@ -109,7 +110,7 @@ export const PROJECT_CAPABILITIES: readonly ProjectCapability[] = [
         readiness:
           "`npx -y @colbymchenry/codegraph serve --mcp` is available and index freshness is confirmed through status/query smoke or source/Git checks.",
         evidenceStatus:
-          "Structural candidate and impact guidance until confirmed with current source, Git, or tests.",
+          "Structural candidate and impact guidance only; stale or unverified graph output must be confirmed with current source, Git, or tests.",
         mcpServer: "codegraph",
       },
       lsp: {
@@ -120,7 +121,7 @@ export const PROJECT_CAPABILITIES: readonly ProjectCapability[] = [
         readiness:
           "A project-appropriate language server is configured by the host; Trellis does not start it during init/update.",
         evidenceStatus:
-          "Navigation candidate until the exact file and range are verified by source reads.",
+          "Navigation candidate until exact file/range evidence is verified by source reads.",
       },
       semantic: {
         provider: "fast-context-mcp",
@@ -130,7 +131,7 @@ export const PROJECT_CAPABILITIES: readonly ProjectCapability[] = [
         readiness:
           "`npx -y fast-context-mcp` is available to the host and a project-scoped smoke search is confirmed outside ordinary init/update.",
         evidenceStatus:
-          "Recall candidate only; never final proof without source/Git/test verification.",
+          "Semantic recall candidate only; convert returned files/ranges/keywords into exact search and source reads before relying on it.",
         mcpServer: "fast-context",
       },
       verification: {
@@ -140,13 +141,22 @@ export const PROJECT_CAPABILITIES: readonly ProjectCapability[] = [
           "Prove final claims with direct source reads, exact search confirmation, Git evidence, and focused validation.",
         readiness:
           "Repository files are readable and task-appropriate validation commands are available or blockers are recorded.",
-        evidenceStatus: "Required proof layer for final technical claims.",
+        evidenceStatus:
+          "Required proof layer for final technical claims and verification evidence.",
       },
     },
     cliAutomationGuidance: [
       {
         command: "rg <pattern> <path>",
         use: "Start with exact identifiers, literals, path hints, errors, config keys, and test names before broader semantic recall.",
+      },
+      {
+        command: "Get-Content <file> | Select-Object -First <n>",
+        use: "Read current source around candidate file ranges before turning retrieval output into a claim.",
+      },
+      {
+        command: "git diff -- <path>",
+        use: "Check current worktree changes before claiming behavior, impact, or test scope.",
       },
       {
         command: "codegraph status <path> --json",
@@ -191,7 +201,8 @@ export const PROJECT_CAPABILITIES: readonly ProjectCapability[] = [
     id: "github-mcp",
     aliases: ["github"],
     title: "GitHub MCP",
-    description: "GitHub repository, issue, pull request, and review operations.",
+    description:
+      "GitHub repository, issue, pull request, and review operations.",
     routing:
       "Use for explicit GitHub remote work; distinguish read-only inspection from write-capable issue, PR, branch, review, or merge actions.",
     readiness:
@@ -407,8 +418,7 @@ export function renderCapabilitiesJson(
   return `${JSON.stringify(
     {
       schema_version: 2,
-      note:
-        "Trellis-managed project capability selection. Credentials and global MCP/client config stay outside repository templates.",
+      note: "Trellis-managed project capability selection. Credentials and global MCP/client config stay outside repository templates.",
       selected: selectedIds,
       capabilities,
     },
@@ -427,13 +437,32 @@ function appendCodebaseRetrievalWorkflow(lines: string[]): void {
   lines.push(
     "## Codebase Retrieval Workflow",
     "",
-    "1. Extract exact identifiers, literals, path hints, error text, config keys, and test names from the question.",
-    "2. Run exact `rg` search first and keep file/range candidates tied to source evidence.",
-    "3. Use AST/CodeGraph only when available to resolve symbols, imports, callers, callees, impact, and affected files.",
+    "1. Extract exact identifiers, literals, path hints, command names, error text, config keys, routes, event names, task names, and test names from the question.",
+    "2. Run exact `rg` search first when exact signals exist and keep file/range candidates tied to source evidence.",
+    "3. Use AST/CodeGraph when available and fresh enough to resolve symbols, imports, callers, callees, impact, and affected files.",
     "4. Use LSP navigation only after candidate files or symbols exist; do not use it as the broad first-pass search.",
-    "5. Use semantic recall for conceptual or poorly named areas, then turn returned files/ranges into exact follow-up checks.",
+    "5. Use semantic recall for conceptual, poorly named, or cross-cutting areas, then turn returned files/ranges/keywords into exact follow-up checks.",
     "6. Fuse candidates by source proximity, tests, current Git state, and adapter freshness.",
-    "7. Read files and run task-appropriate validation before making final behavior or impact claims.",
+    "7. Read files, inspect relevant Git evidence, and run task-appropriate validation before making final behavior, impact, or test-coverage claims.",
+    "",
+    "## Codebase Evidence Levels",
+    "",
+    "- Candidate: filenames, semantic recall, initial graph/LSP output, or incomplete exact search. Candidate evidence cannot support final claims.",
+    "- Corroborated candidate: current source reads or exact `rg` hits confirm the candidate exists in this checkout. Use it to plan deeper reads or tests.",
+    "- Verified claim: current source lines plus Git evidence or focused validation support the statement. Use this level for final answers and `verify.md`.",
+    "- Unverified / unavailable: adapter output is stale, skipped, unavailable, hidden from the host, or not invoked. Report it explicitly instead of claiming it.",
+    "",
+    "## Evidence Persistence",
+    "",
+    "- Record exploratory retrieval chains, adapter availability, freshness checks, and competing hypotheses in task `research/*.md`.",
+    "- Record final source/Git/test proof, validation commands, and unresolved adapter gaps in `verify.md`.",
+    "- Prefer reusable research frontmatter when the artifact should be rediscovered later: `doc_type`, `status`, `confidence`, `scope`, and `related_files`.",
+    "",
+    "## Fallback Sequence",
+    "",
+    "- If `rg` is missing, codebase retrieval readiness fails; install or expose `rg` before claiming readiness.",
+    "- If CodeGraph, LSP, or fast-context are unavailable or unverified, continue with exact search, direct source reads, Git evidence, and focused tests.",
+    "- Do not start MCP servers, initialize indexes, start language servers, or install tools without explicit user approval.",
     "",
     "## Adapter Roles",
     "",
@@ -519,9 +548,7 @@ export function renderCapabilitiesMarkdown(
 
   const selectedWithQueryGuidance = selectedIds
     .map(capabilityById)
-    .filter(
-      (capability) => (capability.mcpQueryGuidance?.length ?? 0) > 0,
-    );
+    .filter((capability) => (capability.mcpQueryGuidance?.length ?? 0) > 0);
 
   if (selectedWithQueryGuidance.length > 0) {
     lines.push("## MCP Query Guidance", "");

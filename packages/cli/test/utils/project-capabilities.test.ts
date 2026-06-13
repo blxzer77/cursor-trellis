@@ -116,12 +116,14 @@ describe("project capabilities", () => {
       expect.objectContaining({
         provider: "rg",
         required: true,
+        evidence_status: expect.stringContaining("Corroborated candidate"),
       }),
     );
     expect(retrieval?.adapters?.semantic).toEqual(
       expect.objectContaining({
         provider: "fast-context-mcp",
         required: false,
+        evidence_status: expect.stringContaining("Semantic recall candidate"),
       }),
     );
     expect(retrieval?.fallback).toContain(
@@ -129,6 +131,12 @@ describe("project capabilities", () => {
     );
     expect(retrieval?.fallback).toContain(
       "Ensure `npx -y fast-context-mcp` and `npx -y @colbymchenry/codegraph serve --mcp` can launch before generated MCP adapter entries are claimed as usable.",
+    );
+    expect(retrieval?.fallback).toContain(
+      "If CodeGraph, LSP, or fast-context adapters are unavailable, skipped, stale, or uninvoked, label that adapter evidence as unverified and continue with exact search plus direct file reads.",
+    );
+    expect(retrieval?.fallback).toContain(
+      "Record exploratory retrieval chains in task `research/*.md`; record final source/Git/test proof and unresolved adapter gaps in `verify.md`.",
     );
     expect(JSON.stringify(parsed)).toContain("GITHUB_TOKEN");
     expect(JSON.stringify(parsed)).toContain("GITHUB_PERSONAL_ACCESS_TOKEN");
@@ -157,6 +165,14 @@ describe("project capabilities", () => {
         expect.objectContaining({
           command: "rg <pattern> <path>",
           use: expect.stringContaining("exact identifiers"),
+        }),
+        expect.objectContaining({
+          command: "Get-Content <file> | Select-Object -First <n>",
+          use: expect.stringContaining("current source"),
+        }),
+        expect.objectContaining({
+          command: "git diff -- <path>",
+          use: expect.stringContaining("current worktree"),
         }),
         expect.objectContaining({
           command: "codegraph status <path> --json",
@@ -190,9 +206,7 @@ describe("project capabilities", () => {
     expect(second).not.toContain("[mcp_servers.codegraph]");
     expect(second).not.toContain("[mcp_servers.github]");
     expect(second).toContain("[mcp_servers.playwright]");
-    expect(second.match(/TRELLIS:PROJECT-CAPABILITIES:START/g)).toHaveLength(
-      1,
-    );
+    expect(second.match(/TRELLIS:PROJECT-CAPABILITIES:START/g)).toHaveLength(1);
   });
 
   it("builds project capability templates only for selected platforms", () => {
@@ -209,6 +223,12 @@ describe("project capabilities", () => {
     );
     expect(files.get(".trellis/capabilities.md")).toContain(
       "## Codebase Retrieval Workflow",
+    );
+    expect(files.get(".trellis/capabilities.md")).toContain(
+      "## Codebase Evidence Levels",
+    );
+    expect(files.get(".trellis/capabilities.md")).toContain(
+      "task `research/*.md`",
     );
     expect(files.get(".trellis/capabilities.md")).toContain(
       "## Fallback Guidance",
@@ -234,6 +254,17 @@ describe("project capabilities", () => {
     const capabilitiesMd = renderCapabilitiesMarkdown(["codebase-retrieval"]);
 
     expect(capabilitiesMd).toContain("## Codebase Retrieval Workflow");
+    expect(capabilitiesMd).toContain("## Codebase Evidence Levels");
+    expect(capabilitiesMd).toContain(
+      "Candidate evidence cannot support final claims",
+    );
+    expect(capabilitiesMd).toContain("Corroborated candidate");
+    expect(capabilitiesMd).toContain("Verified claim");
+    expect(capabilitiesMd).toContain("Unverified / unavailable");
+    expect(capabilitiesMd).toContain("## Evidence Persistence");
+    expect(capabilitiesMd).toContain("task `research/*.md`");
+    expect(capabilitiesMd).toContain("`verify.md`");
+    expect(capabilitiesMd).toContain("## Fallback Sequence");
     expect(capabilitiesMd).toContain("## Adapter Roles");
     expect(capabilitiesMd).toContain("### exact");
     expect(capabilitiesMd).toContain("### ast");
@@ -243,6 +274,10 @@ describe("project capabilities", () => {
     expect(capabilitiesMd).toContain("## CLI Automation Guidance");
     expect(capabilitiesMd).toContain("### codebase-retrieval");
     expect(capabilitiesMd).toContain("`rg <pattern> <path>`");
+    expect(capabilitiesMd).toContain(
+      "`Get-Content <file> | Select-Object -First <n>`",
+    );
+    expect(capabilitiesMd).toContain("`git diff -- <path>`");
     expect(capabilitiesMd).toContain("`codegraph status <path> --json`");
     expect(capabilitiesMd).toContain(
       "`codegraph query <symbol-or-search> --path <path> --json`",
