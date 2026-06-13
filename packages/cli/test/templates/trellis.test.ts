@@ -16,6 +16,7 @@ import {
   commonSmartSearchEvidence,
   commonRetrievalEvidence,
   commonContextPack,
+  commonRetrievalPack,
   getDeveloperScript,
   initDeveloperScript,
   taskScript,
@@ -25,6 +26,7 @@ import {
   searchMemoryScript,
   runSmartSearchScript,
   buildContextPackScript,
+  buildRetrievalPackScript,
   workflowMdTemplate,
   gitignoreTemplate,
   getAllScripts,
@@ -306,7 +308,9 @@ describe("getAllScripts", () => {
     expect(scripts.has("common/smart_search_evidence.py")).toBe(true);
     expect(scripts.has("common/retrieval_evidence.py")).toBe(true);
     expect(scripts.has("common/context_pack.py")).toBe(true);
+    expect(scripts.has("common/retrieval_pack.py")).toBe(true);
     expect(scripts.has("build_context_pack.py")).toBe(true);
+    expect(scripts.has("build_retrieval_pack.py")).toBe(true);
     expect(scripts.has("task.py")).toBe(true);
     expect(scripts.has("get_developer.py")).toBe(true);
     expect(scripts.has("search_artifacts.py")).toBe(true);
@@ -339,7 +343,9 @@ describe("getAllScripts", () => {
       commonRetrievalEvidence,
     );
     expect(scripts.get("common/context_pack.py")).toBe(commonContextPack);
+    expect(scripts.get("common/retrieval_pack.py")).toBe(commonRetrievalPack);
     expect(scripts.get("build_context_pack.py")).toBe(buildContextPackScript);
+    expect(scripts.get("build_retrieval_pack.py")).toBe(buildRetrievalPackScript);
     expect(scripts.get("task.py")).toBe(taskScript);
     expect(scripts.get("search_artifacts.py")).toBe(searchArtifactsScript);
     expect(scripts.get("search_memory.py")).toBe(searchMemoryScript);

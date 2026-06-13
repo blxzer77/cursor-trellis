@@ -386,6 +386,88 @@ print(json.dumps(build_context_pack(json.loads(sys.stdin.read())${kwargsExpr}), 
   };
 }
 
+export interface RetrievalPackPayload {
+  version: number;
+  source: string;
+  bundle: Record<string, unknown>;
+  scoredEvidence: ScoredEvidencePayload;
+  contextPack: {
+    version: number;
+    source: string;
+    budget: {
+      maxItems: number | null;
+      maxEstimatedTokens: number | null;
+      estimatedTokens: number;
+      itemsUsed: number;
+    };
+    selected: { source: string; reference: string; status: string }[];
+    omitted: { source: string; reference: string; reason: string }[];
+    warnings: string[];
+    summary: {
+      totalInput: number;
+      selectedCount: number;
+      omittedCount: number;
+      budgetExceeded: boolean;
+    };
+  };
+  collection: {
+    recommendations: number;
+    artifactSearchResults: number;
+    sessionMemoryResults: number;
+    smartSearchManifests: number;
+    codebaseCandidates: number;
+  };
+  warnings: string[];
+}
+
+export function runBuildRetrievalPack(
+  pythonCmd: string,
+  root: string,
+  input: Record<string, unknown>,
+  options: {
+    maxItems?: number;
+    maxEstimatedTokens?: number;
+    repoRoot?: string;
+  } = {},
+): { status: number | null; stdout: string; stderr: string } {
+  const kwargs: string[] = [];
+  if (options.maxItems !== undefined) {
+    kwargs.push(`max_items=${options.maxItems}`);
+  }
+  if (options.maxEstimatedTokens !== undefined) {
+    kwargs.push(`max_estimated_tokens=${options.maxEstimatedTokens}`);
+  }
+  if (options.repoRoot !== undefined) {
+    kwargs.push(`repo_root=r"${options.repoRoot.replace(/\\/g, "\\\\")}"`);
+  }
+  const kwargsExpr = kwargs.length > 0 ? `, ${kwargs.join(", ")}` : "";
+
+  const script = `
+import json, sys
+sys.path.insert(0, r"${path.join(root, ".trellis", "scripts").replace(/\\/g, "\\\\")}")
+from common.retrieval_pack import build_retrieval_pack
+payload = json.loads(sys.stdin.read())
+print(json.dumps(build_retrieval_pack(
+    retrieval_guide=payload.get("retrievalGuide"),
+    artifact_search_results=payload.get("artifactSearchResults"),
+    session_memory_results=payload.get("sessionMemoryResults"),
+    smart_search_manifests=payload.get("smartSearchManifests"),
+    smart_search_manifest_paths=payload.get("smartSearchManifestPaths"),
+    codebase_candidates=payload.get("codebaseCandidates")${kwargsExpr}
+), ensure_ascii=False))
+`;
+  const result = spawnSync(pythonCmd, ["-c", script], {
+    cwd: root,
+    encoding: "utf-8",
+    input: JSON.stringify(input),
+  });
+  return {
+    status: result.status,
+    stdout: result.stdout ?? "",
+    stderr: result.stderr ?? "",
+  };
+}
+
 export function scoreBySource(
   payload: ScoredEvidencePayload,
   source: string,

@@ -65,6 +65,7 @@ export const commonRetrievalEvidence = readTemplate(
   "scripts/common/retrieval_evidence.py",
 );
 export const commonContextPack = readTemplate("scripts/common/context_pack.py");
+export const commonRetrievalPack = readTemplate("scripts/common/retrieval_pack.py");
 export const commonSessionContext = readTemplate(
   "scripts/common/session_context.py",
 );
@@ -89,6 +90,7 @@ export const searchArtifactsScript = readTemplate("scripts/search_artifacts.py")
 export const searchMemoryScript = readTemplate("scripts/search_memory.py");
 export const runSmartSearchScript = readTemplate("scripts/run_smart_search.py");
 export const buildContextPackScript = readTemplate("scripts/build_context_pack.py");
+export const buildRetrievalPackScript = readTemplate("scripts/build_retrieval_pack.py");
 
 // Configuration files
 export const workflowMdTemplate = readTemplate("workflow.md");
@@ -129,6 +131,7 @@ export function getAllScripts(): Map<string, string> {
   scripts.set("common/smart_search_evidence.py", commonSmartSearchEvidence);
   scripts.set("common/retrieval_evidence.py", commonRetrievalEvidence);
   scripts.set("common/context_pack.py", commonContextPack);
+  scripts.set("common/retrieval_pack.py", commonRetrievalPack);
   scripts.set("common/session_context.py", commonSessionContext);
   scripts.set("common/packages_context.py", commonPackagesContext);
   scripts.set("common/workflow_phase.py", commonWorkflowPhase);
@@ -145,6 +148,7 @@ export function getAllScripts(): Map<string, string> {
   scripts.set("search_memory.py", searchMemoryScript);
   scripts.set("run_smart_search.py", runSmartSearchScript);
   scripts.set("build_context_pack.py", buildContextPackScript);
+  scripts.set("build_retrieval_pack.py", buildRetrievalPackScript);
 
   return scripts;
 }
