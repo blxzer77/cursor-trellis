@@ -336,6 +336,7 @@ export function runGetContext(
   pythonCmd: string,
   root: string,
   args: string[] = [],
+  sessionId: string = EVAL_SESSION_ID,
 ): { status: number | null; stdout: string; stderr: string } {
   const result = spawnSync(
     pythonCmd,
@@ -343,7 +344,7 @@ export function runGetContext(
     {
       cwd: root,
       encoding: "utf-8",
-      env: { ...process.env, TRELLIS_CONTEXT_ID: EVAL_SESSION_ID },
+      env: { ...process.env, TRELLIS_CONTEXT_ID: sessionId },
     },
   );
   return {
