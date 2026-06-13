@@ -21,6 +21,15 @@ function resolvePython(): string | null {
 
 const pythonCmd = resolvePython();
 
+interface RetrievalRecommendation {
+  source: string;
+  priority: number;
+  confidence: string;
+  reason: string;
+  action: string;
+  reference: string;
+}
+
 interface ContextPayload {
   developer: string;
   tasks: {
@@ -44,6 +53,7 @@ interface ContextPayload {
       exploratory: string;
       final: string;
     };
+    recommendations: RetrievalRecommendation[];
     selectedTaskArtifacts?: {
       taskPath: string;
       prd: boolean;
@@ -99,6 +109,11 @@ function seedProject(root: string): void {
     ".trellis/tasks/06-13-context/research/baseline.md",
     "# Baseline\n",
   );
+}
+
+function seedProjectWithoutSelectedTask(root: string): void {
+  writeTrellisScripts(root);
+  writeFile(root, ".trellis/.developer", "name=test-dev\n");
 }
 
 function runGetContext(
@@ -169,6 +184,14 @@ describe.skipIf(pythonCmd === null)("get_context.py retrieval guidance", () => {
     expect(result.stdout).toContain("- implement.md: missing");
     expect(result.stdout).toContain("- research/: 1 markdown file(s)");
     expect(result.stdout).toContain("- verify.md: missing");
+    expect(result.stdout).toContain("Retrieval recommendations:");
+    expect(result.stdout).toContain(
+      "1. task-artifacts [high] priority 100",
+    );
+    expect(result.stdout).toContain("2. artifact-search [high] priority 90");
+    expect(result.stdout).toContain(
+      "Action: python3 ./.trellis/scripts/search_artifacts.py --query",
+    );
   });
 
   it("adds retrieval guidance to JSON without removing existing context keys", () => {
@@ -210,5 +233,85 @@ describe.skipIf(pythonCmd === null)("get_context.py retrieval guidance", () => {
       researchCount: 1,
       verify: false,
     });
+
+    const recommendations = payload.retrievalGuide.recommendations;
+    expect(recommendations.map((item) => item.source)).toEqual([
+      "task-artifacts",
+      "artifact-search",
+      "session-memory",
+      "codebase-evidence",
+      "smart-search",
+    ]);
+    expect(recommendations.map((item) => item.priority)).toEqual([
+      100, 90, 80, 60, 55,
+    ]);
+    expect(recommendations[1]?.action).toContain(
+      'search_artifacts.py --query "Context Loading trellis Exercise selected-task retrieval output" --json',
+    );
+    expect(recommendations[2]?.action).toContain(
+      'search_memory.py --query "Context Loading trellis Exercise selected-task retrieval output" --json',
+    );
+    expect(recommendations[4]).toMatchObject({
+      source: "smart-search",
+      confidence: "low",
+      reference: ".trellis/tasks/06-13-context/research/smart-search/",
+    });
+  });
+
+  it("keeps fallback recommendations when selected-task artifacts are missing", () => {
+    fs.rmSync(path.join(tmpDir, ".trellis", "tasks", "06-13-context", "prd.md"));
+    fs.rmSync(path.join(tmpDir, ".trellis", "tasks", "06-13-context", "design.md"));
+    fs.rmSync(
+      path.join(tmpDir, ".trellis", "tasks", "06-13-context", "research"),
+      { recursive: true, force: true },
+    );
+
+    const result = runGetContext(tmpDir, ["--json"]);
+    expect(result.status).toBe(0);
+
+    const payload = JSON.parse(result.stdout) as ContextPayload;
+    expect(payload.retrievalGuide.selectedTaskArtifacts).toMatchObject({
+      prd: false,
+      design: false,
+      implement: false,
+      research: false,
+      researchCount: 0,
+      verify: false,
+    });
+    expect(
+      payload.retrievalGuide.recommendations.map((item) => item.source),
+    ).toEqual([
+      "artifact-search",
+      "session-memory",
+      "smart-search",
+      "codebase-evidence",
+    ]);
+    expect(payload.retrievalGuide.recommendations[2]).toMatchObject({
+      source: "smart-search",
+      priority: 70,
+      confidence: "medium",
+    });
+  });
+
+  it("returns no recommendations when no selected task is resolved", () => {
+    const emptyProject = fs.mkdtempSync(
+      path.join(os.tmpdir(), "trellis-context-empty-"),
+    );
+    try {
+      seedProjectWithoutSelectedTask(emptyProject);
+
+      const textResult = runGetContext(emptyProject);
+      expect(textResult.status).toBe(0);
+      expect(textResult.stdout).not.toContain("Retrieval recommendations:");
+
+      const jsonResult = runGetContext(emptyProject, ["--json"]);
+      expect(jsonResult.status).toBe(0);
+
+      const payload = JSON.parse(jsonResult.stdout) as ContextPayload;
+      expect(payload.retrievalGuide.recommendations).toEqual([]);
+      expect(payload.retrievalGuide.selectedTaskArtifacts).toBeUndefined();
+    } finally {
+      fs.rmSync(emptyProject, { recursive: true, force: true });
+    }
   });
 });
