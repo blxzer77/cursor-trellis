@@ -418,25 +418,80 @@ def _get_update_hint(repo_root: Path) -> str | None:
     )
 
 
-def _artifact_search_command() -> str:
+def _quote_command_value(value: str) -> str:
+    return value.replace("\\", "\\\\").replace('"', '\\"')
+
+
+def _artifact_search_command(query: str = "<topic>") -> str:
     return (
         f"{_PYTHON_CMD} ./{DIR_WORKFLOW}/{DIR_SCRIPTS}/search_artifacts.py "
-        '--query "<topic>" --json'
+        f'--query "{_quote_command_value(query)}" --json'
     )
 
 
-def _session_memory_command() -> str:
+def _session_memory_command(query: str = "<topic>") -> str:
     return (
         f"{_PYTHON_CMD} ./{DIR_WORKFLOW}/{DIR_SCRIPTS}/search_memory.py "
-        '--query "<topic>" --json'
+        f'--query "{_quote_command_value(query)}" --json'
     )
 
 
-def _smart_search_evidence_command() -> str:
+def _smart_search_evidence_command(question: str = "<question>") -> str:
     return (
         f"{_PYTHON_CMD} ./{DIR_WORKFLOW}/{DIR_SCRIPTS}/run_smart_search.py "
-        '"<question>" --intent deep-research --json'
+        f'"{_quote_command_value(question)}" --intent deep-research --json'
     )
+
+
+def _query_tokens(*values: object) -> list[str]:
+    tokens: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        if not value:
+            continue
+        for raw_token in re.findall(r"[\w.-]+", str(value)):
+            token = raw_token.strip("._-")
+            if not token:
+                continue
+            key = token.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            tokens.append(token)
+            if len(tokens) >= 8:
+                return tokens
+    return tokens
+
+
+def _selected_task_query(selected_task: str, task_info: object | None) -> str:
+    if task_info:
+        tokens = _query_tokens(
+            getattr(task_info, "title", ""),
+            getattr(task_info, "name", ""),
+            getattr(task_info, "package", ""),
+            getattr(task_info, "description", ""),
+        )
+    else:
+        tokens = _query_tokens(Path(selected_task).name)
+    return " ".join(tokens) if tokens else selected_task
+
+
+def _recommendation(
+    source: str,
+    priority: int,
+    confidence: str,
+    reason: str,
+    action: str,
+    reference: str,
+) -> dict[str, object]:
+    return {
+        "source": source,
+        "priority": priority,
+        "confidence": confidence,
+        "reason": reason,
+        "action": action,
+        "reference": reference,
+    }
 
 
 def _resolve_selected_task_dir(repo_root: Path, selected_task: str) -> Path:
@@ -508,11 +563,128 @@ def _get_retrieval_guide(
     selected_artifacts = _selected_task_artifacts(repo_root, selected_task)
     if selected_artifacts is not None:
         guide["selectedTaskArtifacts"] = selected_artifacts
+    guide["recommendations"] = _get_retrieval_recommendations(
+        repo_root,
+        selected_task,
+        selected_artifacts,
+    )
     return guide
+
+
+def _get_retrieval_recommendations(
+    repo_root: Path,
+    selected_task: str | None,
+    selected_artifacts: dict[str, object] | None = None,
+) -> list[dict[str, object]]:
+    if not selected_task:
+        return []
+
+    task_dir = _resolve_selected_task_dir(repo_root, selected_task)
+    task_info = load_task(task_dir)
+    artifacts = (
+        selected_artifacts
+        or _selected_task_artifacts(repo_root, selected_task)
+        or {}
+    )
+    query = _selected_task_query(selected_task, task_info)
+    recommendations: list[dict[str, object]] = []
+
+    has_local_artifacts = any(
+        bool(artifacts.get(key))
+        for key in ("prd", "design", "implement", "research", "verify")
+    )
+    if has_local_artifacts:
+        recommendations.append(
+            _recommendation(
+                "task-artifacts",
+                100,
+                "high",
+                "Selected task has local planning or evidence artifacts; read them first.",
+                "Read selected task prd.md, design.md, implement.md, research/*.md, and verify.md as present.",
+                selected_task,
+            )
+        )
+
+    recommendations.extend(
+        [
+            _recommendation(
+                "artifact-search",
+                90,
+                "high",
+                "Search durable Trellis specs, tasks, research, and verification notes for related context.",
+                _artifact_search_command(query),
+                selected_task,
+            ),
+            _recommendation(
+                "session-memory",
+                80,
+                "medium",
+                "Search local session history for prior decisions and recent related work.",
+                _session_memory_command(query),
+                f"{DIR_WORKFLOW}/{DIR_WORKSPACE}/",
+            ),
+        ]
+    )
+
+    if bool(artifacts.get("research")):
+        smart_priority = 55
+        smart_confidence = "low"
+        smart_reason = (
+            "Research artifacts already exist; run Smart Search only for current external source gaps."
+        )
+    else:
+        smart_priority = 70
+        smart_confidence = "medium"
+        smart_reason = (
+            "No selected-task research artifacts are present; capture explicit external evidence when needed."
+        )
+
+    recommendations.extend(
+        [
+            _recommendation(
+                "smart-search",
+                smart_priority,
+                smart_confidence,
+                smart_reason,
+                _smart_search_evidence_command(query),
+                f"{selected_task}/research/smart-search/",
+            ),
+            _recommendation(
+                "codebase-evidence",
+                60,
+                "medium",
+                "Confirm candidate codebase evidence against current source, Git state, or validation.",
+                "Inspect current source and run focused validation before treating codebase retrieval as proof.",
+                "current source tree",
+            ),
+        ]
+    )
+
+    recommendations.sort(
+        key=lambda item: (-int(item["priority"]), str(item["source"]))
+    )
+    return recommendations
 
 
 def _present_missing(value: object) -> str:
     return "present" if bool(value) else "missing"
+
+
+def _append_retrieval_recommendations(
+    lines: list[str],
+    recommendations: list[dict[str, object]],
+) -> None:
+    if not recommendations:
+        return
+    lines.append("Retrieval recommendations:")
+    for index, recommendation in enumerate(recommendations, start=1):
+        source = recommendation.get("source", "")
+        confidence = recommendation.get("confidence", "")
+        priority = recommendation.get("priority", "")
+        reason = recommendation.get("reason", "")
+        lines.append(f"{index}. {source} [{confidence}] priority {priority}: {reason}")
+        lines.append(f"   Action: {recommendation.get('action', '')}")
+        lines.append(f"   Reference: {recommendation.get('reference', '')}")
 
 
 def _append_retrieval_guide(
@@ -562,6 +734,10 @@ def _append_retrieval_guide(
             )
             lines.append(f"- research/: {research_state}")
             lines.append(f"- verify.md: {_present_missing(artifacts.get('verify'))}")
+        _append_retrieval_recommendations(
+            lines,
+            _get_retrieval_recommendations(repo_root, selected_task, artifacts),
+        )
     else:
         lines.append(
             "Evidence sinks: task research/*.md for exploratory chains; task "
