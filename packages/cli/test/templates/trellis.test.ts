@@ -14,6 +14,7 @@ import {
   commonArtifactSearch,
   commonSessionMemory,
   commonSmartSearchEvidence,
+  commonRetrievalEvidence,
   getDeveloperScript,
   initDeveloperScript,
   taskScript,
@@ -301,6 +302,7 @@ describe("getAllScripts", () => {
     expect(scripts.has("common/artifact_search.py")).toBe(true);
     expect(scripts.has("common/session_memory.py")).toBe(true);
     expect(scripts.has("common/smart_search_evidence.py")).toBe(true);
+    expect(scripts.has("common/retrieval_evidence.py")).toBe(true);
     expect(scripts.has("task.py")).toBe(true);
     expect(scripts.has("get_developer.py")).toBe(true);
     expect(scripts.has("search_artifacts.py")).toBe(true);
@@ -328,6 +330,9 @@ describe("getAllScripts", () => {
     expect(scripts.get("common/session_memory.py")).toBe(commonSessionMemory);
     expect(scripts.get("common/smart_search_evidence.py")).toBe(
       commonSmartSearchEvidence,
+    );
+    expect(scripts.get("common/retrieval_evidence.py")).toBe(
+      commonRetrievalEvidence,
     );
     expect(scripts.get("task.py")).toBe(taskScript);
     expect(scripts.get("search_artifacts.py")).toBe(searchArtifactsScript);
