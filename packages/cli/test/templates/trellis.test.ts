@@ -12,12 +12,16 @@ import {
   commonActiveTask,
   commonCliAdapter,
   commonArtifactSearch,
+  commonSessionMemory,
+  commonSmartSearchEvidence,
   getDeveloperScript,
   initDeveloperScript,
   taskScript,
   getContextScript,
   addSessionScript,
   searchArtifactsScript,
+  searchMemoryScript,
+  runSmartSearchScript,
   workflowMdTemplate,
   gitignoreTemplate,
   getAllScripts,
@@ -39,12 +43,16 @@ describe("trellis template constants", () => {
     commonActiveTask,
     commonCliAdapter,
     commonArtifactSearch,
+    commonSessionMemory,
+    commonSmartSearchEvidence,
     getDeveloperScript,
     initDeveloperScript,
     taskScript,
     getContextScript,
     addSessionScript,
     searchArtifactsScript,
+    searchMemoryScript,
+    runSmartSearchScript,
     workflowMdTemplate,
     gitignoreTemplate,
   };
@@ -107,9 +115,13 @@ describe("trellis template constants", () => {
       commonPaths,
       commonActiveTask,
       commonArtifactSearch,
+      commonSessionMemory,
+      commonSmartSearchEvidence,
       getDeveloperScript,
       taskScript,
       searchArtifactsScript,
+      searchMemoryScript,
+      runSmartSearchScript,
     ];
     for (const script of pyScripts) {
       expect(
@@ -287,9 +299,13 @@ describe("getAllScripts", () => {
     expect(scripts.has("common/paths.py")).toBe(true);
     expect(scripts.has("common/active_task.py")).toBe(true);
     expect(scripts.has("common/artifact_search.py")).toBe(true);
+    expect(scripts.has("common/session_memory.py")).toBe(true);
+    expect(scripts.has("common/smart_search_evidence.py")).toBe(true);
     expect(scripts.has("task.py")).toBe(true);
     expect(scripts.has("get_developer.py")).toBe(true);
     expect(scripts.has("search_artifacts.py")).toBe(true);
+    expect(scripts.has("search_memory.py")).toBe(true);
+    expect(scripts.has("run_smart_search.py")).toBe(true);
   });
 
   it("has at least one entry", () => {
@@ -309,8 +325,14 @@ describe("getAllScripts", () => {
     expect(scripts.get("__init__.py")).toBe(scriptsInit);
     expect(scripts.get("common/__init__.py")).toBe(commonInit);
     expect(scripts.get("common/artifact_search.py")).toBe(commonArtifactSearch);
+    expect(scripts.get("common/session_memory.py")).toBe(commonSessionMemory);
+    expect(scripts.get("common/smart_search_evidence.py")).toBe(
+      commonSmartSearchEvidence,
+    );
     expect(scripts.get("task.py")).toBe(taskScript);
     expect(scripts.get("search_artifacts.py")).toBe(searchArtifactsScript);
+    expect(scripts.get("search_memory.py")).toBe(searchMemoryScript);
+    expect(scripts.get("run_smart_search.py")).toBe(runSmartSearchScript);
   });
 
   it("does not contain multi_agent entries", () => {

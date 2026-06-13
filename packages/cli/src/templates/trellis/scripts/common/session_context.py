@@ -425,6 +425,20 @@ def _artifact_search_command() -> str:
     )
 
 
+def _session_memory_command() -> str:
+    return (
+        f"{_PYTHON_CMD} ./{DIR_WORKFLOW}/{DIR_SCRIPTS}/search_memory.py "
+        '--query "<topic>" --json'
+    )
+
+
+def _smart_search_evidence_command() -> str:
+    return (
+        f"{_PYTHON_CMD} ./{DIR_WORKFLOW}/{DIR_SCRIPTS}/run_smart_search.py "
+        '"<question>" --intent deep-research --json'
+    )
+
+
 def _resolve_selected_task_dir(repo_root: Path, selected_task: str) -> Path:
     task_path = Path(selected_task)
     if task_path.is_absolute():
@@ -468,6 +482,20 @@ def _get_retrieval_guide(
                 "notes, and workspace journals."
             ),
         },
+        "sessionMemory": {
+            "command": _session_memory_command(),
+            "purpose": (
+                "Find reusable session history, prior decisions, and recent "
+                "work context from local workspace journals."
+            ),
+        },
+        "smartSearchEvidence": {
+            "command": _smart_search_evidence_command(),
+            "purpose": (
+                "Explicitly run Smart Search and save a task-local evidence "
+                "manifest for source-backed research."
+            ),
+        },
         "codebaseEvidence": (
             "Treat adapter output as candidate evidence until current source, "
             "Git, or validation confirms it."
@@ -494,9 +522,19 @@ def _append_retrieval_guide(
 ) -> None:
     lines.append("## RETRIEVAL GUIDE")
     lines.append(f"Artifact search: {_artifact_search_command()}")
+    lines.append(f"Session memory: {_session_memory_command()}")
+    lines.append(f"Smart Search evidence: {_smart_search_evidence_command()}")
     lines.append(
         "Use artifact search for durable Trellis specs, tasks, research, "
         "verification notes, and workspace journals."
+    )
+    lines.append(
+        "Use session memory for reusable prior decisions and recent work "
+        "recorded in local workspace journals."
+    )
+    lines.append(
+        "Run Smart Search evidence only when external/current source evidence is "
+        "needed; it writes a task-local manifest under research/smart-search/."
     )
     lines.append(
         "Codebase evidence: adapter output is candidate evidence until current "

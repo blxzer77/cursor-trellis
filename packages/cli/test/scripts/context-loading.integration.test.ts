@@ -31,6 +31,14 @@ interface ContextPayload {
       command: string;
       purpose: string;
     };
+    sessionMemory: {
+      command: string;
+      purpose: string;
+    };
+    smartSearchEvidence: {
+      command: string;
+      purpose: string;
+    };
     codebaseEvidence: string;
     evidenceSinks: {
       exploratory: string;
@@ -135,6 +143,18 @@ describe.skipIf(pythonCmd === null)("get_context.py retrieval guidance", () => {
       'Artifact search: python3 ./.trellis/scripts/search_artifacts.py --query "<topic>" --json',
     );
     expect(result.stdout).toContain(
+      'Session memory: python3 ./.trellis/scripts/search_memory.py --query "<topic>" --json',
+    );
+    expect(result.stdout).toContain(
+      "Use session memory for reusable prior decisions",
+    );
+    expect(result.stdout).toContain(
+      'Smart Search evidence: python3 ./.trellis/scripts/run_smart_search.py "<question>" --intent deep-research --json',
+    );
+    expect(result.stdout).toContain(
+      "Run Smart Search evidence only when external/current source evidence is needed",
+    );
+    expect(result.stdout).toContain(
       "Codebase evidence: adapter output is candidate evidence",
     );
     expect(result.stdout).toContain(
@@ -162,6 +182,18 @@ describe.skipIf(pythonCmd === null)("get_context.py retrieval guidance", () => {
     expect(payload.tasks.active).toHaveLength(1);
     expect(payload.retrievalGuide.artifactSearch.command).toBe(
       'python3 ./.trellis/scripts/search_artifacts.py --query "<topic>" --json',
+    );
+    expect(payload.retrievalGuide.sessionMemory.command).toBe(
+      'python3 ./.trellis/scripts/search_memory.py --query "<topic>" --json',
+    );
+    expect(payload.retrievalGuide.sessionMemory.purpose).toContain(
+      "workspace journals",
+    );
+    expect(payload.retrievalGuide.smartSearchEvidence.command).toBe(
+      'python3 ./.trellis/scripts/run_smart_search.py "<question>" --intent deep-research --json',
+    );
+    expect(payload.retrievalGuide.smartSearchEvidence.purpose).toContain(
+      "task-local evidence manifest",
     );
     expect(payload.retrievalGuide.codebaseEvidence).toContain(
       "candidate evidence",
