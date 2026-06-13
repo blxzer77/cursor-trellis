@@ -66,6 +66,9 @@ export const commonRetrievalEvidence = readTemplate(
 );
 export const commonContextPack = readTemplate("scripts/common/context_pack.py");
 export const commonRetrievalPack = readTemplate("scripts/common/retrieval_pack.py");
+export const commonRetrievalPackContext = readTemplate(
+  "scripts/common/retrieval_pack_context.py",
+);
 export const commonSessionContext = readTemplate(
   "scripts/common/session_context.py",
 );
@@ -132,6 +135,7 @@ export function getAllScripts(): Map<string, string> {
   scripts.set("common/retrieval_evidence.py", commonRetrievalEvidence);
   scripts.set("common/context_pack.py", commonContextPack);
   scripts.set("common/retrieval_pack.py", commonRetrievalPack);
+  scripts.set("common/retrieval_pack_context.py", commonRetrievalPackContext);
   scripts.set("common/session_context.py", commonSessionContext);
   scripts.set("common/packages_context.py", commonPackagesContext);
   scripts.set("common/workflow_phase.py", commonWorkflowPhase);

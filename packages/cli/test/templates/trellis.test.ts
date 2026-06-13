@@ -17,6 +17,7 @@ import {
   commonRetrievalEvidence,
   commonContextPack,
   commonRetrievalPack,
+  commonRetrievalPackContext,
   getDeveloperScript,
   initDeveloperScript,
   taskScript,
@@ -309,6 +310,7 @@ describe("getAllScripts", () => {
     expect(scripts.has("common/retrieval_evidence.py")).toBe(true);
     expect(scripts.has("common/context_pack.py")).toBe(true);
     expect(scripts.has("common/retrieval_pack.py")).toBe(true);
+    expect(scripts.has("common/retrieval_pack_context.py")).toBe(true);
     expect(scripts.has("build_context_pack.py")).toBe(true);
     expect(scripts.has("build_retrieval_pack.py")).toBe(true);
     expect(scripts.has("task.py")).toBe(true);
@@ -344,6 +346,9 @@ describe("getAllScripts", () => {
     );
     expect(scripts.get("common/context_pack.py")).toBe(commonContextPack);
     expect(scripts.get("common/retrieval_pack.py")).toBe(commonRetrievalPack);
+    expect(scripts.get("common/retrieval_pack_context.py")).toBe(
+      commonRetrievalPackContext,
+    );
     expect(scripts.get("build_context_pack.py")).toBe(buildContextPackScript);
     expect(scripts.get("build_retrieval_pack.py")).toBe(buildRetrievalPackScript);
     expect(scripts.get("task.py")).toBe(taskScript);

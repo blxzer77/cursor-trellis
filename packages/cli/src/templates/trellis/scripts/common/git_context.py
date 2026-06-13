@@ -27,6 +27,7 @@ from .packages_context import (
     get_context_packages_text,
     get_context_packages_json,
 )
+from .retrieval_pack_context import output_retrieval_pack_json, read_evidence_input
 from .trellis_config import read_trellis_config
 from .workflow_phase import (
     filter_platform,
@@ -57,9 +58,13 @@ def main() -> None:
     parser.add_argument(
         "--mode",
         "-m",
-        choices=["default", "record", "packages", "phase"],
+        choices=["default", "record", "packages", "phase", "retrieval-pack"],
         default="default",
-        help="Output mode: default (full context), record (for record-session), packages (package info only), phase (workflow step extraction)",
+        help=(
+            "Output mode: default (full context), record (for record-session), "
+            "packages (package info only), phase (workflow step extraction), "
+            "retrieval-pack (score and pack already-collected retrieval evidence)"
+        ),
     )
     parser.add_argument(
         "--step",
@@ -68,6 +73,27 @@ def main() -> None:
     parser.add_argument(
         "--platform",
         help="Platform name for --mode phase, e.g. cursor, claude-code. Filters platform-tagged blocks.",
+    )
+    parser.add_argument(
+        "--input",
+        help="Path to evidence JSON for --mode retrieval-pack. Defaults to stdin when omitted.",
+    )
+    parser.add_argument(
+        "--max-items",
+        type=int,
+        default=None,
+        help="Maximum selected evidence items for --mode retrieval-pack.",
+    )
+    parser.add_argument(
+        "--max-estimated-tokens",
+        type=int,
+        default=None,
+        help="Maximum estimated token budget for --mode retrieval-pack.",
+    )
+    parser.add_argument(
+        "--include-diagnostics",
+        action="store_true",
+        help="Include failed/unavailable evidence in retrieval-pack output when budget allows.",
     )
 
     args = parser.parse_args()
@@ -95,6 +121,18 @@ def main() -> None:
             )
             content = filter_platform(content, effective)
         print(content, end="")
+    elif args.mode == "retrieval-pack":
+        try:
+            evidence = read_evidence_input(args.input)
+        except (OSError, json.JSONDecodeError, ValueError) as error:
+            parser.exit(1, f"retrieval pack error: {error}\n")
+        output_retrieval_pack_json(
+            evidence_input=evidence,
+            max_items=args.max_items,
+            max_estimated_tokens=args.max_estimated_tokens,
+            include_diagnostics=args.include_diagnostics,
+            pretty=args.json,
+        )
     else:
         if args.json:
             output_json()
