@@ -120,9 +120,7 @@ describe("init() integration", () => {
       fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW, "capabilities.json")),
     ).toBe(false);
     expect(fs.existsSync(path.join(tmpDir, ".mcp.json"))).toBe(false);
-    expect(fs.existsSync(path.join(tmpDir, ".cursor", "mcp.json"))).toBe(
-      false,
-    );
+    expect(fs.existsSync(path.join(tmpDir, ".cursor", "mcp.json"))).toBe(false);
 
     // Built-in multi-file skills are installed for default platforms.
     expect(
@@ -226,18 +224,18 @@ describe("init() integration", () => {
       "`codebase-retrieval` routes by retrieval role",
     );
     expect(capabilitiesMd).toContain("## Codebase Retrieval Workflow");
+    expect(capabilitiesMd).toContain("## Codebase Evidence Levels");
+    expect(capabilitiesMd).toContain("## Evidence Persistence");
+    expect(capabilitiesMd).toContain("task `research/*.md`");
+    expect(capabilitiesMd).toContain("`verify.md`");
     expect(capabilitiesMd).toContain("## Fallback Guidance");
-    expect(capabilitiesMd).toContain(
-      "Install or expose `rg` on PATH",
-    );
+    expect(capabilitiesMd).toContain("Install or expose `rg` on PATH");
 
     const codexConfig = fs.readFileSync(
       path.join(tmpDir, ".codex", "config.toml"),
       "utf-8",
     );
-    expect(codexConfig).toContain(
-      "# TRELLIS:PROJECT-CAPABILITIES:START",
-    );
+    expect(codexConfig).toContain("# TRELLIS:PROJECT-CAPABILITIES:START");
     expect(codexConfig).toContain("[mcp_servers.fast-context]");
     expect(codexConfig).toContain("[mcp_servers.codegraph]");
     expect(codexConfig).toContain("[mcp_servers.playwright]");
@@ -517,7 +515,9 @@ describe("init() integration", () => {
       expect.arrayContaining([
         expect.objectContaining({
           name: "smartSearchSetupAction",
-          message: expect.stringContaining("Smart Search provider configuration"),
+          message: expect.stringContaining(
+            "Smart Search provider configuration",
+          ),
         }),
       ]),
     );
@@ -568,9 +568,9 @@ describe("init() integration", () => {
     });
 
     const calls = vi.mocked(execSync).mock.calls;
-    expect(
-      calls.some(([cmd]) => cmd === capabilityLookupCommand("rg")),
-    ).toBe(false);
+    expect(calls.some(([cmd]) => cmd === capabilityLookupCommand("rg"))).toBe(
+      false,
+    );
     expect(fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW))).toBe(true);
     expect(console.warn).toHaveBeenCalledWith(
       expect.stringContaining("Selected project capability readiness skipped"),
@@ -660,9 +660,7 @@ describe("init() integration", () => {
       "utf-8",
     );
     expect(capabilitiesMd).toContain("## CLI Automation Guidance");
-    expect(capabilitiesMd).toContain(
-      "`codegraph status <path> --json`",
-    );
+    expect(capabilitiesMd).toContain("`codegraph status <path> --json`");
     expect(capabilitiesMd).toContain(
       "`codegraph impact <symbol> --path <path> --depth <n> --json`",
     );
@@ -671,6 +669,9 @@ describe("init() integration", () => {
     );
     expect(console.warn).toHaveBeenCalledWith(
       expect.stringContaining("No common CodeGraph index marker was found"),
+    );
+    expect(console.warn).toHaveBeenCalledWith(
+      expect.stringContaining("Structural graph output remains unverified"),
     );
   });
 

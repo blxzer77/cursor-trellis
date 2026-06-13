@@ -429,10 +429,28 @@ Do the research in the main session directly and write findings into `{TASK_DIR}
 
 [/codex-inline, Kilo, Antigravity, Windsurf]
 
+**Retrieval during research**:
+- Use `python3 ./.trellis/scripts/search_artifacts.py --query "<topic>" --json` to find durable Trellis specs, prior tasks, research, verification notes, and workspace journals before re-discovering framework context.
+- Use `codebase-retrieval` evidence levels for source-code questions: adapter output is candidate evidence until current source, Git, or validation confirms it.
+- Persist useful exploratory retrieval chains, adapter availability, and competing hypotheses under `{TASK_DIR}/research/`.
+
 **Research artifact conventions**:
 - One file per research topic (e.g. `research/auth-library-comparison.md`)
 - Record third-party library usage examples, API references, version constraints in files
 - Note relevant spec file paths you discovered for later reference
+- Optional reusable-research frontmatter can make findings easier to rediscover:
+  ```markdown
+  ---
+  doc_type: research
+  status: active
+  confidence: medium
+  scope: authentication
+  related_files:
+    - src/auth/login.ts
+  ---
+  ```
+- Recommended reusable-research sections: Quick Answer, Key Evidence, Details, Risks / Open Questions, Next Steps
+- Evidence claims should include file paths, commands, URLs, or validation output when available
 
 Brainstorm and research can interleave freely — pause to research a technical question, then return to talk with the user.
 
@@ -469,6 +487,14 @@ python3 ./.trellis/scripts/get_context.py --mode packages
 ```
 
 Lists every package + its spec layers with paths. Pick the entries that match this task's domain.
+
+Use artifact search when prior task/research evidence is likely relevant:
+
+```bash
+python3 ./.trellis/scripts/search_artifacts.py --query "<topic>" --json
+```
+
+Add any reusable `{TASK_DIR}/research/*.md` files you discovered when sub-agents need them.
 
 **How to append entries**:
 
@@ -542,6 +568,11 @@ Stop Execution and Return-to-Planning for PRD scope/acceptance changes, design b
 Implementation defects inside the approved contract remain Execution work: fix them in Phase 2, update `verify.md` evidence, and re-run validation without changing the approved contract.
 
 #### 2.1 Implement `[required · repeatable]`
+
+Use retrieval layers before and during implementation when context is incomplete:
+- `python3 ./.trellis/scripts/search_artifacts.py --query "<topic>" --json` for durable Trellis specs, prior task artifacts, research, verification notes, and journals.
+- `codebase-retrieval` evidence levels for source claims: candidate -> corroborated candidate -> verified claim; unresolved or unavailable adapters must be reported instead of treated as proof.
+- Record exploratory chains in `{TASK_DIR}/research/` and final source/Git/test proof in `verify.md`.
 
 [Claude Code, Cursor, OpenCode, Gemini, Qoder, CodeBuddy, Copilot, Droid, Pi]
 
@@ -643,6 +674,7 @@ Verification / Review is evidence and judgment, not a hidden implementation loop
 - Spec compliance
 - lint / type-check / tests
 - Cross-layer consistency (when changes span layers)
+- Retrieval evidence: final claims must cite current source, Git, or validation proof; unresolved adapter or artifact-search gaps belong in `verify.md`
 - Reviewer gate evidence via `task.py record-gate <task> <transition> <gate> <PASS|FAIL|SKIPPED>` when a configured gate applies
 - Human-readable validation, review, and acceptance evidence in `verify.md`
 

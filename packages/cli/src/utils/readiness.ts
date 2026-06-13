@@ -20,13 +20,13 @@ const CODEBASE_GENERATED_ADAPTER_SERVERS = [
     label: "semantic fast-context adapter",
     serverName: "fast-context",
     missing:
-      "Generated semantic MCP server `fast-context` is not launchable; remove the server from generated config or fix `npx fast-context-mcp` availability before claiming semantic recall output.",
+      "Generated semantic MCP server `fast-context` is not launchable; remove the server from generated config or fix `npx fast-context-mcp` availability before claiming semantic recall output. Treat semantic recall as unavailable, not as proof.",
   },
   {
     label: "AST CodeGraph adapter",
     serverName: "codegraph",
     missing:
-      "Generated AST MCP server `codegraph` is not launchable; remove the server from generated config or fix `npx @colbymchenry/codegraph serve --mcp` availability before claiming structural graph output.",
+      "Generated AST MCP server `codegraph` is not launchable; remove the server from generated config or fix `npx @colbymchenry/codegraph serve --mcp` availability before claiming structural graph output. Treat graph evidence as unavailable, not as proof.",
   },
 ] as const;
 
@@ -262,11 +262,7 @@ function probeProjectCapability(
     }
   }
 
-  if (
-    id === "github-mcp" &&
-    commandAvailable &&
-    !hasGithubApiCredentialEnv()
-  ) {
+  if (id === "github-mcp" && commandAvailable && !hasGithubApiCredentialEnv()) {
     failures.push(
       "`GITHUB_TOKEN` or `GITHUB_PERSONAL_ACCESS_TOKEN` is not visible to Trellis readiness checks",
     );
@@ -345,7 +341,7 @@ function probeCodebaseRetrievalCapability(cwd: string): ProjectCapabilityProbe {
 
     if (adapter.serverName === "fast-context") {
       warnings.push(
-        "fast-context host MCP visibility and a project-scoped smoke search still require host-level confirmation before using semantic recall evidence.",
+        "fast-context host MCP visibility and a project-scoped smoke search still require host-level confirmation; semantic recall remains candidate evidence until exact source/Git/test verification.",
       );
     }
 
@@ -353,18 +349,18 @@ function probeCodebaseRetrievalCapability(cwd: string): ProjectCapabilityProbe {
       const markers = existingRelativePaths(cwd, CODEGRAPH_INDEX_MARKERS);
       if (markers.length === 0) {
         warnings.push(
-          "No common CodeGraph index marker was found; initialize or refresh the index after explicit approval, or fall back to source reads before graph-derived impact claims.",
+          "No common CodeGraph index marker was found; initialize or refresh the index after explicit approval, or fall back to source reads before graph-derived impact claims. Structural graph output remains unverified.",
         );
       } else {
         warnings.push(
-          `CodeGraph index marker found (${markers.join(", ")}), but Trellis has not verified index freshness; run a host-level status/query smoke or confirm with Git/source evidence before graph-derived impact claims.`,
+          `CodeGraph index marker found (${markers.join(", ")}), but Trellis has not verified index freshness; run a host-level status/query smoke or confirm with Git/source evidence before graph-derived impact claims. Structural graph output remains unverified until then.`,
         );
       }
     }
   }
 
   warnings.push(
-    "LSP adapter readiness is host-specific; Trellis does not start language servers during ordinary init/update.",
+    "LSP adapter readiness is host-specific; Trellis does not start language servers during ordinary init/update, and navigation output remains candidate evidence until confirmed by source reads.",
   );
 
   return { id, infos, failures, warnings };
@@ -497,9 +493,6 @@ export function checkProjectCapabilityReadiness(options: {
   }
 
   if (probes.some((probe) => probe.failures.length > 0)) {
-    throw projectCapabilityReadinessError(
-      probes,
-      options.skipReadinessCommand,
-    );
+    throw projectCapabilityReadinessError(probes, options.skipReadinessCommand);
   }
 }

@@ -46,6 +46,7 @@ from .paths import (
 # =============================================================================
 
 _PACKAGE_NAME = "@mindfoldhq/trellis"
+_PYTHON_CMD = "python"
 _UPDATE_CHECK_TIMEOUT_SECONDS = 1.0
 _VERSION_RE = re.compile(
     r"^\s*(\d+)(?:\.(\d+))?(?:\.(\d+))?(?:-([0-9A-Za-z.-]+))?\s*$"
@@ -417,6 +418,120 @@ def _get_update_hint(repo_root: Path) -> str | None:
     )
 
 
+def _artifact_search_command() -> str:
+    return (
+        f"{_PYTHON_CMD} ./{DIR_WORKFLOW}/{DIR_SCRIPTS}/search_artifacts.py "
+        '--query "<topic>" --json'
+    )
+
+
+def _resolve_selected_task_dir(repo_root: Path, selected_task: str) -> Path:
+    task_path = Path(selected_task)
+    if task_path.is_absolute():
+        return task_path
+    return repo_root / task_path
+
+
+def _selected_task_artifacts(
+    repo_root: Path,
+    selected_task: str | None,
+) -> dict[str, object] | None:
+    if not selected_task:
+        return None
+
+    task_dir = _resolve_selected_task_dir(repo_root, selected_task)
+    research_dir = task_dir / "research"
+    research_count = 0
+    if research_dir.is_dir():
+        research_count = len([p for p in research_dir.glob("*.md") if p.is_file()])
+
+    return {
+        "taskPath": selected_task,
+        "prd": (task_dir / "prd.md").is_file(),
+        "design": (task_dir / "design.md").is_file(),
+        "implement": (task_dir / "implement.md").is_file(),
+        "research": research_dir.is_dir(),
+        "researchCount": research_count,
+        "verify": (task_dir / "verify.md").is_file(),
+    }
+
+
+def _get_retrieval_guide(
+    repo_root: Path,
+    selected_task: str | None,
+) -> dict[str, object]:
+    guide: dict[str, object] = {
+        "artifactSearch": {
+            "command": _artifact_search_command(),
+            "purpose": (
+                "Find durable Trellis specs, tasks, research, verification "
+                "notes, and workspace journals."
+            ),
+        },
+        "codebaseEvidence": (
+            "Treat adapter output as candidate evidence until current source, "
+            "Git, or validation confirms it."
+        ),
+        "evidenceSinks": {
+            "exploratory": "selected task research/*.md",
+            "final": "selected task verify.md",
+        },
+    }
+    selected_artifacts = _selected_task_artifacts(repo_root, selected_task)
+    if selected_artifacts is not None:
+        guide["selectedTaskArtifacts"] = selected_artifacts
+    return guide
+
+
+def _present_missing(value: object) -> str:
+    return "present" if bool(value) else "missing"
+
+
+def _append_retrieval_guide(
+    lines: list[str],
+    repo_root: Path,
+    selected_task: str | None,
+) -> None:
+    lines.append("## RETRIEVAL GUIDE")
+    lines.append(f"Artifact search: {_artifact_search_command()}")
+    lines.append(
+        "Use artifact search for durable Trellis specs, tasks, research, "
+        "verification notes, and workspace journals."
+    )
+    lines.append(
+        "Codebase evidence: adapter output is candidate evidence until current "
+        "source, Git, or validation confirms it."
+    )
+
+    if selected_task:
+        lines.append(
+            f"Evidence sinks: {selected_task}/research/*.md for exploratory "
+            f"chains; {selected_task}/verify.md for final proof."
+        )
+        artifacts = _selected_task_artifacts(repo_root, selected_task)
+        if artifacts:
+            research_count = int(artifacts.get("researchCount", 0))
+            research_state = (
+                f"{research_count} markdown file(s)"
+                if research_count
+                else _present_missing(artifacts.get("research"))
+            )
+            lines.append("Selected-task artifacts:")
+            lines.append(f"- prd.md: {_present_missing(artifacts.get('prd'))}")
+            lines.append(f"- design.md: {_present_missing(artifacts.get('design'))}")
+            lines.append(
+                f"- implement.md: {_present_missing(artifacts.get('implement'))}"
+            )
+            lines.append(f"- research/: {research_state}")
+            lines.append(f"- verify.md: {_present_missing(artifacts.get('verify'))}")
+    else:
+        lines.append(
+            "Evidence sinks: task research/*.md for exploratory chains; task "
+            "verify.md for final proof."
+        )
+    lines.append("")
+
+
 # =============================================================================
 # JSON Output
 # =============================================================================
@@ -464,6 +579,7 @@ def get_context_json(repo_root: Path | None = None) -> dict:
         repo_root,
         discover_unconfigured=not root_git_info["isRepo"],
     )
+    selected_task = get_selected_task(repo_root)
 
     result = {
         "developer": developer or "",
@@ -483,6 +599,7 @@ def get_context_json(repo_root: Path | None = None) -> dict:
             "lines": journal_lines,
             "nearLimit": journal_lines > 1800,
         },
+        "retrievalGuide": _get_retrieval_guide(repo_root, selected_task),
     }
 
     if pkg_git_info:
@@ -575,6 +692,8 @@ def get_context_text(repo_root: Path | None = None) -> str:
     else:
         lines.append("(none)")
     lines.append("")
+
+    _append_retrieval_guide(lines, repo_root, selected_task)
 
     lines.append("## TASK DASHBOARD")
     lines.extend(render_task_dashboard(repo_root).splitlines())

@@ -11,11 +11,13 @@ import {
   commonTaskUtils,
   commonActiveTask,
   commonCliAdapter,
+  commonArtifactSearch,
   getDeveloperScript,
   initDeveloperScript,
   taskScript,
   getContextScript,
   addSessionScript,
+  searchArtifactsScript,
   workflowMdTemplate,
   gitignoreTemplate,
   getAllScripts,
@@ -36,11 +38,13 @@ describe("trellis template constants", () => {
     commonTaskUtils,
     commonActiveTask,
     commonCliAdapter,
+    commonArtifactSearch,
     getDeveloperScript,
     initDeveloperScript,
     taskScript,
     getContextScript,
     addSessionScript,
+    searchArtifactsScript,
     workflowMdTemplate,
     gitignoreTemplate,
   };
@@ -102,8 +106,10 @@ describe("trellis template constants", () => {
       commonInit,
       commonPaths,
       commonActiveTask,
+      commonArtifactSearch,
       getDeveloperScript,
       taskScript,
+      searchArtifactsScript,
     ];
     for (const script of pyScripts) {
       expect(
@@ -238,6 +244,30 @@ describe("trellis template constants", () => {
     expect(gitignoreTemplate).toContain("worktrees/");
     expect(gitignoreTemplate).toContain("__pycache__");
   });
+
+  it("workflow.md documents reusable research artifact metadata", () => {
+    expect(workflowMdTemplate).toContain("Optional reusable-research frontmatter");
+    expect(workflowMdTemplate).toContain("doc_type: research");
+    expect(workflowMdTemplate).toContain("status: active");
+    expect(workflowMdTemplate).toContain("confidence: medium");
+    expect(workflowMdTemplate).toContain("related_files:");
+    expect(workflowMdTemplate).toContain("Quick Answer");
+    expect(workflowMdTemplate).toContain("Key Evidence");
+  });
+
+  it("workflow.md connects retrieval layers to task evidence artifacts", () => {
+    expect(workflowMdTemplate).toContain("**Retrieval during research**");
+    expect(workflowMdTemplate).toContain("search_artifacts.py --query");
+    expect(workflowMdTemplate).toContain("durable Trellis specs");
+    expect(workflowMdTemplate).toContain("codebase-retrieval");
+    expect(workflowMdTemplate).toContain("candidate -> corroborated candidate");
+    expect(workflowMdTemplate).toContain(
+      "Record exploratory chains in `{TASK_DIR}/research/`",
+    );
+    expect(workflowMdTemplate).toContain(
+      "unresolved adapter or artifact-search gaps belong in `verify.md`",
+    );
+  });
 });
 
 // =============================================================================
@@ -256,8 +286,10 @@ describe("getAllScripts", () => {
     expect(scripts.has("common/__init__.py")).toBe(true);
     expect(scripts.has("common/paths.py")).toBe(true);
     expect(scripts.has("common/active_task.py")).toBe(true);
+    expect(scripts.has("common/artifact_search.py")).toBe(true);
     expect(scripts.has("task.py")).toBe(true);
     expect(scripts.has("get_developer.py")).toBe(true);
+    expect(scripts.has("search_artifacts.py")).toBe(true);
   });
 
   it("has at least one entry", () => {
@@ -276,7 +308,9 @@ describe("getAllScripts", () => {
     const scripts = getAllScripts();
     expect(scripts.get("__init__.py")).toBe(scriptsInit);
     expect(scripts.get("common/__init__.py")).toBe(commonInit);
+    expect(scripts.get("common/artifact_search.py")).toBe(commonArtifactSearch);
     expect(scripts.get("task.py")).toBe(taskScript);
+    expect(scripts.get("search_artifacts.py")).toBe(searchArtifactsScript);
   });
 
   it("does not contain multi_agent entries", () => {
