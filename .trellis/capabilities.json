@@ -24,32 +24,35 @@
           "args": [
             "-y",
             "@colbymchenry/codegraph",
-            "serve"
-          ]
+            "serve",
+            "--mcp"
+          ],
+          "startup_timeout_sec": 120
         }
       ],
-      "routing": "Use for codebase questions by retrieval role: collect exact identifiers and path hints with rg first, expand structural candidates with CodeGraph when available, use LSP for precise navigation when available, use fast-context for semantic recall, then verify final claims with source reads, Git, or tests.",
-      "readiness": "Required exact search (`rg`) is available. Optional CodeGraph, LSP, and fast-context adapters are reported as available or unavailable without startup side effects.",
+      "routing": "Use for codebase questions by retrieval role: extract exact identifiers, path hints, and policy phrases, run rg first, apply intent-gated policy/document-first routing for architecture, boundary, and storage-policy questions, apply other intent-gated branches (caller-chain, trap demotion, extension disambiguation, env/config literals) only when the question matches that class, expand structural candidates with CodeGraph when available and fresh enough, use LSP for navigation after candidate symbols/files exist, use fast-context for semantic recall last on policy/env-heavy queries, then promote only source/Git/test-backed findings to final claims.",
+      "readiness": "Required exact search (`rg`) is available. Optional CodeGraph, LSP, and fast-context adapters are reported as available, unavailable, or unverified without startup side effects.",
       "fallback": [
         "Install or expose `rg` on PATH before claiming codebase retrieval readiness.",
-        "Ensure `npx -y fast-context-mcp` and `npx -y @colbymchenry/codegraph serve` can launch before generated MCP adapter entries are claimed as usable.",
-        "If CodeGraph, LSP, or fast-context adapters are not verified, continue with exact search and direct file reads; do not claim missing adapter output.",
+        "Ensure `npx -y fast-context-mcp` and `npx -y @colbymchenry/codegraph serve --mcp` can launch before generated MCP adapter entries are claimed as usable.",
+        "If CodeGraph, LSP, or fast-context adapters are unavailable, skipped, stale, or uninvoked, label that adapter evidence as unverified and continue with exact search plus direct file reads.",
+        "Record exploratory retrieval chains in task `research/*.md`; record final source/Git/test proof and unresolved adapter gaps in `verify.md`.",
         "Run indexing, host MCP smoke checks, or language-server startup only after explicit user approval."
       ],
       "adapters": {
         "exact": {
           "provider": "rg",
           "required": true,
-          "purpose": "Find identifiers, literals, paths, protocol constants, error codes, config keys, and test names.",
+          "purpose": "Find identifiers, literals, paths, protocol constants, error codes, config keys, policy phrases, env prefixes, extension ids, and test names.",
           "readiness": "`rg` is available on PATH.",
-          "evidence_status": "High-confidence candidate evidence, still confirmed by direct source reads before final claims."
+          "evidence_status": "Corroborated candidate evidence when current file/range matches are captured; still not final proof without source/Git/test confirmation."
         },
         "ast": {
           "provider": "codegraph",
           "required": false,
           "purpose": "Resolve symbols, definitions, imports, callers, callees, impact, affected files, and structural relationships.",
-          "readiness": "`npx -y @colbymchenry/codegraph` is available and index freshness is confirmed through status/query smoke or source/Git checks.",
-          "evidence_status": "Structural candidate and impact guidance until confirmed with current source, Git, or tests.",
+          "readiness": "`npx -y @colbymchenry/codegraph serve --mcp` is available and index freshness is confirmed through status/query smoke or source/Git checks.",
+          "evidence_status": "Structural candidate and impact guidance only; stale or unverified graph output must be confirmed with current source, Git, or tests.",
           "mcp_server": "codegraph"
         },
         "lsp": {
@@ -57,14 +60,14 @@
           "required": false,
           "purpose": "Expand high-confidence candidates through definitions, references, implementations, hover, and workspace symbols.",
           "readiness": "A project-appropriate language server is configured by the host; Trellis does not start it during init/update.",
-          "evidence_status": "Navigation candidate until the exact file and range are verified by source reads."
+          "evidence_status": "Navigation candidate until exact file/range evidence is verified by source reads."
         },
         "semantic": {
           "provider": "fast-context-mcp",
           "required": false,
           "purpose": "Recall conceptual or poorly named code areas and return candidate files, ranges, and follow-up grep terms.",
           "readiness": "`npx -y fast-context-mcp` is available to the host and a project-scoped smoke search is confirmed outside ordinary init/update.",
-          "evidence_status": "Recall candidate only; never final proof without source/Git/test verification.",
+          "evidence_status": "Semantic recall candidate only; convert returned files/ranges/keywords into exact search and source reads before relying on it.",
           "mcp_server": "fast-context"
         },
         "verification": {
@@ -72,13 +75,25 @@
           "required": true,
           "purpose": "Prove final claims with direct source reads, exact search confirmation, Git evidence, and focused validation.",
           "readiness": "Repository files are readable and task-appropriate validation commands are available or blockers are recorded.",
-          "evidence_status": "Required proof layer for final technical claims."
+          "evidence_status": "Required proof layer for final technical claims and verification evidence."
         }
       },
       "cli_automation_guidance": [
         {
           "command": "rg <pattern> <path>",
-          "use": "Start with exact identifiers, literals, path hints, errors, config keys, and test names before broader semantic recall."
+          "use": "Start with exact identifiers, literals, path hints, policy phrases, errors, config keys, and test names before broader semantic recall."
+        },
+        {
+          "command": "rg -i \"storage default|sidecar|sqlite only\" AGENTS.md \"**/AGENTS.md\" README.md CONTRIBUTING.md .trellis/spec",
+          "use": "For architecture, boundary, or storage/persistence policy questions (OpenClaw benchmark C-class, especially storage-policy queries), search project instruction and policy docs before implementation modules such as SQLite or state DB files."
+        },
+        {
+          "command": "Get-Content <file> | Select-Object -First <n>",
+          "use": "Read current source around candidate file ranges before turning retrieval output into a claim."
+        },
+        {
+          "command": "git diff -- <path>",
+          "use": "Check current worktree changes before claiming behavior, impact, or test scope."
         },
         {
           "command": "codegraph status <path> --json",
@@ -90,7 +105,15 @@
         },
         {
           "command": "codegraph callers <symbol> --path <path> --json",
-          "use": "Find direct upstream callers that may need edits or focused tests."
+          "use": "Find upstream callers; raise result limits or paginate with rg when the question asks which modules/files invoke a facade, loader, or helper (do not stop at the helper definition file)."
+        },
+        {
+          "command": "rg <env-prefix> scripts test e2e bench",
+          "use": "For env/config literal questions, search scripts, e2e, benchmark, and test trees before auth or runtime implementation modules under src/."
+        },
+        {
+          "command": "rg <symbol> extensions/",
+          "use": "For shared extension exports, list every extension hit, then disambiguate by extension id in the query and non-empty export bodies before global semantic explore."
         },
         {
           "command": "codegraph callees <symbol> --path <path> --json",
@@ -135,7 +158,8 @@
           "args": [
             "-y",
             "@playwright/mcp@latest"
-          ]
+          ],
+          "startup_timeout_sec": 120
         }
       ],
       "routing": "Use for browser/UI verification when the task requires rendered behavior evidence; keep browser/session startup explicit.",

@@ -82,7 +82,7 @@ export const PROJECT_CAPABILITIES: readonly ProjectCapability[] = [
     description:
       "Role-based local code retrieval through exact search, AST/structure, LSP expansion, semantic recall, and verification.",
     routing:
-      "Use for codebase questions by retrieval role: extract exact identifiers and path hints, run rg first, expand structural candidates with CodeGraph when available and fresh enough, use LSP for navigation after candidate symbols/files exist, use fast-context for semantic recall, then promote only source/Git/test-backed findings to final claims.",
+      "Use for codebase questions by retrieval role: extract exact identifiers, path hints, and policy phrases, run rg first, apply intent-gated policy/document-first routing for architecture, boundary, and storage-policy questions, apply other intent-gated branches (caller-chain, trap demotion, extension disambiguation, env/config literals) only when the question matches that class, expand structural candidates with CodeGraph when available and fresh enough, use LSP for navigation after candidate symbols/files exist, use fast-context for semantic recall last on policy/env-heavy queries, then promote only source/Git/test-backed findings to final claims.",
     readiness:
       "Required exact search (`rg`) is available. Optional CodeGraph, LSP, and fast-context adapters are reported as available, unavailable, or unverified without startup side effects.",
     fallback: [
@@ -97,7 +97,7 @@ export const PROJECT_CAPABILITIES: readonly ProjectCapability[] = [
         provider: "rg",
         required: true,
         purpose:
-          "Find identifiers, literals, paths, protocol constants, error codes, config keys, and test names.",
+          "Find identifiers, literals, paths, protocol constants, error codes, config keys, policy phrases, env prefixes, extension ids, and test names.",
         readiness: "`rg` is available on PATH.",
         evidenceStatus:
           "Corroborated candidate evidence when current file/range matches are captured; still not final proof without source/Git/test confirmation.",
@@ -148,7 +148,12 @@ export const PROJECT_CAPABILITIES: readonly ProjectCapability[] = [
     cliAutomationGuidance: [
       {
         command: "rg <pattern> <path>",
-        use: "Start with exact identifiers, literals, path hints, errors, config keys, and test names before broader semantic recall.",
+        use: "Start with exact identifiers, literals, path hints, policy phrases, errors, config keys, and test names before broader semantic recall.",
+      },
+      {
+        command:
+          'rg -i "storage default|sidecar|sqlite only" AGENTS.md "**/AGENTS.md" README.md CONTRIBUTING.md .trellis/spec',
+        use: "For architecture, boundary, or storage/persistence policy questions (OpenClaw benchmark C-class, especially storage-policy queries), search project instruction and policy docs before implementation modules such as SQLite or state DB files.",
       },
       {
         command: "Get-Content <file> | Select-Object -First <n>",
@@ -168,7 +173,15 @@ export const PROJECT_CAPABILITIES: readonly ProjectCapability[] = [
       },
       {
         command: "codegraph callers <symbol> --path <path> --json",
-        use: "Find direct upstream callers that may need edits or focused tests.",
+        use: "Find upstream callers; raise result limits or paginate with rg when the question asks which modules/files invoke a facade, loader, or helper (do not stop at the helper definition file).",
+      },
+      {
+        command: "rg <env-prefix> scripts test e2e bench",
+        use: "For env/config literal questions, search scripts, e2e, benchmark, and test trees before auth or runtime implementation modules under src/.",
+      },
+      {
+        command: "rg <symbol> extensions/",
+        use: "For shared extension exports, list every extension hit, then disambiguate by extension id in the query and non-empty export bodies before global semantic explore.",
       },
       {
         command: "codegraph callees <symbol> --path <path> --json",
@@ -433,17 +446,83 @@ export function getProjectCapability(
   return capabilityById(id);
 }
 
+function appendPolicyDocumentRetrievalRouting(lines: string[]): void {
+  lines.push(
+    "## Policy and Document-First Routing (intent-gated)",
+    "",
+    "Apply this branch when the question is about architecture, responsibility, ownership, boundaries, project or package policy, storage or persistence policy, conventions, or where behavior is allowed, forbidden, or defined in instructions—not when the question names an exact symbol, protocol constant, schema path, platform file, or version literal (those stay symbol/path-first for strong A/G/F/J routes).",
+    "",
+    "Trigger signals include: 规定 / 边界 / 为什么不能 / storage policy / persistence / sidecar / import boundaries / transport-only / project instructions / AGENTS conventions.",
+    "",
+    "Evidence order for policy/document queries:",
+    "",
+    "1. Root and nested `AGENTS.md`, then `.trellis/spec/**`, `README.md`, `CONTRIBUTING.md`, architecture or design docs, and package-level policy or contract instruction files.",
+    "2. Exact `rg` on policy phrases and boundary terms scoped to those paths (for example `Storage default: SQLite only`, `sidecar`, `SQLite only`, transport-only, import boundary).",
+    "3. Read matched policy sections with direct source reads before ranking implementation files as Top-1.",
+    "4. Use AST/CodeGraph or semantic recall only to corroborate policy claims or locate related implementation; do not let SQLite/state/cache modules outrank root policy docs when the question asks what is allowed or forbidden.",
+    "5. Verify with source reads before final claims; optional adapters remain optional.",
+    "",
+    "### Storage and persistence policy (benchmark C03 pattern)",
+    "",
+    "When the question asks how storage is chosen, why sidecar files for cache or queue are forbidden, or SQLite vs JSON/JSONL policy: inspect root `AGENTS.md` (and nested `**/AGENTS.md`) before `src/state/*`, Kysely, or other storage implementation modules. Target Top-1 policy evidence such as `Storage default: SQLite only`, `state/openclaw.sqlite`, and `Kysely` cited from instruction docs, not from implementation adjacency alone. OpenClaw audit acceptance target for this query class: `>= 4/6` when agents follow this route.",
+    "",
+  );
+}
+
+function appendCodebaseRetrievalIntentBranches(lines: string[]): void {
+  lines.push(
+    "## Query Intent Branches (intent-gated)",
+    "",
+    "Apply these branches only when the question matches the intent class. Do not reorder the global workflow for F/G protocol queries, platform file paths, or questions with a single named symbol or constant—keep exact `rg` and symbol-scoped CodeGraph first.",
+    "",
+    "### Caller and assembly chain (B-class)",
+    "",
+    "- Use when the question asks who calls, which modules invoke, where behavior is wired, or which facade modules delegate work.",
+    "- Do not treat facade-runtime, loader, barrel, plugin-registry-snapshot, or a single deliver/helper file as sufficient Top-1 evidence when the rubric expects many concrete call sites.",
+    "- After exact hits on the helper or symbol, run `codegraph callers` with a raised limit (or repeat with `rg` references/imports) until concrete callee modules appear; follow assembly nodes (`*-runtime`, `server-runtime-services`, registry entry vs snapshot) with `codegraph callees` or targeted `rg`.",
+    "- Rank concrete call-site files above the file that only defines or loads the helper.",
+    "",
+    "### Trap demotion and package boundary (E-class)",
+    "",
+    "- Use when similarly named files exist in a different package or layer (for example `src/agents/*` vs `packages/*-core`).",
+    "- Parse path and package hints in the query; demote trap candidates until an export, protocol type, or corroborating call site matches the asked layer.",
+    "- Prefer `packages/<name>/` evidence when the question names a core library; demote spawn/runtime overlay traps that share a prefix but live in agent glue code.",
+    "- Do not promote a trap file to Top-1 without reading exports and at least one confirming reference.",
+    "",
+    "### Extension and shared-symbol disambiguation (A-class)",
+    "",
+    "- Use when one symbol (for example `legacyConfigRules`) appears across many `extensions/` trees.",
+    "- Run exact `rg` across `extensions/` first; filter by extension id or directory named in the question.",
+    "- Prefer the first non-empty export with a real implementation over stub or empty `doctor-contract-api` paths; demote traps listed in eval/query context when present.",
+    "- Run CodeGraph explore only after the extension candidate set is narrowed—not as an unscoped global symbol search.",
+    "",
+    "### Environment and config literals (D-class)",
+    "",
+    "- Use when the question names env vars, `OPENCLAW_*` prefixes, benchmark startup, or e2e script configuration.",
+    "- Run exact `rg` on `scripts/`, `test/`, `e2e/`, and `bench/` (or project equivalents) before `src/` auth, token, or runtime conflict modules.",
+    "- Prefer files that assign or read the literal in scripts over implementation files that only mention the prefix in error handling.",
+    "- Use CodeGraph after literal hits exist; do not let auth/runtime implementation outrank script evidence for env-inventory questions.",
+    "",
+    "### Preserve strong routes (F / G / exact symbol)",
+    "",
+    "- Platform paths (`apps/ios`, `apps/android`, Swift/Kotlin trees), `packages/gateway-protocol`, contract/schema globs, and named constants: exact `rg` plus symbol-scoped `codegraph_search` stay primary.",
+    "- Do not run policy-first, trap demotion, or env-before-`src/` passes ahead of exact symbol discovery for those queries.",
+    "",
+  );
+}
+
 function appendCodebaseRetrievalWorkflow(lines: string[]): void {
   lines.push(
     "## Codebase Retrieval Workflow",
     "",
-    "1. Extract exact identifiers, literals, path hints, command names, error text, config keys, routes, event names, task names, and test names from the question.",
+    "1. Extract exact identifiers, literals, path hints, policy phrases, command names, error text, config keys, env prefixes, extension ids, routes, event names, task names, and test names from the question.",
     "2. Run exact `rg` search first when exact signals exist and keep file/range candidates tied to source evidence.",
-    "3. Use AST/CodeGraph when available and fresh enough to resolve symbols, imports, callers, callees, impact, and affected files.",
-    "4. Use LSP navigation only after candidate files or symbols exist; do not use it as the broad first-pass search.",
-    "5. Use semantic recall for conceptual, poorly named, or cross-cutting areas, then turn returned files/ranges/keywords into exact follow-up checks.",
-    "6. Fuse candidates by source proximity, tests, current Git state, and adapter freshness.",
-    "7. Read files, inspect relevant Git evidence, and run task-appropriate validation before making final behavior, impact, or test-coverage claims.",
+    "3. Classify intent (policy/document, caller-chain, trap/package, extension spread, env literal, protocol/platform) and apply **Policy and Document-First Routing** or the matching branch from **Query Intent Branches** when it fits; skip branches that do not match.",
+    "4. Use AST/CodeGraph when available and fresh enough to resolve symbols, imports, callers, callees, impact, and affected files.",
+    "5. Use LSP navigation only after candidate files or symbols exist; do not use it as the broad first-pass search.",
+    "6. Use semantic recall for conceptual, poorly named, or cross-cutting areas, then turn returned files/ranges/keywords into exact follow-up checks; deprioritize semantic Top-1 for policy/storage-policy, env-literal, and extension-disambiguation questions until policy docs or `rg` narrow candidates.",
+    "7. Fuse candidates by source proximity, tests, current Git state, and adapter freshness.",
+    "8. Read files, inspect relevant Git evidence, and run task-appropriate validation before making final behavior, impact, or test-coverage claims.",
     "",
     "## Codebase Evidence Levels",
     "",
@@ -481,6 +560,8 @@ function appendCodebaseRetrievalWorkflow(lines: string[]): void {
       "",
     );
   }
+
+  appendCodebaseRetrievalIntentBranches(lines);
 }
 
 export function renderCapabilitiesMarkdown(
@@ -511,7 +592,9 @@ export function renderCapabilitiesMarkdown(
     "",
     "- Unselected, unavailable, skipped, or uninvoked capabilities must not be reported as used.",
     "- Capability output that affects task decisions must be recorded in task research or verify evidence.",
-    "- `codebase-retrieval` routes by retrieval role, not by tool brand: exact search, AST/structure, LSP navigation, semantic recall, then verification.",
+    "- `codebase-retrieval` routes by retrieval role, not by tool brand: exact search, intent-gated policy/document-first routing for C-class questions, other intent-gated branches when the question class matches, AST/structure, LSP navigation, semantic recall, then verification.",
+    "- Policy, architecture, boundary, and storage-policy questions must inspect `AGENTS.md`, `.trellis/spec/**`, and README/contributing/architecture docs before semantic implementation search.",
+    "- Intent-gated branches (policy/document, caller-chain, trap demotion, extension disambiguation, env/config literals) must not override exact-symbol or F/G protocol routes.",
     "- Exact `rg` search and direct source reads are the baseline for current-code claims.",
     "- CodeGraph output is structural guidance until index freshness and current source/Git evidence are confirmed.",
     "- fast-context output is semantic recall only and must be converted into exact source checks before final claims.",
@@ -521,6 +604,7 @@ export function renderCapabilitiesMarkdown(
   );
 
   if (selectedIds.includes("codebase-retrieval")) {
+    appendPolicyDocumentRetrievalRouting(lines);
     appendCodebaseRetrievalWorkflow(lines);
   }
 
