@@ -223,6 +223,10 @@ describe("init() integration", () => {
     expect(capabilitiesMd).toContain(
       "`codebase-retrieval` routes by retrieval role",
     );
+    expect(capabilitiesMd).toContain(
+      "## Policy and Document-First Routing (intent-gated)",
+    );
+    expect(capabilitiesMd).toContain("AGENTS.md");
     expect(capabilitiesMd).toContain("## Codebase Retrieval Workflow");
     expect(capabilitiesMd).toContain("## Codebase Evidence Levels");
     expect(capabilitiesMd).toContain("## Evidence Persistence");

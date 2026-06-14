@@ -152,6 +152,7 @@ describe("project capabilities", () => {
       capabilities: Record<
         string,
         {
+          adapters?: Record<string, { purpose: string }>;
           cli_automation_guidance?: { command: string; use: string }[];
           routing: string;
         }
@@ -159,12 +160,33 @@ describe("project capabilities", () => {
     };
     const retrieval = parsed.capabilities["codebase-retrieval"];
 
+    expect(retrieval?.routing).toContain("policy/document-first routing");
+    expect(retrieval?.routing).toContain("intent-gated");
     expect(retrieval?.routing).toContain("retrieval role");
+    expect(retrieval?.adapters?.exact.purpose).toContain("policy phrases");
+    expect(retrieval?.adapters?.exact.purpose).toContain("env prefixes");
     expect(retrieval?.cli_automation_guidance).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           command: "rg <pattern> <path>",
-          use: expect.stringContaining("exact identifiers"),
+          use: expect.stringContaining("policy phrases"),
+        }),
+        expect.objectContaining({
+          command:
+            'rg -i "storage default|sidecar|sqlite only" AGENTS.md "**/AGENTS.md" README.md CONTRIBUTING.md .trellis/spec',
+          use: expect.stringContaining("before implementation"),
+        }),
+        expect.objectContaining({
+          command: "rg <env-prefix> scripts test e2e bench",
+          use: expect.stringContaining("before auth"),
+        }),
+        expect.objectContaining({
+          command: "rg <symbol> extensions/",
+          use: expect.stringContaining("disambiguate"),
+        }),
+        expect.objectContaining({
+          command: "codegraph callers <symbol> --path <path> --json",
+          use: expect.stringContaining("facade"),
         }),
         expect.objectContaining({
           command: "Get-Content <file> | Select-Object -First <n>",
@@ -222,8 +244,22 @@ describe("project capabilities", () => {
       "Unselected, unavailable, skipped, or uninvoked capabilities",
     );
     expect(files.get(".trellis/capabilities.md")).toContain(
+      "## Policy and Document-First Routing (intent-gated)",
+    );
+    expect(files.get(".trellis/capabilities.md")).toContain(
+      "### Storage and persistence policy (benchmark C03 pattern)",
+    );
+    expect(files.get(".trellis/capabilities.md")).toContain(
+      "Storage default: SQLite only",
+    );
+    expect(files.get(".trellis/capabilities.md")).toContain(
       "## Codebase Retrieval Workflow",
     );
+    expect(files.get(".trellis/capabilities.md")).toContain(
+      "## Query Intent Branches (intent-gated)",
+    );
+    expect(files.get(".trellis/capabilities.md")).toContain("legacyConfigRules");
+    expect(files.get(".trellis/capabilities.md")).toContain("OPENCLAW_*");
     expect(files.get(".trellis/capabilities.md")).toContain(
       "## Codebase Evidence Levels",
     );
@@ -253,7 +289,32 @@ describe("project capabilities", () => {
   it("renders selected retrieval workflow and CLI routing", () => {
     const capabilitiesMd = renderCapabilitiesMarkdown(["codebase-retrieval"]);
 
+    expect(capabilitiesMd).toContain(
+      "## Policy and Document-First Routing (intent-gated)",
+    );
+    expect(capabilitiesMd).toContain(
+      "inspect `AGENTS.md`, `.trellis/spec/**`, and README/contributing/architecture docs before semantic implementation search",
+    );
+    expect(capabilitiesMd).toContain(
+      "### Storage and persistence policy (benchmark C03 pattern)",
+    );
+    expect(capabilitiesMd).toContain(">= 4/6");
     expect(capabilitiesMd).toContain("## Codebase Retrieval Workflow");
+    expect(capabilitiesMd).toContain("## Query Intent Branches (intent-gated)");
+    expect(capabilitiesMd).toContain("### Caller and assembly chain (B-class)");
+    expect(capabilitiesMd).toContain(
+      "### Trap demotion and package boundary (E-class)",
+    );
+    expect(capabilitiesMd).toContain(
+      "### Extension and shared-symbol disambiguation (A-class)",
+    );
+    expect(capabilitiesMd).toContain(
+      "### Environment and config literals (D-class)",
+    );
+    expect(capabilitiesMd).toContain(
+      "### Preserve strong routes (F / G / exact symbol)",
+    );
+    expect(capabilitiesMd).toContain("Intent-gated branches");
     expect(capabilitiesMd).toContain("## Codebase Evidence Levels");
     expect(capabilitiesMd).toContain(
       "Candidate evidence cannot support final claims",
@@ -285,6 +346,10 @@ describe("project capabilities", () => {
     expect(capabilitiesMd).toContain(
       "`codegraph callers <symbol> --path <path> --json`",
     );
+    expect(capabilitiesMd).toContain(
+      "`rg <env-prefix> scripts test e2e bench`",
+    );
+    expect(capabilitiesMd).toContain("`rg <symbol> extensions/`");
     expect(capabilitiesMd).toContain(
       "`codegraph callees <symbol> --path <path> --json`",
     );
