@@ -258,9 +258,6 @@ def build_child_prompt(
             lines.append(f"- `{touch}`")
         lines.append("")
 
-    lines.append(_VALIDATION_BASELINE)
-    lines.append("")
-
     if mode == "subagent":
         lines.extend(
             [
@@ -318,9 +315,21 @@ def build_parent_status(parent_dir: Path) -> str:
         evidence = child.get("evidence")
         ref = child.get("ref")
         deps = child.get("depends_on") or []
+        touches = child.get("touches") or []
+        isolation = child.get("isolation")
+        branch = child.get("branch")
+        worktree_path = child.get("worktree_path")
         lines.append(f"### `{cid}` — `{state}`")
         if deps:
             lines.append(f"- depends_on: {', '.join(deps)}")
+        if touches:
+            lines.append(f"- touches: {', '.join(touches)}")
+        if isolation:
+            lines.append(f"- isolation: {isolation}")
+        if branch:
+            lines.append(f"- branch: {branch}")
+        if worktree_path:
+            lines.append(f"- worktree_path: {worktree_path}")
         if evidence:
             lines.append(f"- evidence: {evidence}")
         if ref:
@@ -338,6 +347,7 @@ def build_parent_status(parent_dir: Path) -> str:
     lines.append("")
     lines.append("```bash")
     lines.append(f"python ./.trellis/scripts/task.py parent-status {parent_rel}")
+    lines.append(f"python ./.trellis/scripts/task.py generate-child-prompt {parent_rel} <child> --mode subagent")
     lines.append(f"python ./.trellis/scripts/task.py generate-child-prompt {parent_rel} <child> --mode inline")
     lines.append(f"python ./.trellis/scripts/task.py review-child {parent_rel} <child> --check")
     lines.append(f"python ./.trellis/scripts/task.py review-child {parent_rel} <child> --decision accept --ref <ref>")

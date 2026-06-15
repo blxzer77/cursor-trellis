@@ -34,7 +34,12 @@ cat .trellis/spec/<package>/<layer>/index.md   # for each relevant layer
 Index files list the specific guideline docs to read when you actually start coding.
 
 ## Step 4: Decide next action
-From Step 1 you know whether a task is selected. If `Selected task: none`, show the Task Dashboard and ask the user to choose: select a task, create a task, inspect details, or continue without a task.
+From Step 1 you know whether a task is selected.
+
+- If `Selected task: none` → show the Task Dashboard; do **not** load `trellis-continue`. For a **small** request without a task, use `trellis-micro-grill` first.
+- If a task **is** selected and you need the next workflow step → use `trellis-continue` instead of repeating Steps 1–3 here.
+
+If `Selected task: none`, ask the user to choose: select a task, create a task, inspect details, or continue without a task.
 
 If a task is selected, check the task directory:
 
@@ -52,9 +57,12 @@ If a task is selected, check the task directory:
 
 | User intent | Skill |
 |---|---|
+| Resume **selected** in-progress task | `trellis-continue` |
 | New feature / unclear requirements | `trellis-brainstorm` |
+| Small request, no task yet | `trellis-micro-grill` |
 | About to write code | `trellis-before-dev` |
 | Done coding / quality check | `trellis-check` |
+| Session wrap-up after Phase 3.4 commit | `trellis-finish-work` |
 | Stuck / fixed same bug multiple times | `trellis-break-loop` |
 | Learned something worth capturing | `trellis-update-spec` |
 
