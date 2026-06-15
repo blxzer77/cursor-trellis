@@ -11,6 +11,7 @@ const ALL_HOOK_FILES = [
   "inject-shell-session-context.py",
   "inject-workflow-state.py",
   "inject-subagent-context.py",
+  "research-end-retrieval-pack.py",
 ] as const;
 
 describe("shared-hooks capability table", () => {
