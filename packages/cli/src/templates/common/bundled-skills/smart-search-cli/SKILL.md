@@ -1,6 +1,6 @@
 ---
 name: smart-search-cli
-description: CLI-first web research and source retrieval through the local smart-search command. Use when Codex needs current web search, source-backed fact checking, URL fetching, site mapping, official/API/documentation search, or reproducible search evidence via Skill + CLI instead of MCP tools.
+description: CLI-first web research and source retrieval through the local smart-search command. Use when the agent needs current web facts (not repo symbol lookup). Prefer this over Cursor WebSearch/WebFetch unless the user explicitly opts in. Covers fact checking, URL fetch, site mapping, official/API/docs search, and reproducible evidence via Skill + CLI.
 ---
 
 # Smart Search CLI
@@ -12,7 +12,7 @@ Use the local `smart-search` command as the default execution layer for web rese
 1. Run `smart-search doctor --format json` when configuration or availability is uncertain.
 2. If `doctor` reports missing configuration, use `smart-search setup` or `smart-search config set KEY VALUE` when the user provides keys. Do not ask users to edit global environment variables by default.
 3. If OpenAI-compatible `search` hangs or times out after `doctor` succeeds, run `smart-search diagnose openai-compatible --format markdown` and use its summary/recommendation. This one command tests quick chat plus real search-shape `stream=false` and `stream=true`.
-4. If `doctor` returns `ok: true`, use only `smart-search` CLI subcommands for web research. Do not call Codex native web search in the same task.
+4. If `doctor` returns `ok: true`, use only `smart-search` CLI subcommands for web research. Do not call platform built-in web search (`WebSearch`/`WebFetch` in Cursor, or native web tools elsewhere) in the same task unless the user explicitly requests it.
 5. For every research question, run a bilingual `smart-search search` pair: one Chinese-source query and one English-source query. Save both JSON outputs.
 6. Use `smart-search search` as the first hop for realtime, broad exploration, community signals, multi-source summaries, and routing metadata. The default broad pass is bilingual, not Zhipu-backed.
 7. Do not use `smart-search zhipu-search` in normal workflows. Zhipu is deprecated and not used by default routing because quota may be unavailable; the command remains only for manual legacy compatibility when the user explicitly asks for it.

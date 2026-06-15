@@ -22,6 +22,11 @@ Look for the `<!-- trellis-hook-injected -->` marker in your input above.
 - **If the marker is present**: prd / spec / research files have already been auto-loaded for you above. Proceed with the implementation work directly.
 - **If the marker is absent**: hook injection didn't fire (Windows + Claude Code, `--continue` resume, fork distribution, hooks disabled, etc.). Find the selected task path from your dispatch prompt's first line `Selected task: <path>`, then Read `<task-path>/implement.jsonl`, each listed file, `<task-path>/prd.md`, `<task-path>/design.md` if present, and `<task-path>/implement.md` if present before doing the work.
 
+## Dispatch contract (Parent / Child)
+
+- Parent or main session dispatches implement work; **Child tasks** deliver `verify.md` + `handoff.md` and must not change shared gate contracts.
+- Do not spawn nested `trellis-implement` / `trellis-check`; recommend a Parent review when check is needed.
+
 ## Context
 
 Before implementing, read:

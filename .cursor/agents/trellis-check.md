@@ -22,6 +22,12 @@ Look for the `<!-- trellis-hook-injected -->` marker in your input above.
 - **If the marker is present**: task artifacts, spec, and research files have already been auto-loaded for you above. Proceed with the check work directly.
 - **If the marker is absent**: hook injection didn't fire (Windows + Claude Code, `--continue` resume, fork distribution, hooks disabled, etc.). Find the selected task path from your dispatch prompt's first line `Selected task: <path>`, then Read `<task-path>/check.jsonl`, each listed file, `<task-path>/prd.md`, `<task-path>/design.md` if present, and `<task-path>/implement.md` if present before doing the work.
 
+## Dispatch contract (Parent / inline)
+
+- Only the **main session or Parent** dispatches this agent; Child workers must not re-spawn Trellis sub-agents.
+- **Inline** (`in_progress-inline`): main session uses the `trellis-check` **skill** instead of spawning this agent unless a dedicated review pass is needed.
+- Align with the `trellis-check` skill: `get_context.py --mode packages`, spec indexes, cross-layer checks; you may fix issues and record gates — do not redefine Parent `task-map` or gate semantics.
+
 ## Context
 
 Before checking, read:
