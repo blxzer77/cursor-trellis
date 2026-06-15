@@ -194,6 +194,18 @@ When a `selected_task` already exists, do not rerun global classification on eve
 
 Before executing an upgrade that creates artifacts, changes task mode, adds gates, changes `verification_profile` or capabilities, or changes approval requirements, get explicit user confirmation. Every downgrade needs explicit user confirmation because it reduces artifact, gate, validation, or approval rigor.
 
+### Task Ladder quick routing
+
+| Situation | Action |
+|-----------|--------|
+| No selected task + small unclear ask | `trellis-micro-grill` |
+| No selected task + need dashboard | `trellis-start` |
+| Selected task + resume step | `trellis-continue` |
+| Planning / PRD | `trellis-brainstorm` |
+| Parent with parallel children | `generate-child-prompt --mode subagent`; writable Agent; see task-map `execution_topology` |
+
+Details: archived `06-15-child-phase3-task-ladder` → `research/task-ladder-iteration.md`.
+
 ### Planning Artifacts
 
 - `prd.md` — requirements, constraints, and acceptance criteria. Do not put technical design or execution checklists here.
@@ -238,6 +250,8 @@ Trellis framework active. Selected task: none. Use `task.py dashboard` for routi
 First classify the current turn by risk and persistence across No Task, Micro-Grill, Lite Task, Full Task, and Parent Task / Child Tasks; ask for task-creation consent before creating any Trellis task.
 Simple conversation / small task: ask only whether this turn should create a Trellis task. If the user says no, skip Trellis for this session.
 Complex task: ask the user if you can create a Trellis task and enter the planning phase. If the user says no, explain, clarify scope, or suggest a smaller split.
+Underspecified small request with no task: load `trellis-micro-grill` before creating artifacts or upgrading the ladder.
+Framework refresh with no selected task: load `trellis-start` once; after the user selects a task, use `trellis-continue` for step-level resume—not `trellis-start`.
 [/workflow-state:no_task]
 
 ### Phase 1: Plan
