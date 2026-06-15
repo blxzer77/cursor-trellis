@@ -76,8 +76,10 @@ Prerequisites:
 Install Trellis:
 
 ```bash
-npm install -g @blxzer/trellis@beta
+npm install -g @blxzer/trellis
 ```
+
+Prerelease channel (optional): `npm install -g @blxzer/trellis@beta`
 
 Initialize a repository:
 
