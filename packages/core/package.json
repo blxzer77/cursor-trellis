@@ -1,6 +1,6 @@
 {
   "name": "@blxzer/trellis-core",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Trellis core SDK — channel and task domain primitives consumed by the Trellis CLI and downstream Node services",
   "type": "module",
   "main": "./dist/index.js",
