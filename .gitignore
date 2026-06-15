@@ -189,5 +189,6 @@ smoke_test/
 
 tmp/
 tmp1/
+.pack-verify-*/
 .playwright-mcp
 .gitnexus
