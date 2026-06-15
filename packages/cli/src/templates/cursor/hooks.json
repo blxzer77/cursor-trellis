@@ -19,6 +19,12 @@
         "command": "{{PYTHON_CMD}} .cursor/hooks/inject-shell-session-context.py",
         "timeout": 5
       }
+    ],
+    "stop": [
+      {
+        "command": "{{PYTHON_CMD}} .cursor/hooks/research-end-retrieval-pack.py",
+        "timeout": 60
+      }
     ]
   }
 }

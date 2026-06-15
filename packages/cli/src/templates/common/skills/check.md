@@ -57,6 +57,11 @@ Run the project's lint, type-check, and test commands. Fix any failures before p
 
 > "If I fixed a bug or discovered something non-obvious, should I document it so future me won't hit the same issue?" → If YES, update the relevant spec doc.
 
+### Retrieval evidence (when task used research / smart-search / optional pack)
+
+- [ ] **`verify.md` lists unresolved retrieval gaps** — external facts still unverified, missing `research/` or `research/smart-search/` evidence, or claims without source/Git/test corroboration
+- [ ] If `{TASK}/research/retrieval-pack-latest.json` exists, top `contextPack.selected` items are cited or gaps are explicitly noted in `verify.md`
+
 ## Step 5: Cross-Layer Dimensions (if applicable)
 
 Skip this step if your change is confined to a single layer.
