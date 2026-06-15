@@ -1,6 +1,6 @@
 {
   "name": "@blxzer/trellis",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "AI capabilities grow like ivy — Trellis provides the structure to guide them along a disciplined path",
   "type": "module",
   "main": "./dist/index.js",
