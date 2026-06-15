@@ -101,7 +101,10 @@ python3 ./.trellis/scripts/add_session.py --title "Title" --commit "hash" --summ
 python3 ./.trellis/scripts/get_context.py                            # full session runtime
 python3 ./.trellis/scripts/get_context.py --mode packages            # available packages + spec layers
 python3 ./.trellis/scripts/get_context.py --mode phase --step <X.Y>  # detailed guide for a workflow step
+python3 ./.trellis/scripts/get_context.py --mode retrieval-pack --json --input <evidence.json>  # score collected evidence (not default --json)
 ```
+
+**Evidence scoring:** default `--json` returns `retrievalGuide` only. After collecting artifact search, session memory, smart-search manifests under `{TASK}/research/smart-search/`, or codebase candidates, run **`--mode retrieval-pack`** with `--input` or stdin JSON. See `research/evidence-scoring-integration.md` in the active task or archived `06-15-child-phase2-evidence-scoring`.
 
 ---
 
@@ -685,6 +688,14 @@ If implementation defects are found inside the approved contract -> fix in Execu
 ## Phase 3: Finish
 
 Goal: ensure code quality, capture lessons, record the work.
+
+#### Evidence scoring (retrieval-pack, explicit)
+
+For **complex** tasks, optionally before 3.1 when you have collected retrieval evidence JSON (e.g. after Phase 1.2 smart-search manifests in `{TASK}/research/smart-search/`):
+
+`python3 ./.trellis/scripts/get_context.py --mode retrieval-pack --json --input <path-to-evidence.json>`
+
+Use `contextPack.selected` / `scoredEvidence` to order citations in `verify.md`. Do **not** expect scoring in default `get_context --json`.
 
 #### 3.1 Quality verification `[required · repeatable]`
 
