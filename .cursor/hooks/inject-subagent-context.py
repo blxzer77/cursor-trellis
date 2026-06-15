@@ -500,7 +500,7 @@ To get structured package info, run: `python ./{DIR_WORKFLOW}/scripts/get_contex
 
 - Spec files: `{spec_path}/**/*.md`
 - Code search: Use Glob and Grep tools
-- Tech solutions: Use mcp__exa__web_search_exa or mcp__exa__get_code_context_exa"""
+- External facts / docs: load `smart-search-cli` skill and use Bash (`smart-search` CLI), not Cursor WebSearch/WebFetch by default"""
 
     context_parts.append(project_structure)
 
@@ -508,16 +508,22 @@ To get structured package info, run: `python ./{DIR_WORKFLOW}/scripts/get_contex
 
 
 def build_research_prompt(original_prompt: str, context: str) -> str:
-    """Build complete prompt for Research"""
-    return f"""# Research Agent Task
+    """Build complete prompt for Research (aligned with trellis-research.md)."""
+    return f"""<!-- trellis-hook-injected -->
+# Research Agent Task
 
-You are the Research Agent in the Multi-Agent Pipeline (search researcher).
+You are the Trellis Research Agent.
 
 ## Core Principle
 
-**You do one thing: find and explain information.**
+**You do one thing: find, explain, and PERSIST information.**
 
-You are a documenter, not a reviewer.
+Conversations get compacted; files do not. Every research topic MUST be written under `{{TASK_DIR}}/research/`. Chat-only findings are a failure.
+
+## Dispatch contract
+
+- External facts: load `smart-search-cli` skill + Bash — default **not** Cursor `WebSearch`/`WebFetch`.
+- Do NOT spawn nested `trellis-implement` / `trellis-check` / `trellis-research` sub-agents.
 
 ## Project Info
 
@@ -533,38 +539,19 @@ You are a documenter, not a reviewer.
 
 ## Workflow
 
-1. **Understand query** - Determine search type (internal/external) and scope
-2. **Plan search** - List search steps for complex queries
-3. **Execute search** - Execute multiple independent searches in parallel
-4. **Organize results** - Output structured report
+1. **Resolve task** — `python ./.trellis/scripts/task.py selected --source`; ensure `{{TASK_DIR}}/research/` exists (`mkdir -p`).
+2. **Classify** — internal / external / mixed.
+3. **Search** — Glob/Grep/Read for repo; `smart-search-cli` + CLI for external.
+4. **Persist** — Write each topic to `{{TASK_DIR}}/research/<topic-slug>.md`.
+5. **Report** — Reply with file paths + one-line summaries only (not full content).
 
-## Search Tools
+## Write ALLOWED
 
-| Tool | Purpose |
-|------|---------|
-| Glob | Search by filename pattern |
-| Grep | Search by content |
-| Read | Read file content |
-| mcp__exa__web_search_exa | External web search |
-| mcp__exa__get_code_context_exa | External code/doc search |
+- `{{TASK_DIR}}/research/*.md` only
 
-## Strict Boundaries
+## Write FORBIDDEN
 
-**Only allowed**: Describe what exists, where it is, how it works
-
-**Forbidden** (unless explicitly asked):
-- Suggest improvements
-- Criticize implementation
-- Recommend refactoring
-- Modify any files
-
-## Report Format
-
-Provide structured search results including:
-- List of files found (with paths)
-- Code pattern analysis (if applicable)
-- Related spec documents
-- External references (if any)"""
+- Code, `.trellis/spec/`, platform config, git operations"""
 
 
 def _string_value(value: Any) -> str:
