@@ -28,25 +28,25 @@ Durable Learning: no additional `.trellis/spec/` update is needed; existing Trel
 Run from `Trellis/`:
 
 ```powershell
-pnpm --filter @mindfoldhq/trellis exec vitest run test/scripts/smart-search-evidence.integration.test.ts
+pnpm --filter @blxzer/trellis exec vitest run test/scripts/smart-search-evidence.integration.test.ts
 ```
 
 Result: PASS, 2 tests.
 
 ```powershell
-pnpm --filter @mindfoldhq/trellis exec vitest run test/scripts/context-loading.integration.test.ts test/templates/trellis.test.ts test/scripts/smart-search-evidence.integration.test.ts
+pnpm --filter @blxzer/trellis exec vitest run test/scripts/context-loading.integration.test.ts test/templates/trellis.test.ts test/scripts/smart-search-evidence.integration.test.ts
 ```
 
 Result: PASS, 3 files, 25 tests.
 
 ```powershell
-pnpm --filter @mindfoldhq/trellis typecheck
+pnpm --filter @blxzer/trellis typecheck
 ```
 
 Result: PASS.
 
 ```powershell
-pnpm --filter @mindfoldhq/trellis exec eslint test/scripts/smart-search-evidence.integration.test.ts test/scripts/context-loading.integration.test.ts test/templates/trellis.test.ts src/templates/trellis/index.ts
+pnpm --filter @blxzer/trellis exec eslint test/scripts/smart-search-evidence.integration.test.ts test/scripts/context-loading.integration.test.ts test/templates/trellis.test.ts src/templates/trellis/index.ts
 ```
 
 Result: PASS.

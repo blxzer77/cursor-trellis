@@ -72,7 +72,7 @@ Editable by default:
 Do not edit by default:
 
 - Global npm install directory
-- `node_modules/@mindfoldhq/trellis`
+- `node_modules/@blxzer/trellis`
 - Trellis GitHub repository source code
 - Concrete state files under `.trellis/.runtime/**`
 - Hash contents inside `.trellis/.template-hashes.json`

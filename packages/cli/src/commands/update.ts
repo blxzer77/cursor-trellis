@@ -61,6 +61,18 @@ import {
 } from "../configurators/index.js";
 import { replacePythonCommandLiterals } from "../configurators/shared.js";
 import { pruneOrphanManifestKeys } from "../utils/manifest-prune.js";
+import { runPostUpdateSmoke } from "../utils/post-update-smoke.js";
+import {
+  buildFilePlanFromChanges,
+  createBaseRolloutReport,
+  emitRolloutReport,
+  migrationResultToSummary,
+  summarizeMigrationPlan,
+  type UpdateReadinessSnapshot,
+  type UpdateReleaseBlocker,
+  type UpdateRolloutReport,
+} from "../utils/update-rollout-report.js";
+import { snapshotReadinessForRollout } from "../utils/readiness.js";
 
 export interface UpdateOptions {
   dryRun?: boolean;
@@ -70,6 +82,12 @@ export interface UpdateOptions {
   allowDowngrade?: boolean;
   migrate?: boolean;
   skipReadiness?: boolean;
+  /** Emit a single-line JSON rollout evidence object (dry-run or apply). */
+  json?: boolean;
+  /** Skip post-apply Python script smoke checks (apply mode only). */
+  skipPostUpdateSmoke?: boolean;
+  /** Filled on completion for `trellis rollout` aggregation. */
+  lastReport?: UpdateRolloutReport;
 }
 
 interface FileChange {
@@ -1691,16 +1709,148 @@ function printMigrationResult(result: MigrationResult): void {
   }
 }
 
+function rolloutOptionsFromUpdate(
+  options: UpdateOptions,
+): UpdateRolloutReport["options"] {
+  return {
+    dryRun: Boolean(options.dryRun),
+    force: Boolean(options.force),
+    skipAll: Boolean(options.skipAll),
+    createNew: Boolean(options.createNew),
+    migrate: Boolean(options.migrate),
+    allowDowngrade: Boolean(options.allowDowngrade),
+    skipReadiness: Boolean(options.skipReadiness),
+  };
+}
+
+function upgradeDirectionFromCompare(
+  cliVsProject: number,
+  projectVersion: string,
+): UpdateRolloutReport["plan"]["upgradeDirection"] {
+  if (projectVersion === "unknown") return "unknown";
+  if (cliVsProject > 0) return "upgrade";
+  if (cliVsProject < 0) return "downgrade";
+  return "same";
+}
+
+function releaseBlockersFromReadiness(
+  readiness: UpdateReadinessSnapshot,
+  cliBehindNpm: boolean,
+  cliVersion: string,
+  latestNpmVersion: string | null,
+): UpdateReleaseBlocker[] {
+  const blockers: UpdateReleaseBlocker[] = [];
+  if (cliBehindNpm && latestNpmVersion) {
+    blockers.push({
+      code: "cli_behind_npm",
+      message: `CLI ${cliVersion} is behind npm ${latestNpmVersion}`,
+      recovery: ["trellis upgrade"],
+    });
+  }
+  if (!readiness.skipped && !readiness.smartSearch.ok) {
+    blockers.push({
+      code: "smart_search_readiness",
+      message: "Smart Search readiness did not pass",
+      recovery: [
+        "smart-search doctor --format json",
+        "trellis update --skip-readiness",
+      ],
+    });
+  }
+  for (const cap of readiness.capabilities) {
+    if (!cap.ok) {
+      blockers.push({
+        code: `capability_${cap.id}`,
+        message: `Capability ${cap.id} readiness failed`,
+        recovery: ["trellis update --skip-readiness"],
+      });
+    }
+  }
+  return blockers;
+}
+
+function finishRollout(
+  options: UpdateOptions,
+  report: UpdateRolloutReport,
+): void {
+  options.lastReport = report;
+  emitRolloutReport(report, options.json);
+}
+
 /**
  * Main update command
  */
 export async function update(options: UpdateOptions): Promise<void> {
   const cwd = process.cwd();
+  const rolloutOpts = rolloutOptionsFromUpdate(options);
+  let readinessSnapshot: UpdateReadinessSnapshot | null = null;
+  let projectVersion = "unknown";
+  let cliVersion = VERSION;
+  let latestNpmVersion: string | null = null;
+  let cliVsProject = 0;
+  let cliVsNpm = 0;
+
+  const emitEarly = (
+    outcome: UpdateRolloutReport["outcome"],
+    extra?: Partial<{
+      files: ReturnType<typeof buildFilePlanFromChanges>;
+      conflictsPending: string[];
+      migrations: ReturnType<typeof summarizeMigrationPlan>;
+      breakingMigrationGateRequired: boolean;
+      projectVersionAfter: string | null;
+      apply: UpdateRolloutReport["apply"];
+      postUpdateSmoke: UpdateRolloutReport["postUpdateSmoke"];
+    }>,
+  ): void => {
+    const readiness =
+      readinessSnapshot ??
+      snapshotReadinessForRollout({
+        cwd,
+        selected: loadProjectCapabilities(cwd),
+        skipReadiness: options.skipReadiness,
+      });
+    const report = createBaseRolloutReport({
+      mode: options.dryRun ? "dry-run" : "apply",
+      outcome,
+      projectPath: cwd,
+      projectVersionBefore: projectVersion,
+      projectVersionAfter: extra?.projectVersionAfter ?? null,
+      latestNpmVersion,
+      cliBehindNpm: cliVsNpm < 0 && latestNpmVersion !== null,
+      options: rolloutOpts,
+      readiness,
+      upgradeDirection: upgradeDirectionFromCompare(cliVsProject, projectVersion),
+      files:
+        extra?.files ??
+        buildFilePlanFromChanges({
+          newFiles: [],
+          unchangedFiles: [],
+          autoUpdateFiles: [],
+          changedFiles: [],
+          userDeletedFiles: [],
+        }),
+      conflictsPending: extra?.conflictsPending ?? [],
+      migrations:
+        extra?.migrations ??
+        summarizeMigrationPlan(null, 0),
+      breakingMigrationGateRequired: extra?.breakingMigrationGateRequired ?? false,
+      apply: extra?.apply,
+      postUpdateSmoke: extra?.postUpdateSmoke,
+      releaseBlockers: releaseBlockersFromReadiness(
+        readiness,
+        cliVsNpm < 0 && latestNpmVersion !== null,
+        cliVersion,
+        latestNpmVersion,
+      ),
+    });
+    finishRollout(options, report);
+  };
 
   // Check if Trellis is initialized
   if (!fs.existsSync(path.join(cwd, DIR_NAMES.WORKFLOW))) {
     console.log(chalk.red("Error: Trellis not initialized in this directory."));
     console.log(chalk.gray("Run 'trellis init' first."));
+    emitEarly("blocked_not_initialized");
     return;
   }
 
@@ -1721,14 +1871,20 @@ export async function update(options: UpdateOptions): Promise<void> {
     skipReadinessCommand: "trellis update --skip-readiness",
   });
 
+  readinessSnapshot = snapshotReadinessForRollout({
+    cwd,
+    selected: loadProjectCapabilities(cwd),
+    skipReadiness: options.skipReadiness,
+  });
+
   // Get versions
-  const projectVersion = getInstalledVersion(cwd);
-  const cliVersion = VERSION;
-  const latestNpmVersion = await getLatestNpmVersion();
+  projectVersion = getInstalledVersion(cwd);
+  cliVersion = VERSION;
+  latestNpmVersion = await getLatestNpmVersion();
 
   // Version comparison
-  const cliVsProject = compareVersions(cliVersion, projectVersion);
-  const cliVsNpm = latestNpmVersion
+  cliVsProject = compareVersions(cliVersion, projectVersion);
+  cliVsNpm = latestNpmVersion
     ? compareVersions(cliVersion, latestNpmVersion)
     : 0;
 
@@ -1767,6 +1923,7 @@ export async function update(options: UpdateOptions): Promise<void> {
       console.log(
         chalk.gray(`  2. Force downgrade: trellis update --allow-downgrade\n`),
       );
+      emitEarly("blocked_downgrade");
       return;
     }
 
@@ -1962,6 +2119,16 @@ export async function update(options: UpdateOptions): Promise<void> {
               "  Use --dry-run to preview what --migrate will do.",
           ),
         );
+        const safeDeleteCandidateCount = safeFileDeletes.filter(
+          (c) => c.action === "delete",
+        ).length;
+        emitEarly("blocked_migration_required", {
+          breakingMigrationGateRequired: true,
+          migrations: summarizeMigrationPlan(
+            classifiedMigrations,
+            safeDeleteCandidateCount,
+          ),
+        });
         process.exit(1);
       }
     }
@@ -1998,6 +2165,76 @@ export async function update(options: UpdateOptions): Promise<void> {
   // Analyze changes (pass hashes for modification detection)
   const changes = analyzeChanges(cwd, hashes, templates);
   const missingAgentsMdHash = collectMissingAgentsMdHash(changes, hashes);
+
+  const safeDeleteCandidateCount = safeFileDeletes.filter(
+    (c) => c.action === "delete",
+  ).length;
+  const migrationPlanSummary = summarizeMigrationPlan(
+    classifiedMigrations,
+    safeDeleteCandidateCount,
+  );
+  const safeDeletePaths = safeFileDeletes
+    .filter((c) => c.action === "delete")
+    .map((c) => c.item.from);
+  const conflictsPending = changes.changedFiles.map((f) => f.relativePath);
+  const buildRolloutFilePlan = (): ReturnType<
+    typeof buildFilePlanFromChanges
+  > =>
+    buildFilePlanFromChanges({
+      newFiles: changes.newFiles,
+      unchangedFiles: changes.unchangedFiles,
+      autoUpdateFiles: changes.autoUpdateFiles,
+      changedFiles: changes.changedFiles,
+      userDeletedFiles: changes.userDeletedFiles,
+      safeDeletePaths,
+    });
+
+  const emitRollout = (
+    outcome: UpdateRolloutReport["outcome"],
+    extra?: Partial<{
+      projectVersionAfter: string | null;
+      apply: UpdateRolloutReport["apply"];
+      postUpdateSmoke: UpdateRolloutReport["postUpdateSmoke"];
+      files: ReturnType<typeof buildFilePlanFromChanges>;
+      breakingMigrationGateRequired: boolean;
+      backupPath: string | null;
+    }>,
+  ): void => {
+    const readiness =
+      readinessSnapshot ??
+      snapshotReadinessForRollout({
+        cwd,
+        selected: loadProjectCapabilities(cwd),
+        skipReadiness: options.skipReadiness,
+      });
+    const report = createBaseRolloutReport({
+      mode: options.dryRun ? "dry-run" : "apply",
+      outcome,
+      projectPath: cwd,
+      projectVersionBefore: projectVersion,
+      projectVersionAfter: extra?.projectVersionAfter ?? null,
+      latestNpmVersion,
+      cliBehindNpm: cliVsNpm < 0 && latestNpmVersion !== null,
+      options: rolloutOpts,
+      readiness,
+      upgradeDirection: upgradeDirectionFromCompare(cliVsProject, projectVersion),
+      files: extra?.files ?? buildRolloutFilePlan(),
+      conflictsPending,
+      migrations: migrationPlanSummary,
+      breakingMigrationGateRequired:
+        extra?.breakingMigrationGateRequired ?? false,
+      backupPath: extra?.backupPath ?? null,
+      apply: extra?.apply,
+      postUpdateSmoke: extra?.postUpdateSmoke,
+      releaseBlockers: releaseBlockersFromReadiness(
+        readiness,
+        cliVsNpm < 0 && latestNpmVersion !== null,
+        cliVersion,
+        latestNpmVersion,
+      ),
+    });
+    finishRollout(options, report);
+  };
 
   // Print summary
   printChangeSummary(changes);
@@ -2059,6 +2296,11 @@ export async function update(options: UpdateOptions): Promise<void> {
         );
       }
     }
+    const afterVersion = getInstalledVersion(cwd);
+    emitRollout("no_changes", {
+      projectVersionAfter: afterVersion,
+      files: buildRolloutFilePlan(),
+    });
     return;
   }
 
@@ -2128,6 +2370,7 @@ export async function update(options: UpdateOptions): Promise<void> {
   // Dry run mode
   if (options.dryRun) {
     console.log(chalk.gray("[Dry run] No changes made."));
+    emitRollout("would_apply", { files: buildRolloutFilePlan() });
     return;
   }
 
@@ -2145,12 +2388,14 @@ export async function update(options: UpdateOptions): Promise<void> {
 
     if (!proceed) {
       console.log(chalk.yellow("Update cancelled."));
+      emitRollout("cancelled", { files: buildRolloutFilePlan() });
       return;
     }
   }
 
   // Create complete backup of all managed platform/workflow directories
   const backupDir = createFullBackup(cwd);
+  let migrationApplyResult: MigrationResult | null = null;
 
   if (backupDir) {
     console.log(
@@ -2160,11 +2405,11 @@ export async function update(options: UpdateOptions): Promise<void> {
 
   // Execute migrations if --migrate flag is set
   if (options.migrate && classifiedMigrations) {
-    const migrationResult = await executeMigrations(classifiedMigrations, cwd, {
+    migrationApplyResult = await executeMigrations(classifiedMigrations, cwd, {
       force: options.force,
       skipAll: options.skipAll,
     });
-    printMigrationResult(migrationResult);
+    printMigrationResult(migrationApplyResult);
 
     // Hardcoded: Rename traces-*.md to journal-*.md in workspace directories
     // Why hardcoded: The migration system only supports fixed path renames, not pattern-based.
@@ -2256,6 +2501,10 @@ export async function update(options: UpdateOptions): Promise<void> {
     }
   }
 
+  const overwrittenPaths: string[] = [];
+  const skippedConflictPaths: string[] = [];
+  const createdNewPaths: string[] = [];
+
   // Handle changed files
   if (changes.changedFiles.length > 0) {
     console.log(chalk.blue("\n--- Resolving conflicts ---\n"));
@@ -2275,14 +2524,17 @@ export async function update(options: UpdateOptions): Promise<void> {
         }
         console.log(chalk.yellow(`  ✓ Overwritten: ${file.relativePath}`));
         updated++;
+        overwrittenPaths.push(file.relativePath);
       } else if (action === "create-new") {
         const newPath = file.path + ".new";
         fs.writeFileSync(newPath, file.newContent);
         console.log(chalk.blue(`  ✓ Created: ${file.relativePath}.new`));
         createdNew++;
+        createdNewPaths.push(`${file.relativePath}.new`);
       } else {
         console.log(chalk.gray(`  ○ Skipped: ${file.relativePath}`));
         skipped++;
+        skippedConflictPaths.push(file.relativePath);
       }
     }
   }
@@ -2519,4 +2771,36 @@ export async function update(options: UpdateOptions): Promise<void> {
       console.log(chalk.cyan("═".repeat(60)));
     }
   }
+
+  const appliedFilePlan = buildRolloutFilePlan();
+  appliedFilePlan.added = changes.newFiles.map((f) => f.relativePath);
+  appliedFilePlan.autoUpdated = changes.autoUpdateFiles.map(
+    (f) => f.relativePath,
+  );
+  appliedFilePlan.overwritten = overwrittenPaths;
+  appliedFilePlan.skipped = skippedConflictPaths;
+  appliedFilePlan.createdNew = createdNewPaths;
+  if (safeDeleted > 0) {
+    appliedFilePlan.safeDeleted = safeFileDeletes
+      .filter((c) => c.action === "delete")
+      .map((c) => c.item.from);
+  }
+
+  const postSmoke = options.skipPostUpdateSmoke
+    ? []
+    : runPostUpdateSmoke(cwd);
+  const relBackup = backupDir ? path.relative(cwd, backupDir) : null;
+
+  emitRollout("applied", {
+    projectVersionAfter: getInstalledVersion(cwd),
+    files: appliedFilePlan,
+    backupPath: relBackup,
+    apply: {
+      backupPath: relBackup,
+      migrations: migrationResultToSummary(migrationApplyResult),
+      safeDeleted,
+      configSectionsAppended,
+    },
+    postUpdateSmoke: postSmoke,
+  });
 }

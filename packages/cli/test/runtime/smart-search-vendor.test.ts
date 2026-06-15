@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { execSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -8,7 +9,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const packageRoot = path.resolve(__dirname, "../..");
 const vendorRoot = path.join(packageRoot, "vendor", "smart-search");
 
-describe("Smart Search vendored runtime", () => {
+// npm pack --dry-run contends with other subprocess-heavy tests when fully parallel.
+describe.sequential("Smart Search vendored runtime", () => {
   it("is exposed as a Trellis package bin and published package file", () => {
     const packageJson = JSON.parse(
       fs.readFileSync(path.join(packageRoot, "package.json"), "utf-8"),
@@ -19,7 +21,9 @@ describe("Smart Search vendored runtime", () => {
     };
 
     expect(packageJson.bin?.["smart-search"]).toBe("./bin/smart-search.js");
-    expect(packageJson.files).toContain("vendor/smart-search");
+    expect(packageJson.files).not.toContain("vendor/smart-search");
+    expect(packageJson.files).toContain("vendor/smart-search/pyproject.toml");
+    expect(packageJson.files).toContain("vendor/smart-search/npm/scripts/postinstall.js");
     expect(packageJson.files).toContain("scripts/postinstall.js");
     expect(packageJson.scripts?.postinstall).toBe("node scripts/postinstall.js");
     expect(packageJson.scripts?.["sync:smart-search"]).toBe(
@@ -54,24 +58,30 @@ describe("Smart Search vendored runtime", () => {
       ".codex",
       ".git",
       ".pytest_cache",
-      ".smart-search-python",
       ".tmp",
       ".trellis",
-      ".venv",
-      "build",
       "dist",
       "node_modules",
       "package-lock.json",
-      "src/smart_search.egg-info",
       "tests",
     ]) {
       expect(fs.existsSync(path.join(vendorRoot, excludedPath))).toBe(false);
     }
 
-    const entries = listEntries(vendorRoot);
-    expect(entries.some((entry) => entry.includes("__pycache__"))).toBe(false);
-    expect(entries.some((entry) => entry.endsWith(".pyc"))).toBe(false);
-    expect(entries.some((entry) => entry.endsWith(".pyo"))).toBe(false);
+    const packageJson = JSON.parse(
+      fs.readFileSync(path.join(packageRoot, "package.json"), "utf-8"),
+    ) as { files?: string[] };
+    const packFiles = packageJson.files ?? [];
+    for (const fragment of [
+      ".smart-search-python",
+      "/build/",
+      "__pycache__",
+      ".egg-info",
+      ".pyc",
+    ]) {
+      expect(packFiles.some((entry) => entry.includes(fragment))).toBe(false);
+    }
+    expect(packFiles).not.toContain("vendor/smart-search");
   });
 
   it("uses a Trellis-owned wrapper around the vendored runtime", () => {
@@ -100,6 +110,9 @@ describe("Smart Search vendored runtime", () => {
       path.join(packageRoot, "scripts", "smart-search-vendor-utils.js"),
       "utf-8",
     );
+
+    expect(sharedUtils).toContain("npmPackVendorFileEntries");
+    expect(sharedUtils).toContain("compareCliPackageFiles");
 
     for (const scriptText of [driftCheck, syncScript, sharedUtils]) {
       expect(scriptText).toContain("SMARTSEARCH_PRIVATE_PATH");
@@ -204,6 +217,34 @@ describe("Smart Search vendored runtime", () => {
       fs.rmSync(tmpRoot, { recursive: true, force: true });
     }
   });
+
+  it(
+    "keeps npm pack free of Smart Search runtime and cache artifacts",
+    () => {
+    const raw = execSync("npm pack --dry-run --json", {
+      cwd: packageRoot,
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"],
+      env: {
+        ...process.env,
+        TRELLIS_SKIP_SMART_SEARCH_POSTINSTALL: "1",
+      },
+    });
+    const payload = JSON.parse(raw) as Array<{ files?: Array<{ path: string }> }>;
+    const paths = (payload[0]?.files ?? []).map((file) => file.path.replace(/\\/g, "/"));
+
+    expect(paths.some((p) => p === "vendor/smart-search/pyproject.toml")).toBe(true);
+    expect(paths.some((p) => p === "vendor/smart-search/npm/scripts/postinstall.js")).toBe(
+      true,
+    );
+    expect(paths.some((p) => p.includes(".smart-search-python"))).toBe(false);
+    expect(paths.some((p) => p.includes("vendor/smart-search/build"))).toBe(false);
+    expect(paths.some((p) => p.includes("__pycache__"))).toBe(false);
+    expect(paths.some((p) => p.endsWith(".pyc"))).toBe(false);
+    expect(paths.some((p) => p.includes(".egg-info"))).toBe(false);
+    },
+    60_000,
+  );
 
   it("detects post-sync Smart Search vendor drift", async () => {
     const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-smart-search-drift-"));

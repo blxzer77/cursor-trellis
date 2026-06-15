@@ -419,6 +419,42 @@ export interface RetrievalPackPayload {
     codebaseCandidates: number;
   };
   warnings: string[];
+  evidenceEnvelope: EvidenceEnvelopePayload;
+}
+
+export interface EvidenceEnvelopePayload {
+  version: number;
+  intents: Record<string, unknown>[];
+  routes: Record<string, unknown>[];
+  adapterState: {
+    adapter: string;
+    role: string;
+    state: string;
+    required: boolean;
+    invoked: boolean;
+    reason: string;
+  }[];
+  freshness: {
+    adapter: string;
+    role: string;
+    freshnessScore: number;
+    stale: boolean;
+    checkedAt: string;
+    state: string;
+    note: string;
+  }[];
+  fallback: {
+    fromAdapter: string;
+    toAdapter: string;
+    reason: string;
+    origin?: string;
+  }[];
+  warnings: string[];
+  verification: {
+    adapter: string;
+    requirement: string;
+    blocking?: boolean;
+  }[];
 }
 
 export function runBuildRetrievalPack(
@@ -454,7 +490,9 @@ print(json.dumps(build_retrieval_pack(
     session_memory_results=payload.get("sessionMemoryResults"),
     smart_search_manifests=payload.get("smartSearchManifests"),
     smart_search_manifest_paths=payload.get("smartSearchManifestPaths"),
-    codebase_candidates=payload.get("codebaseCandidates")${kwargsExpr}
+    codebase_candidates=payload.get("codebaseCandidates"),
+    router_envelope=payload.get("routerEnvelope"),
+    adapter_hints=payload.get("adapterHints")${kwargsExpr}
 ), ensure_ascii=False))
 `;
   const result = spawnSync(pythonCmd, ["-c", script], {

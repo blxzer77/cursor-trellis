@@ -43,10 +43,10 @@ quality_gates:
 ## Validation
 
 ```powershell
-pnpm --filter @mindfoldhq/trellis exec vitest run test/scripts/retrieval-eval.integration.test.ts
-pnpm --filter @mindfoldhq/trellis exec vitest run test/scripts/retrieval-evidence.integration.test.ts test/scripts/context-pack.integration.test.ts
-pnpm --filter @mindfoldhq/trellis typecheck
-pnpm --filter @mindfoldhq/trellis exec eslint test/scripts/retrieval-eval.integration.test.ts
+pnpm --filter @blxzer/trellis exec vitest run test/scripts/retrieval-eval.integration.test.ts
+pnpm --filter @blxzer/trellis exec vitest run test/scripts/retrieval-evidence.integration.test.ts test/scripts/context-pack.integration.test.ts
+pnpm --filter @blxzer/trellis typecheck
+pnpm --filter @blxzer/trellis exec eslint test/scripts/retrieval-eval.integration.test.ts
 ```
 
 Adjust commands if implementation updates different focused test files.

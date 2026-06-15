@@ -32,6 +32,7 @@ from .config import (
     resolve_package,
     validate_package,
 )
+from .cli_environment import format_git_repo_errors, print_environment_repair_hints
 from .git import run_git
 from .io import read_json, write_json
 from .log import Colors, colored
@@ -50,18 +51,27 @@ from .safe_commit import (
     safe_archive_paths_to_add,
     safe_git_add,
 )
-from .task_gates import BASELINE_GATE, validate_archive, write_gate_record
+from .task_gates import (
+    BASELINE_GATE,
+    archive_repair_hints,
+    build_spec_update_scaffold,
+    prepare_archive_evidence,
+    validate_archive,
+    write_gate_record,
+)
 from .task_map import (
     CHILD_STATES,
     CHILD_REPORT_STATES,
     PARENT_CONTROLLED_STATES,
     ensure_task_map,
+    get_child_state,
     record_child_worktree,
     remove_child_from_task_map,
     set_child_state,
     set_parent_child_integration_state,
     validate_parent_child_integration,
 )
+from .tasks import parent_archive_child_followup_hint
 from .task_utils import (
     archive_task_complete,
     find_task_by_name,
@@ -137,7 +147,7 @@ def _validate_git_repo(repo_root: Path) -> list[str]:
     rc, out, err = run_git(["rev-parse", "--is-inside-work-tree"], cwd=repo_root)
     if rc != 0 or out.strip() != "true":
         detail = err.strip() or out.strip() or "not a Git worktree"
-        return [f"Git repository required: {detail}"]
+        return format_git_repo_errors([f"Git repository required: {detail}"])
     return []
 
 
@@ -242,7 +252,7 @@ _SUBAGENT_CONFIG_DIRS: tuple[str, ...] = (
 _SEED_EXAMPLE = (
     "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. "
     "Put spec/research files only — no code paths. "
-    "Run `python3 .trellis/scripts/get_context.py --mode packages` to list available specs. "
+    "Run `python .trellis/scripts/get_context.py --mode packages` to list available specs. "
     "Delete this line once real entries are added."
 )
 
@@ -450,7 +460,7 @@ def cmd_create(args: argparse.Namespace) -> int:
     print("", file=sys.stderr)
     print(colored("Next steps:", Colors.BLUE), file=sys.stderr)
     print("  - Fill prd.md with requirements and acceptance criteria", file=sys.stderr)
-    print(f"  - Select it when ready: python3 ./.trellis/scripts/task.py select {DIR_WORKFLOW}/{DIR_TASKS}/{dir_name}", file=sys.stderr)
+    print(f"  - Select it when ready: python ./.trellis/scripts/task.py select {DIR_WORKFLOW}/{DIR_TASKS}/{dir_name}", file=sys.stderr)
     print("  - Lightweight task: PRD-only is valid", file=sys.stderr)
     print("  - Complex task: add design.md and implement.md before task.py start-execution --check", file=sys.stderr)
     if seeded_jsonl:
@@ -469,8 +479,164 @@ def cmd_create(args: argparse.Namespace) -> int:
 
 
 # =============================================================================
-# Command: archive
+# Command: archive / prepare-archive-evidence
 # =============================================================================
+
+def cmd_prepare_archive_evidence(args: argparse.Namespace) -> int:
+    """Append missing archive evidence sections to verify.md (non-destructive)."""
+    repo_root = get_repo_root()
+    task_name = args.name
+    if not task_name:
+        print(colored("Error: Task name is required", Colors.RED), file=sys.stderr)
+        return 1
+
+    task_dir = resolve_task_dir(task_name, repo_root)
+    if not task_dir or not task_dir.is_dir():
+        print(colored(f"Error: Task not found: {task_name}", Colors.RED), file=sys.stderr)
+        return 1
+
+    task_json_path = task_dir / FILE_TASK_JSON
+    task_data = read_json(task_json_path) if task_json_path.is_file() else None
+    dry_run = getattr(args, "dry_run", False)
+
+    changed, messages = prepare_archive_evidence(
+        task_dir, task_data, dry_run=dry_run
+    )
+    for msg in messages:
+        print(msg)
+    if not changed and messages and messages[0].startswith("task.json"):
+        return 1
+
+    guard = validate_archive(task_dir, task_data)
+    if guard.ok:
+        print(colored("Archive check: PASS (after prepare)", Colors.GREEN))
+        return 0
+    print(colored("Archive check: still blocked", Colors.YELLOW))
+    for item in guard.errors:
+        print(f"  - {item}")
+    if task_data is not None:
+        hints = archive_repair_hints(guard.errors, task_dir, task_data, guard)
+        if hints:
+            print(colored("Next steps:", Colors.BLUE))
+            for hint in hints:
+                print(f"  - {hint}")
+    return 0 if changed else 1
+
+
+def cmd_prepare_learning_scaffold(args: argparse.Namespace) -> int:
+    """Print spec-update scaffolding for a task (stdout only; does not edit specs)."""
+    repo_root = get_repo_root()
+    task_name = args.name
+    if not task_name:
+        print(colored("Error: Task name is required", Colors.RED), file=sys.stderr)
+        return 1
+
+    task_dir = resolve_task_dir(task_name, repo_root)
+    if not task_dir or not task_dir.is_dir():
+        print(colored(f"Error: Task not found: {task_name}", Colors.RED), file=sys.stderr)
+        return 1
+
+    task_json_path = task_dir / FILE_TASK_JSON
+    task_data = read_json(task_json_path) if task_json_path.is_file() else None
+    if task_data is None:
+        print(colored("Error: task.json missing or invalid", Colors.RED), file=sys.stderr)
+        return 1
+
+    trigger = getattr(args, "trigger", None)
+    print(build_spec_update_scaffold(repo_root, task_dir, task_data, trigger=trigger))
+    return 0
+
+
+def _integrated_children_still_active(
+    parent_dir: Path,
+    child_names: list[str],
+    tasks_dir: Path,
+) -> list[tuple[str, Path]]:
+    """Return (name, dir) for integrated children that remain in the active set."""
+    pending: list[tuple[str, Path]] = []
+    for child_name in child_names:
+        if not isinstance(child_name, str):
+            continue
+        if get_child_state(parent_dir, child_name) != "integrated":
+            continue
+        child_dir = find_task_by_name(child_name, tasks_dir)
+        if child_dir and child_dir.is_dir():
+            pending.append((child_name, child_dir))
+    return pending
+
+
+def _archive_one_task(
+    task_dir: Path,
+    repo_root: Path,
+    tasks_dir: Path,
+    *,
+    no_commit: bool,
+) -> tuple[bool, list[str], str | None]:
+    """Archive a single task directory after validate_archive passed.
+
+    Returns (success, modified_child_names, archived_relative_path_or_none).
+    """
+    dir_name = task_dir.name
+    task_json_path = task_dir / FILE_TASK_JSON
+    task_data = read_json(task_json_path) if task_json_path.is_file() else None
+    guard = validate_archive(task_dir, task_data)
+    if not guard.ok:
+        return False, [], None
+
+    today = datetime.now().strftime("%Y-%m-%d")
+    modified_children: list[str] = []
+    if task_data:
+        data = task_data
+        if guard.baseline_record:
+            write_gate_record(data, "full-task-complete", BASELINE_GATE, guard.baseline_record)
+        data["status"] = "completed"
+        data["completedAt"] = today
+        write_json(task_json_path, data)
+
+        task_children = data.get("children", [])
+        if task_children:
+            for child_name in task_children:
+                child_dir_path = find_task_by_name(child_name, tasks_dir)
+                if child_dir_path:
+                    child_json = child_dir_path / FILE_TASK_JSON
+                    if child_json.is_file():
+                        child_data = read_json(child_json)
+                        if child_data:
+                            child_data["parent"] = None
+                            write_json(child_json, child_data)
+                            modified_children.append(child_dir_path.name)
+
+    from .active_task import clear_task_from_sessions
+
+    clear_task_from_sessions(str(task_dir), repo_root)
+    result = archive_task_complete(task_dir, repo_root)
+    if "archived_to" not in result:
+        return False, modified_children, None
+
+    archive_dest = Path(result["archived_to"])
+    year_month = archive_dest.parent.name
+    print(
+        colored(f"Archived: {dir_name} -> archive/{year_month}/", Colors.GREEN),
+        file=sys.stderr,
+    )
+
+    if not no_commit:
+        if not _auto_commit_archive(dir_name, repo_root, modified_children):
+            print(
+                colored(
+                    "Archive moved on disk, but git auto-commit did not complete. "
+                    "Resolve `git status` before continuing.",
+                    Colors.RED,
+                ),
+                file=sys.stderr,
+            )
+            return False, modified_children, None
+
+    rel = f"{DIR_WORKFLOW}/{DIR_TASKS}/{DIR_ARCHIVE}/{year_month}/{dir_name}"
+    archived_json = archive_dest / FILE_TASK_JSON
+    run_task_hooks("after_archive", archived_json, repo_root)
+    return True, modified_children, rel
+
 
 def cmd_archive(args: argparse.Namespace) -> int:
     """Archive completed task."""
@@ -500,90 +666,130 @@ def cmd_archive(args: argparse.Namespace) -> int:
     task_data = read_json(task_json_path) if task_json_path.is_file() else None
 
     guard = validate_archive(task_dir, task_data)
+    task_children_raw = (
+        task_data.get("children", []) if isinstance(task_data, dict) else []
+    )
+    structural_children = [
+        name for name in task_children_raw if isinstance(name, str)
+    ]
+    cascade = getattr(args, "archive_integrated_children", False)
+    pending_integrated = _integrated_children_still_active(
+        task_dir, structural_children, tasks_dir
+    )
+
     if getattr(args, "check", False):
         if not guard.ok:
             print(colored("Archive check: FAIL", Colors.RED))
             for item in guard.errors:
                 print(f"  - {item}")
+            if task_data is not None:
+                hints = archive_repair_hints(
+                    guard.errors, task_dir, task_data, guard
+                )
+                if hints:
+                    print(colored("Next steps:", Colors.BLUE))
+                    for hint in hints:
+                        print(f"  - {hint}")
             return 1
+        if cascade and pending_integrated:
+            for child_name, child_dir in pending_integrated:
+                child_data = read_json(child_dir / FILE_TASK_JSON)
+                child_guard = validate_archive(child_dir, child_data)
+                if not child_guard.ok:
+                    print(colored("Archive check: FAIL", Colors.RED))
+                    print(
+                        f"  - integrated child {child_name} not ready to archive:"
+                    )
+                    for item in child_guard.errors:
+                        print(f"    - {item}")
+                    if child_data is not None:
+                        hints = archive_repair_hints(
+                            child_guard.errors, child_dir, child_data, child_guard
+                        )
+                        if hints:
+                            print(colored("Next steps:", Colors.BLUE))
+                            for hint in hints:
+                                print(f"    - {hint}")
+                    return 1
         print(colored("Archive check: PASS", Colors.GREEN))
         print(f"Contract fingerprint: {guard.contract_fingerprint}")
         if guard.required_gates:
             print(f"Required completion gates: {', '.join(guard.required_gates)}")
+        if pending_integrated and not cascade:
+            hint = parent_archive_child_followup_hint(
+                task_dir, structural_children, tasks_dir
+            )
+            if hint:
+                print(hint)
+        if cascade and pending_integrated:
+            names = ", ".join(n for n, _ in pending_integrated)
+            print(
+                f"Cascade: {len(pending_integrated)} integrated child dir(s) "
+                f"would archive with parent: {names}"
+            )
         return 0
 
     if not guard.ok:
         print(colored("Error: cannot archive task; completion check failed.", Colors.RED), file=sys.stderr)
         for item in guard.errors:
             print(f"  - {item}", file=sys.stderr)
+        if task_data is not None:
+            hints = archive_repair_hints(guard.errors, task_dir, task_data, guard)
+            if hints:
+                print(colored("Next steps:", Colors.BLUE), file=sys.stderr)
+                for hint in hints:
+                    print(f"  - {hint}", file=sys.stderr)
         print("Run `task.py archive <task> --check` for a non-mutating preflight.", file=sys.stderr)
         return 1
 
-    # Update status before archiving
-    today = datetime.now().strftime("%Y-%m-%d")
-    # Names of child task dirs whose task.json gets modified below; passed
-    # into safe_archive_paths_to_add so they're staged in this commit.
-    modified_children: list[str] = []
-    if task_data:
-        data = task_data
-        if guard.baseline_record:
-            write_gate_record(data, "full-task-complete", BASELINE_GATE, guard.baseline_record)
-        data["status"] = "completed"
-        data["completedAt"] = today
-        write_json(task_json_path, data)
-
-        # Handle subtask relationships on archive.
-        # Keep this task in its parent's children list so progress
-        # counters (children_progress) stay consistent — children
-        # missing from the active set are treated as completed.
-        task_children = data.get("children", [])
-
-        # If this is a parent, clear parent field in all children
-        if task_children:
-            for child_name in task_children:
-                child_dir_path = find_task_by_name(child_name, tasks_dir)
-                if child_dir_path:
-                    child_json = child_dir_path / FILE_TASK_JSON
-                    if child_json.is_file():
-                        child_data = read_json(child_json)
-                        if child_data:
-                            child_data["parent"] = None
-                            write_json(child_json, child_data)
-                            modified_children.append(child_dir_path.name)
-
-    # Clear any session that still points at this task before the path moves.
-    from .active_task import clear_task_from_sessions
-    clear_task_from_sessions(str(task_dir), repo_root)
-
-    # Archive
-    result = archive_task_complete(task_dir, repo_root)
-    if "archived_to" in result:
-        archive_dest = Path(result["archived_to"])
-        year_month = archive_dest.parent.name
-        print(colored(f"Archived: {dir_name} -> archive/{year_month}/", Colors.GREEN), file=sys.stderr)
-
-        # Auto-commit unless --no-commit
-        if not getattr(args, "no_commit", False):
-            if not _auto_commit_archive(dir_name, repo_root, modified_children):
+    no_commit = getattr(args, "no_commit", False)
+    if cascade and pending_integrated:
+        for child_name, child_dir in pending_integrated:
+            child_data = read_json(child_dir / FILE_TASK_JSON)
+            child_guard = validate_archive(child_dir, child_data)
+            if not child_guard.ok:
                 print(
                     colored(
-                        "Archive moved on disk, but git auto-commit did not complete. "
-                        "Resolve `git status` before continuing.",
+                        f"Error: integrated child {child_name} failed archive check.",
+                        Colors.RED,
+                    ),
+                    file=sys.stderr,
+                )
+                for item in child_guard.errors:
+                    print(f"  - {item}", file=sys.stderr)
+                return 1
+        for child_name, child_dir in pending_integrated:
+            ok, _, _ = _archive_one_task(
+                child_dir, repo_root, tasks_dir, no_commit=no_commit
+            )
+            if not ok:
+                print(
+                    colored(
+                        f"Error: failed to archive integrated child {child_name}.",
                         Colors.RED,
                     ),
                     file=sys.stderr,
                 )
                 return 1
 
-        # Return the archive path
-        print(f"{DIR_WORKFLOW}/{DIR_TASKS}/{DIR_ARCHIVE}/{year_month}/{dir_name}")
+    manual_child_hint = None
+    if pending_integrated and not cascade:
+        manual_child_hint = parent_archive_child_followup_hint(
+            task_dir, structural_children, tasks_dir
+        )
 
-        # Run hooks with the archived path
-        archived_json = archive_dest / FILE_TASK_JSON
-        run_task_hooks("after_archive", archived_json, repo_root)
-        return 0
+    ok, _, rel_path = _archive_one_task(
+        task_dir, repo_root, tasks_dir, no_commit=no_commit
+    )
+    if not ok or not rel_path:
+        return 1
 
-    return 1
+    if manual_child_hint:
+        print(colored("Note:", Colors.YELLOW), file=sys.stderr)
+        print(manual_child_hint, file=sys.stderr)
+
+    print(rel_path)
+    return 0
 
 
 def _auto_commit_archive(
@@ -831,6 +1037,7 @@ def cmd_prepare_child_worktree(args: argparse.Namespace) -> int:
         print("Prepare-child-worktree check: FAIL" if getattr(args, "check", False) else colored("Error: cannot prepare child worktree.", Colors.RED), file=sys.stderr)
         for item in errors:
             print(f"  - {item}", file=sys.stderr)
+        print_environment_repair_hints(errors)
         return 1
 
     assert worktree_path is not None
@@ -1009,6 +1216,7 @@ def cmd_integrate_child(args: argparse.Namespace) -> int:
             print("Integrate-child check: FAIL")
             for item in errors:
                 print(f"  - {item}")
+            print_environment_repair_hints(errors, stream=sys.stdout)
             return 1
         print("Integrate-child check: PASS")
         if execute_merge:
@@ -1023,6 +1231,7 @@ def cmd_integrate_child(args: argparse.Namespace) -> int:
             print(colored("Error: cannot execute child merge.", Colors.RED), file=sys.stderr)
             for item in merge_errors:
                 print(f"  - {item}", file=sys.stderr)
+            print_environment_repair_hints(merge_errors)
             return 1
 
         rc, _, err = run_git(["merge", "--no-ff", "--no-commit", ref], cwd=repo_root)
@@ -1030,6 +1239,7 @@ def cmd_integrate_child(args: argparse.Namespace) -> int:
             print(colored("Error: git merge failed; Parent task-map was not advanced to integrated.", Colors.RED), file=sys.stderr)
             if err.strip():
                 print(err.strip(), file=sys.stderr)
+            print_environment_repair_hints([err.strip()])
             print("Resolve the merge manually, abort it with `git merge --abort`, or record a `changes` / `cancelled` Parent decision.", file=sys.stderr)
             return 1
         merge_ref = ref
@@ -1059,6 +1269,174 @@ def cmd_integrate_child(args: argparse.Namespace) -> int:
 
 
 # =============================================================================
+# Command: generate-child-prompt / parent-status / review-child
+# =============================================================================
+
+def cmd_generate_child_prompt(args: argparse.Namespace) -> int:
+    """Generate a child implementation prompt for parent orchestration."""
+    from .parent_orchestration import build_child_prompt
+
+    repo_root = get_repo_root()
+    parent_dir = resolve_task_dir(args.parent_dir, repo_root)
+    child_dir = resolve_task_dir(args.child_dir, repo_root)
+    mode = getattr(args, "mode", "inline") or "inline"
+    if mode not in ("inline", "subagent"):
+        print(colored("Error: --mode must be inline or subagent", Colors.RED), file=sys.stderr)
+        return 1
+
+    prompt, errors = build_child_prompt(
+        parent_dir,
+        child_dir,
+        include_artifacts=getattr(args, "include_artifacts", False),
+        mode=mode,
+    )
+    if errors:
+        for item in errors:
+            print(f"  - {item}", file=sys.stderr)
+        return 1
+    if prompt is None:
+        print(colored("Error: could not generate child prompt", Colors.RED), file=sys.stderr)
+        return 1
+
+    out_path = getattr(args, "output", None)
+    if out_path:
+        path = Path(out_path)
+        if not path.is_absolute():
+            path = repo_root / path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(prompt + "\n", encoding="utf-8")
+        print(colored(f"✓ Child prompt written: {_repo_relative_path(path, repo_root)}", Colors.GREEN))
+    else:
+        print(prompt)
+    return 0
+
+
+def cmd_parent_status(args: argparse.Namespace) -> int:
+    """Show parent task-map orchestration status."""
+    from .parent_orchestration import build_parent_status
+
+    repo_root = get_repo_root()
+    parent_dir = resolve_task_dir(args.parent_dir, repo_root)
+    print(build_parent_status(parent_dir))
+    return 0
+
+
+def cmd_review_child(args: argparse.Namespace) -> int:
+    """Review child handoff and optionally advance parent integration states."""
+    from .parent_orchestration import (
+        append_parent_review_notes,
+        build_review_report,
+        write_review_artifact,
+    )
+    from .task_map import set_parent_child_integration_state
+
+    repo_root = get_repo_root()
+    parent_dir = resolve_task_dir(args.parent_dir, repo_root)
+    child_dir = resolve_task_dir(args.child_dir, repo_root)
+
+    parent_json_path = parent_dir / FILE_TASK_JSON
+    child_json_path = child_dir / FILE_TASK_JSON
+    if not parent_json_path.is_file() or not child_json_path.is_file():
+        print(colored("Error: parent or child task.json missing", Colors.RED), file=sys.stderr)
+        return 1
+
+    parent_data = read_json(parent_json_path)
+    child_data = read_json(child_json_path)
+    if not parent_data or not child_data:
+        print(colored("Error: Failed to read task.json", Colors.RED), file=sys.stderr)
+        return 1
+
+    decision = getattr(args, "decision", None)
+    ref = getattr(args, "ref", None)
+    reason = getattr(args, "reason", None)
+    notes = getattr(args, "notes", None)
+    check_only = getattr(args, "check", False) or not decision
+
+    report, errors, actions = build_review_report(
+        parent_dir,
+        child_dir,
+        parent_data,
+        child_data,
+        decision=decision if not check_only else None,
+        ref=ref,
+        reason=reason,
+        notes=notes,
+    )
+
+    if getattr(args, "write_artifact", False):
+        artifact = write_review_artifact(parent_dir, child_dir.name, report)
+        print(colored(f"✓ Review artifact: {_repo_relative_path(artifact, repo_root)}", Colors.GREEN))
+
+    if check_only:
+        if errors:
+            print("Review-child check: FAIL")
+            for item in errors:
+                print(f"  - {item}")
+            print("")
+            print(report)
+            return 1
+        print("Review-child check: PASS")
+        print("")
+        print(report)
+        return 0
+
+    if errors:
+        print(colored("Error: review decision blocked by validation.", Colors.RED), file=sys.stderr)
+        for item in errors:
+            print(f"  - {item}", file=sys.stderr)
+        return 1
+
+    evidence_default = "handoff.md"
+    if actions.get("integrate_sequence"):
+        for step in actions["integrate_sequence"]:
+            ok, step_errors = set_parent_child_integration_state(
+                parent_dir,
+                parent_data,
+                child_dir,
+                child_data,
+                step["state"],
+                step.get("evidence", evidence_default),
+                step.get("ref", ref),
+                step.get("reason", reason),
+            )
+            if not ok:
+                print(colored("Error: integrate-child step failed.", Colors.RED), file=sys.stderr)
+                for item in step_errors:
+                    print(f"  - {item}", file=sys.stderr)
+                return 1
+            print(colored(f"✓ Child integration updated: {child_dir.name} -> {step['state']}", Colors.GREEN))
+    elif actions.get("integrate"):
+        step = actions["integrate"]
+        ok, step_errors = set_parent_child_integration_state(
+            parent_dir,
+            parent_data,
+            child_dir,
+            child_data,
+            step["state"],
+            step.get("evidence", evidence_default),
+            step.get("ref", ref),
+            step.get("reason", reason),
+        )
+        if not ok:
+            print(colored("Error: integrate-child failed.", Colors.RED), file=sys.stderr)
+            for item in step_errors:
+                print(f"  - {item}", file=sys.stderr)
+            return 1
+        print(colored(f"✓ Child integration updated: {child_dir.name} -> {step['state']}", Colors.GREEN))
+
+    if not getattr(args, "no_append_parent_verify", False):
+        append_parent_review_notes(parent_dir, child_dir.name, report)
+        print(colored("✓ Appended review notes to parent verify.md", Colors.GREEN))
+
+    for gate in actions.get("gates", []):
+        if gate.get("optional") and gate.get("hint"):
+            print(f"Optional reviewer gate: {gate['hint']}")
+
+    print(report)
+    return 0
+
+
+# =============================================================================
 # Command: set-branch
 # =============================================================================
 
@@ -1070,7 +1448,7 @@ def cmd_set_branch(args: argparse.Namespace) -> int:
 
     if not branch:
         print(colored("Error: Missing arguments", Colors.RED))
-        print("Usage: python3 task.py set-branch <task-dir> <branch-name>")
+        print("Usage: python task.py set-branch <task-dir> <branch-name>")
         return 1
 
     task_json = target_dir / FILE_TASK_JSON
@@ -1101,8 +1479,8 @@ def cmd_set_base_branch(args: argparse.Namespace) -> int:
 
     if not base_branch:
         print(colored("Error: Missing arguments", Colors.RED))
-        print("Usage: python3 task.py set-base-branch <task-dir> <base-branch>")
-        print("Example: python3 task.py set-base-branch <dir> develop")
+        print("Usage: python task.py set-base-branch <task-dir> <base-branch>")
+        print("Example: python task.py set-base-branch <dir> develop")
         print()
         print("This sets the target branch for PR (the branch your feature will merge into).")
         return 1
@@ -1136,7 +1514,7 @@ def cmd_set_scope(args: argparse.Namespace) -> int:
 
     if not scope:
         print(colored("Error: Missing arguments", Colors.RED))
-        print("Usage: python3 task.py set-scope <task-dir> <scope>")
+        print("Usage: python task.py set-scope <task-dir> <scope>")
         return 1
 
     task_json = target_dir / FILE_TASK_JSON

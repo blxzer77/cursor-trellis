@@ -1580,6 +1580,7 @@ describe("regression: current-task path normalization", () => {
     expect(dashboard).toContain("Task Dashboard");
     expect(dashboard).toContain("Trellis framework: active");
     expect(dashboard).toContain("Selected task: none");
+    expect(dashboard).toContain("no session pointer");
     expect(dashboard).toContain(".trellis/tasks/issue-106 (in_progress)");
     expect(dashboard).toContain("Suggested actions:");
     expect(dashboard).toContain("task.py select <task>");
@@ -2387,11 +2388,11 @@ describe("regression: current-task path normalization", () => {
     setupTaskRepo();
     const taskScriptPath = path.join(tmpDir, ".trellis", "scripts", "task.py");
 
-    const cases: Array<{
+    const cases: {
       args: string[];
       expected: string;
       expectedStatus?: number;
-    }> = [
+    }[] = [
       {
         args: [
           "record-gate",
@@ -3230,6 +3231,192 @@ describe("regression: current-task path normalization", () => {
     expect(fs.readFileSync(taskJsonPath, "utf-8")).toBe(before);
   });
 
+  it("[archive-guard] task.py archive --check prints Next steps for missing validation evidence", () => {
+    setupTaskRepo();
+    const taskScriptPath = path.join(tmpDir, ".trellis", "scripts", "task.py");
+    const taskDir = path.join(tmpDir, ".trellis", "tasks", "issue-106");
+    fs.writeFileSync(
+      path.join(taskDir, "verify.md"),
+      "# Verification Evidence\n\nAcceptance: PASS\nNo durable learning: recorded.\n",
+      "utf-8",
+    );
+
+    const result = spawnSync(
+      pythonCmd,
+      [taskScriptPath, "archive", "issue-106", "--check"],
+      { cwd: tmpDir, encoding: "utf-8", env: sessionEnv() },
+    );
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toContain("Next steps:");
+    expect(result.stdout).toContain("prepare-archive-evidence");
+  });
+
+  it("[archive-evidence] prepare-archive-evidence appends draft and archive --check passes for partial verify.md", () => {
+    setupTaskRepo();
+    const taskScriptPath = path.join(tmpDir, ".trellis", "scripts", "task.py");
+    const taskDir = path.join(tmpDir, ".trellis", "tasks", "issue-106");
+    const verifyPath = path.join(taskDir, "verify.md");
+    fs.writeFileSync(
+      verifyPath,
+      "# Verification Evidence\n\nUser-authored section preserved.\n",
+      "utf-8",
+    );
+    const before = fs.readFileSync(verifyPath, "utf-8");
+
+    const prepare = spawnSync(
+      pythonCmd,
+      [taskScriptPath, "prepare-archive-evidence", "issue-106"],
+      { cwd: tmpDir, encoding: "utf-8", env: sessionEnv() },
+    );
+    expect(prepare.status).toBe(0);
+    expect(prepare.stdout).toContain("Appended archive evidence draft");
+
+    const after = fs.readFileSync(verifyPath, "utf-8");
+    expect(after.length).toBeGreaterThan(before.length);
+    expect(after).toContain("User-authored section preserved.");
+    expect(after).toContain("<!-- trellis:archive-evidence-draft -->");
+    expect(after.indexOf("User-authored section preserved.")).toBeLessThan(
+      after.indexOf("Archive evidence (draft)"),
+    );
+
+    const check = spawnSync(
+      pythonCmd,
+      [taskScriptPath, "archive", "issue-106", "--check"],
+      { cwd: tmpDir, encoding: "utf-8", env: sessionEnv() },
+    );
+    expect(check.status).toBe(0);
+    expect(check.stdout).toContain("Archive check: PASS");
+  });
+
+  it("[archive-evidence] prepare-archive-evidence accepts spec update evidence line", () => {
+    setupTaskRepo();
+    const taskScriptPath = path.join(tmpDir, ".trellis", "scripts", "task.py");
+    const taskDir = path.join(tmpDir, ".trellis", "tasks", "issue-106");
+    fs.writeFileSync(
+      path.join(taskDir, "verify.md"),
+      [
+        "# Verification Evidence",
+        "",
+        "Validation commands: pnpm test — pass",
+        "Final acceptance evidence: AC met",
+        "Spec update evidence: .trellis/spec/guides/index.md",
+        "",
+      ].join("\n"),
+      "utf-8",
+    );
+
+    const check = spawnSync(
+      pythonCmd,
+      [taskScriptPath, "archive", "issue-106", "--check"],
+      { cwd: tmpDir, encoding: "utf-8", env: sessionEnv() },
+    );
+    expect(check.status).toBe(0);
+  });
+
+  it("[durable-learning] archive accepts learning artifact evidence line", () => {
+    setupTaskRepo();
+    const taskScriptPath = path.join(tmpDir, ".trellis", "scripts", "task.py");
+    const taskDir = path.join(tmpDir, ".trellis", "tasks", "issue-106");
+    fs.writeFileSync(
+      path.join(taskDir, "verify.md"),
+      [
+        "# Verification Evidence",
+        "",
+        "Validation commands: pnpm test — pass",
+        "Final acceptance evidence: AC met",
+        "Learning artifact: .trellis/tasks/issue-106/handoff.md",
+        "",
+      ].join("\n"),
+      "utf-8",
+    );
+
+    const check = spawnSync(
+      pythonCmd,
+      [taskScriptPath, "archive", "issue-106", "--check"],
+      { cwd: tmpDir, encoding: "utf-8", env: sessionEnv() },
+    );
+    expect(check.status).toBe(0);
+  });
+
+  it("[durable-learning] prepare-learning-scaffold is stdout-only", () => {
+    setupTaskRepo();
+    const taskScriptPath = path.join(tmpDir, ".trellis", "scripts", "task.py");
+    const taskDir = path.join(tmpDir, ".trellis", "tasks", "issue-106");
+    const verifyPath = path.join(taskDir, "verify.md");
+    const before = fs.readFileSync(verifyPath, "utf-8");
+
+    const result = spawnSync(
+      pythonCmd,
+      [taskScriptPath, "prepare-learning-scaffold", "issue-106", "--trigger", "review changes"],
+      { cwd: tmpDir, encoding: "utf-8", env: sessionEnv() },
+    );
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("Spec update scaffold");
+    expect(result.stdout).toContain("reviewer-confirmed");
+    expect(fs.readFileSync(verifyPath, "utf-8")).toBe(before);
+  });
+
+  it("[archive-evidence] prepare-archive-evidence drafts parent final integration evidence", () => {
+    const taskScriptPath = setupParentChildRepo();
+    const parentDir = path.join(tmpDir, ".trellis", "tasks", "parent-task");
+    fs.writeFileSync(
+      path.join(parentDir, "verify.md"),
+      "# Verification Evidence\n\nValidation: PASS\nAcceptance: PASS\nNo durable learning: recorded.\n",
+      "utf-8",
+    );
+    execSync(
+      `${pythonCmd} ${JSON.stringify(taskScriptPath)} integrate-child parent-task child-task cancelled --evidence task-map.md --reason ${JSON.stringify("user cancelled child before integration")}`,
+      { cwd: tmpDir, encoding: "utf-8", env: sessionEnv() },
+    );
+
+    const prepare = spawnSync(
+      pythonCmd,
+      [taskScriptPath, "prepare-archive-evidence", "parent-task"],
+      { cwd: tmpDir, encoding: "utf-8", env: sessionEnv() },
+    );
+    expect(prepare.status).toBe(0);
+    const verify = fs.readFileSync(path.join(parentDir, "verify.md"), "utf-8");
+    expect(verify).toContain("Final integration evidence:");
+
+    const check = spawnSync(
+      pythonCmd,
+      [taskScriptPath, "archive", "parent-task", "--check"],
+      { cwd: tmpDir, encoding: "utf-8", env: sessionEnv() },
+    );
+    expect(check.status).toBe(0);
+  });
+
+  it("[archive-evidence] prepare-archive-evidence does not record code-review gate", () => {
+    setupTaskRepo();
+    writeFullTaskArtifacts();
+    const taskScriptPath = path.join(tmpDir, ".trellis", "scripts", "task.py");
+    const taskJsonPath = path.join(
+      tmpDir,
+      ".trellis",
+      "tasks",
+      "issue-106",
+      "task.json",
+    );
+    const before = fs.readFileSync(taskJsonPath, "utf-8");
+
+    spawnSync(
+      pythonCmd,
+      [taskScriptPath, "prepare-archive-evidence", "issue-106"],
+      { cwd: tmpDir, encoding: "utf-8", env: sessionEnv() },
+    );
+
+    expect(fs.readFileSync(taskJsonPath, "utf-8")).toBe(before);
+    const check = spawnSync(
+      pythonCmd,
+      [taskScriptPath, "archive", "issue-106", "--check"],
+      { cwd: tmpDir, encoding: "utf-8", env: sessionEnv() },
+    );
+    expect(check.status).toBe(1);
+    expect(check.stdout).toContain("missing gate record: full-task-complete/code-review");
+    expect(check.stdout).toContain("record-gate");
+  });
+
   it("[archive-guard] task.py archive rejects Full Task without completion gate", () => {
     setupTaskRepo();
     writeFullTaskArtifacts();
@@ -3588,6 +3775,122 @@ describe("regression: current-task path normalization", () => {
     );
   });
 
+  function integrateChildToIntegrated(
+    taskScriptPath: string,
+    childName: string,
+  ): void {
+    execSync(
+      `${pythonCmd} ${JSON.stringify(taskScriptPath)} set-child-state parent-task ${childName} review --evidence verify.md`,
+      { cwd: tmpDir, encoding: "utf-8", env: sessionEnv() },
+    );
+    for (const state of ["accepted", "integrating", "integrated"] as const) {
+      execSync(
+        [
+          pythonCmd,
+          JSON.stringify(taskScriptPath),
+          "integrate-child",
+          "parent-task",
+          childName,
+          state,
+          "--evidence",
+          state === "accepted" ? "handoff.md" : "task-map.md",
+          "--ref",
+          `refs/heads/${childName}`,
+        ].join(" "),
+        { cwd: tmpDir, encoding: "utf-8", env: sessionEnv() },
+      );
+    }
+  }
+
+  it("[parent-child-lifecycle] list shows integration progress when child dirs are still active", () => {
+    const taskScriptPath = setupParentChildRepo();
+    integrateChildToIntegrated(taskScriptPath, "child-task");
+
+    const list = execSync(
+      `${pythonCmd} ${JSON.stringify(taskScriptPath)} list`,
+      { cwd: tmpDir, encoding: "utf-8", env: sessionEnv() },
+    );
+    expect(list).toContain("parent-task/");
+    expect(list).toMatch(/\[1 integrated\]/);
+    expect(list).toContain("integration:integrated");
+    expect(list).not.toMatch(/\[0\/1 done\]/);
+  });
+
+  it("[parent-child-lifecycle] dashboard shows integration state on child rows", () => {
+    const taskScriptPath = setupParentChildRepo();
+    integrateChildToIntegrated(taskScriptPath, "child-task");
+
+    const dashboard = execSync(
+      `${pythonCmd} ${JSON.stringify(taskScriptPath)} dashboard`,
+      { cwd: tmpDir, encoding: "utf-8", env: sessionEnv() },
+    );
+    expect(dashboard).toContain("parent-task");
+    expect(dashboard).toMatch(/\[1 integrated\]/);
+    expect(dashboard).toContain("integration:integrated");
+  });
+
+  it("[parent-child-lifecycle] parent archive --check hints manual child archive when integrated child stays active", () => {
+    const taskScriptPath = setupParentChildRepo();
+    integrateChildToIntegrated(taskScriptPath, "child-task");
+
+    const check = execSync(
+      `${pythonCmd} ${JSON.stringify(taskScriptPath)} archive parent-task --check --no-commit`,
+      { cwd: tmpDir, encoding: "utf-8", env: sessionEnv() },
+    );
+    expect(check).toContain("Archive check: PASS");
+    expect(check).toContain("Integrated child task dirs still active");
+    expect(check).toContain("child-task");
+  });
+
+  it("[parent-child-lifecycle] parent archive --archive-integrated-children archives child then parent", () => {
+    const taskScriptPath = setupParentChildRepo();
+    integrateChildToIntegrated(taskScriptPath, "child-task");
+
+    const check = execSync(
+      [
+        pythonCmd,
+        JSON.stringify(taskScriptPath),
+        "archive",
+        "parent-task",
+        "--check",
+        "--archive-integrated-children",
+        "--no-commit",
+      ].join(" "),
+      { cwd: tmpDir, encoding: "utf-8", env: sessionEnv() },
+    );
+    expect(check).toContain("Cascade:");
+    expect(check).toContain("child-task");
+
+    execSync(
+      [
+        pythonCmd,
+        JSON.stringify(taskScriptPath),
+        "archive",
+        "parent-task",
+        "--archive-integrated-children",
+        "--no-commit",
+      ].join(" "),
+      { cwd: tmpDir, encoding: "utf-8", env: sessionEnv() },
+    );
+
+    expect(
+      fs.existsSync(path.join(tmpDir, ".trellis", "tasks", "parent-task")),
+    ).toBe(false);
+    expect(
+      fs.existsSync(path.join(tmpDir, ".trellis", "tasks", "child-task")),
+    ).toBe(false);
+    const archiveRoot = path.join(tmpDir, ".trellis", "tasks", "archive");
+    const months = fs.readdirSync(archiveRoot);
+    expect(months.length).toBeGreaterThan(0);
+    const month = months[0];
+    expect(
+      fs.existsSync(path.join(archiveRoot, month, "parent-task", "task.json")),
+    ).toBe(true);
+    expect(
+      fs.existsSync(path.join(archiveRoot, month, "child-task", "task.json")),
+    ).toBe(true);
+  });
+
   it("[parent-child] Parent integrate-child enforces merge_limit while integrating", () => {
     const taskScriptPath = setupParentChildRepo();
     writeTaskFixture("second-child", { parent: null });
@@ -3644,6 +3947,134 @@ describe("regression: current-task path normalization", () => {
     );
     expect(blocked.status).toBe(1);
     expect(blocked.stderr).toContain("merge_limit 1 blocks integrating second-child");
+  });
+
+  it("[parent-child] generate-child-prompt includes dependencies and touch scope", () => {
+    const taskScriptPath = setupParentChildRepo();
+    writeTaskFixture("second-child", { parent: null });
+    execSync(
+      `${pythonCmd} ${JSON.stringify(taskScriptPath)} add-subtask parent-task second-child`,
+      { cwd: tmpDir, encoding: "utf-8", env: sessionEnv() },
+    );
+    const taskMapPath = path.join(
+      tmpDir,
+      ".trellis",
+      "tasks",
+      "parent-task",
+      "task-map.md",
+    );
+    const taskMapLines = fs.readFileSync(taskMapPath, "utf-8").split(/\r?\n/);
+    const secondChildIdx = taskMapLines.findIndex(
+      (line) => line.trim() === "- id: second-child",
+    );
+    expect(secondChildIdx).toBeGreaterThan(-1);
+    const dependsIdx = taskMapLines.findIndex(
+      (line, index) => index > secondChildIdx && line.trim().startsWith("depends_on:"),
+    );
+    if (dependsIdx >= 0) {
+      taskMapLines[dependsIdx] = "    depends_on: [child-task]";
+    } else {
+      const stateIdx = taskMapLines.findIndex(
+        (line, index) => index > secondChildIdx && line.trim().startsWith("state:"),
+      );
+      expect(stateIdx).toBeGreaterThan(-1);
+      taskMapLines.splice(stateIdx + 1, 0, "    depends_on: [child-task]");
+    }
+    const touchesIdx = taskMapLines.findIndex(
+      (line, index) => index > secondChildIdx && line.trim().startsWith("touches:"),
+    );
+    if (touchesIdx >= 0) {
+      taskMapLines[touchesIdx] = "    touches: [.trellis/scripts/task.py]";
+    }
+    fs.writeFileSync(taskMapPath, taskMapLines.join("\n"), "utf-8");
+
+    const prompt = execSync(
+      [
+        pythonCmd,
+        JSON.stringify(taskScriptPath),
+        "generate-child-prompt",
+        "parent-task",
+        "second-child",
+        "--mode",
+        "inline",
+      ].join(" "),
+      { cwd: tmpDir, encoding: "utf-8", env: sessionEnv() },
+    );
+
+    expect(prompt).toContain("second-child");
+    expect(prompt).toContain("Depends on: `child-task`");
+    expect(prompt).toContain("BLOCKED");
+    expect(prompt).toContain("child-task (state=");
+    expect(prompt).toContain(".trellis/scripts/task.py");
+    expect(prompt).toContain("Delivery mode: inline");
+  });
+
+  it("[parent-child] review-child accept advances integration and appends parent verify notes", () => {
+    const taskScriptPath = setupParentChildRepo();
+    execSync(
+      `${pythonCmd} ${JSON.stringify(taskScriptPath)} set-child-state parent-task child-task review --evidence verify.md`,
+      { cwd: tmpDir, encoding: "utf-8", env: sessionEnv() },
+    );
+
+    const check = execSync(
+      [
+        pythonCmd,
+        JSON.stringify(taskScriptPath),
+        "review-child",
+        "parent-task",
+        "child-task",
+        "--check",
+        "--decision",
+        "accept",
+        "--ref",
+        "refs/heads/child-task",
+      ].join(" "),
+      { cwd: tmpDir, encoding: "utf-8", env: sessionEnv() },
+    );
+    expect(check).toContain("Review-child check: PASS");
+
+    const output = execSync(
+      [
+        pythonCmd,
+        JSON.stringify(taskScriptPath),
+        "review-child",
+        "parent-task",
+        "child-task",
+        "--decision",
+        "accept",
+        "--ref",
+        "refs/heads/child-task",
+        "--notes",
+        JSON.stringify("parent accepted child handoff"),
+      ].join(" "),
+      { cwd: tmpDir, encoding: "utf-8", env: sessionEnv() },
+    );
+    expect(output).toContain("Child integration updated: child-task -> accepted");
+
+    const taskMap = fs.readFileSync(
+      path.join(tmpDir, ".trellis", "tasks", "parent-task", "task-map.md"),
+      "utf-8",
+    );
+    expect(taskMap).toContain("    state: accepted");
+
+    const parentVerify = fs.readFileSync(
+      path.join(tmpDir, ".trellis", "tasks", "parent-task", "verify.md"),
+      "utf-8",
+    );
+    expect(parentVerify).toContain("Parent review — `child-task`");
+    expect(parentVerify).toContain("parent accepted child handoff");
+  });
+
+  it("[parent-child] parent-status summarizes children and handoff artifacts", () => {
+    const taskScriptPath = setupParentChildRepo();
+    const output = execSync(
+      `${pythonCmd} ${JSON.stringify(taskScriptPath)} parent-status parent-task`,
+      { cwd: tmpDir, encoding: "utf-8", env: sessionEnv() },
+    );
+    expect(output).toContain("Parent orchestration status");
+    expect(output).toContain("`child-task`");
+    expect(output).toContain("handoff.md: yes");
+    expect(output).toContain("generate-child-prompt");
   });
 
   it("[parent-child] prepare-child-worktree creates and records a Child git worktree", () => {
@@ -5012,6 +5443,36 @@ describe("regression: current-task path normalization", () => {
     expect(status).toBe(1);
     expect(output).toContain("Selected task: (none)");
     expect(output).toContain("Source: none");
+  });
+
+  it("[cli-ux] task.py selected --source prints next actions when none", () => {
+    setupTaskRepo();
+    const taskScriptPath = path.join(tmpDir, ".trellis", "scripts", "task.py");
+    const result = spawnSync(
+      pythonCmd,
+      [taskScriptPath, "selected", "--source"],
+      { cwd: tmpDir, encoding: "utf-8", env: sessionEnv() },
+    );
+    expect(result.status).toBe(1);
+    const combined = `${result.stdout ?? ""}${result.stderr ?? ""}`;
+    expect(combined).toContain("Selected task: (none)");
+    expect(combined).toContain("Next actions:");
+    expect(combined).toContain("task.py dashboard");
+    expect(combined).toContain("task.py select");
+  });
+
+  it("[cli-ux] classify_git_failure maps safe.directory to repair kind", () => {
+    setupTaskRepo();
+    const scriptsDir = path.join(tmpDir, ".trellis", "scripts");
+    const out = execSync(
+      `${pythonCmd} -c "from common.cli_environment import classify_git_failure; b = classify_git_failure('fatal: detected dubious ownership in repository at D:/x'); print(b.kind if b else 'none')"`,
+      {
+        cwd: scriptsDir,
+        encoding: "utf-8",
+        env: sessionEnv(),
+      },
+    );
+    expect(out.trim()).toBe("git-safe-directory");
   });
 
   it("[selected-task] multiple session files returns none without explicit context identity", () => {

@@ -14,7 +14,9 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from common.codebase_retrieval_router import resolve_router_envelope
 from common.context_pack import build_context_pack
+from common.retrieval_adapter_metadata import build_evidence_envelope
 from common.retrieval_evidence import score_evidence_bundle
 
 ORCHESTRATOR_VERSION = 1
@@ -33,6 +35,8 @@ def build_retrieval_pack(
     max_items: int | None = None,
     max_estimated_tokens: int | None = None,
     include_diagnostics: bool = False,
+    router_envelope: dict[str, Any] | None = None,
+    adapter_hints: list[dict[str, Any]] | None = None,
 ) -> dict[str, object]:
     """Score and pack already-collected retrieval evidence into one payload."""
     warnings: list[str] = []
@@ -82,6 +86,15 @@ def build_retrieval_pack(
         include_diagnostics=include_diagnostics,
     )
 
+    evidence_envelope = build_evidence_envelope(
+        bundle=bundle,
+        scored_evidence=scored_evidence,
+        collection=collection,
+        orchestrator_warnings=warnings,
+        router_envelope=router_envelope,
+        adapter_hints=adapter_hints,
+    )
+
     return {
         "version": ORCHESTRATOR_VERSION,
         "source": ORCHESTRATOR_SOURCE,
@@ -90,6 +103,7 @@ def build_retrieval_pack(
         "contextPack": context_pack,
         "collection": collection,
         "warnings": warnings,
+        "evidenceEnvelope": evidence_envelope,
     }
 
 
@@ -315,6 +329,12 @@ def main(argv: list[str] | None = None) -> int:
         max_items=args.max_items,
         max_estimated_tokens=args.max_estimated_tokens,
         include_diagnostics=args.include_diagnostics,
+        router_envelope=resolve_router_envelope(
+            resolve_repo_root(args.root),
+            explicit_router=dict_value(payload.get("routerEnvelope")) or None,
+            query=string_value(payload.get("query")) or None,
+        ),
+        adapter_hints=normalize_dict_list(list_value(payload.get("adapterHints"))),
     )
 
     if args.json:

@@ -90,7 +90,7 @@ ACCEPTED_BY_USER_RE = re.compile(
 NO_DURABLE_LEARNING_RE = re.compile(r"(?i)\bno\s+durable\s+learning\b")
 DURABLE_LEARNING_EVIDENCE_RE = re.compile(
     r"(?im)^\s*(?:[-*]\s*)?(?:durable\s+learning|learning\s+decision|"
-    r"spec\s+updates?|spec\s+update\s+evidence|updated\s+spec|"
+    r"spec\s+updates?|spec\s+update\s+(?:needed|evidence)|updated\s+spec|"
     r"retrospective(?:\.md)?|learning\s+artifact)\s*:\s*\S"
 )
 INTEGRATION_EVIDENCE_RE = re.compile(
@@ -778,6 +778,456 @@ def _has_durable_learning_evidence(content: str) -> bool:
         NO_DURABLE_LEARNING_RE.search(content)
         or DURABLE_LEARNING_EVIDENCE_RE.search(content)
     )
+
+
+def durable_learning_decision_status(content: str) -> dict[str, bool]:
+    """Return which durable-learning outcomes are signaled in verify.md text."""
+    return {
+        "no_durable_learning": bool(NO_DURABLE_LEARNING_RE.search(content)),
+        "spec_update": bool(
+            re.search(
+                r"(?im)^\s*(?:[-*]\s*)?(?:spec\s+updates?|spec\s+update\s+"
+                r"(?:needed|evidence)|updated\s+spec)\s*:\s*\S",
+                content,
+            )
+        ),
+        "learning_artifact": bool(
+            re.search(
+                r"(?im)^\s*(?:[-*]\s*)?(?:learning\s+artifact|retrospective(?:\.md)?)\s*:\s*\S",
+                content,
+            )
+            or re.search(
+                r"(?im)^\s*(?:[-*]\s*)?(?:durable\s+learning|learning\s+decision)\s*:\s*\S",
+                content,
+            )
+        ),
+        "any": _has_durable_learning_evidence(content),
+    }
+
+
+def suggest_spec_targets(repo_root: Path, task_dir: Path, task_data: dict) -> list[str]:
+    """Suggest existing spec paths from task scope; does not invent new rules."""
+    suggestions: list[str] = []
+    spec_root = repo_root / ".trellis" / "spec"
+    if not spec_root.is_dir():
+        return suggestions
+
+    package = task_data.get("package")
+    if isinstance(package, str) and package.strip():
+        pkg_index = spec_root / package.strip() / "index.md"
+        if pkg_index.is_file():
+            suggestions.append(f".trellis/spec/{package.strip()}/index.md")
+
+    scope = task_data.get("scope")
+    if isinstance(scope, str) and scope.strip():
+        scope_parts = [p for p in scope.strip().replace("\\", "/").split("/") if p]
+        scope_path = spec_root.joinpath(*scope_parts) if scope_parts else spec_root
+        if scope_path.is_dir():
+            index = scope_path / "index.md"
+            if index.is_file():
+                suggestions.append(
+                    f".trellis/spec/{scope_path.relative_to(spec_root).as_posix()}/index.md"
+                )
+
+    guide_paths = (
+        "guides/durable-learning-decision-guide.md",
+        "guides/index.md",
+    )
+    for rel in guide_paths:
+        path = spec_root / rel
+        if path.is_file():
+            suggestions.append(f".trellis/spec/{rel}")
+
+    return _dedupe_preserve_order(suggestions)[:6]
+
+
+def build_spec_update_scaffold(
+    repo_root: Path,
+    task_dir: Path,
+    task_data: dict,
+    *,
+    trigger: str | None = None,
+) -> str:
+    """Markdown checklist for spec capture; user/reviewer must confirm before editing specs."""
+    targets = suggest_spec_targets(repo_root, task_dir, task_data)
+    rel_task = f".trellis/tasks/{task_dir.name}"
+    lines = [
+        "## Spec update scaffold (reviewer-confirmed)",
+        "",
+        "_Suggestions only — do not treat this block as project policy until a human confirms._",
+        "",
+    ]
+    if trigger:
+        lines.extend([f"Trigger: {trigger.strip()}", ""])
+    lines.extend(
+        [
+            "1. Decide outcome in verify.md:",
+            "   - Routine: `Durable learning decision: no durable learning`",
+            "   - Reusable insight: `Spec update evidence: .trellis/spec/<path>` after edits",
+            f"   - Already documented: `Learning artifact: {rel_task}/handoff.md`",
+            "",
+            "2. Use `/trellis:update-spec` or `/trellis:break-loop` for depth; never auto-write specs.",
+            "",
+        ]
+    )
+    if targets:
+        lines.append("3. Existing spec indexes to consider (from task scope):")
+        for target in targets:
+            lines.append(f"   - `{target}`")
+        lines.append("")
+    else:
+        lines.append(
+            "3. Browse `.trellis/spec/<package-or-layer>/index.md` for the right code-spec file."
+        )
+        lines.append("")
+    lines.append(
+        "4. Re-run `python ./.trellis/scripts/task.py archive <task> --check` after verify.md is final."
+    )
+    lines.append("")
+    return "\n".join(lines)
+
+
+def _learning_decision_draft_lines(task_dir: Path, task_data: dict) -> list[str]:
+    """Default durable-learning block for prepare-archive-evidence."""
+    repo_root = task_dir.parent.parent.parent
+    targets = suggest_spec_targets(repo_root, task_dir, task_data)
+    target_hint = targets[0] if targets else ".trellis/spec/<layer>/index.md"
+    return [
+        "Durable learning decision: no durable learning for this task scope.",
+        "",
+        "# Replace the line above with ONE of these before archive:",
+        f"# Spec update evidence: {target_hint}",
+        f"# Learning artifact: .trellis/tasks/{task_dir.name}/handoff.md",
+        "# Spec update needed: (brief reason) — then run /trellis:update-spec and point Spec update evidence at the edited file",
+        "",
+    ]
+
+
+ARCHIVE_EVIDENCE_DRAFT_MARKER = "<!-- trellis:archive-evidence-draft -->"
+
+
+def _verify_evidence_status(task_dir: Path, task_data: dict) -> dict[str, bool]:
+    """Return which archive evidence sections are present in verify.md."""
+    verify_path = task_dir / "verify.md"
+    if not verify_path.is_file():
+        return {
+            "validation": False,
+            "acceptance": False,
+            "durable_learning": False,
+            "integration": False,
+        }
+    try:
+        content = verify_path.read_text(encoding="utf-8")
+    except OSError:
+        return {
+            "validation": False,
+            "acceptance": False,
+            "durable_learning": False,
+            "integration": False,
+        }
+
+    child_names = task_data.get("children")
+    has_children = isinstance(child_names, list) and bool(child_names)
+    return {
+        "validation": _has_validation_evidence(content),
+        "acceptance": _has_final_acceptance_evidence(content),
+        "durable_learning": _has_durable_learning_evidence(content),
+        "integration": (
+            bool(INTEGRATION_EVIDENCE_RE.search(content)) if has_children else True
+        ),
+    }
+
+
+def archive_repair_hints(
+    errors: list[str],
+    task_dir: Path,
+    task_data: dict,
+    guard: GateGuardResult,
+) -> list[str]:
+    """Map archive validation errors to actionable next-step hints."""
+    hints: list[str] = []
+    task_ref = task_dir.name
+    rel_task = f".trellis/tasks/{task_ref}"
+
+    for error in errors:
+        if error == "verify.md":
+            hints.append(
+                f"Create verify.md, then run: python ./.trellis/scripts/task.py "
+                f"prepare-archive-evidence {rel_task}"
+            )
+            continue
+        if error == "verify.md missing validation evidence":
+            hints.append(
+                "Add a grep-friendly line such as "
+                "'Validation commands: <command> — <outcome>' to verify.md, "
+                f"or run: python ./.trellis/scripts/task.py prepare-archive-evidence {rel_task}"
+            )
+            continue
+        if error == "verify.md missing final acceptance evidence":
+            hints.append(
+                "Add 'Final acceptance evidence: <criteria met>' or "
+                "'Accepted by user: <who/when>' to verify.md, "
+                f"or run prepare-archive-evidence {rel_task}"
+            )
+            continue
+        if error == "verify.md missing durable-learning decision evidence":
+            hints.append(
+                "Durable learning decision (pick one grep-friendly line in verify.md): "
+                "'Durable learning decision: no durable learning' for routine work; "
+                "'Spec update evidence: .trellis/spec/<path>' after /trellis:update-spec; "
+                "'Learning artifact: <path>' when handoff/retrospective already captures the insight. "
+                f"Or run: python ./.trellis/scripts/task.py prepare-archive-evidence {rel_task}"
+            )
+            continue
+        if error == "verify.md missing final integration evidence":
+            hints.append(
+                "Parent tasks need 'Final integration evidence: <child handoffs / task-map>'. "
+                f"Run prepare-archive-evidence {rel_task} to draft a section from task-map.md"
+            )
+            continue
+        if error.startswith("missing gate record:"):
+            _rest = error.split(":", 1)[1].strip()
+            _transition, gate = _rest.split("/", 1)
+            hints.append(
+                f"Record reviewer gate after explicit review (never auto-PASS): "
+                f"python ./.trellis/scripts/task.py record-gate {rel_task} "
+                f"--transition full-task-complete --gate {gate} --result PASS "
+                f"--reviewer <reviewer-id> --evidence verify.md"
+            )
+            continue
+        if error.startswith("gate failed:"):
+            hints.append(
+                "Resolve the FAIL gate (fix, re-review, or user-approved SKIPPED) "
+                "before archive."
+            )
+            continue
+        if error.startswith("stale "):
+            hints.append(
+                "Artifacts changed since the gate was recorded. Re-run review and "
+                "record-gate for full-task-complete, then archive --check again."
+            )
+            continue
+        if "child" in error and "integrated or cancelled" in error:
+            hints.append(
+                "Advance each child in parent task-map to integrated or cancelled "
+                "via integrate-child before parent archive."
+            )
+            continue
+        if error == "handoff.md" or error.startswith("handoff.md"):
+            hints.append(
+                "Integrated children require handoff.md on the child task before archive."
+            )
+            continue
+
+    if not hints and not guard.ok:
+        hints.append(
+            f"Run: python ./.trellis/scripts/task.py prepare-archive-evidence {rel_task} "
+            "then archive --check again."
+        )
+
+    if guard.is_full_task and guard.required_gates:
+        missing_reviewer = any(
+            e.startswith("missing gate record: full-task-complete/")
+            for e in errors
+        )
+        if missing_reviewer and not any("record-gate" in h for h in hints):
+            for gate in guard.required_gates:
+                hints.append(
+                    f"Full Task archive needs record-gate for full-task-complete/{gate} "
+                    "(reviewer action required)."
+                )
+
+    return _dedupe_preserve_order(hints)
+
+
+def _dedupe_preserve_order(items: list[str]) -> list[str]:
+    seen: set[str] = set()
+    out: list[str] = []
+    for item in items:
+        if item in seen:
+            continue
+        seen.add(item)
+        out.append(item)
+    return out
+
+
+def build_archive_evidence_draft(
+    task_dir: Path,
+    task_data: dict,
+    guard: GateGuardResult | None = None,
+) -> str:
+    """Build markdown sections that satisfy archive evidence regex checks."""
+    if guard is None:
+        guard = validate_archive(task_dir, task_data)
+
+    status = _verify_evidence_status(task_dir, task_data)
+    child_names = task_data.get("children")
+    has_children = isinstance(child_names, list) and bool(child_names)
+    lines = [
+        "",
+        "## Archive evidence (draft)",
+        "",
+        ARCHIVE_EVIDENCE_DRAFT_MARKER,
+        "",
+        "_Auto-drafted by prepare-archive-evidence. Edit placeholders before archive._",
+        "",
+    ]
+
+    if not status["validation"]:
+        lines.extend(
+            [
+                "Validation commands: (fill in commands and outcomes, e.g. pnpm test — pass)",
+                "",
+            ]
+        )
+    if not status["acceptance"]:
+        lines.extend(
+            [
+                "Final acceptance evidence: (describe acceptance criteria met for this task)",
+                "",
+            ]
+        )
+    if not status["durable_learning"]:
+        lines.extend(_learning_decision_draft_lines(task_dir, task_data))
+    if has_children and not status["integration"]:
+        summary = _integration_draft_summary(task_dir, child_names)
+        lines.extend(
+            [
+                f"Final integration evidence: {summary}",
+                "",
+            ]
+        )
+
+    if guard.is_full_task and guard.required_gates:
+        rel_task = f".trellis/tasks/{task_dir.name}"
+        lines.extend(
+            [
+                "## Completion gate preparation (not recorded)",
+                "",
+                "Reviewer gates are **not** recorded by this helper. After review, run:",
+                "",
+            ]
+        )
+        for gate in guard.required_gates:
+            lines.append(
+                f"- `python ./.trellis/scripts/task.py record-gate {rel_task} "
+                f"--transition full-task-complete --gate {gate} --result PASS "
+                f"--reviewer <reviewer-id> --evidence verify.md`"
+            )
+        lines.append("")
+
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def _integration_draft_summary(task_dir: Path, child_names: list) -> str:
+    """Summarize child integration states for a parent integration evidence line."""
+    names = [n for n in child_names if isinstance(n, str)]
+    if not names:
+        return "parent children integrated per task-map.md"
+
+    data, _body = load_task_map(task_dir)
+    states: list[str] = []
+    if isinstance(data, dict):
+        children = data.get("children")
+        if isinstance(children, list):
+            by_id = {
+                entry.get("id"): entry.get("state")
+                for entry in children
+                if isinstance(entry, dict) and entry.get("id")
+            }
+            for name in names:
+                state = by_id.get(name, "unknown")
+                states.append(f"{name}={state}")
+
+    if states:
+        return "children " + ", ".join(states) + " per task-map.md"
+    return "all structural children terminal in task-map.md before parent archive"
+
+
+def prepare_archive_evidence(
+    task_dir: Path,
+    task_data: dict | None,
+    *,
+    dry_run: bool = False,
+) -> tuple[bool, list[str]]:
+    """
+    Append missing archive evidence sections to verify.md without rewriting user text.
+
+    Returns (changed, messages).
+    """
+    messages: list[str] = []
+    if task_data is None:
+        return False, ["task.json missing or invalid"]
+
+    verify_path = task_dir / "verify.md"
+    guard = validate_archive(task_dir, task_data)
+
+    if verify_path.is_file():
+        try:
+            existing = verify_path.read_text(encoding="utf-8")
+        except OSError:
+            return False, ["verify.md could not be read"]
+        if ARCHIVE_EVIDENCE_DRAFT_MARKER in existing:
+            messages.append(
+                "verify.md already contains an archive evidence draft block; "
+                "edit it in place instead of re-running prepare."
+            )
+            still_missing = _verify_evidence_errors(task_dir, task_data)
+            if not still_missing:
+                return False, messages
+            messages.append(
+                "Some evidence is still missing after the draft block; "
+                "fill placeholders or add lines outside the draft section."
+            )
+            return False, messages
+        content = existing
+    else:
+        content = "# Verification Evidence\n"
+
+    draft = build_archive_evidence_draft(task_dir, task_data, guard)
+    status = _verify_evidence_status(task_dir, task_data)
+    child_names = task_data.get("children")
+    has_children = isinstance(child_names, list) and bool(child_names)
+    needs_draft = (
+        not status["validation"]
+        or not status["acceptance"]
+        or not status["durable_learning"]
+        or (has_children and not status["integration"])
+        or (guard.is_full_task and guard.required_gates)
+    )
+    if not needs_draft:
+        messages.append("No missing archive evidence sections to draft.")
+        return False, messages
+
+    new_content = content.rstrip() + "\n" + draft
+    if dry_run:
+        messages.append("Dry run: would append archive evidence draft to verify.md")
+        return True, messages
+
+    try:
+        verify_path.write_text(new_content, encoding="utf-8")
+    except OSError as exc:
+        return False, [f"failed to write verify.md: {exc}"]
+
+    messages.append("Appended archive evidence draft to verify.md")
+    remaining = _verify_evidence_errors(task_dir, task_data)
+    gate_errors = [
+        e
+        for e in validate_archive(task_dir, task_data).errors
+        if e.startswith("missing gate record:")
+        or e.startswith("gate failed:")
+        or e.startswith("stale ")
+    ]
+    if remaining:
+        messages.append(
+            "Still missing after draft (edit placeholders): " + "; ".join(remaining)
+        )
+    if gate_errors:
+        messages.append(
+            "Completion gates still require explicit record-gate: "
+            + "; ".join(gate_errors)
+        )
+    return True, messages
 
 
 def validate_reviewer_gate_input(

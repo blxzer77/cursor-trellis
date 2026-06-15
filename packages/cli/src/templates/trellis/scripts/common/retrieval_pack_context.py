@@ -14,9 +14,11 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from .codebase_retrieval_router import resolve_router_envelope
 from .paths import get_repo_root, get_selected_task
 from .retrieval_pack import (
     build_retrieval_pack,
+    dict_value,
     list_value,
     normalize_dict_list,
     string_value,
@@ -84,6 +86,12 @@ def get_context_retrieval_pack_json(
         max_items=max_items,
         max_estimated_tokens=max_estimated_tokens,
         include_diagnostics=include_diagnostics,
+        router_envelope=resolve_router_envelope(
+            repo_root,
+            explicit_router=dict_value(payload.get("routerEnvelope")) or None,
+            query=string_value(payload.get("query")) or None,
+        ),
+        adapter_hints=normalize_dict_list(list_value(payload.get("adapterHints"))),
     )
 
 

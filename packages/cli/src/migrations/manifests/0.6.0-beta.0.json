@@ -12,5 +12,5 @@
       "sectionHeading": "Codex (sub-agent dispatch behavior)"
     }
   ],
-  "notes": "First public 0.6 beta. Install: `npm install -g @mindfoldhq/trellis@beta`. The `trellis mem` command is opt-in (only fires when invoked). Codex 0.129+ users should run `/hooks` once to approve the Trellis `UserPromptSubmit` hook."
+  "notes": "First public 0.6 beta. Install: `npm install -g @blxzer/trellis@beta`. The `trellis mem` command is opt-in (only fires when invoked). Codex 0.129+ users should run `/hooks` once to approve the Trellis `UserPromptSubmit` hook."
 }

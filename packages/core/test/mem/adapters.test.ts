@@ -6,7 +6,7 @@
  * `homedir()` at a per-suite tmpdir before any mem module resolves.
  *
  * Migrated from the CLI `mem-platforms` suite when the adapters moved into
- * `@mindfoldhq/trellis-core/mem`.
+ * `@blxzer/trellis-core/mem`.
  */
 
 import {

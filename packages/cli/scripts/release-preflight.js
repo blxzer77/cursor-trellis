@@ -3,8 +3,8 @@
  * Shared release / publish preflight.
  *
  * One source of truth for:
- *   1. Version match between `@mindfoldhq/trellis` and
- *      `@mindfoldhq/trellis-core` (and the current git tag when checked from
+ *   1. Version match between `@blxzer/trellis` and
+ *      `@blxzer/trellis-core` (and the current git tag when checked from
  *      a tag context).
  *   2. The npm dist-tag derived from the shared version (`beta`, `rc`,
  *      `alpha`, or `latest`).
@@ -24,7 +24,7 @@
  *                                    skipped (but version mismatches still
  *                                    fail loudly).
  *   verify-packed-cli                Pack the CLI and assert its dependency
- *                                    on @mindfoldhq/trellis-core resolves
+ *                                    on @blxzer/trellis-core resolves
  *                                    to the exact shared version (not
  *                                    "workspace:*" or a loose range).
  *   verify-npm [--package all|core|cli]
@@ -40,7 +40,7 @@
  * version/tag mismatch. Version equality is checked first; npm existence
  * decides per-package skip.
  */
-import { execSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -140,6 +140,30 @@ function fail(msg) {
   process.exit(1);
 }
 
+function packWorkspacePackage(packageDir, destinationDir) {
+  const out = execSync(`pnpm pack --pack-destination "${destinationDir}"`, {
+    cwd: packageDir,
+    encoding: "utf-8",
+    stdio: ["pipe", "pipe", "pipe"],
+    env: {
+      ...process.env,
+      TRELLIS_SKIP_SMART_SEARCH_POSTINSTALL: "1",
+    },
+  });
+  const filename = out.trim().split(/\r?\n/).filter(Boolean).pop() || "";
+  let packed = filename
+    ? path.isAbsolute(filename)
+      ? filename
+      : path.join(destinationDir, filename)
+    : "";
+  if (!packed || !fs.existsSync(packed)) {
+    const tgz = fs.readdirSync(destinationDir).find((f) => f.endsWith(".tgz"));
+    if (!tgz) fail(`pnpm pack did not produce a tarball in ${destinationDir}`);
+    packed = path.join(destinationDir, tgz);
+  }
+  return packed;
+}
+
 function checkVersions({ requireTag, quiet = false }) {
   const v = readVersions();
   if (v.coreVersion !== v.cliVersion) {
@@ -227,38 +251,25 @@ function verifyPackedCli() {
   const tmp = fs.mkdtempSync(path.join(REPO_ROOT, ".pack-verify-"));
   let packed;
   try {
-    const out = execSync(`pnpm pack --pack-destination ${tmp}`, {
-      cwd: path.join(REPO_ROOT, "packages/cli"),
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-    // pnpm prints the resulting tarball path on its last non-empty line.
-    const last = out.trim().split("\n").filter(Boolean).pop() || "";
-    packed = last.startsWith("/") ? last : path.join(tmp, last);
-    if (!fs.existsSync(packed)) {
-      // Fall back to scanning the tmp dir.
-      const tgz = fs.readdirSync(tmp).find((f) => f.endsWith(".tgz"));
-      if (!tgz) fail(`pnpm pack did not produce a tarball in ${tmp}`);
-      packed = path.join(tmp, tgz);
-    }
+    packed = packWorkspacePackage(path.join(REPO_ROOT, "packages/cli"), tmp);
     const extractDir = path.join(tmp, "extract");
     fs.mkdirSync(extractDir);
-    execSync(`tar -xzf ${packed} -C ${extractDir} package/package.json`, {
+    execFileSync("tar", ["-xzf", packed, "-C", extractDir, "package/package.json"], {
       stdio: ["pipe", "pipe", "pipe"],
     });
     const packedPkg = readJSON(path.join(extractDir, "package/package.json"));
-    const dep = packedPkg.dependencies?.["@mindfoldhq/trellis-core"];
+    const dep = packedPkg.dependencies?.["@blxzer/trellis-core"];
     if (!dep) {
-      fail(`packed CLI is missing dependency on @mindfoldhq/trellis-core.`);
+      fail(`packed CLI is missing dependency on @blxzer/trellis-core.`);
     }
     if (dep !== v.cliVersion) {
       fail(
-        `packed CLI depends on @mindfoldhq/trellis-core@"${dep}" but expected exact "${v.cliVersion}".\n` +
+        `packed CLI depends on @blxzer/trellis-core@"${dep}" but expected exact "${v.cliVersion}".\n` +
           `pnpm should rewrite workspace:* to the exact published version; got "${dep}" instead.`,
       );
     }
     console.log(
-      `${GREEN}ok${RESET} packed CLI pins @mindfoldhq/trellis-core to exact ${v.cliVersion}.`,
+      `${GREEN}ok${RESET} packed CLI pins @blxzer/trellis-core to exact ${v.cliVersion}.`,
     );
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });

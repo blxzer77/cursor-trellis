@@ -17,7 +17,7 @@ import {
   DEFAULT_INBOX_POLICY,
   matchesInboxPolicy,
   type InboxPolicy,
-} from "@mindfoldhq/trellis-core/channel";
+} from "@blxzer/trellis-core/channel";
 
 import type { WorkerAdapter } from "../adapters/index.js";
 import { appendEvent } from "../store/events.js";

@@ -121,4 +121,4 @@ packages:
   marketplace:
     path: marketplace
     type: submodule
-default_package: @mindfoldhq/trellis
+default_package: @blxzer/trellis
