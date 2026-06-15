@@ -30,25 +30,25 @@ Durable Learning: no `.trellis/spec/` update is needed; existing Trellis Python 
 Run from `Trellis/`:
 
 ```powershell
-pnpm --filter @mindfoldhq/trellis exec vitest run test/scripts/session-memory.integration.test.ts
+pnpm --filter @blxzer/trellis exec vitest run test/scripts/session-memory.integration.test.ts
 ```
 
 Result: PASS, 1 file, 3 tests.
 
 ```powershell
-pnpm --filter @mindfoldhq/trellis exec vitest run test/scripts/session-memory.integration.test.ts test/scripts/context-loading.integration.test.ts test/templates/trellis.test.ts test/scripts/smart-search-evidence.integration.test.ts
+pnpm --filter @blxzer/trellis exec vitest run test/scripts/session-memory.integration.test.ts test/scripts/context-loading.integration.test.ts test/templates/trellis.test.ts test/scripts/smart-search-evidence.integration.test.ts
 ```
 
 Result: PASS, 4 files, 28 tests.
 
 ```powershell
-pnpm --filter @mindfoldhq/trellis typecheck
+pnpm --filter @blxzer/trellis typecheck
 ```
 
 Result: PASS.
 
 ```powershell
-pnpm --filter @mindfoldhq/trellis exec eslint test/scripts/session-memory.integration.test.ts test/scripts/context-loading.integration.test.ts test/templates/trellis.test.ts src/templates/trellis/index.ts
+pnpm --filter @blxzer/trellis exec eslint test/scripts/session-memory.integration.test.ts test/scripts/context-loading.integration.test.ts test/templates/trellis.test.ts src/templates/trellis/index.ts
 ```
 
 Result: PASS.

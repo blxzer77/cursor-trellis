@@ -22,9 +22,9 @@ Review watchpoint: `build_context_pack()` consumes `score_evidence_bundle()` out
 
 ```powershell
 cd D:\MyHarness\Trellis
-pnpm --filter @mindfoldhq/trellis exec vitest run test/scripts/context-pack.integration.test.ts
-pnpm --filter @mindfoldhq/trellis exec vitest run test/templates/trellis.test.ts
-pnpm --filter @mindfoldhq/trellis typecheck
+pnpm --filter @blxzer/trellis exec vitest run test/scripts/context-pack.integration.test.ts
+pnpm --filter @blxzer/trellis exec vitest run test/templates/trellis.test.ts
+pnpm --filter @blxzer/trellis typecheck
 python -m py_compile .trellis\scripts\common\context_pack.py packages\cli\src\templates\trellis\scripts\common\context_pack.py .trellis\scripts\build_context_pack.py packages\cli\src\templates\trellis\scripts\build_context_pack.py
 ```
 

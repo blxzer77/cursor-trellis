@@ -17,7 +17,7 @@ importers:
 
   packages/cli:
     dependencies:
-      '@mindfoldhq/trellis-core':
+      '@blxzer/trellis-core':
         specifier: workspace:*
         version: link:../core
       chalk:

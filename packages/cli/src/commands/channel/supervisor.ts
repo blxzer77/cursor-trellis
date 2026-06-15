@@ -20,7 +20,7 @@ import type { Readable, Writable } from "node:stream";
 import {
   DEFAULT_INBOX_POLICY,
   type InboxPolicy,
-} from "@mindfoldhq/trellis-core/channel";
+} from "@blxzer/trellis-core/channel";
 
 import { getAdapter, type Provider } from "./adapters/index.js";
 import { appendEvent } from "./store/events.js";

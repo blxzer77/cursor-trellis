@@ -8,7 +8,7 @@ import {
   type ChannelScope,
   type ContextChannelEvent,
   type ThreadChannelEvent,
-} from "@mindfoldhq/trellis-core/channel";
+} from "@blxzer/trellis-core/channel";
 
 import {
   parseChannelScope,

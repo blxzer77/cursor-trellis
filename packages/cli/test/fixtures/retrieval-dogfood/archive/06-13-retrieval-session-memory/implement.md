@@ -59,9 +59,9 @@ quality_gates:
 ## Validation
 
 ```powershell
-pnpm --filter @mindfoldhq/trellis exec vitest run test/scripts/<session-memory-test>.test.ts
-pnpm --filter @mindfoldhq/trellis exec vitest run test/templates/trellis.test.ts
-pnpm --filter @mindfoldhq/trellis typecheck
+pnpm --filter @blxzer/trellis exec vitest run test/scripts/<session-memory-test>.test.ts
+pnpm --filter @blxzer/trellis exec vitest run test/templates/trellis.test.ts
+pnpm --filter @blxzer/trellis typecheck
 python .\.trellis\scripts\task.py validate .trellis\tasks\06-13-retrieval-session-memory
 python .\.trellis\scripts\task.py archive .trellis\tasks\06-13-retrieval-session-memory --check
 ```

@@ -76,7 +76,7 @@ function main() {
 
   run("node scripts/check-manifest-continuity.js");
   docsGuard(type);
-  run("pnpm --filter @mindfoldhq/trellis-core test");
+  run("pnpm --filter @blxzer/trellis-core test");
   run("pnpm test");
 
   run("git add -A -- ':!docs-site' ':!marketplace'");

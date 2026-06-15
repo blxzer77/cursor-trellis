@@ -72,6 +72,62 @@ export function collectSmartSearchVendorFiles(root) {
   return files.sort();
 }
 
+/** npm `files` entries for vendored Smart Search (source only, no runtime artifacts). */
+export function npmPackVendorFileEntries(packageRoot = defaultPackageRoot()) {
+  const vendorRoot = vendorRootForPackage(packageRoot);
+  return collectSmartSearchVendorFiles(vendorRoot).map((file) =>
+    path.posix.join("vendor", "smart-search", file.replace(/\\/g, "/")),
+  );
+}
+
+const cliPackFilesStatic = [
+  "dist",
+  "bin",
+  "scripts/postinstall.js",
+  "README.md",
+  "LICENSE",
+];
+
+/** Expected full `package.json` `files` array for @blxzer/trellis publish. */
+export function expectedCliPackageFiles(packageRoot = defaultPackageRoot()) {
+  return [...cliPackFilesStatic, ...npmPackVendorFileEntries(packageRoot)];
+}
+
+export function readCliPackageFiles(packageRoot = defaultPackageRoot()) {
+  const packageJsonPath = path.join(packageRoot, "package.json");
+  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"));
+  if (!Array.isArray(packageJson.files)) {
+    throw new Error("package.json is missing a files array");
+  }
+  return packageJson.files.map((entry) => String(entry).replace(/\\/g, "/"));
+}
+
+export function compareCliPackageFiles(packageRoot = defaultPackageRoot()) {
+  const expected = expectedCliPackageFiles(packageRoot);
+  const actual = readCliPackageFiles(packageRoot);
+  const expectedSet = new Set(expected);
+  const actualSet = new Set(actual);
+  const errors = [];
+
+  for (const file of expected) {
+    if (!actualSet.has(file)) {
+      errors.push(`missing from package.json files: ${file}`);
+    }
+  }
+  for (const file of actual) {
+    if (file === "vendor/smart-search") {
+      errors.push(
+        "package.json files must not include broad vendor/smart-search directory (use explicit allowlist)",
+      );
+      continue;
+    }
+    if (file.startsWith("vendor/smart-search/") && !expectedSet.has(file)) {
+      errors.push(`extra vendor pack entry: ${file}`);
+    }
+  }
+  return errors;
+}
+
 export function collectDirectoryFiles(root) {
   const files = [];
   assertDirectory(root, `Directory not found: ${root}`);

@@ -121,6 +121,10 @@ describe.skipIf(pythonCmd === null)("retrieval_pack.py", () => {
     });
 
     expect(payload.warnings).toEqual([]);
+    expect(payload.evidenceEnvelope.version).toBe(1);
+    expect(payload.evidenceEnvelope.adapterState.some((item) => item.adapter === "rg")).toBe(
+      true,
+    );
 
   });
 

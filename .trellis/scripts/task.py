@@ -17,7 +17,8 @@ Usage:
     python task.py set-branch <dir> <branch>   # Set git branch
     python task.py set-base-branch <dir> <branch>  # Set PR target branch
     python task.py set-scope <dir> <scope>     # Set scope for PR title
-    python task.py archive <task-dir> [--check] # Check or archive completed task
+    python task.py archive <task-dir> [--check] [--archive-integrated-children] # Check or archive completed task
+    python task.py prepare-archive-evidence <task-dir> [--dry-run]  # Draft missing verify.md archive evidence
     python task.py list                        # List active tasks
     python task.py list-archive [month]        # List archived tasks
     python task.py add-subtask <parent-dir> <child-dir>     # Link child to parent
@@ -25,6 +26,9 @@ Usage:
     python task.py prepare-child-worktree <parent-dir> <child-dir> --branch <branch>
     python task.py set-child-state <parent-dir> <child-dir> <state> --evidence <ref>
     python task.py integrate-child <parent-dir> <child-dir> <state> --evidence <ref>
+    python task.py generate-child-prompt <parent-dir> <child-dir> [--mode inline|subagent]
+    python task.py parent-status <parent-dir>
+    python task.py review-child <parent-dir> <child-dir> [--check] [--decision accept|changes|cancel|integrate-through]
 """
 
 from __future__ import annotations
@@ -32,6 +36,7 @@ from __future__ import annotations
 import argparse
 import sys
 from datetime import datetime, timezone
+from pathlib import Path
 
 from common.log import Colors, colored
 from common.paths import (
@@ -58,12 +63,19 @@ from common.task_gates import (
     write_gate_record,
 )
 from common.task_utils import resolve_task_dir, run_task_hooks
-from common.tasks import iter_active_tasks, children_progress
+from common.tasks import (
+    children_progress,
+    format_child_task_display,
+    iter_active_tasks,
+    load_parent_child_integration_states,
+)
+from common.task_map import get_child_state
 
 # Import command handlers from split modules (also re-exports for plan.py compatibility)
 from common.task_store import (
     cmd_create,
     cmd_archive,
+    cmd_prepare_archive_evidence,
     cmd_set_branch,
     cmd_set_base_branch,
     cmd_set_scope,
@@ -72,6 +84,9 @@ from common.task_store import (
     cmd_prepare_child_worktree,
     cmd_set_child_state,
     cmd_integrate_child,
+    cmd_generate_child_prompt,
+    cmd_parent_status,
+    cmd_review_child,
 )
 from common.task_context import (
     cmd_add_context,
@@ -319,7 +334,11 @@ def cmd_list(args: argparse.Namespace) -> int:
     # Display tasks hierarchically
     count = 0
 
-    def _print_task(dir_name: str, indent: int = 0) -> None:
+    def _print_task(
+        dir_name: str,
+        indent: int = 0,
+        parent_dir: Path | None = None,
+    ) -> None:
         nonlocal count
         t = all_tasks[dir_name]
 
@@ -336,8 +355,19 @@ def cmd_list(args: argparse.Namespace) -> int:
         if relative_path == selected_task:
             marker = f" {colored('<- selected', Colors.GREEN)}"
 
-        # Children progress
-        progress = children_progress(t.children, all_statuses)
+        integration_states = None
+        if t.children:
+            integration_states = load_parent_child_integration_states(
+                t.directory, t.children
+            )
+        progress = children_progress(
+            t.children, all_statuses, integration_states
+        )
+
+        integration_state = None
+        if parent_dir is not None:
+            integration_state = get_child_state(parent_dir, dir_name)
+        status_display = format_child_task_display(t.status, integration_state)
 
         # Package tag
         pkg_tag = f" @{t.package}" if t.package else ""
@@ -345,15 +375,20 @@ def cmd_list(args: argparse.Namespace) -> int:
         prefix = "  " * indent + "  - "
 
         if filter_mine:
-            print(f"{prefix}{dir_name}/ ({t.status}){pkg_tag}{progress}{marker}")
+            print(
+                f"{prefix}{dir_name}/ ({status_display}){pkg_tag}{progress}{marker}"
+            )
         else:
-            print(f"{prefix}{dir_name}/ ({t.status}){pkg_tag}{progress} [{colored(t.assignee or '-', Colors.CYAN)}]{marker}")
+            print(
+                f"{prefix}{dir_name}/ ({status_display}){pkg_tag}{progress} "
+                f"[{colored(t.assignee or '-', Colors.CYAN)}]{marker}"
+            )
         count += 1
 
         # Print children indented
         for child_name in t.children:
             if child_name in all_tasks:
-                _print_task(child_name, indent + 1)
+                _print_task(child_name, indent + 1, parent_dir=t.directory)
 
     # Display only top-level tasks (those without a parent)
     for dir_name in sorted(all_tasks.keys()):
@@ -467,6 +502,10 @@ Examples:
   python task.py set-child-state parent-task child-task review --evidence verify.md
   python task.py integrate-child parent-task child-task accepted --evidence handoff.md --ref child-branch
   python task.py integrate-child parent-task child-task integrated --evidence task-map.md --ref child-branch --execute-merge
+  python task.py generate-child-prompt parent-task child-task --mode inline
+  python task.py parent-status parent-task
+  python task.py review-child parent-task child-task --check
+  python task.py review-child parent-task child-task --decision accept --ref child-branch
   python task.py list                               # List all active tasks
   python task.py list --mine                        # List my tasks only
   python task.py list --mine --status in_progress   # List my in-progress tasks
@@ -600,6 +639,23 @@ def main() -> int:
     p_archive.add_argument("name", help="Task directory or name")
     p_archive.add_argument("--check", action="store_true", help="Run non-mutating archive readiness check")
     p_archive.add_argument("--no-commit", action="store_true", help="Skip auto git commit after archive")
+    p_archive.add_argument(
+        "--archive-integrated-children",
+        action="store_true",
+        help="When archiving a parent, also archive integrated children that pass archive --check",
+    )
+
+    # prepare-archive-evidence
+    p_prepare_archive = subparsers.add_parser(
+        "prepare-archive-evidence",
+        help="Append missing archive evidence sections to verify.md",
+    )
+    p_prepare_archive.add_argument("name", help="Task directory or name")
+    p_prepare_archive.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would be appended without writing verify.md",
+    )
 
     # list
     p_list = subparsers.add_parser("list", help="List tasks")
@@ -644,6 +700,57 @@ def main() -> int:
     p_integrate_child.add_argument("--execute-merge", action="store_true", help="Execute git merge --no-ff --no-commit for an integrated Child")
     p_integrate_child.add_argument("--check", action="store_true", help="Run non-mutating integration readiness check")
 
+    # generate-child-prompt
+    p_gen_prompt = subparsers.add_parser(
+        "generate-child-prompt",
+        help="Generate child implementation prompt for parent orchestration",
+    )
+    p_gen_prompt.add_argument("parent_dir", help="Parent task directory")
+    p_gen_prompt.add_argument("child_dir", help="Child task directory")
+    p_gen_prompt.add_argument(
+        "--mode",
+        choices=["inline", "subagent"],
+        default="inline",
+        help="Delivery mode hint (inline manual handoff vs optional subagent)",
+    )
+    p_gen_prompt.add_argument(
+        "--include-artifacts",
+        action="store_true",
+        help="Embed child artifact bodies in the generated prompt",
+    )
+    p_gen_prompt.add_argument("--output", "-o", help="Write prompt to file instead of stdout")
+
+    # parent-status
+    p_parent_status = subparsers.add_parser("parent-status", help="Show parent task-map orchestration status")
+    p_parent_status.add_argument("parent_dir", help="Parent task directory")
+
+    # review-child
+    p_review_child = subparsers.add_parser(
+        "review-child",
+        help="Review child handoff and optionally advance integration states",
+    )
+    p_review_child.add_argument("parent_dir", help="Parent task directory")
+    p_review_child.add_argument("child_dir", help="Child task directory")
+    p_review_child.add_argument("--check", action="store_true", help="Non-mutating review readiness check")
+    p_review_child.add_argument(
+        "--decision",
+        choices=["accept", "changes", "cancel", "integrate-through"],
+        help="Parent review decision (runs integrate-child steps when valid)",
+    )
+    p_review_child.add_argument("--ref", help="Child git ref for accept / integrate-through")
+    p_review_child.add_argument("--reason", help="Required for changes or cancel decisions")
+    p_review_child.add_argument("--notes", help="Short parent review notes included in the report")
+    p_review_child.add_argument(
+        "--write-artifact",
+        action="store_true",
+        help="Also write review-<child>.md under the parent task directory",
+    )
+    p_review_child.add_argument(
+        "--no-append-parent-verify",
+        action="store_true",
+        help="Do not append review notes to parent verify.md",
+    )
+
     # list-archive
     p_listarch = subparsers.add_parser("list-archive", help="List archived tasks")
     p_listarch.add_argument("month", nargs="?", help="Month (YYYY-MM)")
@@ -669,11 +776,15 @@ def main() -> int:
         "set-base-branch": cmd_set_base_branch,
         "set-scope": cmd_set_scope,
         "archive": cmd_archive,
+        "prepare-archive-evidence": cmd_prepare_archive_evidence,
         "add-subtask": cmd_add_subtask,
         "remove-subtask": cmd_remove_subtask,
         "prepare-child-worktree": cmd_prepare_child_worktree,
         "set-child-state": cmd_set_child_state,
         "integrate-child": cmd_integrate_child,
+        "generate-child-prompt": cmd_generate_child_prompt,
+        "parent-status": cmd_parent_status,
+        "review-child": cmd_review_child,
         "list": cmd_list,
         "list-archive": cmd_list_archive,
     }

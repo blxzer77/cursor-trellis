@@ -44,10 +44,10 @@ quality_gates:
 ## Validation
 
 ```powershell
-pnpm --filter @mindfoldhq/trellis exec vitest run test/scripts/context-pack.integration.test.ts
-pnpm --filter @mindfoldhq/trellis exec vitest run test/templates/trellis.test.ts
-pnpm --filter @mindfoldhq/trellis typecheck
-pnpm --filter @mindfoldhq/trellis exec eslint test/scripts/context-pack.integration.test.ts test/templates/trellis.test.ts src/templates/trellis/index.ts
+pnpm --filter @blxzer/trellis exec vitest run test/scripts/context-pack.integration.test.ts
+pnpm --filter @blxzer/trellis exec vitest run test/templates/trellis.test.ts
+pnpm --filter @blxzer/trellis typecheck
+pnpm --filter @blxzer/trellis exec eslint test/scripts/context-pack.integration.test.ts test/templates/trellis.test.ts src/templates/trellis/index.ts
 python -m py_compile .trellis\scripts\common\context_pack.py packages\cli\src\templates\trellis\scripts\common\context_pack.py
 ```
 

@@ -4,6 +4,7 @@ import chalk from "chalk";
 import { Command } from "commander";
 import { init } from "../commands/init.js";
 import { update } from "../commands/update.js";
+import { rollout } from "../commands/rollout.js";
 import { upgrade } from "../commands/upgrade.js";
 import { uninstall } from "../commands/uninstall.js";
 import { runMem } from "../commands/mem.js";
@@ -154,6 +155,14 @@ program
     "--skip-readiness",
     "Skip Smart Search and selected capability readiness checks and report framework readiness as unverified",
   )
+  .option(
+    "--json",
+    "Emit one-line JSON rollout evidence (dry-run or apply)",
+  )
+  .option(
+    "--skip-post-update-smoke",
+    "Skip post-apply Python script smoke checks",
+  )
   .action(async (options: Record<string, unknown>) => {
     try {
       await update({
@@ -164,6 +173,56 @@ program
         allowDowngrade: options.allowDowngrade as boolean,
         migrate: options.migrate as boolean,
         skipReadiness: options.skipReadiness as boolean,
+        json: options.json as boolean,
+        skipPostUpdateSmoke: options.skipPostUpdateSmoke as boolean,
+      });
+    } catch (error) {
+      console.error(
+        chalk.red("Error:"),
+        error instanceof Error ? error.message : error,
+      );
+      if (process.env.DEBUG || process.env.TRELLIS_DEBUG) {
+        console.error(error instanceof Error ? error.stack : error);
+      }
+      process.exit(1);
+    }
+  });
+
+program
+  .command("rollout")
+  .description(
+    "Run trellis update across multiple project paths and aggregate rollout evidence",
+  )
+  .requiredOption(
+    "-p, --project <path>",
+    "Project root with .trellis/ (repeatable)",
+    (val: string, prev: string[] | undefined) => [...(prev ?? []), val],
+    [] as string[],
+  )
+  .option("--dry-run", "Preview updates without applying")
+  .option("-f, --force", "Overwrite all changed files without asking")
+  .option("-s, --skip-all", "Skip all changed files without asking")
+  .option("-n, --create-new", "Create .new copies for all changed files")
+  .option("--migrate", "Apply pending file migrations")
+  .option("--allow-downgrade", "Allow downgrading project version")
+  .option("--skip-readiness", "Skip readiness checks")
+  .option("--skip-post-update-smoke", "Skip post-apply script smoke")
+  .option("--json", "Emit aggregated JSON rollout evidence")
+  .option("-o, --output <file>", "Write --json output to file")
+  .action(async (options: Record<string, unknown>) => {
+    try {
+      await rollout({
+        projects: options.project as string[],
+        dryRun: options.dryRun as boolean,
+        force: options.force as boolean,
+        skipAll: options.skipAll as boolean,
+        createNew: options.createNew as boolean,
+        migrate: options.migrate as boolean,
+        allowDowngrade: options.allowDowngrade as boolean,
+        skipReadiness: options.skipReadiness as boolean,
+        skipPostUpdateSmoke: options.skipPostUpdateSmoke as boolean,
+        json: options.json as boolean,
+        output: options.output as string | undefined,
       });
     } catch (error) {
       console.error(

@@ -52,9 +52,9 @@ quality_gates:
 Run from `Trellis/`:
 
 ```powershell
-pnpm --filter @mindfoldhq/trellis exec vitest run test/scripts/context-loading.integration.test.ts
-pnpm --filter @mindfoldhq/trellis typecheck
-pnpm --filter @mindfoldhq/trellis exec eslint test/scripts/context-loading.integration.test.ts
+pnpm --filter @blxzer/trellis exec vitest run test/scripts/context-loading.integration.test.ts
+pnpm --filter @blxzer/trellis typecheck
+pnpm --filter @blxzer/trellis exec eslint test/scripts/context-loading.integration.test.ts
 python -m py_compile .trellis\scripts\common\session_context.py packages\cli\src\templates\trellis\scripts\common\session_context.py
 git -c safe.directory=D:/MyHarness/Trellis diff --no-index -- .trellis\scripts\common\session_context.py packages\cli\src\templates\trellis\scripts\common\session_context.py
 python .\.trellis\scripts\task.py validate .trellis\tasks\06-13-retrieval-context-ranking

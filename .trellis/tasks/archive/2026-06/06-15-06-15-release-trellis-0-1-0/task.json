@@ -1,0 +1,122 @@
+{
+  "id": "06-15-release-trellis-0-1-0",
+  "name": "06-15-release-trellis-0-1-0",
+  "title": "Release Trellis 1.0.0",
+  "description": "Prepare and publish the first complete personal Trellis workflow-framework release as @blxzer/trellis 1.0.0 and @blxzer/trellis-core 1.0.0 after explicit publish approval.",
+  "status": "completed",
+  "dev_type": "full",
+  "scope": "release",
+  "package": "@blxzer/trellis",
+  "priority": "P1",
+  "creator": "blxzer77",
+  "assignee": "blxzer77",
+  "createdAt": "2026-06-15",
+  "completedAt": "2026-06-15",
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [
+    "package.json",
+    "pnpm-lock.yaml",
+    "packages/cli/package.json",
+    "packages/core/package.json",
+    "packages/cli/scripts/release-preflight.js",
+    "packages/cli/scripts/check-cli-pack-files.js"
+  ],
+  "notes": "Resumed 2026-06-15: supersede interrupted 0.1.0 attempt with 1.0.0 release. Publish remains blocked until preflight evidence and explicit user approval.",
+  "meta": {
+    "releaseVersion": "1.0.0",
+    "publishPackages": [
+      "@blxzer/trellis-core",
+      "@blxzer/trellis"
+    ],
+    "requiresExplicitPublishApproval": true
+  },
+  "quality_gate_results": {
+    "schema_version": 1,
+    "contract_fingerprint": "sha256:519e4d8642a3e08d6229e924af58c51b4b18199c16a26ad1863e5bf84860463d",
+    "artifact_fingerprint": "sha256:f9bae0bf6db2361982f3d309ab565c149613a56a8aa49de073b07ce8c687c636",
+    "transitions": {
+      "start-execution": {
+        "requirements-review": {
+          "schema_version": 1,
+          "transition": "start-execution",
+          "gate": "requirements-review",
+          "result": "PASS",
+          "reviewer": "codex",
+          "evidence": "prd.md+design.md+implement.md+verify.md+handoff.md",
+          "checked_at": "2026-06-15T06:29:52Z",
+          "contract_fingerprint": "sha256:519e4d8642a3e08d6229e924af58c51b4b18199c16a26ad1863e5bf84860463d",
+          "artifact_fingerprint": "sha256:80d51062ae175170a63bbbba0ad1befd7f6ed947f1d07cb06b433326792ae0fa",
+          "issue_fingerprint": null,
+          "root_cause": null,
+          "route": null,
+          "consecutive_failures": 0,
+          "required_user_choice": null,
+          "approved_skip": null
+        },
+        "baseline-check": {
+          "schema_version": 1,
+          "transition": "start-execution",
+          "gate": "baseline-check",
+          "result": "PASS",
+          "reviewer": "trellis-cli",
+          "evidence": "task.json",
+          "checked_at": "2026-06-15T06:50:46Z",
+          "contract_fingerprint": "sha256:519e4d8642a3e08d6229e924af58c51b4b18199c16a26ad1863e5bf84860463d",
+          "artifact_fingerprint": "sha256:c7664a4e9547c4438ffe87f6eff4c8aa9f248f82b236fff4148326c3b4fb4a71",
+          "issue_fingerprint": null,
+          "consecutive_failures": 0,
+          "approved_skip": null
+        }
+      },
+      "full-task-complete": {
+        "code-review": {
+          "schema_version": 1,
+          "transition": "full-task-complete",
+          "gate": "code-review",
+          "result": "PASS",
+          "reviewer": "blxzer77",
+          "evidence": "verify.md",
+          "checked_at": "2026-06-15T07:57:49Z",
+          "contract_fingerprint": "sha256:519e4d8642a3e08d6229e924af58c51b4b18199c16a26ad1863e5bf84860463d",
+          "artifact_fingerprint": "sha256:03b5d8697d67d864f8c77db43ea0dd330ee284017a83ff6014cb8b663da40fee",
+          "issue_fingerprint": null,
+          "root_cause": null,
+          "route": null,
+          "consecutive_failures": 0,
+          "required_user_choice": null,
+          "approved_skip": null
+        },
+        "baseline-check": {
+          "schema_version": 1,
+          "transition": "full-task-complete",
+          "gate": "baseline-check",
+          "result": "PASS",
+          "reviewer": "trellis-cli",
+          "evidence": "task.json",
+          "checked_at": "2026-06-15T07:57:55Z",
+          "contract_fingerprint": "sha256:519e4d8642a3e08d6229e924af58c51b4b18199c16a26ad1863e5bf84860463d",
+          "artifact_fingerprint": "sha256:f9bae0bf6db2361982f3d309ab565c149613a56a8aa49de073b07ce8c687c636",
+          "issue_fingerprint": null,
+          "consecutive_failures": 0,
+          "approved_skip": null
+        }
+      }
+    }
+  },
+  "execution_approval": {
+    "schema_version": 1,
+    "transition": "start-execution",
+    "approved_at": "2026-06-15T06:50:46Z",
+    "approved_by": "user",
+    "approval_source": "task.py start-execution --approved",
+    "contract_fingerprint": "sha256:519e4d8642a3e08d6229e924af58c51b4b18199c16a26ad1863e5bf84860463d",
+    "artifact_fingerprint": "sha256:c7664a4e9547c4438ffe87f6eff4c8aa9f248f82b236fff4148326c3b4fb4a71"
+  }
+}

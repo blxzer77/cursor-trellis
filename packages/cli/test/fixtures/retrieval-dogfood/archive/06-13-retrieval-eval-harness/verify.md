@@ -22,9 +22,9 @@ Durable Learning: no `.trellis/spec/` update is needed; existing Trellis Python 
 
 ```powershell
 cd D:\MyHarness\Trellis
-pnpm --filter @mindfoldhq/trellis exec vitest run test/scripts/retrieval-eval.integration.test.ts
-pnpm --filter @mindfoldhq/trellis exec vitest run test/scripts/retrieval-evidence.integration.test.ts test/scripts/context-pack.integration.test.ts
-pnpm --filter @mindfoldhq/trellis typecheck
+pnpm --filter @blxzer/trellis exec vitest run test/scripts/retrieval-eval.integration.test.ts
+pnpm --filter @blxzer/trellis exec vitest run test/scripts/retrieval-evidence.integration.test.ts test/scripts/context-pack.integration.test.ts
+pnpm --filter @blxzer/trellis typecheck
 ```
 
 ## Results

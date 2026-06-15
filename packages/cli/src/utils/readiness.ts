@@ -7,8 +7,10 @@ import {
   getProjectCapability,
   type ProjectCapabilityId,
 } from "./project-capabilities.js";
+import type { UpdateReadinessSnapshot } from "./update-rollout-report.js";
 
-const SMART_SEARCH_READINESS_COMMAND = "smart-search doctor --format json";
+export const SMART_SEARCH_READINESS_COMMAND =
+  "smart-search doctor --format json";
 const CODEBASE_REQUIRED_EXACT_COMMAND = "rg";
 const CODEGRAPH_INDEX_MARKERS = [
   ".codegraph",
@@ -495,4 +497,97 @@ export function checkProjectCapabilityReadiness(options: {
   if (probes.some((probe) => probe.failures.length > 0)) {
     throw projectCapabilityReadinessError(probes, options.skipReadinessCommand);
   }
+}
+
+function smokeCommandsForCapability(
+  id: ProjectCapabilityId,
+  command: string,
+  args: readonly string[],
+): string[] {
+  const smoke = safeVisibilitySmokeCommand(id, command, args);
+  return smoke ? [smoke] : [];
+}
+
+/** Non-throwing readiness snapshot for structured update/rollout evidence. */
+export function snapshotReadinessForRollout(options: {
+  cwd: string;
+  selected: readonly ProjectCapabilityId[];
+  skipReadiness?: boolean;
+}): UpdateReadinessSnapshot {
+  if (options.skipReadiness) {
+    return {
+      skipped: true,
+      smartSearch: {
+        command: SMART_SEARCH_READINESS_COMMAND,
+        ok: false,
+        details: ["readiness skipped via --skip-readiness"],
+      },
+      capabilities: options.selected.map((id) => ({
+        id,
+        ok: false,
+        failures: [],
+        warnings: ["readiness skipped via --skip-readiness"],
+        smokeCommands: [],
+      })),
+    };
+  }
+
+  let smartSearchOk = true;
+  const smartDetails: string[] = [];
+  try {
+    const output = execSync(SMART_SEARCH_READINESS_COMMAND, {
+      encoding: "utf-8",
+      stdio: "pipe",
+    });
+    const doctor = parseSmartSearchDoctorOutput(output);
+    if (doctor?.ok === false || doctor?.minimum_profile_ok === false) {
+      smartSearchOk = false;
+      smartDetails.push(...smartSearchDoctorDetails(doctor));
+    }
+  } catch (error) {
+    smartSearchOk = false;
+    const failure = error as ExecSyncFailure;
+    const stdout = childOutputToString(failure.stdout);
+    const doctor = parseSmartSearchDoctorOutput(stdout);
+    const details = smartSearchDoctorDetails(doctor);
+    if (details.length > 0) {
+      smartDetails.push(...details);
+    } else if (error instanceof Error && error.message.trim()) {
+      smartDetails.push(singleLine(error.message));
+    } else {
+      smartDetails.push("smart-search doctor did not complete successfully");
+    }
+  }
+
+  const capabilities = options.selected.map((id) => {
+    const probe = probeProjectCapability(options.cwd, id);
+    const capability = getProjectCapability(id);
+    const smokeCommands = capability.mcpServers.flatMap((server) =>
+      smokeCommandsForCapability(id, server.command, server.args),
+    );
+    if (id === "codebase-retrieval") {
+      const rgSmoke = safeVisibilitySmokeCommand(
+        id,
+        CODEBASE_REQUIRED_EXACT_COMMAND,
+      );
+      if (rgSmoke) smokeCommands.unshift(rgSmoke);
+    }
+    return {
+      id,
+      ok: probe.failures.length === 0,
+      failures: probe.failures,
+      warnings: probe.warnings,
+      smokeCommands: [...new Set(smokeCommands)],
+    };
+  });
+
+  return {
+    skipped: false,
+    smartSearch: {
+      command: SMART_SEARCH_READINESS_COMMAND,
+      ok: smartSearchOk,
+      details: smartDetails,
+    },
+    capabilities,
+  };
 }

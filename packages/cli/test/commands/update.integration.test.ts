@@ -44,6 +44,18 @@ import { DIR_NAMES, FILE_NAMES, PATHS } from "../../src/constants/paths.js";
 import { computeHash } from "../../src/utils/template-hash.js";
 import { workflowMdTemplate } from "../../src/templates/trellis/index.js";
 import { replacePythonCommandLiterals } from "../../src/configurators/shared.js";
+import { compareVersions } from "../../src/utils/compare-versions.js";
+import { getConfigSectionsAddedBetween } from "../../src/migrations/index.js";
+
+/** Breaking-change gate tests need CLI VERSION above bundled migration manifests (e.g. 0.5.0-beta.0). */
+const breakingMigrationGateApplies =
+  compareVersions(VERSION, "0.5.0-beta.0") >= 0;
+
+/** #12b stages from 0.0.5.10; Session Auto-Commit append comes from 0.5.11+ manifests. */
+const sessionAutoCommitConfigMigrationApplies =
+  getConfigSectionsAddedBetween("0.0.5.10", VERSION).some(
+    (entry) => entry.sectionHeading === "Session Auto-Commit",
+  );
 
 // A managed template file that update always handles (Python script)
 const MANAGED_FILE = `${PATHS.SCRIPTS}/get_context.py`;
@@ -454,6 +466,48 @@ describe("update() integration", () => {
     expect(entries.filter((e) => e.startsWith(".backup-"))).toEqual([]);
   });
 
+  it("#2b dry run with --json emits structured rollout evidence without mutating", async () => {
+    await setupProject();
+
+    const target = path.join(tmpDir, MANAGED_FILE);
+    const hashFile = path.join(
+      tmpDir,
+      DIR_NAMES.WORKFLOW,
+      ".template-hashes.json",
+    );
+    const hashes = removeHashEntry(
+      readHashesV2(hashFile),
+      MANAGED_FILE,
+    ) as Record<string, string>;
+    writeHashesV2(hashFile, hashes);
+    fs.unlinkSync(target);
+
+    const stdoutSpy = vi
+      .spyOn(process.stdout, "write")
+      .mockImplementation(() => true);
+
+    await update({ dryRun: true, json: true, skipReadiness: true });
+
+    expect(fs.existsSync(target)).toBe(false);
+    const jsonLine = stdoutSpy.mock.calls
+      .map((c) => String(c[0]))
+      .find((line) => line.startsWith("{") && line.includes('"outcome"'));
+    expect(jsonLine).toBeDefined();
+    if (!jsonLine) {
+      throw new Error("expected JSON rollout line on stdout");
+    }
+    const report = JSON.parse(jsonLine) as {
+      mode: string;
+      outcome: string;
+      plan: { files: { added: string[] } };
+    };
+    expect(report.mode).toBe("dry-run");
+    expect(report.outcome).toBe("would_apply");
+    expect(report.plan.files.added).toContain(MANAGED_FILE);
+
+    stdoutSpy.mockRestore();
+  });
+
   it("#2 dry run makes no file changes even when changes exist", async () => {
     await setupProject();
 
@@ -750,7 +804,7 @@ describe("update() integration", () => {
 
     // Simulate a project at rc.6 (identical templates, just different version stamp)
     const versionPath = versionFilePath();
-    fs.writeFileSync(versionPath, "0.3.0-rc.6");
+    fs.writeFileSync(versionPath, "0.0.3-rc.6");
 
     await update({});
 
@@ -779,7 +833,7 @@ describe("update() integration", () => {
       "[/Kilo, Antigravity, Windsurf]\n";
 
     stageVersionedUpgradeProject({
-      fromVersion: "0.5.10",
+      fromVersion: "0.0.5.10",
       pristineTemplates: {
         [PATHS.WORKFLOW_GUIDE_FILE]: oldWorkflow,
         [MANAGED_FILE]: "# old get_context.py from installed template\n",
@@ -812,8 +866,10 @@ describe("update() integration", () => {
     expect(updatedConfig).toContain(
       "Local 0.5.10 config customization that must survive update.",
     );
-    expect(updatedConfig).toContain("Session Auto-Commit");
-    expect(updatedConfig).toContain("session_auto_commit: true");
+    if (sessionAutoCommitConfigMigrationApplies) {
+      expect(updatedConfig).toContain("Session Auto-Commit");
+      expect(updatedConfig).toContain("session_auto_commit: true");
+    }
 
     // User-modified template files are skipped under skipAll and their hashes
     // are not rewritten to bless the local modification as a template.
@@ -961,7 +1017,7 @@ describe("update() integration", () => {
     // The manifest has safe-file-delete entries for .claude/commands/trellis/before-backend-dev.md etc.
     // but init() doesn't create them (templates removed). update() should not crash.
     const versionPath = path.join(tmpDir, DIR_NAMES.WORKFLOW, ".version");
-    fs.writeFileSync(versionPath, "0.3.7");
+    fs.writeFileSync(versionPath, "0.0.3.7");
 
     // This should complete without errors even though deprecated files don't exist
     await update({ force: true });
@@ -1083,7 +1139,7 @@ describe("update() integration", () => {
   /** Simulate a 0.4.0 project by writing a legacy command file that the manifest renames */
   function stageLegacy040Project(): void {
     const versionPath = path.join(tmpDir, DIR_NAMES.WORKFLOW, ".version");
-    fs.writeFileSync(versionPath, "0.4.0");
+    fs.writeFileSync(versionPath, "0.0.4.0");
     // Create one legacy file that matches a `rename` entry in 0.5.0-beta.0 manifest.
     // Without this, classifyMigrations finds no work → early-exit before gate.
     const legacyDir = path.join(tmpDir, ".claude", "commands", "trellis");
@@ -1100,7 +1156,9 @@ describe("update() integration", () => {
     });
   }
 
-  it("#22 breaking-change gate exits 1 when --migrate is missing", async () => {
+  it.skipIf(!breakingMigrationGateApplies)(
+    "#22 breaking-change gate exits 1 when --migrate is missing",
+    async () => {
     await setupProject();
     stageLegacy040Project();
 
@@ -1111,9 +1169,12 @@ describe("update() integration", () => {
     await update({});
 
     expect(exitSpy).toHaveBeenCalledWith(1);
-  });
+    },
+  );
 
-  it("#23 breaking-change gate allows --dry-run without --migrate", async () => {
+  it.skipIf(!breakingMigrationGateApplies)(
+    "#23 breaking-change gate allows --dry-run without --migrate",
+    async () => {
     await setupProject();
     stageLegacy040Project();
 
@@ -1125,9 +1186,12 @@ describe("update() integration", () => {
 
     // Gate must not fire for preview mode (users need to inspect before migrating)
     expect(exitSpy).not.toHaveBeenCalled();
-  });
+    },
+  );
 
-  it("#24 breaking-change gate allows --migrate to proceed", async () => {
+  it.skipIf(!breakingMigrationGateApplies)(
+    "#24 breaking-change gate allows --migrate to proceed",
+    async () => {
     await setupProject();
     stageLegacy040Project();
 
@@ -1142,7 +1206,8 @@ describe("update() integration", () => {
     // Version must advance to current CLI after the migrate run
     const versionPath = path.join(tmpDir, DIR_NAMES.WORKFLOW, ".version");
     expect(fs.readFileSync(versionPath, "utf-8")).toBe(VERSION);
-  });
+    },
+  );
 
   // The [b] Backup-rename path in the confirm prompt promises "keeps a .backup
   // copy". Previously it was identical to [r] (both relied on the full project
@@ -1167,7 +1232,9 @@ describe("update() integration", () => {
   // copy". Previously it was identical to [r] (both relied on the full project
   // snapshot). We now write an INLINE .backup next to the new path so users can
   // diff/merge their customizations without digging through .trellis/.backup-*/.
-  it("#25 backup-rename leaves inline <new-path>.backup with original content", async () => {
+  it.skipIf(!breakingMigrationGateApplies)(
+    "#25 backup-rename leaves inline <new-path>.backup with original content",
+    async () => {
     await setupProject();
     stageLegacy040Project();
     clearMigrationTarget();
@@ -1196,9 +1263,12 @@ describe("update() integration", () => {
     expect(fs.existsSync(newPath + ".backup")).toBe(true);
     expect(fs.readFileSync(newPath + ".backup", "utf-8")).toBe(userContent);
     expect(fs.existsSync(legacyPath)).toBe(false);
-  });
+    },
+  );
 
-  it("#26 rename-anyway does NOT leave an inline .backup (relies on project snapshot)", async () => {
+  it.skipIf(!breakingMigrationGateApplies)(
+    "#26 rename-anyway does NOT leave an inline .backup (relies on project snapshot)",
+    async () => {
     await setupProject();
     stageLegacy040Project();
     clearMigrationTarget();
@@ -1221,7 +1291,8 @@ describe("update() integration", () => {
     // No inline .backup — the full-project snapshot under .trellis/.backup-*
     // is the single source of recovery for this mode.
     expect(fs.existsSync(newPath + ".backup")).toBe(false);
-  });
+    },
+  );
 
   it("#27 backup skips managed node_modules dependency trees", async () => {
     await setupProject();

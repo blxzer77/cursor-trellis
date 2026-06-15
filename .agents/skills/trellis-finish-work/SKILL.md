@@ -49,6 +49,18 @@ Then route:
 
 ## Step 3: Archive task(s)
 
+Before archiving, confirm archive evidence is complete. If `archive --check` fails, read the **Next steps** hints, then optionally draft missing `verify.md` sections (append-only, does not record reviewer gates):
+
+```bash
+python ./.trellis/scripts/task.py archive <task-name> --check
+python ./.trellis/scripts/task.py prepare-archive-evidence <task-name>
+python ./.trellis/scripts/task.py archive <task-name> --check
+```
+
+Reviewer completion gates (for example `full-task-complete/code-review`) still require explicit `record-gate` after human review — `prepare-archive-evidence` only lists the commands.
+
+Archive when checks pass:
+
 ```bash
 python ./.trellis/scripts/task.py archive <task-name>
 ```

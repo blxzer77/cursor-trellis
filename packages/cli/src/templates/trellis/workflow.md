@@ -41,6 +41,8 @@ python3 ./.trellis/scripts/get_context.py --mode packages   # list packages / la
 
 Every task has its own directory under `.trellis/tasks/{MM-DD-name}/` holding `task.json`, `prd.md`, optional `design.md`, optional `implement.md`, optional `research/`, and context manifests (`implement.jsonl`, `check.jsonl`) for sub-agent-capable platforms.
 
+Optional copied templates live under `.trellis/tasks/templates/` (for example `release-readiness/` and `release-execution/`). `task.py create` does not auto-apply them; copy files into a new task when starting that workflow.
+
 ```bash
 # Task lifecycle
 python3 ./.trellis/scripts/task.py create "<title>" [--slug <name>] [--parent <dir>]
@@ -209,6 +211,22 @@ Create new children with `task.py create "<title>" --slug <name> --parent <paren
 Child Workers report only Child-owned progress states with `task.py set-child-state`: `open`, `working`, `blocked`, or `review`. Parent-controlled setup and decisions use `task.py prepare-child-worktree` and `task.py integrate-child`: `changes`, `accepted`, `integrating`, `integrated`, or `cancelled`. Parent integration requires reviewed evidence, Child `verify.md` / `handoff.md`, and a short `--ref` for accepted/integrating/integrated states. Default Parent `merge_limit: 1` blocks more than one Child from being `integrating` at the same time.
 
 Integration is Parent/Child-only. Ordinary Lite and Full Tasks skip Integration and go from Verification / Review to Archive / Learning checks. A Child can provide evidence and request review, but cannot mark itself `changes`, `accepted`, `integrating`, `integrated`, or `cancelled`; only the Parent has integration authority. Parent integration is serial Git-ref integration by default: Child worktrees are prepared explicitly, Child decisions carry refs, `integrate-child ... integrated --execute-merge` runs an explicit no-commit merge when requested, and every decision respects `merge_limit: 1` and writes conflicts, merge decisions, and acceptance rationale to `task-map.md` Event Log.
+
+### Parent reviewer orchestration (inline or optional subagent)
+
+Parent sessions can productize child dispatch and review without a new agent runtime:
+
+```bash
+python3 ./.trellis/scripts/task.py parent-status <parent-task>
+python3 ./.trellis/scripts/task.py generate-child-prompt <parent-task> <child-task> --mode inline
+python3 ./.trellis/scripts/task.py review-child <parent-task> <child-task> --check --decision accept --ref <child-ref>
+python3 ./.trellis/scripts/task.py review-child <parent-task> <child-task> --decision accept --ref <child-ref>
+python3 ./.trellis/scripts/task.py review-child <parent-task> <child-task> --decision integrate-through --ref <child-ref>
+```
+
+- `generate-child-prompt` reads parent `task-map.md` for `depends_on` and `touches`, child artifacts, and optional parent `child-prompts.md`. Use `--mode subagent` only as a delivery hint when the platform can spawn subagents; inline mode remains the portable default.
+- `review-child` summarizes child `verify.md` / `handoff.md`, appends notes to parent `verify.md`, and can advance `accepted` / `integrating` / `integrated` in one flow (`--decision integrate-through`) while still using the same Stage 0 integration guards as `integrate-child`.
+- Reviewer quality gates (`child-review`, `parent-accepted`, `parent-integrated`) are **not** auto-recorded; the command prints optional `record-gate` hints only.
 
 <!-- Per-turn breadcrumb: shown when no task is selected (before Phase 1) -->
 
@@ -774,6 +792,52 @@ Archive readiness by mode:
 Archive / Learning is terminal. After archive, do not silently mutate archived task artifacts; follow-up work requires a new task unless the user explicitly approves an archive amendment.
 
 If archive is not being run in this session, report the passing or failing archive check and the remaining evidence gaps.
+
+---
+
+## Release readiness and release execution
+
+Package and CLI releases use **two tasks** (or two explicit phases with separate evidence). Readiness is non-mutating; execution requires explicit user approval before any remote mutation.
+
+### When to split
+
+| Task type | Purpose | Remote mutations |
+| --- | --- | --- |
+| **Release readiness** | Version recommendation, changelog, manifest notes, build/test/typecheck, pack dry-run, prepublish blockers | **None** — no publish, tag, push, or version bump |
+| **Release execution** | Preflight immediately before publish; run approved `release.js` / `npm publish` / tag / push; post-publish smoke | **Only after explicit user approval** in the execution task |
+
+Templates: `.trellis/tasks/templates/release-readiness/` and `.trellis/tasks/templates/release-execution/`. Copy `prd.md`, `design.md`, and `implement.md` into a new task directory; use `handoff-template.md` as the outline for `handoff.md`.
+
+### Release status vocabulary (handoff / verify)
+
+These labels describe **release posture** in `handoff.md` and `verify.md`. They are not `task.json.status` values (contract epoch 1).
+
+| Label | Typical task |
+| --- | --- |
+| **ready to publish** | Readiness — evidence complete; operator may proceed after approval |
+| **not published** | Readiness or aborted execution — no remote release in this task |
+| **published** | Execution — registry and/or git remote actions completed |
+| **blocked** | Required gate failed; do not publish until fixed or waived |
+| **waived** | User explicitly accepted a known blocker (name approver + rationale) |
+| **deferred** | Publish postponed by user (e.g. wait for dogfood / another child) |
+
+Readiness `handoff.md` must include **Ready to publish**, **Not published**, and **Blockers**. Execution `handoff.md` must include **Published** (or **Not published** if aborted) and **Publish approval evidence** in `verify.md`.
+
+### Standard evidence (readiness `verify.md`)
+
+- Version recommendation (current → proposed; channel; npm dist-tag expectation)
+- Changelog / release notes (draft)
+- Migration manifest (id or none)
+- Build evidence, test evidence, pack dry-run evidence
+- Prepublish blockers with disposition: `blocking` / `fixed` / `waived` / `deferred`
+
+Dry-run examples for `@blxzer/trellis` (from `packages/cli`): `check-manifest-continuity.js`, `release-preflight.js check-versions`, `publish-plan`, `verify-packed-cli`, `npm pack --dry-run`. Do not run `release.js`, `npm publish`, or `git push` during readiness.
+
+### Execution approval gate
+
+Before `release.js`, `npm publish`, `git tag`, `git push`, or GitHub release creation, stop and obtain **explicit user approval**. Record in execution `verify.md` under **Publish approval evidence** (approved version, dist-tag, and which remote actions are allowed). Passing preflight is not approval.
+
+See also `.trellis/spec/Trellis/cli/release-and-vendor.md`.
 
 ---
 

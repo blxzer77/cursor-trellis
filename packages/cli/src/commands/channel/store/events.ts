@@ -1,7 +1,7 @@
 /**
  * Channel events local module.
  *
- * Canonical types and reducers come from `@mindfoldhq/trellis-core`.
+ * Canonical types and reducers come from `@blxzer/trellis-core`.
  * The legacy local `appendEvent` / `readLastSeq` primitives remain
  * here for CLI runtime callers (supervisor / spawn / kill) that still
  * write directly to the JSONL during the Phase 5 supervisor migration.
@@ -19,7 +19,7 @@ import {
   reduceChannelMetadata,
   type ChannelEvent,
   type ChannelMetadata,
-} from "@mindfoldhq/trellis-core/channel";
+} from "@blxzer/trellis-core/channel";
 
 import { withLock } from "./lock.js";
 import { eventsPath, channelDir, lockPath } from "./paths.js";
@@ -33,7 +33,7 @@ export {
   isContextEvent,
   isChannelMetadataEvent,
   reduceChannelMetadata,
-} from "@mindfoldhq/trellis-core/channel";
+} from "@blxzer/trellis-core/channel";
 
 export type {
   ChannelEvent,
@@ -49,7 +49,7 @@ export type {
   ErrorChannelEvent,
   ProgressChannelEvent,
   SupervisorWarningChannelEvent,
-} from "@mindfoldhq/trellis-core/channel";
+} from "@blxzer/trellis-core/channel";
 
 export async function ensureChannelDir(
   name: string,

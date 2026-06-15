@@ -67,7 +67,7 @@ Do not assume the user has the Trellis source repository. Do not default to modi
 ## Do Not
 
 - Do not treat Trellis upstream source code as the default target for local customization.
-- Do not modify the global npm install directory or `node_modules/@mindfoldhq/trellis` to implement project needs.
+- Do not modify the global npm install directory or `node_modules/@blxzer/trellis` to implement project needs.
 - Do not overwrite user-modified local files with default templates.
 - Do not put team-private project rules into the public `trellis-meta`; put project rules in `.trellis/spec/` or a project-local skill.
 - Do not describe removed historical mechanisms as current Trellis behavior.

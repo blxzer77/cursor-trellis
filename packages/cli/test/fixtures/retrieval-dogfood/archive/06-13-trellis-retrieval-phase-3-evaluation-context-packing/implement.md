@@ -50,9 +50,9 @@ quality_gates:
 Parent-level validation after all children:
 
 ```powershell
-pnpm --filter @mindfoldhq/trellis exec vitest run test/scripts/context-loading.integration.test.ts
-pnpm --filter @mindfoldhq/trellis exec vitest run test/scripts/session-memory.integration.test.ts test/scripts/smart-search-evidence.integration.test.ts
-pnpm --filter @mindfoldhq/trellis typecheck
+pnpm --filter @blxzer/trellis exec vitest run test/scripts/context-loading.integration.test.ts
+pnpm --filter @blxzer/trellis exec vitest run test/scripts/session-memory.integration.test.ts test/scripts/smart-search-evidence.integration.test.ts
+pnpm --filter @blxzer/trellis typecheck
 python .\.trellis\scripts\task.py validate .trellis\tasks\06-13-trellis-retrieval-phase-3-evaluation-context-packing
 python .\.trellis\scripts\task.py archive .trellis\tasks\06-13-trellis-retrieval-phase-3-evaluation-context-packing --check
 ```

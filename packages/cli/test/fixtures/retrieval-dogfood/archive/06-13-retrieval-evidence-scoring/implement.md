@@ -45,10 +45,10 @@ quality_gates:
 ## Validation
 
 ```powershell
-pnpm --filter @mindfoldhq/trellis exec vitest run test/scripts/retrieval-evidence.integration.test.ts
-pnpm --filter @mindfoldhq/trellis exec vitest run test/templates/trellis.test.ts
-pnpm --filter @mindfoldhq/trellis typecheck
-pnpm --filter @mindfoldhq/trellis exec eslint test/scripts/retrieval-evidence.integration.test.ts test/templates/trellis.test.ts src/templates/trellis/index.ts
+pnpm --filter @blxzer/trellis exec vitest run test/scripts/retrieval-evidence.integration.test.ts
+pnpm --filter @blxzer/trellis exec vitest run test/templates/trellis.test.ts
+pnpm --filter @blxzer/trellis typecheck
+pnpm --filter @blxzer/trellis exec eslint test/scripts/retrieval-evidence.integration.test.ts test/templates/trellis.test.ts src/templates/trellis/index.ts
 python -m py_compile .trellis\scripts\common\retrieval_evidence.py packages\cli\src\templates\trellis\scripts\common\retrieval_evidence.py
 ```
 

@@ -15,9 +15,11 @@ import {
   commonSessionMemory,
   commonSmartSearchEvidence,
   commonRetrievalEvidence,
+  commonCodebaseRetrievalRouter,
   commonContextPack,
   commonRetrievalPack,
   commonRetrievalPackContext,
+  routeCodebaseRetrievalScript,
   getDeveloperScript,
   initDeveloperScript,
   taskScript,
@@ -31,6 +33,7 @@ import {
   workflowMdTemplate,
   gitignoreTemplate,
   getAllScripts,
+  getAllTaskTemplates,
 } from "../../src/templates/trellis/index.js";
 
 // =============================================================================
@@ -273,6 +276,23 @@ describe("trellis template constants", () => {
     expect(workflowMdTemplate).toContain("Key Evidence");
   });
 
+  it("workflow.md documents release readiness vs execution split", () => {
+    expect(workflowMdTemplate).toContain(
+      "## Release readiness and release execution",
+    );
+    expect(workflowMdTemplate).toContain("release-readiness/");
+    expect(workflowMdTemplate).toContain("release-execution/");
+    expect(workflowMdTemplate).toContain("ready to publish");
+    expect(workflowMdTemplate).toContain("not published");
+    expect(workflowMdTemplate).toContain("Publish approval evidence");
+    expect(workflowMdTemplate).toContain(
+      "Passing preflight is not approval",
+    );
+    expect(workflowMdTemplate).toContain(
+      "Do not run `release.js`, `npm publish`, or `git push` during readiness",
+    );
+  });
+
   it("workflow.md connects retrieval layers to task evidence artifacts", () => {
     expect(workflowMdTemplate).toContain("**Retrieval during research**");
     expect(workflowMdTemplate).toContain("search_artifacts.py --query");
@@ -344,6 +364,9 @@ describe("getAllScripts", () => {
     expect(scripts.get("common/retrieval_evidence.py")).toBe(
       commonRetrievalEvidence,
     );
+    expect(scripts.get("common/codebase_retrieval_router.py")).toBe(
+      commonCodebaseRetrievalRouter,
+    );
     expect(scripts.get("common/context_pack.py")).toBe(commonContextPack);
     expect(scripts.get("common/retrieval_pack.py")).toBe(commonRetrievalPack);
     expect(scripts.get("common/retrieval_pack_context.py")).toBe(
@@ -351,6 +374,9 @@ describe("getAllScripts", () => {
     );
     expect(scripts.get("build_context_pack.py")).toBe(buildContextPackScript);
     expect(scripts.get("build_retrieval_pack.py")).toBe(buildRetrievalPackScript);
+    expect(scripts.get("route_codebase_retrieval.py")).toBe(
+      routeCodebaseRetrievalScript,
+    );
     expect(scripts.get("task.py")).toBe(taskScript);
     expect(scripts.get("search_artifacts.py")).toBe(searchArtifactsScript);
     expect(scripts.get("search_memory.py")).toBe(searchMemoryScript);
@@ -362,5 +388,42 @@ describe("getAllScripts", () => {
     for (const [key] of scripts) {
       expect(key, `${key} should not be a multi_agent script`).not.toContain("multi_agent");
     }
+  });
+});
+
+describe("getAllTaskTemplates", () => {
+  it("returns release-readiness and release-execution template files", () => {
+    const templates = getAllTaskTemplates();
+    expect(templates.size).toBe(8);
+    for (const rel of [
+      "tasks/templates/release-readiness/prd.md",
+      "tasks/templates/release-readiness/design.md",
+      "tasks/templates/release-readiness/implement.md",
+      "tasks/templates/release-readiness/handoff-template.md",
+      "tasks/templates/release-execution/prd.md",
+      "tasks/templates/release-execution/design.md",
+      "tasks/templates/release-execution/implement.md",
+      "tasks/templates/release-execution/handoff-template.md",
+    ]) {
+      expect(templates.has(rel), rel).toBe(true);
+      const template = templates.get(rel);
+      expect(template, rel).toBeDefined();
+      expect(template?.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("release-execution templates require explicit publish approval", () => {
+    const templates = getAllTaskTemplates();
+    const executionDesign = templates.get(
+      "tasks/templates/release-execution/design.md",
+    );
+    expect(executionDesign).toBeDefined();
+    expect(executionDesign).toContain("Approval gate (mandatory)");
+    expect(executionDesign).toContain("explicit user approval");
+    const readinessPrd = templates.get(
+      "tasks/templates/release-readiness/prd.md",
+    );
+    expect(readinessPrd).toBeDefined();
+    expect(readinessPrd).toMatch(/without.*publishing/i);
   });
 });
