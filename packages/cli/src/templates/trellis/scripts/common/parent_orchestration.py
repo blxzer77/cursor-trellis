@@ -259,11 +259,17 @@ def build_child_prompt(
         lines.append("")
 
     if mode == "subagent":
+        topo = data.get("execution_topology", "serial")
+        merge_lim = data.get("merge_limit", 1)
         lines.extend(
             [
-                "Delivery mode: subagent-capable (optional)",
-                "- Copy this prompt into a subagent session when your platform supports it.",
-                "- Otherwise use inline mode and hand the prompt to an external agent manually.",
+                f"Selected task: {child_rel}",
+                "",
+                "Delivery mode: subagent (Cursor)",
+                "- Spawn a **writable Agent** session (not Ask/read-only). Parent retains `review-child` / `integrate-child`.",
+                "- Do **not** nest Trellis-named sub-agents (`trellis-implement`, `trellis-check`, `trellis-research`).",
+                f"- Parent orchestration: `execution_topology={topo}`, `merge_limit={merge_lim}`.",
+                "- When `isolation: git-worktree`, prepare worktree from a **git repo root** (e.g. `Trellis/`) before large edits.",
                 "",
             ]
         )
