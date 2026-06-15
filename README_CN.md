@@ -66,7 +66,7 @@
 
 ```bash
 # 1. 安装 Trellis
-npm install -g @blxzer/trellis@latest
+npm install -g @blxzer/trellis
 
 # 2. 在仓库里初始化
 trellis init -u your-name
@@ -74,6 +74,8 @@ trellis init -u your-name
 # 3. 或者按你实际使用的平台初始化
 trellis init --cursor --opencode --codex -u your-name
 ```
+
+预发布渠道（可选）：`npm install -g @blxzer/trellis@beta`
 
 - `-u your-name` 会创建 `.trellis/workspace/your-name/`，用来保存个人 journal 和会话连续性。
 - 平台参数可以自由组合。当前可选项包括 `--cursor`、`--opencode`、`--iflow`、`--codex`、`--kilo`、`--kiro`、`--gemini`、`--antigravity`、`--windsurf`、`--qoder`、`--codebuddy`、`--copilot`、`--droid` 和 `--pi`。
