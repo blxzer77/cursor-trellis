@@ -54,6 +54,17 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{PYTHON_CMD}} .codebuddy/hooks/research-end-retrieval-pack.py",
+            "timeout": 60
+          }
+        ]
+      }
     ]
   }
 }

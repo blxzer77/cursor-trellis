@@ -106,6 +106,8 @@ python3 ./.trellis/scripts/get_context.py --mode retrieval-pack --json --input <
 
 **Evidence scoring:** default `--json` returns `retrievalGuide` only. After collecting artifact search, session memory, smart-search manifests under `{TASK}/research/smart-search/`, or codebase candidates, run **`--mode retrieval-pack`** with `--input` or stdin JSON. See `research/evidence-scoring-integration.md` in the active task or archived `06-15-child-phase2-evidence-scoring`.
 
+**Research-end hook (Cursor `stop` / Claude `Stop`):** when the selected task has `{TASK}/research/*.md` or `research/smart-search/`, `.cursor/hooks/research-end-retrieval-pack.py` (or `.claude/hooks/…`) may write `{TASK}/research/retrieval-pack-latest.json` via `get_context --mode retrieval-pack`. Default session JSON is unchanged; use the file when closing research or before Phase 3.1.
+
 ---
 
 <!--

@@ -67,6 +67,17 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{PYTHON_CMD}} .claude/hooks/research-end-retrieval-pack.py",
+            "timeout": 60
+          }
+        ]
+      }
     ]
   },
   "enabledPlugins": {}

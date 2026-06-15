@@ -97,6 +97,11 @@ Run project's lint and typecheck commands to verify changes.
 
 If failed, fix issues and re-run.
 
+### Retrieval evidence (when task used research / smart-search / optional pack)
+
+- [ ] **`verify.md` lists unresolved retrieval gaps** (unverified external facts, missing `research/` or `research/smart-search/` evidence, claims without source/Git/test proof)
+- [ ] If `{TASK}/research/retrieval-pack-latest.json` exists (research-end hook), cite top ranked items or document gaps in `verify.md`
+
 ---
 
 ## Report Format
