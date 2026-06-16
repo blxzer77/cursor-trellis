@@ -24,6 +24,8 @@ Managed by Trellis. Edits outside this block are preserved; edits inside may be 
 
 The Trellis CLI source repo often sits inside the **D:\MyHarness** harness: the harness root holds workspace-level `.trellis/` (tasks, spec, workflow) and is **not** a git repository. Run `git`, `pnpm`, and CLI validation from **this** directory (`Trellis/`). See `D:\MyHarness\AGENTS.md` for the three-repo layout (`Trellis/`, `smartsearch-private/`, `riverfjs-skills/`).
 
+**Git remotes (local policy):** This checkout uses **only** the `private` remote (`git@github.com:blxzer77/trellis-private.git`). Do **not** add or push to `origin` / `mindfold-ai/Trellis`. Use `git push` (default remote is `private`) or `git push private <branch>`. Do not run `git push origin`.
+
 ---
 
 # Trellis — AI Agent Codebase Guide
