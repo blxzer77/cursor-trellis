@@ -14,13 +14,13 @@ Skills and commands are textual entry points for user interaction with Trellis. 
 Trellis has two skill families:
 
 - Workflow skills: `brainstorm`, `before-dev`, `check`, `update-spec`, and `break-loop`.
-- Multi-file bundled skills include `trellis-meta`, `trellis-spec-bootstarp`, `trellis-skill-creator`, `smart-search-cli`, and `trellis-micro-grill`.
+- Multi-file bundled skills include `trellis-meta`, `trellis-spec-bootstrap` (alias shim: `trellis-spec-bootstarp`), `trellis-skill-creator`, `smart-search-cli`, and `trellis-micro-grill`.
 
 Bundled skills are installed as directories and may include nested `agents/`, `examples/`, `references/`, or other lazy-loadable files. Do not describe bundled skills as a closed `trellis-*` list: `smart-search-cli` intentionally keeps its existing non-`trellis-` name.
 
 `smart-search-cli` is CLI-backed source retrieval. The Trellis package exposes the `smart-search` executable through its runtime wrapper; the skill documents how agents should use that CLI and cite retrieved sources.
 
-`trellis-spec-bootstarp` bootstraps project-specific `.trellis/spec/` guidance from the real repository.
+`trellis-spec-bootstrap` bootstraps project-specific `.trellis/spec/` guidance from the real repository.
 
 `trellis-skill-creator` is the authoring and review guide for Trellis-compatible skills. Use it when creating or improving project-local skills, shared `.agents/skills/`, platform-specific skill directories, or upstream bundled skills. Keep `trellis-meta` focused on architecture and routing.
 
@@ -55,7 +55,7 @@ A common skill is a directory:
 trellis-meta/
 ├── SKILL.md
 └── references/
-trellis-spec-bootstarp/
+trellis-spec-bootstrap/
 ├── SKILL.md
 └── references/
 trellis-skill-creator/

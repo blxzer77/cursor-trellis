@@ -66,13 +66,15 @@ AGENTS_ALL = (AGENT_IMPLEMENT, AGENT_CHECK, AGENT_RESEARCH)
 
 def find_repo_root(start_path: str) -> str | None:
     """
-    Find git repo root from start_path upwards
+    Find Trellis harness root (.trellis/) or git repo root from start_path upwards.
 
     Returns:
-        Repo root path, or None if not found
+        Workspace root path, or None if not found
     """
     current = Path(start_path).resolve()
     while current != current.parent:
+        if (current / DIR_WORKFLOW).is_dir():
+            return str(current)
         if (current / ".git").exists():
             return str(current)
         current = current.parent
