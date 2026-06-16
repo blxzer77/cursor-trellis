@@ -371,11 +371,14 @@ describe("collectPlatformTemplates", () => {
         ),
       ).toBe(true);
       expect(
+        result?.has(`${skillRoot}/trellis-spec-bootstrap/SKILL.md`),
+      ).toBe(true);
+      expect(
         result?.has(`${skillRoot}/trellis-spec-bootstarp/SKILL.md`),
       ).toBe(true);
       expect(
         result?.has(
-          `${skillRoot}/trellis-spec-bootstarp/references/spec-writing.md`,
+          `${skillRoot}/trellis-spec-bootstrap/references/spec-writing.md`,
         ),
       ).toBe(true);
       expect(result?.has(`${skillRoot}/smart-search-cli/SKILL.md`)).toBe(true);

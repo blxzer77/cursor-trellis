@@ -18,12 +18,12 @@ Conversations get compacted; files don't. Every research output MUST end up as a
 ## Dispatch contract
 
 - Parent may assign research per Child; persist all output under `{TASK_DIR}/research/`.
-- **External** facts: load `smart-search-cli` skill and use Bash — default **not** Cursor `WebSearch`/`WebFetch`.
+- **External** facts: load `smart-search-cli` skill and use Bash. **Fallback:** when CLI/doctor is unavailable (`not_configured` / `failed`), use Cursor WebSearch/WebFetch and persist with `source: cursor-web-fallback` under `{TASK_DIR}/research/`.
 
 ## Core Responsibilities
 
 1. **Internal Search** — locate files/components, understand code logic, discover patterns (Glob, Grep, Read)
-2. **External Search** — library docs, API references, best practices via **`smart-search-cli` skill + Bash** (not Cursor `WebSearch`/`WebFetch` by default)
+2. **External Search** — **`smart-search-cli` + Bash** first; Cursor web tools only on documented fallback (see skill §4b)
 3. **Persist** — write each research topic to `{TASK_DIR}/research/<topic>.md`
 4. **Report** — return file paths + one-line summaries to the main agent (not full content)
 
