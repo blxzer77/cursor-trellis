@@ -6,6 +6,19 @@ When you learn something valuable (from debugging, implementing, or discussion),
 
 ---
 
+## Semi-automatic flow (required for durable learning)
+
+1. **Detect** — did this task produce reusable code-spec or guide-worthy learning?
+2. **Proposal** — write `{TASK}/research/learning-proposal.md` (target spec paths, draft bullets; **do not** edit `.trellis/spec/` yet).
+3. **Confirm** — user or task owner explicitly approves (`Learning decision: update-spec` in `verify.md`).
+4. **Write** — only then edit spec files; add `Spec update evidence: .trellis/spec/...` to `verify.md`.
+
+**Forbidden:** silent spec edits; writing spec when `Learning decision: no-update` or `unsure` without follow-up; auto-updating spec from hooks or check alone.
+
+Align with workflow Phase 3.3 (`update-spec` | `no-update` | `unsure`).
+
+---
+
 ## Code-Spec First Rule (CRITICAL)
 
 In this project, "spec" for implementation work means **code-spec**:
@@ -329,15 +342,15 @@ Before finishing your code-spec update:
 
 ```
 Development Flow:
-  Learn something → {{CMD_REF:update-spec}} → Knowledge captured
+  Learn something → `update-spec` (Trellis command) → Knowledge captured
        ↑                                  ↓
-  {{CMD_REF:break-loop}} ←──────────────────── Future sessions benefit
+  `break-loop` (Trellis command) ←──────────────────── Future sessions benefit
   (deep bug analysis)
 ```
 
-- `{{CMD_REF:break-loop}}` - Analyzes bugs deeply, often reveals spec updates needed
-- `{{CMD_REF:update-spec}}` - Actually makes the updates
-- `{{CMD_REF:finish-work}}` - Reminds you to check if specs need updates
+- ``break-loop` (Trellis command)` - Analyzes bugs deeply, often reveals spec updates needed
+- ``update-spec` (Trellis command)` - Actually makes the updates
+- ``finish-work` (Trellis command)` - Reminds you to check if specs need updates
 
 ---
 

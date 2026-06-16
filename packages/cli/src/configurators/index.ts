@@ -42,6 +42,7 @@ import {
   resolveBundledSkills,
   resolveCodexTrellisStartSkill,
   resolveCommands,
+  resolveCommandAsSkills,
   resolveSkills,
   resolveSkillsNeutral,
   wrapWithCommandFrontmatter,
@@ -181,11 +182,20 @@ const PLATFORM_FUNCTIONS: Record<AITool, PlatformFunctions> = {
   cursor: {
     configure: configureCursor,
     collectTemplates: () => {
+      const ctx = AI_TOOLS.cursor.templateContext;
       const files = collectBothTemplates(
-        AI_TOOLS.cursor.templateContext,
+        ctx,
         (n) => `.cursor/commands/trellis-${n}.md`,
         ".cursor/skills",
       );
+      // Mirror configureCursor: finish-work as a skill for auto-trigger (not only slash command).
+      for (const [filePath, content] of collectSkillTemplates(
+        ".cursor/skills",
+        resolveCommandAsSkills(["finish-work"], ctx),
+        [],
+      )) {
+        files.set(filePath, content);
+      }
       for (const agent of getCursorAgents()) {
         files.set(`.cursor/agents/${agent.name}.md`, agent.content);
       }

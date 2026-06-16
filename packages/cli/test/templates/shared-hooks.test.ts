@@ -139,5 +139,8 @@ describe("shared-hooks capability table", () => {
     expect(content).toContain("complex task must add");
     expect(content).not.toContain("Status: READY");
     expect(content).not.toContain("<workflow>");
+    expect(content).toContain('if _detect_platform(hook_input) == "cursor"');
+    expect(content).toContain("External web research (Cursor)");
+    expect(content).toContain("cursor-web-fallback");
   });
 });

@@ -5,6 +5,7 @@ import {
   resolvePlaceholders,
   resolveCommands,
   resolveSkills,
+  resolveCommandAsSkills,
   resolveBundledSkills,
   writeSkills,
   writeAgents,
@@ -14,8 +15,8 @@ import { getAllAgents, getHooksConfig } from "../templates/cursor/index.js";
 
 /**
  * Configure Cursor:
- * - commands/ — start + finish-work as slash commands (trellis- prefix, flat)
- * - skills/trellis-{name}/SKILL.md — other 5 as auto-triggered skills
+ * - commands/ — continue + finish-work as slash commands (trellis- prefix, flat)
+ * - skills/trellis-{name}/SKILL.md — workflow skills (incl. finish-work for auto-trigger)
  * - agents/{name}.md — sub-agent definitions
  * - hooks/*.py — shared hook scripts
  * - hooks.json — hook configuration (separate file, not settings.json)
@@ -36,13 +37,12 @@ export async function configureCursor(cwd: string): Promise<void> {
 
   await writeSkills(
     path.join(configRoot, "skills"),
-    resolveSkills(ctx),
+    [...resolveSkills(ctx), ...resolveCommandAsSkills(["finish-work"], ctx)],
     resolveBundledSkills(ctx),
   );
   await writeAgents(path.join(configRoot, "agents"), getAllAgents());
   await writeSharedHooks(path.join(configRoot, "hooks"), "cursor");
 
-  // Hooks config (separate file, not settings.json)
   await writeFile(
     path.join(configRoot, "hooks.json"),
     resolvePlaceholders(getHooksConfig()),

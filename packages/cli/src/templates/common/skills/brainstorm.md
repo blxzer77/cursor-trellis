@@ -18,6 +18,8 @@ Do not ask the user to confirm facts that the repository can answer. Ask only fo
 
 Use this skill during Phase 1 planning to turn the user's request into clear requirements and planning artifacts.
 
+**Agent-capable platforms:** Do **not** use Claude-only `trellis-grill-me` as a hard gate. Complete **PRD Grill** (below) before treating planning as ready for `design.md` / `implement.md` / `start-execution --check`.
+
 ## Preconditions
 
 Use this skill only after task-creation consent has been given and the user is ready to enter Trellis planning.
@@ -25,35 +27,86 @@ Use this skill only after task-creation consent has been given and the user is r
 If no task exists yet, create one:
 
 ```bash
-TASK_DIR=$({{PYTHON_CMD}} ./.trellis/scripts/task.py create "<short task title>" --slug <slug>)
+TASK_DIR=$(python ./.trellis/scripts/task.py create "<short task title>" --slug <slug>)
 ```
 
 Use a concise title from the user's request. Use a slug without a date prefix. `task.py create` adds the `MM-DD-` directory prefix automatically.
 
 `task.py create` creates the default `prd.md`. Update that file with the current understanding before asking follow-up questions.
 
-## Planning Flow
+## Two-phase planning overview
 
-1. Capture the user's request and initial known facts in `prd.md`.
-2. Inspect available evidence before asking questions:
-   - code, tests, fixtures, and configs
-   - README files, docs, existing specs, and domain notes
-   - related Trellis tasks, research files, and session history when present
-3. Separate what you found into:
-   - confirmed facts
-   - product intent still needed from the user
-   - scope or risk decisions still needed from the user
-   - likely out-of-scope items
-4. Ask the single highest-value remaining question.
-5. Include your recommended answer with the question.
-6. After each user answer, update `prd.md` before continuing.
-7. For complex tasks, create or update `design.md` and `implement.md` before implementation starts.
+| Phase | Name | User questions |
+| --- | --- | --- |
+| **A** | Discovery Before Questions + PRD draft | None until repo evidence is exhausted |
+| **B** | PRD Grill pass + Micro-grill unresolved | Only blocking business / risk / preference |
 
-Do not invent a project-specific product/spec hierarchy. If the repository already has product, domain, or spec docs, use them. If it does not, proceed with the evidence that exists.
+External facts during Discovery or Research: load `smart-search-cli`; on CLI/doctor failure use Cursor WebSearch/WebFetch and persist under `{TASK}/research/` with `source: cursor-web-fallback`.
 
-## Question Rules
+---
 
-Ask only one question per message.
+## Phase A — Discovery Before Questions
+
+Run **before** any user interview questions.
+
+Inspect and record in `prd.md` (sections: **Confirmed facts**, initial **Out of scope**, draft **Goal**):
+
+1. **Code & tests** — relevant modules, fixtures, configs, error paths.
+2. **Specs** — `.trellis/spec/` indexes and layer guides for touched packages.
+3. **History** — archived tasks, active task research, developer journal when useful.
+4. **Platform** — project platform hooks, agents, and skills (see `.trellis/spec/guides/cursor-subagent-policy.md` when using Cursor); shared `.agents/skills/` when behavior spans platforms.
+5. **Parent/Child** — if multiple independent deliverables, note child split early in `prd.md`.
+
+Use retrieval per `.trellis/spec/guides/retrieval-daily-guide.md` (rg for literals, codegraph for structure, fast-context for semantic sweep).
+
+Dispatch **`trellis-research`** (writable Agent) when a topic needs a dedicated `{TASK}/research/<topic>.md` file; do **not** use a subagent for PRD Grill itself.
+
+## Phase A — PRD draft
+
+After Discovery, flesh out `prd.md`:
+
+- goal and user value
+- confirmed facts (not restated as unverified requirements)
+- requirements
+- draft acceptance criteria
+- out of scope
+- open questions (tag **blocking** vs **nice-to-have**)
+
+For complex tasks, start `design.md` / `implement.md` skeletons only when boundaries are already clear from Discovery; otherwise wait until Phase B.
+
+## Phase B — PRD Grill pass
+
+Treat `prd.md` (+ existing `design.md` fragments) as the **only document surface**. Run this checklist; fix the PRD in place (no new subagent):
+
+| # | Check |
+| --- | --- |
+| 1 | **Goal & user value** — single clear statement |
+| 2 | **Confirmed facts vs assumptions** — repo facts not listed as assumptions |
+| 3 | **Testable acceptance criteria** |
+| 4 | **Out of scope** explicit |
+| 5 | **Dependencies & sequencing** |
+| 6 | **Parent/Child & deliverables** when applicable |
+| 7 | **Research & external facts** — smart-search or documented fallback |
+| 8 | **Execution gate & artifacts** — `design.md` / `implement.md` / `verify.md` expectations |
+| 9 | **Durable Learning** — Phase 3.3 will need `update-spec` \| `no-update` \| `unsure` |
+| 10 | **Platform** — Cursor-first; no Claude-only grill-me gate |
+| 11 | **Risk & rollback** for complex tasks |
+| 12 | **Open questions** — only **blocking** strategic/preference items remain |
+
+## Phase B — Micro-grill unresolved
+
+For each **blocking** open question after the checklist, embed the **`trellis-micro-grill` contract**:
+
+- exactly **one** question per message
+- **Simplified Chinese** for user-facing text
+- recommended answer + trade-off
+- **update `prd.md` after every answer** before the next question
+
+Stop micro-grill when no blocking open questions remain.
+
+Do not ask process questions ("should I search?"). Do not re-ask facts Discovery already confirmed.
+
+## Question Rules (Phase B only)
 
 Each question must include:
 
@@ -61,8 +114,6 @@ Each question must include:
 - why the answer matters
 - your recommended answer
 - the trade-off if the user chooses differently
-
-Do not ask process questions such as whether to search, inspect files, or continue brainstorming. Do the evidence work directly. Ask the user only when the remaining issue is a product decision, preference, scope boundary, or risk tolerance choice.
 
 ## Artifact Rules
 
@@ -94,14 +145,20 @@ Lightweight tasks may have only `prd.md`. Complex tasks must have `prd.md`, `des
 
 `implement.md` is not a replacement for `implement.jsonl`. Use JSONL files only for manifest-style spec and research references when the task needs them.
 
-## Quality Bar
+## Completion criteria — PRD Grill done
 
-Before declaring planning ready:
+Planning is ready for execution gate when **all** hold:
 
-- `prd.md` contains testable acceptance criteria.
-- Repository-answerable questions have already been answered through inspection.
-- Remaining open questions are genuinely about user intent or scope.
-- Complex tasks have `design.md` and `implement.md`.
-- The user has reviewed the final planning artifacts or explicitly approved proceeding.
+- PRD Grill checklist (12 items) satisfied or explicitly N/A with rationale in `prd.md`
+- **No blocking** open questions in `prd.md`
+- Acceptance criteria are testable; out of scope is explicit
+- Complex tasks: `design.md` and `implement.md` present
+- User reviewed artifacts or explicitly approved proceeding
+
+Then proceed to Phase 1.2 Research (if needed), Phase 1.4 `task.py start-execution --check`, and implementation only after user approval.
 
 Do not start implementation until the user approves or asks for implementation.
+
+## Legacy planning flow (summary)
+
+The former single "Planning Flow" is now Phase A + B above. Steps 4–6 map to Phase B micro-grill and artifact updates.

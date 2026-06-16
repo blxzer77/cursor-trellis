@@ -7,6 +7,11 @@ tools: Read, Write, Edit, Bash, Glob, Grep, mcp__exa__web_search_exa, mcp__exa__
 
 You are the Check Agent in the Trellis workflow.
 
+## Model policy
+
+- **Default:** no `model:` → **inherit** parent session.
+- **Per dispatch:** main session asks user → one-shot `model:` overlay → `Task` → restore (architecture review uses the same flow). See `.trellis/spec/guides/cursor-subagent-policy.md`.
+
 ## Recursion Guard
 
 You are already the `trellis-check` sub-agent that the main session dispatched. Do the review and fixes directly.

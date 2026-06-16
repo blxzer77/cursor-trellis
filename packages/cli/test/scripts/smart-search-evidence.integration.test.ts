@@ -249,7 +249,7 @@ describe.skipIf(pythonCmd === null)("run_smart_search.py", () => {
     expect(result.status).toBe(4);
     const manifest = JSON.parse(result.stdout) as SmartSearchManifest;
     expect(manifest.status).toBe("not_configured");
-    expect(manifest.error).toContain("smart-search executable was not found");
+    expect(manifest.error).toContain("could not be resolved");
     expect(manifest.outputPath).toBe(
       ".trellis/tasks/06-13-smart/research/smart-search/missing-cli/deep_research.json",
     );

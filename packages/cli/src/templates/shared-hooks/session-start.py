@@ -825,6 +825,15 @@ Trellis compact SessionStart context. Use it to orient the session; load details
         "Discover more via: "
         "`python3 ./.trellis/scripts/get_context.py --mode packages`\n"
     )
+    if _detect_platform(hook_input) == "cursor":
+        output.write(
+            "\n**External web research (Cursor):** `smart-search-cli` + Bash first "
+            "(resolves PATH, optional `smart_search.command`, or "
+            "`Trellis/packages/cli/bin/smart-search.js`). "
+            "If `run_smart_search.py` returns `not_configured` or `failed` (incl. timeout), "
+            "use **WebSearch/WebFetch**, persist `{TASK}/research/*.md` with "
+            "`source: cursor-web-fallback`.\n"
+        )
     output.write("</guidelines>\n\n")
 
     # Check task status and inject structured tag

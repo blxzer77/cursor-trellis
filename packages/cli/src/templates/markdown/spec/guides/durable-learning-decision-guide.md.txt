@@ -1,0 +1,76 @@
+# Durable Learning Decision Guide
+
+> **Purpose**: Decide whether a completed task should update `.trellis/spec/` or can archive with an explicit **no durable learning** line.
+
+This guide is a **thinking checklist**. It does not replace code-spec files under `.trellis/spec/<layer>/`.
+
+---
+
+## Valid outcomes (archive `verify.md`)
+
+Pick **one** grep-friendly line before `archive --check`:
+
+| Outcome | Example line in `verify.md` |
+| --- | --- |
+| No reusable insight | `Durable learning decision: no durable learning` (or any line containing `no durable learning`) |
+| Spec was updated | `Spec update evidence: .trellis/spec/Trellis/framework/index.md` |
+| Insight already documented | `Learning artifact: .trellis/tasks/<task>/handoff.md` |
+| Retrospective captured | `Learning artifact: .trellis/workspace/...` or `retrospective.md: <path>` |
+
+Optional planning note (not sufficient alone): `Spec update needed: <reason>` — still record **spec update evidence** after `/trellis:update-spec`.
+
+---
+
+## When to choose each outcome
+
+### `no durable learning`
+
+- Routine bugfix with no new contract or convention
+- One-off config or content change
+- Parent/child task where handoff adds no reusable workflow rule
+
+### Spec update (`Spec update evidence: ...`)
+
+- New or changed CLI/API signature or gate behavior
+- Repeated parent review **changes** on the same class of mistake
+- Workflow bug that should not recur (after `/trellis:break-loop` analysis)
+- Cross-layer contract clarification
+
+### Learning artifact
+
+- `handoff.md` or a retrospective already contains the full insight
+- Parent review notes in `verify.md` are enough for audit (link the path)
+
+---
+
+## Low-friction helpers
+
+```bash
+# Draft missing archive sections (append-only)
+python ./.trellis/scripts/task.py prepare-archive-evidence .trellis/tasks/<task>
+
+# Print spec-capture checklist (stdout only; does not edit specs)
+python ./.trellis/scripts/task.py prepare-learning-scaffold .trellis/tasks/<task> --trigger "parent review changes"
+
+# Parent review surfaces missing child learning lines
+python ./.trellis/scripts/task.py review-child <parent> <child> --check
+```
+
+---
+
+## Skills
+
+- **`/trellis:update-spec`** — edit code-spec after reviewer confirmation
+- **`/trellis:break-loop`** — deep bug analysis; often leads to spec updates
+- **`/trellis:finish-work`** — archive after learning line is present in `verify.md`
+
+---
+
+## Parent reviewer triggers
+
+When `review-child` reports **changes** or documents a workflow defect, the child should either:
+
+1. Update spec and add `Spec update evidence: ...`, or
+2. Document why the fix is one-off (`no durable learning`) with a short reason in `verify.md`.
+
+Do **not** auto-write specs from scaffolding output — scaffolding only suggests existing index paths from task `package` / `scope`.

@@ -95,3 +95,11 @@ export const guidesCrossLayerThinkingGuideContent: string = readLocalTemplate(
 export const guidesCodeReuseThinkingGuideContent: string = readLocalTemplate(
   "spec/guides/code-reuse-thinking-guide.md.txt",
 );
+export const guidesDurableLearningDecisionGuideContent: string =
+  readLocalTemplate("spec/guides/durable-learning-decision-guide.md.txt");
+export const guidesRetrievalDailyGuideContent: string = readLocalTemplate(
+  "spec/guides/retrieval-daily-guide.md.txt",
+);
+export const guidesCursorSubagentPolicyContent: string = readLocalTemplate(
+  "spec/guides/cursor-subagent-policy.md.txt",
+);
