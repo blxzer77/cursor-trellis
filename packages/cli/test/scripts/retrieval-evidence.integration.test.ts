@@ -271,7 +271,7 @@ describe.skipIf(pythonCmd === null)("retrieval_evidence.py", () => {
           evidenceDir: ".trellis/workspace/smart-search/none",
           status: "not_configured",
           createdAt: "2026-06-13T00:00:00Z",
-          error: "smart-search executable was not found on PATH.",
+          error: "smart-search CLI could not be resolved (PATH, config, or repo wrapper).",
           summary: "",
           citations: [],
           gapCheck: {},

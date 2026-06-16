@@ -108,6 +108,10 @@ python3 ./.trellis/scripts/get_context.py --mode retrieval-pack --json --input <
 
 **Research-end hook (Cursor `stop` / Claude `Stop`):** when the selected task has `{TASK}/research/*.md` or `research/smart-search/`, `.cursor/hooks/research-end-retrieval-pack.py` (or `.claude/hooks/…`) may write `{TASK}/research/retrieval-pack-latest.json` via `get_context --mode retrieval-pack`. Default session JSON is unchanged; use the file when closing research or before Phase 3.1.
 
+**Retrieval daily guide:** `.trellis/spec/guides/retrieval-daily-guide.md` — when to use rg, codegraph, fast-context-mcp, smart-search-cli (and Cursor web fallback), artifact/session memory, codebase router (suggest-only), and explicit retrieval-pack scoring.
+
+**Cursor subagent dispatch:** `.trellis/spec/guides/cursor-subagent-policy.md` — `trellis-research` / `trellis-implement` / `trellis-check`, Parent child workers (`generate-child-prompt --mode subagent`, writable Agent). **Per dispatch:** main session asks which model → one-shot `model:` on `.cursor/agents/trellis-<role>.md` → `Task` → restore (no long-lived model IDs in repo). PRD Grill stays in `trellis-brainstorm`, not a subagent.
+
 ---
 
 <!--
@@ -204,7 +208,7 @@ Before executing an upgrade that creates artifacts, changes task mode, adds gate
 | No selected task + need dashboard | `trellis-start` |
 | Selected task + resume step | `trellis-continue` |
 | Planning / PRD | `trellis-brainstorm` |
-| Parent with parallel children | `generate-child-prompt --mode subagent`; writable Agent; see task-map `execution_topology` |
+| Parent with parallel children | `generate-child-prompt --mode subagent`; writable Agent; see `.trellis/spec/guides/cursor-subagent-policy.md` |
 
 Details: archived `06-15-child-phase3-task-ladder` → `research/task-ladder-iteration.md`.
 

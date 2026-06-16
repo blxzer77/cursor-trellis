@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any
 
 from .paths import get_repo_root, get_selected_task_abs, resolve_task_ref
+from .smart_search_resolve import default_smart_search_argv, resolve_smart_search_argv
 
 
 INTENT_CHOICES = ("deep-research", "broad-search", "docs", "official-source", "fetch")
@@ -53,8 +54,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--root", help="Repository root. Defaults to nearest parent with .trellis/.")
     parser.add_argument(
         "--smart-search-command",
-        default=os.environ.get("TRELLIS_SMART_SEARCH_COMMAND", "smart-search"),
-        help="Executable name/path for Smart Search. Default: smart-search.",
+        default=None,
+        help="Override CLI executable (single path/name). Default: env, config, PATH, repo wrappers.",
     )
     parser.add_argument(
         "--skip-doctor",
@@ -90,6 +91,12 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     repo_root = Path(args.root).resolve() if args.root else get_repo_root()
+    if args.smart_search_command:
+        args.smart_search_argv = [args.smart_search_command]
+    else:
+        args.smart_search_argv = resolve_smart_search_argv(repo_root) or default_smart_search_argv(
+            repo_root
+        )
     run_id = args.run_id or default_run_id(args.intent, args.query)
     evidence_dir = resolve_evidence_dir(repo_root, args.task, run_id)
     evidence_dir.mkdir(parents=True, exist_ok=True)
@@ -97,7 +104,10 @@ def main(argv: list[str] | None = None) -> int:
     command = build_smart_search_command(args, evidence_dir)
     doctor_result = None
     if not args.skip_doctor:
-        doctor_result = run_command([args.smart_search_command, "doctor", "--format", "json"], repo_root)
+        doctor_result = run_command(
+            [*args.smart_search_argv, "doctor", "--format", "json"],
+            repo_root,
+        )
         if doctor_result.not_found:
             manifest = build_manifest(
                 repo_root=repo_root,
@@ -109,7 +119,7 @@ def main(argv: list[str] | None = None) -> int:
                 status=STATUS_NOT_CONFIGURED,
                 result_data={},
                 doctor_data={},
-                error="smart-search executable was not found on PATH.",
+                error="smart-search CLI could not be resolved (PATH, config, or repo wrapper).",
             )
             write_manifest(manifest, evidence_dir)
             print_manifest(manifest, args.json)
@@ -140,13 +150,18 @@ def main(argv: list[str] | None = None) -> int:
     error = ""
     if result.not_found:
         status = STATUS_NOT_CONFIGURED
-        error = "smart-search executable was not found on PATH."
+        error = "smart-search CLI could not be resolved (PATH, config, or repo wrapper)."
     elif status == STATUS_FAILED:
         error = (
             string_value(result_data.get("error"))
             or result.stderr.strip()
             or f"smart-search exited with code {result.returncode}."
         )
+        if "timed out" in error.lower() or "timeout" in error.lower():
+            error = (
+                f"{error} Retry with --timeout 120 or --intent docs; "
+                "or use Cursor WebSearch/WebFetch and persist source: cursor-web-fallback."
+            )
 
     manifest = build_manifest(
         repo_root=repo_root,
@@ -191,7 +206,7 @@ def run_command(command: list[str], cwd: Path) -> CommandResult:
 
 def build_smart_search_command(args: argparse.Namespace, evidence_dir: Path) -> list[str]:
     output_path = command_output_path(args.intent, evidence_dir)
-    command = [args.smart_search_command]
+    command = list(args.smart_search_argv)
     if args.intent == "deep-research":
         return [
             *command,

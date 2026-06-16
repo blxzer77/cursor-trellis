@@ -14,6 +14,7 @@ import {
   commonArtifactSearch,
   commonSessionMemory,
   commonSmartSearchEvidence,
+  commonSmartSearchResolve,
   commonRetrievalEvidence,
   commonCodebaseRetrievalRouter,
   commonContextPack,
@@ -327,6 +328,7 @@ describe("getAllScripts", () => {
     expect(scripts.has("common/artifact_search.py")).toBe(true);
     expect(scripts.has("common/session_memory.py")).toBe(true);
     expect(scripts.has("common/smart_search_evidence.py")).toBe(true);
+    expect(scripts.has("common/smart_search_resolve.py")).toBe(true);
     expect(scripts.has("common/retrieval_evidence.py")).toBe(true);
     expect(scripts.has("common/context_pack.py")).toBe(true);
     expect(scripts.has("common/retrieval_pack.py")).toBe(true);
@@ -360,6 +362,9 @@ describe("getAllScripts", () => {
     expect(scripts.get("common/session_memory.py")).toBe(commonSessionMemory);
     expect(scripts.get("common/smart_search_evidence.py")).toBe(
       commonSmartSearchEvidence,
+    );
+    expect(scripts.get("common/smart_search_resolve.py")).toBe(
+      commonSmartSearchResolve,
     );
     expect(scripts.get("common/retrieval_evidence.py")).toBe(
       commonRetrievalEvidence,

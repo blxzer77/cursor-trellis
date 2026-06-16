@@ -229,6 +229,20 @@ describe("configurePlatform", () => {
     expect(fs.existsSync(path.join(tmpDir, ".cursor"))).toBe(true);
   });
 
+  it("configurePlatform('cursor') emits trellis-finish-work skill for auto-trigger", async () => {
+    await configurePlatform("cursor", tmpDir);
+    const finishSkill = path.join(
+      tmpDir,
+      ".cursor",
+      "skills",
+      "trellis-finish-work",
+      "SKILL.md",
+    );
+    expect(fs.existsSync(finishSkill)).toBe(true);
+    const content = fs.readFileSync(finishSkill, "utf-8");
+    expect(content).toContain("Learning decision");
+  });
+
   it("configurePlatform('opencode') creates .opencode directory", async () => {
     await configurePlatform("opencode", tmpDir);
     expect(fs.existsSync(path.join(tmpDir, ".opencode"))).toBe(true);

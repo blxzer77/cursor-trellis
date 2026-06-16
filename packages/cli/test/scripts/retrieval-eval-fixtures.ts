@@ -226,7 +226,7 @@ export function seedEvalProject(root: string): void {
       summary: "",
     }),
     manifestFixture("not-configured-run", "not_configured", {
-      error: "smart-search executable was not found on PATH.",
+      error: "smart-search CLI could not be resolved (PATH, config, or repo wrapper).",
       summary: "",
       degraded: false,
       doctor: { ok: false },
@@ -292,7 +292,7 @@ export function buildMixedSourceBundle(): Record<string, unknown> {
         summary: "",
       }),
       manifestFixture("not-configured-run", "not_configured", {
-        error: "smart-search executable was not found on PATH.",
+        error: "smart-search CLI could not be resolved (PATH, config, or repo wrapper).",
         summary: "",
         degraded: false,
         doctor: { ok: false },

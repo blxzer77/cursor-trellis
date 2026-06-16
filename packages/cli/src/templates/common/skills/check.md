@@ -20,7 +20,7 @@ Read the selected task artifacts in order:
 - `implement.md` if present
 
 ```bash
-python3 ./.trellis/scripts/get_context.py --mode packages
+python ./.trellis/scripts/get_context.py --mode packages
 ```
 
 For each changed package/layer, read the spec index and follow its **Quality Check** section:
@@ -51,9 +51,17 @@ Run the project's lint, type-check, and test commands. Fix any failures before p
 - [ ] Bug fix → regression test added?
 - [ ] Changed behavior → existing tests updated?
 
+### Durable Learning (Phase 3.3)
+
+- [ ] `verify.md` contains exactly one token: `Learning decision: update-spec` | `no-update` | `unsure`
+- [ ] If `update-spec` or `unsure`: `research/learning-proposal.md` exists (or documented `N/A` with reason) and matches the decision
+- [ ] If `no-update`: includes `no durable learning` (or guide-equivalent) plus brief rationale
+- [ ] If `update-spec`: spec was written only after confirmation; `Spec update evidence:` points at `.trellis/spec/...`
+- [ ] No silent edits to `.trellis/spec/` without confirmation
+
 ### Spec Sync
 
-- [ ] Does `.trellis/spec/` need updates? (new patterns, conventions, lessons learned)
+- [ ] Does `.trellis/spec/` need updates? (route through semi-automatic flow: proposal → confirm → `trellis-update-spec`)
 
 > "If I fixed a bug or discovered something non-obvious, should I document it so future me won't hit the same issue?" → If YES, update the relevant spec doc.
 

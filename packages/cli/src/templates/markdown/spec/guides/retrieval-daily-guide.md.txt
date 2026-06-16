@@ -1,0 +1,44 @@
+# Retrieval daily guide (Cursor-first)
+
+> **Purpose:** Choose the right tool; do not confuse **search** with **retrieval-pack scoring**.
+
+## Quick matrix
+
+| Need | Tool | Notes |
+| --- | --- | --- |
+| Exact string / path / log line | **rg** (Grep) | Fast literal match in repo |
+| Symbol, callers, edit blast radius | **codegraph** MCP | Structure before edit |
+| Unknown keywords, semantic discovery | **fast-context** MCP | When you do not know what to grep |
+| External / current facts | **smart-search-cli** | Default; see fallback below |
+| Trellis durable docs | **artifact-search** | `search_artifacts.py` |
+| Past sessions | **session-memory** | Historical; verify against tasks/spec |
+| Intent hint for code questions | **router** | `route_codebase_retrieval.py` — suggests only |
+| Score collected evidence | **retrieval-pack** | `get_context.py --mode retrieval-pack` — does **not** search |
+
+## Commands
+
+```powershell
+python ./.trellis/scripts/search_artifacts.py --query "<topic>" --json
+python ./.trellis/scripts/search_memory.py --query "<topic>" --json
+python ./.trellis/scripts/run_smart_search.py "<question>" --intent deep-research --json
+python ./.trellis/scripts/route_codebase_retrieval.py "<question>" --json
+python ./.trellis/scripts/get_context.py --mode retrieval-pack --json --input evidence.json
+```
+
+## smart-search fallback
+
+When `smart-search doctor` is not ok or `run_smart_search.py` status is `not_configured` / `failed` (including **search timeout**), use **Cursor WebSearch/WebFetch**, then persist to `{TASK}/research/` with `source: cursor-web-fallback` in frontmatter. See `smart-search-cli` skill §4b.
+
+**CLI discovery:** `run_smart_search.py` resolves via optional env/config override, then `smart-search` on PATH, then `node_modules/.bin` / package script, then optional harness paths (`Trellis/packages/cli/bin/smart-search.js`). No writes under `.trellis/.runtime/`.
+
+## Router vs execution
+
+`route_codebase_retrieval.py` returns **intent + route suggestions** only. **codebase-evidence** is **candidate** until confirmed by Read/Git/tests.
+
+## retrieval-pack
+
+Default `get_context.py --json` returns **retrievalGuide** only. Run `--mode retrieval-pack` after you have collected evidence JSON / smart-search manifests under `{TASK}/research/smart-search/`.
+
+## Adapters (optimization #9)
+
+Core: rg, task-artifacts, artifact-search, source-git-tests. Enhance: codegraph, fast-context, smart-search, session-memory. Placeholders: mcp/browser/network envelope only.

@@ -232,7 +232,7 @@ const SKILL_DESCRIPTIONS: Record<string, string> = {
   "before-dev":
     "Discovers and injects project-specific coding guidelines from .trellis/spec/ before implementation begins. Reads spec indexes, pre-development checklists, and shared thinking guides for the target package. Use when starting a new coding task, before writing any code, switching to a different package, or needing to refresh project conventions and standards.",
   brainstorm:
-    "Guides collaborative requirements discovery before implementation. Creates task directory, seeds PRD, asks high-value questions one at a time, researches technical choices, and converges on MVP scope. Use when requirements are unclear, there are multiple valid approaches, or the user describes a new feature or complex task.",
+    "Guides collaborative requirements discovery before implementation. Two-phase Cursor planning: Discovery Before Questions, PRD draft, then PRD Grill (document pass + micro-grill for blocking business questions). Use when requirements are unclear, multiple valid approaches exist, or the user describes a new feature or complex task.",
   check:
     "Comprehensive quality verification: spec compliance, lint, type-check, tests, cross-layer data flow, code reuse, and consistency checks. Use when code is written and needs quality verification, before committing changes, or to catch context drift during long sessions.",
   "break-loop":
@@ -338,8 +338,11 @@ function filterCommands(
  * injects the workflow overview instead.
  */
 export function resolveAllAsSkills(ctx: TemplateContext): ResolvedTemplate[] {
+  const skillNames = new Set(getSkillTemplates().map((t) => t.name));
   const templates = [
-    ...filterCommands(getCommandTemplates(), ctx),
+    ...filterCommands(getCommandTemplates(), ctx).filter(
+      (t) => !skillNames.has(t.name),
+    ),
     ...getSkillTemplates(),
   ];
   return templates.map((tmpl) => ({
@@ -376,6 +379,30 @@ export function resolveSkills(ctx: TemplateContext): ResolvedTemplate[] {
       resolvePlaceholders(tmpl.content, ctx),
     ),
   }));
+}
+
+/**
+ * Emit selected command templates as skills (e.g. `finish-work` for Cursor auto-trigger).
+ * Body comes from `common/commands/`; slash commands stay separate via {@link resolveCommands}.
+ */
+export function resolveCommandAsSkills(
+  commandNames: string[],
+  ctx: TemplateContext,
+): ResolvedTemplate[] {
+  const byName = new Map(getCommandTemplates().map((t) => [t.name, t]));
+  const out: ResolvedTemplate[] = [];
+  for (const name of commandNames) {
+    const tmpl = byName.get(name);
+    if (!tmpl) continue;
+    out.push({
+      name: `trellis-${name}`,
+      content: wrapWithSkillFrontmatter(
+        `trellis-${name}`,
+        resolvePlaceholders(tmpl.content, ctx),
+      ),
+    });
+  }
+  return out;
 }
 
 /**

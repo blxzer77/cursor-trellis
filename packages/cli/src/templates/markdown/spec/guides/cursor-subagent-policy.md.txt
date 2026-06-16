@@ -1,0 +1,117 @@
+# Cursor subagent dispatch policy
+
+> **Purpose:** Cursor-first guidance for when to spawn Trellis custom agents, which mode to use, and how model choice stays on the Cursor side.
+
+**Abstract policy:** `model_policy: cursor-configured` — Trellis workflow, agents, skills, and hooks **must not** hardcode vendor model IDs in **committed** defaults (`gpt-*`, `claude-*`, etc.).
+
+---
+
+## Scene matrix
+
+| Scene | Mechanism | Mode | Output / notes |
+| --- | --- | --- | --- |
+| Code, history, or external research | `trellis-research` | Cursor **Agent** (writable) | `{TASK}/research/*.md`; smart-search-cli first, Cursor web fallback per skill |
+| Implementation (after `start-execution --approved`) | `trellis-implement` | Agent | Code edits; no `git commit` in subagent |
+| Post-implementation verification | `trellis-check` | Agent | Fixes + `verify.md` / gate hints; main session records gates when required |
+| Parent/Child child worker | `generate-child-prompt --mode subagent` | **Separate writable Agent** session | Child delivers `verify.md` + `handoff.md`; Parent retains `review-child` / `integrate-child` |
+| Architecture / deep review | `trellis-check` or documented inline deep review | Agent or main session | User picks model via ephemeral overlay (below) |
+| PRD Grill (planning) | `trellis-micro-grill` contract **inside** `trellis-brainstorm` | **Not** a subagent | Single-question business follow-ups only |
+| Small unclear ask (no task) | `trellis-micro-grill` skill | Main session | No task artifacts by default |
+
+---
+
+## Ephemeral model overlay (per dispatch)
+
+**User intent:** Before each Trellis subagent dispatch, the **main session** asks which model to use. The user answers in natural language (UI label or Cursor model ID). The main session applies a **one-shot** frontmatter `model:` on the target agent file, dispatches `Task`, then **restores** the file so committed agents stay without `model` (inherit when no overlay is active).
+
+This is **not** “switch the parent chat model in Cursor UI” — it is a **temporary write** to `.cursor/agents/trellis-<role>.md` for that single spawn.
+
+### When to ask (and when not)
+
+**Ask** only when the main session is about to **`Task` / subagent** dispatch `trellis-research`, `trellis-implement`, or `trellis-check` (including Parent **Child worker** via `trellis-implement` + `generate-child-prompt --mode subagent`).
+
+**Do not ask** for: planning-only turns, PRD Grill / micro-grill, inline edits in the main session, `trellis-check` **skill** without spawning the check agent, or any turn where no Trellis subagent will run this round.
+
+Task mode (Lite / Full / Parent) does **not** by itself trigger the question — only **impending subagent dispatch** does.
+
+### Main-session contract
+
+1. **Immediately before** that dispatch (see above):
+   - Ask **one** question (Simplified Chinese): which model for this dispatch? Give a short recommendation + trade-off; offer **inherit** = use current parent session model (omit `model` line).
+2. User answers (e.g. “GPT-5.5”, “Composer 2.5 Fast”, “Kimi 2.6”, “跟主会话一样”).
+3. Map the answer to the **exact** `model:` string Cursor accepts (user may paste the ID from the model picker; if unsure, use the label and fix after one failed spawn).
+4. **Apply overlay:** Edit `.cursor/agents/trellis-<role>.md` frontmatter — add or replace `model: <id>`. If user chose inherit, ensure **no** `model:` line.
+5. Optionally update `.cursor/agents/.trellis-model-overlay.local.md` (audit trail: agent, id, timestamp).
+6. **Dispatch** the subagent (Agent mode, writable when required).
+7. **After** the subagent finishes (or dispatch returns): **restore** frontmatter — remove `model:` so defaults are inherit again; clear overlay audit file to “none”.
+
+### Child worker
+
+- Same overlay on `trellis-implement` **in the Child Agent session’s project root** before pasting `generate-child-prompt --mode subagent` and dispatching.
+- Ask once per Child dispatch unless the user says “跟上次一样” — then reuse the last model ID from overlay audit or user message.
+
+### Rules
+
+- **Never** commit long-lived `model:` in shared Trellis templates or team repo defaults.
+- **Never** inject model IDs via hooks (`inject-subagent-context.py` stays task-only).
+- **Do not** skip the model question when a subagent dispatch is imminent, unless the user already said in the same turn: “用当前模型派发” / “inherit” / “跟上次一样”.
+- Workflow and skills **must not** hardcode vendor model IDs; only the **ephemeral** agent file edit carries the ID for one spawn.
+
+### Technical note
+
+Cursor reads subagent `model` from agent markdown frontmatter at spawn time. There is no separate Trellis API for “session-only model” — the overlay **is** the supported one-shot mechanism.
+
+---
+
+## Model and reuse (baseline)
+
+- **Baseline:** `.cursor/agents/trellis-*.md` in repo have **no** `model:` → **inherit** parent Agent session model when no overlay is applied.
+- **`preToolUse` (Task/Subagent):** injects task context only (`inject-subagent-context.py`). Never inject model IDs.
+
+Optional team paste (comments only — not Cursor product settings):
+
+```yaml
+model_policy: cursor-configured
+dispatch_model: ask_user_then_ephemeral_overlay
+child_worker:
+  mode: separate_writable_agent_session
+```
+
+---
+
+## Hooks (Cursor)
+
+| Event | Role |
+| --- | --- |
+| `sessionStart` | Task dashboard, phase index, next-action |
+| `preToolUse` Task/Subagent | PRD/jsonl + `<!-- trellis-hook-injected -->` |
+| `beforeShellExecution` | Short-lived ticket for `task.py select` / `selected` / `exit` in shells |
+| `stop` | Optional `retrieval-pack-latest.json` when task has `research/` |
+
+**Per-turn workflow-state on Cursor:** deferred — use `sessionStart` + `/trellis-continue` / `get_context.py --mode phase` instead of Claude `UserPromptSubmit` injection.
+
+---
+
+## Parent/Child alignment
+
+- `generate-child-prompt --mode subagent` is a **delivery hint** for Cursor Task tool; inline mode remains the portable default.
+- Child workers call `task.py set-child-state <parent> <child> <open|working|blocked|review> --evidence <ref>` — **no** session identity required for this command.
+- Integration states (`accepted`, `integrating`, `integrated`, …) are **Parent-only** via `integrate-child` / `review-child`.
+
+---
+
+## Anti-patterns
+
+- Do not use generic `generalPurpose` / default agents for Trellis research, implement, or check.
+- Do not spawn `trellis-implement` from inside `trellis-implement` (recursion guard in agent defs).
+- Do not spawn a subagent for PRD Grill — use brainstorm Phase B + micro-grill contract.
+- Do not leave `model:` on agent files after dispatch (always restore).
+
+---
+
+## References
+
+- `.cursor/agents/trellis-research.md`, `trellis-implement.md`, `trellis-check.md`
+- `.cursor/agents/.trellis-model-overlay.local.md` — optional overlay audit stub
+- `.trellis/workflow.md` — Task Ladder + Parent orchestration
+- [Cursor Subagents](https://cursor.com/docs/subagents) — `model: inherit | <id>`

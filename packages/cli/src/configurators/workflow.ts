@@ -32,6 +32,9 @@ import {
   guidesIndexContent,
   guidesCrossLayerThinkingGuideContent,
   guidesCodeReuseThinkingGuideContent,
+  guidesDurableLearningDecisionGuideContent,
+  guidesRetrievalDailyGuideContent,
+  guidesCursorSubagentPolicyContent,
 } from "../templates/markdown/index.js";
 
 import { writeFile, ensureDir } from "../utils/file-writer.js";
@@ -223,12 +226,24 @@ async function createSpecTemplates(
   const guidesDocs: DocDefinition[] = [
     { name: "index.md", content: guidesIndexContent },
     {
+      name: "durable-learning-decision-guide.md",
+      content: guidesDurableLearningDecisionGuideContent,
+    },
+    {
       name: "cross-layer-thinking-guide.md",
       content: guidesCrossLayerThinkingGuideContent,
     },
     {
       name: "code-reuse-thinking-guide.md",
       content: guidesCodeReuseThinkingGuideContent,
+    },
+    {
+      name: "retrieval-daily-guide.md",
+      content: guidesRetrievalDailyGuideContent,
+    },
+    {
+      name: "cursor-subagent-policy.md",
+      content: guidesCursorSubagentPolicyContent,
     },
   ];
   for (const doc of guidesDocs) {

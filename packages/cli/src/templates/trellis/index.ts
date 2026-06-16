@@ -67,6 +67,9 @@ export const commonSessionMemory = readTemplate(
 export const commonSmartSearchEvidence = readTemplate(
   "scripts/common/smart_search_evidence.py",
 );
+export const commonSmartSearchResolve = readTemplate(
+  "scripts/common/smart_search_resolve.py",
+);
 export const commonRetrievalEvidence = readTemplate(
   "scripts/common/retrieval_evidence.py",
 );
@@ -189,6 +192,7 @@ export function getAllScripts(): Map<string, string> {
   scripts.set("common/artifact_search.py", commonArtifactSearch);
   scripts.set("common/session_memory.py", commonSessionMemory);
   scripts.set("common/smart_search_evidence.py", commonSmartSearchEvidence);
+  scripts.set("common/smart_search_resolve.py", commonSmartSearchResolve);
   scripts.set("common/retrieval_evidence.py", commonRetrievalEvidence);
   scripts.set("common/codebase_retrieval_router.py", commonCodebaseRetrievalRouter);
   scripts.set("common/retrieval_adapter_metadata.py", commonRetrievalAdapterMetadata);
