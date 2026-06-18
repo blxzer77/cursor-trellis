@@ -1,0 +1,9 @@
+{
+  "version": "1.0.0",
+  "description": "v1.0.0 stable — first stable release of @blxzer/trellis. Promotion from the 0.6.0-beta series with the optimization templates, Cursor-first flow, and smart-search integration finalized.",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**v1.0.0 stable.** First stable release of the @blxzer/trellis fork. Culminates the 0.6.0-beta line with finalized optimization templates, Cursor-first workflow flow, and smart-search vendor integration.\n\n**Stable baseline.** No new src/ changes beyond the beta series promotion. Establishes the 1.x version line for downstream users.",
+  "migrations": [],
+  "notes": "Stable release. Users on any 0.6.0-beta.x can `trellis update` as a clean version bump. Install: `npm install -g @blxzer/trellis`."
+}
