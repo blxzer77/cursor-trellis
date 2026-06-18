@@ -23,7 +23,7 @@ Do not ask the user to confirm facts that the repository can answer. Ask only fo
 
 Use this skill during Phase 1 planning to turn the user's request into clear requirements and planning artifacts.
 
-**Cursor path:** Do **not** use Claude-only `trellis-grill-me` as a hard gate. Complete **PRD Grill** (below) before treating planning as ready for `design.md` / `implement.md` / `start-execution --check`.
+**Agent-capable platforms:** Do **not** use legacy Claude-only grill subagents as a hard gate. Complete **PRD Grill** (below) and **`trellis-micro-grill`** for blocking open questions before treating planning as ready for `design.md` / `implement.md` / `start-execution --check`.
 
 ## Preconditions
 
@@ -94,7 +94,7 @@ Treat `prd.md` (+ existing `design.md` fragments) as the **only document surface
 | 7 | **Research & external facts** — smart-search or documented fallback |
 | 8 | **Execution gate & artifacts** — `design.md` / `implement.md` / `verify.md` expectations |
 | 9 | **Durable Learning** — Phase 3.3 will need `update-spec` \| `no-update` \| `unsure` |
-| 10 | **Platform** — Cursor-first; no Claude-only grill-me gate |
+| 10 | **Platform** — Cursor-first; PRD Grill in-session (no legacy grill-me / grill-with-docs subagent gate) |
 | 11 | **Risk & rollback** for complex tasks |
 | 12 | **Open questions** — only **blocking** strategic/preference items remain |
 
