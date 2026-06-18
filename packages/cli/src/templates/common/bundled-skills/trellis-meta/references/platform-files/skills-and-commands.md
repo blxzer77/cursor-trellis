@@ -14,7 +14,7 @@ Skills and commands are textual entry points for user interaction with Trellis. 
 Trellis has two skill families:
 
 - Workflow skills: `brainstorm`, `before-dev`, `check`, `update-spec`, and `break-loop`.
-- Multi-file bundled skills include `trellis-meta`, `trellis-spec-bootstrap` (alias shim: `trellis-spec-bootstarp`), `trellis-skill-creator`, `smart-search-cli`, and `trellis-micro-grill`.
+- Multi-file bundled skills include `trellis-meta`, `trellis-spec-bootstrap` (alias shim: `trellis-spec-bootstarp`), `trellis-skill-creator`, `smart-search-cli`, `trellis-micro-grill`, and `trellis-cursor2plus-setup`.
 
 Bundled skills are installed as directories and may include nested `agents/`, `examples/`, `references/`, or other lazy-loadable files. Do not describe bundled skills as a closed `trellis-*` list: `smart-search-cli` intentionally keeps its existing non-`trellis-` name.
 
@@ -25,6 +25,8 @@ Bundled skills are installed as directories and may include nested `agents/`, `e
 `trellis-skill-creator` is the authoring and review guide for Trellis-compatible skills. Use it when creating or improving project-local skills, shared `.agents/skills/`, platform-specific skill directories, or upstream bundled skills. Keep `trellis-meta` focused on architecture and routing.
 
 `trellis-micro-grill` is the Trellis clarification adapter. It asks one high-value question at a time and escalates to Lite, Full, or Parent/Child task modes only when durable artifacts or broader risk require it.
+
+`trellis-cursor2plus-setup` guides Cursor++ BYOK users through `trellis-task-models.json5` (primary/fallback per Task role), `patch_wpelc8.py`, and Reload Window. Use after `trellis init` with Cursor or when `providers.json` changes.
 
 ## Common Paths
 
@@ -67,6 +69,8 @@ smart-search-cli/
 ├── examples/
 └── references/
 trellis-micro-grill/
+└── SKILL.md
+trellis-cursor2plus-setup/
 └── SKILL.md
 ```
 

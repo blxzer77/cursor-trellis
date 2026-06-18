@@ -271,6 +271,29 @@ function logPythonAdaptationNotice(command: string): void {
   );
 }
 
+function logCursor2plusSetupHint(): void {
+  console.log("");
+  console.log(
+    chalk.cyan(
+      "🔧 Cursor++ BYOK: 在 Cursor Agent 中运行 skill trellis-cursor2plus-setup",
+    ),
+  );
+  console.log(
+    chalk.gray(
+      "   与大模型交互选择各 Task 角色的 primary/fallback 模型，并应用 WPeLc8 patch。",
+    ),
+  );
+  console.log(
+    chalk.gray(
+      "   本地包: .trellis/local/cursor2plus/ · 示例: trellis-task-models.json5.example",
+    ),
+  );
+  console.log(
+    chalk.gray("   使用官方 Cursor API（非 Cursor++）可忽略此步骤。"),
+  );
+  console.log("");
+}
+
 // =============================================================================
 // Bootstrap Task Creation
 // =============================================================================
@@ -866,6 +889,12 @@ async function handleReinit(
       }
     } finally {
       stopRecordingWrites();
+    }
+
+    if (
+      platformsToAdd.some((tool) => resolveCliFlag(tool as CliFlag) === "cursor")
+    ) {
+      logCursor2plusSetupHint();
     }
 
     // Update template hashes. Merge mode: preserve previously-tracked
@@ -1999,6 +2028,10 @@ export async function init(options: InitOptions): Promise<void> {
     );
     if (hasSelectedPythonPlatform) {
       logPythonAdaptationNotice(pythonCmd);
+    }
+
+    if (selectedPlatformIds.includes("cursor")) {
+      logCursor2plusSetupHint();
     }
 
     // Create root files (skip if exists)

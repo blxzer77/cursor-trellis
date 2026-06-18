@@ -697,6 +697,20 @@ def main():
     # Get selected task directory (research doesn't require it)
     task_dir = get_selected_task(repo_root, input_data)
 
+    # Fallback: extract task path from dispatch prompt (Multitask / clean-context scenarios)
+    if not task_dir and original_prompt:
+        for line in original_prompt.split("\n"):
+            line = line.strip()
+            if line.startswith("Selected task:"):
+                candidate = line.split("Selected task:", 1)[1].strip()
+                if candidate and os.path.isdir(os.path.join(repo_root, candidate)):
+                    task_dir = candidate
+                    print(
+                        f"[inject-subagent-context] Resolved task from prompt: {task_dir}",
+                        file=sys.stderr,
+                    )
+                break
+
     # implement/check need task directory
     if subagent_type in AGENTS_REQUIRE_TASK:
         if not task_dir:

@@ -184,6 +184,17 @@ describe("init() integration", () => {
           tmpDir,
           ".cursor",
           "skills",
+          "trellis-cursor2plus-setup",
+          "SKILL.md",
+        ),
+      ),
+    ).toBe(true);
+    expect(
+      fs.existsSync(
+        path.join(
+          tmpDir,
+          ".cursor",
+          "skills",
           "trellis-meta",
           "references",
           "local-architecture",
@@ -845,6 +856,17 @@ describe("init() integration", () => {
           tmpDir,
           ".agents",
           "skills",
+          "trellis-cursor2plus-setup",
+          "SKILL.md",
+        ),
+      ),
+    ).toBe(true);
+    expect(
+      fs.existsSync(
+        path.join(
+          tmpDir,
+          ".agents",
+          "skills",
           "trellis-meta",
           "references",
           "local-architecture",
@@ -907,6 +929,9 @@ describe("init() integration", () => {
     );
     expect(trackedPaths).toContain(
       ".agents/skills/trellis-micro-grill/SKILL.md",
+    );
+    expect(trackedPaths).toContain(
+      ".agents/skills/trellis-cursor2plus-setup/SKILL.md",
     );
   });
 

@@ -1,0 +1,11 @@
+{
+  "setup-worktree": [
+    "npm install"
+  ],
+  "setup-worktree-windows": [
+    "npm install"
+  ],
+  "setup-worktree-unix": [
+    "npm install"
+  ]
+}
