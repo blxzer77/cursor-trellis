@@ -14,7 +14,7 @@ Skills and commands are textual entry points for user interaction with Trellis. 
 Trellis has two skill families:
 
 - Workflow skills: `brainstorm`, `before-dev`, `check`, `update-spec`, and `break-loop`.
-- Multi-file bundled skills include `trellis-meta`, `trellis-spec-bootstrap` (alias shim: `trellis-spec-bootstarp`), `trellis-skill-creator`, `smart-search-cli`, `trellis-micro-grill`, and `trellis-cursor2plus-setup`.
+- Multi-file bundled skills include `trellis-meta`, `trellis-spec-bootstrap`, `trellis-skill-creator`, `smart-search-cli`, `trellis-micro-grill`, and `trellis-cursor2plus-setup`.
 
 Bundled skills are installed as directories and may include nested `agents/`, `examples/`, `references/`, or other lazy-loadable files. Do not describe bundled skills as a closed `trellis-*` list: `smart-search-cli` intentionally keeps its existing non-`trellis-` name.
 

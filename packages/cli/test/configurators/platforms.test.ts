@@ -38,7 +38,6 @@ import {
 
 const BUNDLED_SKILL_NAMES = [
   "trellis-meta",
-  "trellis-spec-bootstarp",
   "trellis-spec-bootstrap",
   "trellis-skill-creator",
   "smart-search-cli",
