@@ -6,6 +6,30 @@
 
 ---
 
+## Quick reference: which entry point am I using?
+
+The same `trellis-*` name can be reached via three entry points with **different model routing**. Identify yours before touching model config:
+
+```
+How did I reach trellis-research / trellis-implement / trellis-check?
+│
+├─ Opened a Cursor chat and @mentioned or /slash-invoked it
+│  → Agent session. Top-bar model decides. Cursor Settings for trellis-* are
+│    largely ineffective under BYOK. Do NOT expect json5 + Method 2.5 here.
+│
+├─ Main session dispatched Task(subagent_type=trellis-*)
+│  → Task dispatch. ONLY path where BYOK json5 + Method 2.5 applies.
+│    Hook injects task context (<!-- trellis-hook-injected --> marker).
+│
+└─ Used the trellis-check SKILL in main session (no subagent spawn)
+   → Skill form. Main-session model. Only trellis-check has both
+     Agent + Skill forms; research/implement are NOT skills.
+```
+
+If unsure: Task dispatch is the path Trellis workflow routes through; Agent session and Skill are manual/edge entry points.
+
+---
+
 ## Scene matrix
 
 | Scene                                               | Mechanism                                                      | Mode                                | Output / notes                                                                               |

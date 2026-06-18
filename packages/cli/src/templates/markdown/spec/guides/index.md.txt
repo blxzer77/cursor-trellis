@@ -25,7 +25,7 @@ These guides help you **ask the right questions before coding**.
 | [Code Reuse Thinking Guide](./code-reuse-thinking-guide.md) | Identify patterns and reduce duplication | When you notice repeated patterns |
 | [Cross-Layer Thinking Guide](./cross-layer-thinking-guide.md) | Think through data flow across layers | Features spanning multiple layers |
 | [Retrieval daily guide](./retrieval-daily-guide.md) | rg / codegraph / fast-context / smart-search / pack / router | Planning, research, finish verification |
-| [Cursor subagent policy](./cursor-subagent-policy.md) | Task tool scenes, Agent mode, `model_policy: cursor-configured`, Multitask, Cursor++ | Parent/Child dispatch, research/implement/check, parallel execution |
+| [Cursor subagent policy](./cursor-subagent-policy.md) | Task tool scenes, Agent mode, `model_policy: cursor-configured`, Cursor++ | Parent/Child dispatch, research/implement/check, parallel execution |
 
 ---
 
