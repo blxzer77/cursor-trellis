@@ -1,0 +1,9 @@
+{
+  "version": "1.0.2",
+  "description": "v1.0.2 — Phase B hooks: research-end retrieval-pack hook and check-gap enumeration for the shared hooks test surface.",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Phase B research-end hooks.**\n- feat(hooks): Phase B research-end retrieval-pack + check gaps. The `stop` hook (Cursor) / `Stop` hook (Claude) now scans the selected task for research artifacts and smart-search manifests, writes a scored `{TASK}/research/retrieval-pack-latest.json`, and emits a hint citing top ranked items for `verify.md`.",
+  "migrations": [],
+  "notes": "Patch on top of 1.0.1. Run `trellis update` to install the research-end retrieval-pack hook."
+}

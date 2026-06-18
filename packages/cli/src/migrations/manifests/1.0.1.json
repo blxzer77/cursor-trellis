@@ -1,0 +1,9 @@
+{
+  "version": "1.0.1",
+  "description": "v1.0.1 — Phase 1 optimization templates: orchestration agents, smart-search wiring, Parent/Child subagent prompt, Task Ladder quick routing, retrieval-pack evidence scoring hookup.",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Phase 1 optimization templates.**\n- feat(templates): Phase 1 optimization agents orchestration + smart-search\n- feat(hooks,orchestration): Phase 2 research hook + PC subagent prompt\n- docs(workflow): wire retrieval-pack evidence scoring for backlog #10\n- docs(workflow): Phase 3 Task Ladder quick routing (#4)\n- docs(readme): stable @blxzer/trellis install and harness note",
+  "migrations": [],
+  "notes": "Patch on top of 1.0.0. Run `trellis update` to pick up the Phase 1 optimization templates and workflow doc updates."
+}

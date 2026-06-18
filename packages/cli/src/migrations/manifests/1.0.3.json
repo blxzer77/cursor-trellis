@@ -1,0 +1,9 @@
+{
+  "version": "1.0.3",
+  "description": "v1.0.3 — test fix: enumerate research-end-retrieval-pack in ALL_HOOK_FILES so the shared-hooks test surface matches the Phase B hook added in 1.0.2.",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Test fix.**\n- test(shared-hooks): enumerate research-end-retrieval-pack in ALL_HOOK_FILES so the shared-hooks regression test covers the Phase B hook added in 1.0.2.",
+  "migrations": [],
+  "notes": "Patch on top of 1.0.2. No runtime change; test-only release to keep CI green."
+}
