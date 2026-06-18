@@ -672,24 +672,35 @@ function collectTemplateFiles(
   files.set(`${DIR_NAMES.WORKFLOW}/config.yaml`, configYamlTemplate);
   files.set(`${DIR_NAMES.WORKFLOW}/.gitignore`, gitignoreTemplate);
   const localPrefix = `${DIR_NAMES.WORKFLOW}/local`;
-  files.set(`${localPrefix}/cursor2plus/patch_wpelc8.py`, cursor2plusPatchScript);
-  files.set(
-    `${localPrefix}/cursor2plus/trellis_task_models_config.py`,
-    trellisTaskModelsConfigPy,
+  // Cursor++ BYOK bundle is opt-in from 1.1.0. On update, only refresh it
+  // when the project already has the directory (keep existing installs;
+  // never inject it into projects that declined the opt-in at init time).
+  const cursor2plusInstalled = fs.existsSync(
+    path.join(cwd, localPrefix, "cursor2plus"),
   );
-  files.set(`${localPrefix}/cursor2plus/README.md`, cursor2plusReadme);
-  files.set(
-    `${localPrefix}/cursor2plus/config.local.json.example`,
-    cursor2plusConfigExample,
-  );
-  files.set(
-    `${localPrefix}/subagent-models.json.example`,
-    subagentModelsExample,
-  );
-  files.set(
-    `${localPrefix}/trellis-task-models.json5.example`,
-    trellisTaskModelsJson5Example,
-  );
+  if (cursor2plusInstalled) {
+    files.set(
+      `${localPrefix}/cursor2plus/patch_wpelc8.py`,
+      cursor2plusPatchScript,
+    );
+    files.set(
+      `${localPrefix}/cursor2plus/trellis_task_models_config.py`,
+      trellisTaskModelsConfigPy,
+    );
+    files.set(`${localPrefix}/cursor2plus/README.md`, cursor2plusReadme);
+    files.set(
+      `${localPrefix}/cursor2plus/config.local.json.example`,
+      cursor2plusConfigExample,
+    );
+    files.set(
+      `${localPrefix}/subagent-models.json.example`,
+      subagentModelsExample,
+    );
+    files.set(
+      `${localPrefix}/trellis-task-models.json5.example`,
+      trellisTaskModelsJson5Example,
+    );
+  }
   // workflow.md is included here because it is runtime-parsed by
   // get_context.py and shared hooks. Keep it on the normal template update
   // path: if the installed file still matches the tracked hash, update the
