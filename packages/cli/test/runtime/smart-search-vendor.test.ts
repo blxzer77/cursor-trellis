@@ -230,7 +230,7 @@ describe.sequential("Smart Search vendored runtime", () => {
         TRELLIS_SKIP_SMART_SEARCH_POSTINSTALL: "1",
       },
     });
-    const payload = JSON.parse(raw) as Array<{ files?: Array<{ path: string }> }>;
+    const payload = JSON.parse(raw) as { files?: { path: string }[] }[];
     const paths = (payload[0]?.files ?? []).map((file) => file.path.replace(/\\/g, "/"));
 
     expect(paths.some((p) => p === "vendor/smart-search/pyproject.toml")).toBe(true);
@@ -273,18 +273,6 @@ describe.sequential("Smart Search vendored runtime", () => {
     }
   });
 });
-
-function listEntries(root: string, base = root): string[] {
-  const entries: string[] = [];
-  for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
-    const fullPath = path.join(root, entry.name);
-    entries.push(path.relative(base, fullPath).replaceAll("\\", "/"));
-    if (entry.isDirectory()) {
-      entries.push(...listEntries(fullPath, base));
-    }
-  }
-  return entries;
-}
 
 interface SyncResult {
   sourceRoot: string;

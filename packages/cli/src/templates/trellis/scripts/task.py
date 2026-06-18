@@ -61,6 +61,7 @@ from common.task_gates import (
     BASELINE_GATE,
     build_reviewer_gate_record,
     read_strategy_contract,
+    start_execution_repair_hints,
     validate_start_execution,
     validate_start_execution_check,
     write_gate_record,
@@ -237,6 +238,8 @@ def cmd_start_execution(args: argparse.Namespace) -> int:
         if not guard.ok:
             print(colored("Start-execution check: FAIL", Colors.RED))
             _print_guard_errors(guard.errors)
+            for hint in start_execution_repair_hints(guard.errors, task_dir):
+                print(f"  Hint: {hint}")
             return 1
         print(colored("Start-execution check: PASS", Colors.GREEN))
         print(f"Contract fingerprint: {guard.contract_fingerprint}")
@@ -267,6 +270,8 @@ def cmd_start_execution(args: argparse.Namespace) -> int:
     assert task_data is not None
     if guard.baseline_record:
         write_gate_record(task_data, "start-execution", BASELINE_GATE, guard.baseline_record)
+    for gate, record in guard.auto_gate_records.items():
+        write_gate_record(task_data, "start-execution", gate, record)
     task_data["execution_approval"] = {
         "schema_version": 1,
         "transition": "start-execution",
