@@ -83,6 +83,7 @@ import {
 import {
   getAllAgents as getCursorAgents,
   getHooksConfig as getCursorHooksConfig,
+  getWorktreesConfig,
 } from "../templates/cursor/index.js";
 import {
   getAllAgents as getGeminiAgents,
@@ -205,6 +206,10 @@ const PLATFORM_FUNCTIONS: Record<AITool, PlatformFunctions> = {
       files.set(
         ".cursor/hooks.json",
         resolvePlaceholders(getCursorHooksConfig()),
+      );
+      files.set(
+        ".cursor/worktrees.json",
+        resolvePlaceholders(getWorktreesConfig()),
       );
       return files;
     },

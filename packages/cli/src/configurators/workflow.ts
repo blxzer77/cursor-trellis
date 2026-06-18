@@ -39,6 +39,7 @@ import {
 
 import { writeFile, ensureDir } from "../utils/file-writer.js";
 import { replacePythonCommandLiterals } from "./shared.js";
+import { writeCursor2plusLocalBundle } from "./cursor2plus-local.js";
 import {
   sanitizePkgName,
   type ProjectType,
@@ -130,6 +131,8 @@ export async function createWorkflowStructure(
 
   // Create tasks/ directory
   ensureDir(path.join(cwd, PATHS.TASKS));
+
+  await writeCursor2plusLocalBundle(cwd);
 
   // Create spec templates based on project type
   // These are NOT dogfooded - they are generic templates for new projects

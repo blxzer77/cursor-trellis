@@ -110,7 +110,7 @@ python3 ./.trellis/scripts/get_context.py --mode retrieval-pack --json --input <
 
 **Retrieval daily guide:** `.trellis/spec/guides/retrieval-daily-guide.md` — when to use rg, codegraph, fast-context-mcp, smart-search-cli (and Cursor web fallback), artifact/session memory, codebase router (suggest-only), and explicit retrieval-pack scoring.
 
-**Cursor subagent dispatch:** `.trellis/spec/guides/cursor-subagent-policy.md` — `trellis-research` / `trellis-implement` / `trellis-check`, Parent child workers (`generate-child-prompt --mode subagent`, writable Agent). **Per dispatch:** main session asks which model → one-shot `model:` on `.cursor/agents/trellis-<role>.md` → `Task` → restore (no long-lived model IDs in repo). PRD Grill stays in `trellis-brainstorm`, not a subagent.
+**Cursor subagent dispatch:** `.trellis/spec/guides/cursor-subagent-policy.md` — `trellis-research` / `trellis-implement` / `trellis-check`; Parent child default **Task** `trellis-implement` from Parent session (`generate-child-prompt --mode subagent`). **Cursor++ BYOK:** per-type models via `.trellis/local/cursor2plus/` + user/project JSON maps (not committed slugs). **Native Cursor API:** frontmatter `model:` on agents still works. PRD Grill stays in `trellis-brainstorm`, not a subagent. **Cursor++:** compatible v0.0.11+ (SubAgent readonly bug fixed).
 
 ---
 

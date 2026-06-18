@@ -7089,6 +7089,7 @@ describe("regression: backslash in markdown templates (beta.12)", () => {
     expect(doc).toContain("smart-search-cli");
     expect(doc).toContain("trellis-skill-creator");
     expect(doc).toContain("trellis-micro-grill");
+    expect(doc).toContain("trellis-cursor2plus-setup");
     expect(doc).toContain("smart-search` executable");
     expect(doc).toContain("selected_task");
     expect(doc).toContain("task.py select <task>");

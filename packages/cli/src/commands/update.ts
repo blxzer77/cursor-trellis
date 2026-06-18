@@ -44,6 +44,14 @@ import { emptyTaskJson } from "../utils/task-json.js";
 
 // Import templates for comparison
 import {
+  cursor2plusPatchScript,
+  cursor2plusReadme,
+  cursor2plusConfigExample,
+  subagentModelsExample,
+  trellisTaskModelsJson5Example,
+  trellisTaskModelsConfigPy,
+} from "../templates/trellis/local/index.js";
+import {
   getAllScripts,
   // Configuration
   configYamlTemplate,
@@ -663,6 +671,25 @@ function collectTemplateFiles(
   // Configuration
   files.set(`${DIR_NAMES.WORKFLOW}/config.yaml`, configYamlTemplate);
   files.set(`${DIR_NAMES.WORKFLOW}/.gitignore`, gitignoreTemplate);
+  const localPrefix = `${DIR_NAMES.WORKFLOW}/local`;
+  files.set(`${localPrefix}/cursor2plus/patch_wpelc8.py`, cursor2plusPatchScript);
+  files.set(
+    `${localPrefix}/cursor2plus/trellis_task_models_config.py`,
+    trellisTaskModelsConfigPy,
+  );
+  files.set(`${localPrefix}/cursor2plus/README.md`, cursor2plusReadme);
+  files.set(
+    `${localPrefix}/cursor2plus/config.local.json.example`,
+    cursor2plusConfigExample,
+  );
+  files.set(
+    `${localPrefix}/subagent-models.json.example`,
+    subagentModelsExample,
+  );
+  files.set(
+    `${localPrefix}/trellis-task-models.json5.example`,
+    trellisTaskModelsJson5Example,
+  );
   // workflow.md is included here because it is runtime-parsed by
   // get_context.py and shared hooks. Keep it on the normal template update
   // path: if the installed file still matches the tracked hash, update the

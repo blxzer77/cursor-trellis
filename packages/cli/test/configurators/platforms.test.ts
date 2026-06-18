@@ -43,6 +43,7 @@ const BUNDLED_SKILL_NAMES = [
   "trellis-skill-creator",
   "smart-search-cli",
   "trellis-micro-grill",
+  "trellis-cursor2plus-setup",
 ];
 const BUNDLED_SKILL_NAME = BUNDLED_SKILL_NAMES[0];
 const BUNDLED_REFERENCE = path.join(

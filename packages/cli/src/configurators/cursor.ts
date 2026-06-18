@@ -11,7 +11,7 @@ import {
   writeAgents,
   writeSharedHooks,
 } from "./shared.js";
-import { getAllAgents, getHooksConfig } from "../templates/cursor/index.js";
+import { getAllAgents, getHooksConfig, getWorktreesConfig } from "../templates/cursor/index.js";
 
 /**
  * Configure Cursor:
@@ -46,5 +46,10 @@ export async function configureCursor(cwd: string): Promise<void> {
   await writeFile(
     path.join(configRoot, "hooks.json"),
     resolvePlaceholders(getHooksConfig()),
+  );
+
+  await writeFile(
+    path.join(configRoot, "worktrees.json"),
+    resolvePlaceholders(getWorktreesConfig()),
   );
 }
