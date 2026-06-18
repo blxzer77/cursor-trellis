@@ -89,6 +89,10 @@ program
   .option("--pi", "Include Pi Agent extension assets")
   .option("-y, --yes", "Skip prompts and use defaults")
   .option(
+    "--cursor2plus",
+    "Materialize Cursor++ BYOK local bundle (.trellis/local/cursor2plus/); ignored unless --cursor is also selected",
+  )
+  .option(
     "-u, --user <name>",
     "Initialize developer identity with specified name",
   )

@@ -993,6 +993,7 @@ interface InitOptions {
   overwrite?: boolean;
   append?: boolean;
   registry?: string;
+  cursor2plus?: boolean;
   monorepo?: boolean;
   workflow?: string;
   workflowSource?: string;
@@ -1983,11 +1984,31 @@ export async function init(options: InitOptions): Promise<void> {
   // (.codex/sessions/, .claude/projects/, pre-existing AGENTS.md).
   const writtenPaths = startRecordingWrites(cwd);
   try {
+    // Determine whether to materialize the Cursor++ BYOK local bundle.
+    // Default off from 1.1.0; only ask when Cursor is selected in
+    // interactive mode. --yes / non-interactive skips the question and
+    // does NOT write the bundle unless --cursor2plus is passed.
+    let cursor2plusOptIn = options.cursor2plus === true;
+    const cursorSelected = tools.includes("cursor");
+    if (cursorSelected && !options.yes && !cursor2plusOptIn) {
+      const byok = await inquirer.prompt<{ byok: boolean }>([
+        {
+          type: "confirm",
+          name: "byok",
+          message:
+            "使用 Cursor++ BYOK 代理？（原生 Cursor API 用户选 No；仅 BYOK 需要 .trellis/local/cursor2plus/）",
+          default: false,
+        },
+      ]);
+      cursor2plusOptIn = byok.byok;
+    }
+
     // Create workflow structure with project type
     console.log(chalk.blue("📁 Creating workflow structure..."));
     await createWorkflowStructure(cwd, {
       projectType,
       skipSpecTemplates: useRemoteTemplate,
+      cursor2plus: cursor2plusOptIn,
       packages: monorepoPackages,
       remoteSpecPackages,
       workflowMdOverride,
@@ -2030,7 +2051,7 @@ export async function init(options: InitOptions): Promise<void> {
       logPythonAdaptationNotice(pythonCmd);
     }
 
-    if (selectedPlatformIds.includes("cursor")) {
+    if (cursor2plusOptIn) {
       logCursor2plusSetupHint();
     }
 

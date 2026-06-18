@@ -71,6 +71,15 @@ export interface WorkflowOptions {
    * entry for non-native workflows so update.ts treats them as user-managed.
    */
   workflowMdOverride?: string;
+  /**
+   * Whether to materialize the Cursor++ BYOK local operator bundle
+   * (`.trellis/local/cursor2plus/`). Defaults to `false` from 1.1.0: only
+   * written when the user opts in during `trellis init` (interactive BYOK
+   * question) or passes `--cursor2plus`. Native Cursor API users do not need
+   * these assets. `trellis update` keeps existing bundles (detected by
+   * directory presence) regardless of this flag.
+   */
+  cursor2plus?: boolean;
 }
 
 /**
@@ -132,7 +141,9 @@ export async function createWorkflowStructure(
   // Create tasks/ directory
   ensureDir(path.join(cwd, PATHS.TASKS));
 
-  await writeCursor2plusLocalBundle(cwd);
+  if (options?.cursor2plus) {
+    await writeCursor2plusLocalBundle(cwd);
+  }
 
   // Create spec templates based on project type
   // These are NOT dogfooded - they are generic templates for new projects
