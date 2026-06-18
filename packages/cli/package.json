@@ -90,6 +90,7 @@
     "bin",
     "scripts/postinstall.js",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE",
     "vendor/smart-search/LICENSE",
     "vendor/smart-search/README.md",
