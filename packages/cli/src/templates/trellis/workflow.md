@@ -220,6 +220,7 @@ Details: archived `06-15-child-phase3-task-ladder` → `research/task-ladder-ite
 - `implement.jsonl` / `check.jsonl` — spec and research manifests for sub-agent context. They do not replace `implement.md`.
 - `verification_profile` / `quality_gates` — gate policy belongs in task artifacts and `task.json`; `task.json.quality_gate_results` is compact machine-checkable state, not human review prose.
 - Lightweight tasks may be PRD-only. Complex tasks must have `prd.md`, `design.md`, and `implement.md` before `task.py start-execution --check`.
+- `start-execution` planning gates (`requirements-review`, `architecture-review` when enabled) auto-record on `--approved` when artifacts pass CLI checks; use `record-gate` only as a manual override.
 
 ### Parent / Child Task Trees
 

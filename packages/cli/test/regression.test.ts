@@ -1752,6 +1752,8 @@ describe("regression: current-task path normalization", () => {
     expect(taskPy).toContain("guard = validate_start_execution(task_dir, task_data, approved=True)");
     expect(taskGatesPy).toContain("def validate_start_execution_check");
     expect(taskGatesPy).toContain("result = validate_start_execution(task_dir, task_data, approved=True)");
+    expect(taskGatesPy).toContain("START_EXECUTION_AUTO_GATES");
+    expect(taskGatesPy).toContain("make_planning_review_gate_record");
     expect(taskStorePy).toContain("guard = validate_archive(task_dir, task_data)");
     expect(taskStorePy).toContain('if getattr(args, "check", False):');
   });
@@ -1838,6 +1840,144 @@ describe("regression: current-task path normalization", () => {
         "baseline-check"
       ],
     ).toMatchObject({ result: "PASS", reviewer: "trellis-cli" });
+  });
+
+  function writePlanningReadyPrd(taskName = "issue-106"): void {
+    writeProjectFile(
+      path.join(".trellis", "tasks", taskName, "prd.md"),
+      [
+        "# Task",
+        "",
+        "## Goal",
+        "",
+        "Ship the fix.",
+        "",
+        "## Acceptance Criteria",
+        "",
+        "- [ ] Tests pass for start-execution auto gates",
+        "",
+      ].join("\n"),
+    );
+  }
+
+  it("[execution-gate] start-execution --check passes Full Task without manual record-gate", () => {
+    setupTaskRepo();
+    writeFullTaskArtifacts();
+    writePlanningReadyPrd();
+    const taskScriptPath = path.join(tmpDir, ".trellis", "scripts", "task.py");
+    const taskJsonPath = path.join(
+      tmpDir,
+      ".trellis",
+      "tasks",
+      "issue-106",
+      "task.json",
+    );
+    const taskJson = JSON.parse(fs.readFileSync(taskJsonPath, "utf-8")) as {
+      status: string;
+      execution_approval?: unknown;
+    };
+    taskJson.status = "planning";
+    delete taskJson.execution_approval;
+    fs.writeFileSync(taskJsonPath, JSON.stringify(taskJson, null, 2), "utf-8");
+
+    const output = execSync(
+      `${pythonCmd} ${JSON.stringify(taskScriptPath)} start-execution ${JSON.stringify(".trellis/tasks/issue-106")} --check`,
+      { cwd: tmpDir, encoding: "utf-8", env: sessionEnv() },
+    );
+
+    expect(output).toContain("Start-execution check: PASS");
+    expect(output).not.toContain("missing gate record");
+  });
+
+  it("[execution-gate] start-execution --check fails when prd Acceptance Criteria is still TBD", () => {
+    setupTaskRepo();
+    writeFullTaskArtifacts();
+    writeProjectFile(
+      path.join(".trellis", "tasks", "issue-106", "prd.md"),
+      [
+        "# Task",
+        "",
+        "## Goal",
+        "",
+        "TBD.",
+        "",
+        "## Acceptance Criteria",
+        "",
+        "- [ ] TBD",
+        "",
+      ].join("\n"),
+    );
+    const taskScriptPath = path.join(tmpDir, ".trellis", "scripts", "task.py");
+    const taskJsonPath = path.join(
+      tmpDir,
+      ".trellis",
+      "tasks",
+      "issue-106",
+      "task.json",
+    );
+    const taskJson = JSON.parse(fs.readFileSync(taskJsonPath, "utf-8")) as {
+      status: string;
+    };
+    taskJson.status = "planning";
+    fs.writeFileSync(taskJsonPath, JSON.stringify(taskJson, null, 2), "utf-8");
+
+    const result = spawnSync(
+      pythonCmd,
+      [taskScriptPath, "start-execution", ".trellis/tasks/issue-106", "--check"],
+      { cwd: tmpDir, encoding: "utf-8", env: sessionEnv() },
+    );
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toContain("Start-execution check: FAIL");
+    expect(result.stdout).toMatch(/TBD|Acceptance Criteria/i);
+    expect(result.stdout).toContain("Hint:");
+  });
+
+  it("[execution-gate] start-execution --approved auto-records planning reviewer gates", () => {
+    setupTaskRepo();
+    writeFullTaskArtifacts();
+    writePlanningReadyPrd();
+    const taskScriptPath = path.join(tmpDir, ".trellis", "scripts", "task.py");
+    const taskJsonPath = path.join(
+      tmpDir,
+      ".trellis",
+      "tasks",
+      "issue-106",
+      "task.json",
+    );
+    const taskJson = JSON.parse(fs.readFileSync(taskJsonPath, "utf-8")) as {
+      status: string;
+      execution_approval?: unknown;
+    };
+    taskJson.status = "planning";
+    delete taskJson.execution_approval;
+    fs.writeFileSync(taskJsonPath, JSON.stringify(taskJson, null, 2), "utf-8");
+
+    execSync(
+      `${pythonCmd} ${JSON.stringify(taskScriptPath)} start-execution ${JSON.stringify(".trellis/tasks/issue-106")} --approved`,
+      { cwd: tmpDir, encoding: "utf-8", env: sessionEnv() },
+    );
+
+    const after = JSON.parse(fs.readFileSync(taskJsonPath, "utf-8")) as {
+      quality_gate_results?: {
+        transitions?: {
+          "start-execution"?: Record<
+            string,
+            { result?: string; reviewer?: string; auto_recorded?: boolean }
+          >;
+        };
+      };
+    };
+    const transition = after.quality_gate_results?.transitions?.["start-execution"];
+    expect(transition?.["requirements-review"]).toMatchObject({
+      result: "PASS",
+      reviewer: "trellis-cli",
+      auto_recorded: true,
+    });
+    expect(transition?.["baseline-check"]).toMatchObject({
+      result: "PASS",
+      reviewer: "trellis-cli",
+    });
   });
 
   it("[execution-gate] task.py start-execution --check fails missing prd.md without mutation", () => {

@@ -417,7 +417,6 @@ export default async ({ directory, platform: hostPlatform = process.platform, en
           //   2. `Selected task: <path>` hint in the dispatch prompt
           //      (explicit per-dispatch override for older dispatch prompts)
           let taskDir = null
-          let taskSource = null
 
           const contextKey = ctx.getContextKey(input)
           if (contextKey) {
@@ -425,7 +424,6 @@ export default async ({ directory, platform: hostPlatform = process.platform, en
             const exactRef = ctx.normalizeTaskRef(context?.selected_task || "")
             if (exactRef) {
               taskDir = exactRef
-              taskSource = `session:${contextKey}`
             }
           }
 
@@ -437,7 +435,6 @@ export default async ({ directory, platform: hostPlatform = process.platform, en
                 const hintDir = ctx.resolveTaskDir(hintNormalized)
                 if (hintDir && existsSync(hintDir)) {
                   taskDir = hintNormalized
-                  taskSource = "prompt-hint"
                   debugLog("inject", "Resolved task from Selected task: hint:", hintNormalized)
                 }
               }

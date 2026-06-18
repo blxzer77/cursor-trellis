@@ -102,6 +102,15 @@ REVIEWED_CHANGE_SET_RE = re.compile(
     r"(?:change[- ]set|changeset|diff|git\s+diff|ref|git\s+ref)"
     r"(?:\s+(?:identity|evidence|summary|ref))?\s*:\s*(\S[^\r\n]*)$"
 )
+PRD_ACCEPTANCE_CRITERIA_HEADING_RE = re.compile(
+    r"(?im)^\s*#{1,6}\s*acceptance\s+criteria\s*$"
+)
+PRD_ACCEPTANCE_ITEM_RE = re.compile(
+    r"(?im)^\s*-\s*\[[ xX]\]\s+(.+)$"
+)
+PRD_PLACEHOLDER_RE = re.compile(r"(?i)^\s*(TBD|TODO|待定|待补充)(?:\s*[.:：])?\s*$")
+AUTO_PLANNING_REVIEWER = "trellis-cli"
+START_EXECUTION_AUTO_GATES = frozenset({"requirements-review", "architecture-review"})
 
 STABLE_TASK_KEYS = (
     "id",
@@ -143,6 +152,7 @@ class GateGuardResult:
     required_gates: list[str] = field(default_factory=list)
     baseline_record: dict | None = None
     is_full_task: bool = False
+    auto_gate_records: dict[str, dict] = field(default_factory=dict)
 
 
 def utc_now() -> str:
@@ -580,6 +590,7 @@ def validate_start_execution(
         )
     }
 
+    auto_gate_records: dict[str, dict] = {}
     for gate in required_gates:
         artifact_fingerprints[gate] = compute_artifact_fingerprint(
             task_dir, task_data, "start-execution", gate
@@ -591,7 +602,29 @@ def validate_start_execution(
             contract_fingerprint=contract_fingerprint,
             artifact_fingerprint=artifact_fingerprints[gate],
         )
-        errors.extend(gate_errors)
+        if gate_errors and gate in START_EXECUTION_AUTO_GATES and _only_missing_gate_record(
+            gate_errors
+        ):
+            readiness_errors = _start_execution_planning_gate_readiness_errors(
+                task_dir,
+                gate,
+                full_task=full_task,
+                contract=contract,
+            )
+            if readiness_errors:
+                errors.extend(readiness_errors)
+            else:
+                auto_gate_records[gate] = make_planning_review_gate_record(
+                    task_dir=task_dir,
+                    task_data=task_data,
+                    transition="start-execution",
+                    gate=gate,
+                    contract=contract,
+                    contract_fingerprint=contract_fingerprint,
+                    artifact_fingerprint=artifact_fingerprints[gate],
+                )
+        else:
+            errors.extend(gate_errors)
 
     if approved:
         errors.extend(
@@ -619,6 +652,7 @@ def validate_start_execution(
         required_gates=required_gates,
         baseline_record=baseline_record,
         is_full_task=full_task,
+        auto_gate_records=auto_gate_records,
     )
 
 
@@ -1449,6 +1483,137 @@ def _extract_reviewed_change_set_entries(content: str) -> list[str]:
         match.group(1).strip()
         for match in REVIEWED_CHANGE_SET_RE.finditer(content)
     ]
+
+
+def _only_missing_gate_record(errors: list[str]) -> bool:
+    return bool(errors) and all(
+        error.startswith("missing gate record:") for error in errors
+    )
+
+
+def make_planning_review_gate_record(
+    task_dir: Path,
+    task_data: dict,
+    transition: str,
+    gate: str,
+    contract: dict,
+    contract_fingerprint: str,
+    artifact_fingerprint: str,
+) -> dict:
+    """Build a CLI-owned PASS record when planning artifacts satisfy the gate."""
+    _ = task_dir, task_data, contract
+    evidence_by_gate = {
+        "requirements-review": "prd.md",
+        "architecture-review": "design.md+implement.md",
+    }
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "transition": transition,
+        "gate": gate,
+        "result": "PASS",
+        "reviewer": AUTO_PLANNING_REVIEWER,
+        "evidence": evidence_by_gate.get(gate, "planning-artifacts"),
+        "checked_at": utc_now(),
+        "contract_fingerprint": contract_fingerprint,
+        "artifact_fingerprint": artifact_fingerprint,
+        "issue_fingerprint": None,
+        "root_cause": None,
+        "route": None,
+        "consecutive_failures": 0,
+        "required_user_choice": None,
+        "approved_skip": None,
+        "auto_recorded": True,
+        "auto_record_reason": "planning-artifacts",
+    }
+
+
+def _start_execution_planning_gate_readiness_errors(
+    task_dir: Path,
+    gate: str,
+    *,
+    full_task: bool,
+    contract: dict,
+) -> list[str]:
+    if gate == "requirements-review":
+        return _prd_requirements_review_errors(task_dir)
+    if gate == "architecture-review":
+        errors = _required_file_errors(task_dir, ["design.md", "implement.md"])
+        if not full_task:
+            errors.append(
+                "architecture-review requires design.md and implement.md (Full Task)"
+            )
+        errors.extend(validate_strategy_contract(contract))
+        return errors
+    return [f"planning gate readiness check unsupported: {gate}"]
+
+
+def _prd_requirements_review_errors(task_dir: Path) -> list[str]:
+    path = task_dir / "prd.md"
+    if not path.is_file():
+        return ["prd.md missing for requirements-review"]
+    try:
+        content = path.read_text(encoding="utf-8")
+    except OSError:
+        return ["prd.md could not be read for requirements-review"]
+    if not content.strip():
+        return ["prd.md is empty (requirements-review)"]
+    if not PRD_ACCEPTANCE_CRITERIA_HEADING_RE.search(content):
+        return [
+            "prd.md missing Acceptance Criteria heading (complete PRD Grill before start-execution)"
+        ]
+    criteria: list[str] = []
+    for match in PRD_ACCEPTANCE_ITEM_RE.finditer(content):
+        text = match.group(1).strip()
+        if text and not PRD_PLACEHOLDER_RE.match(text):
+            criteria.append(text)
+    if not criteria:
+        return [
+            "prd.md needs at least one non-placeholder Acceptance Criteria item (replace TBD checkboxes)"
+        ]
+    return []
+
+
+def start_execution_repair_hints(
+    errors: list[str],
+    task_dir: Path,
+) -> list[str]:
+    """Map start-execution validation errors to actionable planning hints."""
+    hints: list[str] = []
+    rel_task = f".trellis/tasks/{task_dir.name}"
+    for error in errors:
+        if error.startswith("missing gate record:"):
+            _rest = error.split(":", 1)[1].strip()
+            _transition, gate = _rest.split("/", 1)
+            if gate in START_EXECUTION_AUTO_GATES:
+                hints.append(
+                    "Complete planning artifacts so Trellis can auto-record this gate on "
+                    f"`start-execution --approved` (requirements: prd.md Acceptance Criteria; "
+                    "architecture: design.md + valid implement.md contract)."
+                )
+            else:
+                hints.append(
+                    f"python ./.trellis/scripts/task.py record-gate {rel_task} "
+                    f"--transition start-execution --gate {gate} --result PASS "
+                    f"--reviewer <reviewer-id> --evidence verify.md"
+                )
+            continue
+        if "Acceptance Criteria" in error or "TBD" in error:
+            hints.append(
+                "Finish PRD Grill in trellis-brainstorm: fill Goal, Acceptance Criteria "
+                "(non-TBD checkboxes), then re-run start-execution --check."
+            )
+            continue
+        if "Development Strategy Contract" in error or error.startswith("invalid "):
+            hints.append(
+                "Fix the Development Strategy Contract block in implement.md "
+                "(execution_mode, isolation, verification_profile, quality_gates)."
+            )
+            continue
+        if error == "design.md and implement.md must be present together for Full Tasks":
+            hints.append(
+                "Add both design.md and implement.md for Full Tasks, or stay PRD-only for Lite."
+            )
+    return _dedupe_preserve_order(hints)
 
 
 def _artifact_files_for(transition: str, gate: str) -> list[str]:
