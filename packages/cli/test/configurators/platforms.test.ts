@@ -229,18 +229,20 @@ describe("configurePlatform", () => {
     expect(fs.existsSync(path.join(tmpDir, ".cursor"))).toBe(true);
   });
 
-  it("configurePlatform('cursor') emits trellis-finish-work skill for auto-trigger", async () => {
+  it("configurePlatform('cursor') ships commands-only (no skills) per Cursor policy", async () => {
     await configurePlatform("cursor", tmpDir);
-    const finishSkill = path.join(
-      tmpDir,
-      ".cursor",
-      "skills",
-      "trellis-finish-work",
-      "SKILL.md",
-    );
-    expect(fs.existsSync(finishSkill)).toBe(true);
-    const content = fs.readFileSync(finishSkill, "utf-8");
-    expect(content).toContain("Learning decision");
+    // 3 slash commands in .cursor/commands/
+    const continueCmd = path.join(tmpDir, ".cursor", "commands", "trellis-continue.md");
+    const finishCmd = path.join(tmpDir, ".cursor", "commands", "trellis-finish-work.md");
+    const c2pCmd = path.join(tmpDir, ".cursor", "commands", "trellis-cursor2plus-setup.md");
+    expect(fs.existsSync(continueCmd)).toBe(true);
+    expect(fs.existsSync(finishCmd)).toBe(true);
+    expect(fs.existsSync(c2pCmd)).toBe(true);
+    // commands are self-contained (reference workflow.md / scripts, not skills)
+    const finishContent = fs.readFileSync(finishCmd, "utf-8");
+    expect(finishContent).toContain("get_context.py");
+    // No .cursor/skills/ shipped on Cursor (commands-only policy)
+    expect(fs.existsSync(path.join(tmpDir, ".cursor", "skills"))).toBe(false);
   });
 
   it("configurePlatform('opencode') creates .opencode directory", async () => {
@@ -756,9 +758,18 @@ describe("configurePlatform", () => {
     ).toBe(false);
   });
 
-  it("cursor configuration includes commands directory", async () => {
+  it("cursor collectTemplates matches commands-only policy (no skills tracked)", async () => {
     await configurePlatform("cursor", tmpDir);
-    expect(fs.existsSync(path.join(tmpDir, ".cursor", "commands"))).toBe(true);
+    const templates = collectPlatformTemplates("cursor");
+    expect(templates).toBeInstanceOf(Map);
+    if (!templates) throw new Error("cursor did not expose template tracking");
+    // commands are tracked
+    expect(templates.has(".cursor/commands/trellis-continue.md")).toBe(true);
+    expect(templates.has(".cursor/commands/trellis-finish-work.md")).toBe(true);
+    expect(templates.has(".cursor/commands/trellis-cursor2plus-setup.md")).toBe(true);
+    // no skills tracked (commands-only policy)
+    const skillKeys = [...templates.keys()].filter((k) => k.includes(".cursor/skills/"));
+    expect(skillKeys).toEqual([]);
   });
 
   it("configurePlatform('droid') creates .factory/commands/trellis directory", async () => {

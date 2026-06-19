@@ -167,15 +167,15 @@ describe("init() integration", () => {
         ),
       ),
     ).toBe(true);
+    // Cursor commands-only policy: 3 slash commands, no skills shipped.
     expect(
       fs.existsSync(
-        path.join(
-          tmpDir,
-          ".cursor",
-          "skills",
-          "trellis-micro-grill",
-          "SKILL.md",
-        ),
+        path.join(tmpDir, ".cursor", "commands", "trellis-continue.md"),
+      ),
+    ).toBe(true);
+    expect(
+      fs.existsSync(
+        path.join(tmpDir, ".cursor", "commands", "trellis-finish-work.md"),
       ),
     ).toBe(true);
     expect(
@@ -183,25 +183,12 @@ describe("init() integration", () => {
         path.join(
           tmpDir,
           ".cursor",
-          "skills",
-          "trellis-cursor2plus-setup",
-          "SKILL.md",
+          "commands",
+          "trellis-cursor2plus-setup.md",
         ),
       ),
     ).toBe(true);
-    expect(
-      fs.existsSync(
-        path.join(
-          tmpDir,
-          ".cursor",
-          "skills",
-          "trellis-meta",
-          "references",
-          "local-architecture",
-          "overview.md",
-        ),
-      ),
-    ).toBe(true);
+    expect(fs.existsSync(path.join(tmpDir, ".cursor", "skills"))).toBe(false);
   });
 
   it("#1f writes selected project capability config for first-class platforms", async () => {

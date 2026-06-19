@@ -21,6 +21,7 @@ export interface TemplateReader {
   readTemplate: (relativePath: string) => string;
   listFiles: (dir: string) => string[];
   listMdAgents: (dir?: string) => AgentTemplate[];
+  listMdCommands: (dir?: string) => AgentTemplate[];
   listJsonAgents: (dir?: string) => AgentTemplate[];
   listMdcRules: (dir?: string) => AgentTemplate[];
   getSettings: (filename?: string) => HookTemplate;
@@ -48,6 +49,18 @@ export function createTemplateReader(importMetaUrl: string): TemplateReader {
 
   /** Read all .md agent files from a subdirectory */
   function listMdAgents(dir = "agents"): AgentTemplate[] {
+    return listFiles(dir)
+      .filter((f) => f.endsWith(".md"))
+      .map((f) => ({
+        name: f.replace(".md", ""),
+        content: readTemplate(`${dir}/${f}`),
+      }));
+  }
+
+  /** Read all .md command files from a subdirectory (e.g. cursor/commands).
+   * Unlike listMdAgents, the name keeps no prefix transformation — callers
+   * decide the output filename (e.g. `trellis-${name}.md`). */
+  function listMdCommands(dir = "commands"): AgentTemplate[] {
     return listFiles(dir)
       .filter((f) => f.endsWith(".md"))
       .map((f) => ({
@@ -91,6 +104,7 @@ export function createTemplateReader(importMetaUrl: string): TemplateReader {
     readTemplate,
     listFiles,
     listMdAgents,
+    listMdCommands,
     listJsonAgents,
     listMdcRules,
     getSettings,

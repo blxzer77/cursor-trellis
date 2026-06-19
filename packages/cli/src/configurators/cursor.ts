@@ -4,19 +4,30 @@ import { ensureDir, writeFile } from "../utils/file-writer.js";
 import {
   resolvePlaceholders,
   resolveCommands,
-  resolveSkills,
-  resolveCommandAsSkills,
-  resolveBundledSkills,
-  writeSkills,
   writeAgents,
   writeSharedHooks,
 } from "./shared.js";
-import { getAllAgents, getAllRules, getHooksConfig, getWorktreesConfig } from "../templates/cursor/index.js";
+import {
+  getAllAgents,
+  getAllRules,
+  getCursorCommands,
+  getHooksConfig,
+  getWorktreesConfig,
+} from "../templates/cursor/index.js";
 
 /**
- * Configure Cursor:
- * - commands/ — continue + finish-work as slash commands (trellis- prefix, flat)
- * - skills/trellis-{name}/SKILL.md — workflow skills (incl. finish-work for auto-trigger)
+ * Configure Cursor (commands-only default policy):
+ *
+ * Trellis's default Cursor adaptation is commands-only: the `/` palette shows
+ * only the user-facing slash commands, keeping the surface controlled and the
+ * entrypoints unambiguous. Internal workflow skills are NOT shipped to
+ * `.cursor/skills/` on Cursor (they remain available to Claude/Codex/Gemini
+ * via their own configurators, and their core rules reach the Cursor agent
+ * through `.cursor/rules` + `AGENTS.md` instead). This is a policy choice for
+ * palette hygiene and workflow reliability, not a statement about Agent Skills.
+ *
+ * - commands/trellis-{continue,finish-work}.md — common command templates
+ * - commands/trellis-cursor2plus-setup.md — Cursor-only command (BYOK setup)
  * - rules/*.mdc — always-apply / glob-scoped Cursor rules (Triage hard gate etc.)
  * - agents/{name}.md — sub-agent definitions
  * - hooks/*.py — shared hook scripts
@@ -27,25 +38,24 @@ export async function configureCursor(cwd: string): Promise<void> {
   const ctx = config.templateContext;
   const configRoot = path.join(cwd, config.configDir);
 
+  // .cursor/commands/ — user-facing slash commands (commands-only policy).
+  // Common commands (continue, finish-work) + Cursor-only commands (cursor2plus-setup).
   const commandsDir = path.join(configRoot, "commands");
   ensureDir(commandsDir);
   for (const cmd of resolveCommands(ctx)) {
     await writeFile(
       path.join(commandsDir, `trellis-${cmd.name}.md`),
-      cmd.content,
+      resolvePlaceholders(cmd.content, ctx),
+    );
+  }
+  for (const cmd of getCursorCommands()) {
+    await writeFile(
+      path.join(commandsDir, `trellis-${cmd.name}.md`),
+      resolvePlaceholders(cmd.content, ctx),
     );
   }
 
-  await writeSkills(
-    path.join(configRoot, "skills"),
-    [...resolveSkills(ctx), ...resolveCommandAsSkills(["finish-work"], ctx)],
-    resolveBundledSkills(ctx),
-  );
-
-  // Cursor .cursor/rules/*.mdc — the reliable context-injection channel on
-  // Cursor (sessionStart.additional_context is broken; rules are prepended
-  // before every prompt on a separate path). Rule names already carry the
-  // .mdc extension, so write them verbatim — do NOT append an extension.
+  // .cursor/rules/*.mdc — the reliable context-injection channel on Cursor.
   const rulesDir = path.join(configRoot, "rules");
   ensureDir(rulesDir);
   for (const rule of getAllRules()) {
