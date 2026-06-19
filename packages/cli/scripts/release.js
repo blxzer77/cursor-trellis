@@ -64,8 +64,13 @@ function docsGuard(type) {
   }
 }
 
-function pushTarget(type) {
-  return type === "beta" || type === "rc" ? "HEAD" : "main";
+function pushTarget(_type) {
+  // Fork policy: this repo only has a `private` remote (no `origin`) and all
+  // release work happens on the developer's working branch (e.g.
+  // personal-v0.6.0-beta.x). Always push the current branch HEAD rather than
+  // a hardcoded `main`, so releases can be cut from any working branch and
+  // land on `private`.
+  return "HEAD";
 }
 
 function main() {
@@ -89,7 +94,7 @@ function main() {
   run("git add package.json ../core/package.json");
   run(`git commit -m "${version}"`);
   run(`git tag "v${version}"`);
-  run(`git push origin ${pushTarget(type)} --tags`);
+  run(`git push private ${pushTarget(type)} --tags`);
 }
 
 main();
