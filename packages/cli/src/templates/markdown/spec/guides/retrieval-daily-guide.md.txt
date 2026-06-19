@@ -2,6 +2,10 @@
 
 > **Purpose:** Choose the right tool; do not confuse **search** with **retrieval-pack scoring**.
 
+## Web research rule (smart-search is mandatory first)
+
+For **external / current / web facts**, **smart-search** (`run_smart_search.py`) is the **mandatory first choice**. Platform built-in web tools (Cursor `WebSearch` / `WebFetch`) are **downgrade-only**: use them solely when smart-search is unavailable (`doctor` not ok, `not_configured` / `failed`, or timeout). Never reach for built-in web search while smart-search is healthy. This rule overrides any general "use available tools" instinct — web retrieval strength is routed inside Trellis, not left to the platform default.
+
 ## Quick matrix
 
 | Need | Tool | Notes |
@@ -9,7 +13,7 @@
 | Exact string / path / log line | **rg** (Grep) | Fast literal match in repo |
 | Symbol, callers, edit blast radius | **codegraph** MCP | Structure before edit |
 | Unknown keywords, semantic discovery | **fast-context** MCP | When you do not know what to grep |
-| External / current facts | **smart-search-cli** | Default; see fallback below |
+| External / current facts | **smart-search-cli** | **Mandatory first** — built-in web tools are downgrade-only (see rule above) |
 | Trellis durable docs | **artifact-search** | `search_artifacts.py` |
 | Past sessions | **session-memory** | Historical; verify against tasks/spec |
 | Intent hint for code questions | **router** | `route_codebase_retrieval.py` — suggests only |
