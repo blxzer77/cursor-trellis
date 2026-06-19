@@ -22,6 +22,7 @@ export interface TemplateReader {
   listFiles: (dir: string) => string[];
   listMdAgents: (dir?: string) => AgentTemplate[];
   listJsonAgents: (dir?: string) => AgentTemplate[];
+  listMdcRules: (dir?: string) => AgentTemplate[];
   getSettings: (filename?: string) => HookTemplate;
   getConfig: (filename: string) => string;
 }
@@ -65,6 +66,17 @@ export function createTemplateReader(importMetaUrl: string): TemplateReader {
       }));
   }
 
+  /** Read all .mdc rule files from a subdirectory (Cursor .cursor/rules) */
+  function listMdcRules(dir = "rules"): AgentTemplate[] {
+    return listFiles(dir)
+      .filter((f) => f.endsWith(".mdc"))
+      .map((f) => ({
+        // Keep the .mdc extension in the name — Cursor requires it.
+        name: f,
+        content: readTemplate(`${dir}/${f}`),
+      }));
+  }
+
   /** Read settings.json and return as HookTemplate */
   function getSettings(filename = "settings.json"): HookTemplate {
     return { targetPath: filename, content: readTemplate(filename) };
@@ -80,6 +92,7 @@ export function createTemplateReader(importMetaUrl: string): TemplateReader {
     listFiles,
     listMdAgents,
     listJsonAgents,
+    listMdcRules,
     getSettings,
     getConfig,
   };

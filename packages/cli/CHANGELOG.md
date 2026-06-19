@@ -15,7 +15,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-Two release-engineering hardenings found while shipping 1.1.2.
+Three fixes — the third is the one that finally makes Request Triage work on Cursor.
+
+### Added
+- **Cursor `.cursor/rules` injection channel.** Trellis's Cursor configurator
+  now ships `.cursor/rules/*.mdc` (template + init/update writes + hash
+  tracking). The first rule, `trellis-triage.mdc` (`alwaysApply: true`), carries
+  the Request Triage hard gate (decision tree + `[Triage: <Mode>] <reason>`
+  classification mark + consent gate) through Cursor's reliable rules-injection
+  path. This works around Cursor's confirmed `sessionStart.additional_context`
+  bug (forum #158452, no ETA) — the Triage rules in `.trellis/workflow.md` never
+  reached the agent via sessionStart; rules are prepended before every prompt on
+  a separate, working channel. Verified: agents now emit the `[Triage: ...]`
+  mark and ask for task-creation consent on Cursor, matching Claude/OpenCode.
 
 ### Fixed
 - **`trellis update` no longer hangs in non-interactive contexts.** When stdin
