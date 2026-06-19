@@ -1,0 +1,9 @@
+{
+  "version": "1.1.1",
+  "description": "v1.1.1 — Version-only patch bump. Maintenance release following 1.1.0 to refresh the published npm tarball; no template or runtime changes beyond the version fields.",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Version-only bump.**\n- This release contains no template, runtime, or behavioral changes relative to 1.1.0. It is a maintenance patch to refresh the published npm tarball.\n- Users on 1.1.0 can `trellis update` as a clean version bump with no diffs.",
+  "migrations": [],
+  "notes": "Backfilled manifest — the 1.1.1 npm publish omitted this file. No migration required; identical template set to 1.1.0."
+}

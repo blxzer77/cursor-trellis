@@ -13,6 +13,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.2] — 2026-06-19
+
+Patch release with three documentation/template hardenings from the
+post-1.1.0 review (optimization backlog #12 / #13 / #15).
+
+### Changed
+- **Request Triage is now a hard gate.** The `### Request Triage` section in
+  `workflow.md` was upgraded from prose suggestions to a mandatory
+  classification step with a 5-step first-match-wins decision tree (No Task /
+  Micro-Grill / Lite / Full / Parent) and a `[Triage: <Mode>] <reason>`
+  classification mark that must start every work-capable reply. The Task
+  Ladder table gained a "Trigger signals" column to reduce misclassification.
+  Cursor per-turn `UserPromptSubmit` injection remains a separate follow-up.
+- **smart-search is the mandatory first web tool.** `AGENTS.md` (template) and
+  `retrieval-daily-guide` now state that smart-search is the required first
+  choice for any external/web fact, with Cursor `WebSearch` / `WebFetch` as
+  downgrade-only fallbacks (not co-equal options).
+- **Command surface clarified.** `AGENTS.md` (template) now distinguishes
+  user-invocable commands (`/trellis-continue`, `/trellis-finish-work`) from
+  internal auto-triggered skills (brainstorm / before-dev / check / break-loop
+  / update-spec / micro-grill / meta / spec-bootstrap / skill-creator /
+  smart-search-cli) that should not be invoked manually through the slash
+  palette.
+
+### Release engineering
+- **release.js fork policy.** The release orchestrator now pushes to the
+  `private` remote (not `origin`, which is absent in this fork) and always
+  pushes the current branch HEAD rather than a hardcoded `main`, so releases
+  can be cut from any working branch.
+
+---
+
+## [1.1.1] — 2026-06-18
+
+Version-only patch bump. No template or runtime changes beyond the version
+fields; a maintenance release following 1.1.0 to refresh the published npm
+tarball. Users on 1.1.0 can `trellis update` as a clean version bump.
+
+---
+
 ## [1.1.0] — 2026-06-18
 
 First minor after 1.0.x stable. Ships the Cursor-first template overhaul and
@@ -113,6 +153,8 @@ smart-search vendor integration finalized.
 
 ---
 
+[1.1.2]: https://github.com/blxzer77/trellis-private/releases/tag/v1.1.2
+[1.1.1]: https://github.com/blxzer77/trellis-private/releases/tag/v1.1.1
 [1.1.0]: https://github.com/blxzer77/trellis-private/releases/tag/v1.1.0
 [1.0.3]: https://github.com/blxzer77/trellis-private/releases/tag/v1.0.3
 [1.0.2]: https://github.com/blxzer77/trellis-private/releases/tag/v1.0.2
