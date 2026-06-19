@@ -82,6 +82,7 @@ import {
 } from "../templates/droid/index.js";
 import {
   getAllAgents as getCursorAgents,
+  getAllRules as getCursorRules,
   getHooksConfig as getCursorHooksConfig,
   getWorktreesConfig,
 } from "../templates/cursor/index.js";
@@ -199,6 +200,10 @@ const PLATFORM_FUNCTIONS: Record<AITool, PlatformFunctions> = {
       }
       for (const agent of getCursorAgents()) {
         files.set(`.cursor/agents/${agent.name}.md`, agent.content);
+      }
+      // Rules: names already carry .mdc (Cursor requires the extension).
+      for (const rule of getCursorRules()) {
+        files.set(`.cursor/rules/${rule.name}`, rule.content);
       }
       for (const [k, v] of collectSharedHooks(".cursor/hooks", "cursor")) {
         files.set(k, v);
