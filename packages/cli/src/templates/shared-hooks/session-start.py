@@ -714,7 +714,17 @@ def _strip_breadcrumb_tag_blocks(content: str) -> str:
     """
     stripped = _BREADCRUMB_TAG_RE.sub("", content)
     stripped = re.sub(r"<!--.*?-->", "", stripped, flags=re.DOTALL)
-    stripped = re.sub(r"^\[(?!/?workflow-state:)/?[^\]\n]+\]\s*\n?", "", stripped, flags=re.MULTILINE)
+    # Strip orphan bracket-tag lines (residual when a [workflow-state:STATUS]
+    # pair is split across an extraction boundary), but preserve legitimate
+    # documentation examples like `[Triage: <Mode>] <reason>` in the Request
+    # Triage section. The negative lookahead skips both workflow-state tags
+    # (handled by the pair regex above) and Triage classification marks.
+    stripped = re.sub(
+        r"^\[(?!/?workflow-state:|Triage:)/?[^\]\n]+\]\s*\n?",
+        "",
+        stripped,
+        flags=re.MULTILINE,
+    )
     return re.sub(r"\n{3,}", "\n\n", stripped).strip()
 
 
