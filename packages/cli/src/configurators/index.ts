@@ -42,7 +42,6 @@ import {
   resolveBundledSkills,
   resolveCodexTrellisStartSkill,
   resolveCommands,
-  resolveCommandAsSkills,
   resolveSkills,
   resolveSkillsNeutral,
   wrapWithCommandFrontmatter,
@@ -83,6 +82,7 @@ import {
 import {
   getAllAgents as getCursorAgents,
   getAllRules as getCursorRules,
+  getCursorCommands,
   getHooksConfig as getCursorHooksConfig,
   getWorktreesConfig,
 } from "../templates/cursor/index.js";
@@ -185,18 +185,22 @@ const PLATFORM_FUNCTIONS: Record<AITool, PlatformFunctions> = {
     configure: configureCursor,
     collectTemplates: () => {
       const ctx = AI_TOOLS.cursor.templateContext;
-      const files = collectBothTemplates(
-        ctx,
-        (n) => `.cursor/commands/trellis-${n}.md`,
-        ".cursor/skills",
-      );
-      // Mirror configureCursor: finish-work as a skill for auto-trigger (not only slash command).
-      for (const [filePath, content] of collectSkillTemplates(
-        ".cursor/skills",
-        resolveCommandAsSkills(["finish-work"], ctx),
-        [],
-      )) {
-        files.set(filePath, content);
+      const files = new Map<string, string>();
+      // commands-only policy: ship common commands (continue, finish-work) +
+      // Cursor-only commands (cursor2plus-setup) as .cursor/commands/trellis-*.md.
+      // No .cursor/skills/ are shipped on Cursor — internal workflow skills
+      // reach the agent via .cursor/rules + AGENTS.md instead.
+      for (const cmd of resolveCommands(ctx)) {
+        files.set(
+          `.cursor/commands/trellis-${cmd.name}.md`,
+          resolvePlaceholders(cmd.content, ctx),
+        );
+      }
+      for (const cmd of getCursorCommands()) {
+        files.set(
+          `.cursor/commands/trellis-${cmd.name}.md`,
+          resolvePlaceholders(cmd.content, ctx),
+        );
       }
       for (const agent of getCursorAgents()) {
         files.set(`.cursor/agents/${agent.name}.md`, agent.content);

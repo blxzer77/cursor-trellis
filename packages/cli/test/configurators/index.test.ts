@@ -300,9 +300,11 @@ describe("getPlatformsWithPythonHooks", () => {
 // =============================================================================
 
 describe("collectPlatformTemplates", () => {
-  const SKILL_ROOTS: Record<AITool, string> = {
+  const SKILL_ROOTS: Partial<Record<AITool, string>> = {
     "claude-code": ".claude/skills",
-    cursor: ".cursor/skills",
+    // Cursor is commands-only (no .cursor/skills shipped) — internal workflow
+    // skills reach the Cursor agent via .cursor/rules + AGENTS.md instead.
+    // See task 06-20-cursor-skill-slim.
     opencode: ".opencode/skills",
     codex: ".agents/skills",
     kilo: ".kilocode/skills",
