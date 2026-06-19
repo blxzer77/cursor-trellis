@@ -2415,6 +2415,17 @@ export async function update(options: UpdateOptions): Promise<void> {
   // Batch-resolution flags are explicit consent for non-interactive runs.
   // Prompting here breaks CI and `node ... update --force --migrate` smoke tests.
   if (!options.force && !options.skipAll && !options.createNew) {
+    // Non-interactive (no TTY on stdin) and no explicit consent flag: hard-fail
+    // instead of hanging on inquirer.prompt, which waits forever for stdin that
+    // never arrives (observed when update is run in a backgrounded shell, CI
+    // pipeline, or any redirected-stdin context). Guide the operator toward an
+    // explicit consent flag or a dry-run first.
+    if (!process.stdin.isTTY) {
+      throw new Error(
+        "Non-interactive `trellis update` requires an explicit consent flag. " +
+          "Re-run with --force (apply all), --skip-all (preserve modified), --create-new (.new copies), or --dry-run (preview only).",
+      );
+    }
     const { proceed } = await inquirer.prompt<{ proceed: boolean }>([
       {
         type: "confirm",

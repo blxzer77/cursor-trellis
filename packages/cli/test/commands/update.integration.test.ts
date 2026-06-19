@@ -111,6 +111,8 @@ function removeSubagentsSection(content: string): string {
 
 describe("update() integration", () => {
   let tmpDir: string;
+  /** Original stdin.isTTY descriptor, restored in afterEach. */
+  let origIsTTY: PropertyDescriptor | undefined;
 
   /** Initialize a fresh project in tmpDir */
   async function setupProject(): Promise<void> {
@@ -171,6 +173,13 @@ describe("update() integration", () => {
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-update-int-"));
     vi.spyOn(process, "cwd").mockReturnValue(tmpDir);
+    // Simulate an interactive TTY for stdin: update.ts guards its inquirer
+    // prompt behind process.stdin.isTTY and hard-fails when stdin is not a TTY
+    // (to avoid hanging forever in CI / backgrounded shells). The inquirer
+    // module is mocked above, so these tests model the interactive path and
+    // must present themselves as a TTY to reach the (mocked) prompt.
+    origIsTTY = Object.getOwnPropertyDescriptor(process.stdin, "isTTY");
+    Object.defineProperty(process.stdin, "isTTY", { value: true, configurable: true });
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     const noop = () => {};
     vi.spyOn(console, "log").mockImplementation(noop);
@@ -201,6 +210,12 @@ describe("update() integration", () => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
     vi.unstubAllEnvs();
+    // Restore the original stdin.isTTY descriptor (undefined under vitest).
+    if (origIsTTY) {
+      Object.defineProperty(process.stdin, "isTTY", origIsTTY);
+    } else {
+      delete (process.stdin as { isTTY?: boolean }).isTTY;
+    }
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
@@ -1371,5 +1386,45 @@ describe("update() integration", () => {
     expect(readHashesV2(hashFile)[PATHS.WORKFLOW_GUIDE_FILE]).toBe(
       computeHash(updated),
     );
+  });
+
+  // --- Non-interactive (no stdin TTY) hard-fail guard ---
+  // update() must not hang on inquirer.prompt when stdin is not a TTY (CI,
+  // backgrounded shells, redirected stdin). Without an explicit consent flag
+  // (--force/--skip-all/--create-new) or --dry-run, it exits 1 with guidance.
+
+  it("#non-tty without consent flag exits 1 instead of hanging on prompt", async () => {
+    await setupProject();
+    // Force a real change so update reaches the confirm gate (not the
+    // same-version no-op early exit).
+    const targetFull = path.join(tmpDir, MANAGED_FILE);
+    const pristine = fs.readFileSync(targetFull, "utf-8");
+    fs.writeFileSync(targetFull, pristine + "\n# user tweak\n");
+
+    // Simulate non-interactive stdin (what vitest/CI/background shells see).
+    Object.defineProperty(process.stdin, "isTTY", {
+      value: false,
+      configurable: true,
+    });
+
+    await expect(update({})).rejects.toThrow(
+      /Non-interactive.*requires an explicit consent flag/,
+    );
+  });
+
+  it("#non-tty with --force still applies (consent flag bypasses TTY guard)", async () => {
+    await setupProject();
+    const targetFull = path.join(tmpDir, MANAGED_FILE);
+    const pristine = fs.readFileSync(targetFull, "utf-8");
+    fs.writeFileSync(targetFull, pristine + "\n# user tweak\n");
+
+    Object.defineProperty(process.stdin, "isTTY", {
+      value: false,
+      configurable: true,
+    });
+
+    // --force is explicit consent; must not hit the TTY guard.
+    await update({ force: true, skipReadiness: true });
+    expect(fs.readFileSync(targetFull, "utf-8")).toBe(pristine);
   });
 });
