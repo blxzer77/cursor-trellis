@@ -13,6 +13,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+Two release-engineering hardenings found while shipping 1.1.2.
+
+### Fixed
+- **`trellis update` no longer hangs in non-interactive contexts.** When stdin
+  is not a TTY (backgrounded shells, CI, redirected stdin) and no explicit
+  consent flag (`--force` / `--skip-all` / `--create-new`) or `--dry-run` is
+  passed, `update` now throws a clear error guiding the operator to a consent
+  flag instead of blocking forever on `inquirer.prompt`. Interactive terminals
+  are unaffected.
+- **`pnpm release:publish` publishes both packages in dependency order.** New
+  `scripts/publish-packages.js` (+ `release:publish` / `release:publish:dry`
+  script entries) builds and publishes `@blxzer/trellis-core` first, then
+  `@blxzer/trellis`, with a version-parity guard and an npm-auth guard. This
+  closes the gap where the release flow bumped core's `package.json` and
+  tagged it, but never published it to npm (core's 1.1.0 was never published;
+  1.1.1 was missed until the manifest-continuity gate caught it during 1.1.2).
+
+---
+
 ## [1.1.2] — 2026-06-19
 
 Patch release with three documentation/template hardenings from the
