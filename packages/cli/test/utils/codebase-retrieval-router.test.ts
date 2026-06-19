@@ -113,4 +113,69 @@ describe("codebase retrieval router", () => {
     const b = routeCodebaseRetrieval({ query });
     expect(JSON.stringify(a)).toBe(JSON.stringify(b));
   });
+
+  it("classifies policy-document for Chinese 不能 and 规则 signals", () => {
+    const planCannot = routeCodebaseRetrieval({
+      query: "为什么不能把 sidecar 当默认存储",
+    });
+    expect(planCannot.intents.map((i) => i.id)).toContain("policy-document");
+
+    const planRule = routeCodebaseRetrieval({
+      query: "项目规则里对持久化有什么要求",
+    });
+    expect(planRule.intents.map((i) => i.id)).toContain("policy-document");
+  });
+
+  it("classifies cross-cutting-discovery without default exact baseline", () => {
+    const plan = routeCodebaseRetrieval({
+      query: "how does retry work across modules",
+    });
+    expect(plan.intents.map((i) => i.id)).toContain("cross-cutting-discovery");
+    expect(plan.intents.map((i) => i.id)).not.toContain("exact-symbol-path");
+    const semantic = plan.routes.find((r) => r.id === "semantic-fast-context");
+    expect(semantic?.order).toBeLessThanOrEqual(2);
+    expect(
+      plan.routes.filter((r) => r.id === "semantic-fast-context").length,
+    ).toBe(1);
+  });
+
+  it("conceptual plus policy keeps policy-docs before semantic at order 2", () => {
+    const plan = routeCodebaseRetrieval({
+      query: "storage policy 如何跨模块生效",
+    });
+    expect(plan.intents.map((i) => i.id)).toContain("policy-document");
+    expect(plan.intents.map((i) => i.id)).toContain("cross-cutting-discovery");
+    const policyIndex = plan.routes.findIndex((r) => r.id === "policy-docs-rg");
+    const semanticIndex = plan.routes.findIndex(
+      (r) => r.id === "semantic-fast-context",
+    );
+    expect(policyIndex).toBe(0);
+    expect(semanticIndex).toBe(1);
+    expect(plan.routes[semanticIndex]?.order).toBeLessThanOrEqual(2);
+  });
+
+  it("O2: adds rg-empty semantic fallback when semantic is late in plan", () => {
+    const plan = routeCodebaseRetrieval({
+      query: "routeCodebaseRetrieval storage policy sidecar forbidden in AGENTS.md",
+    });
+    const rgEmptyHint = plan.fallback.find((f) =>
+      f.when.includes("no corroborated file/range candidates"),
+    );
+    expect(rgEmptyHint?.replacesRole).toBe("semantic");
+    expect(rgEmptyHint?.action).toMatch(/fast_context_search/i);
+  });
+
+  it("O2: conceptual warning mentions rg follow-up", () => {
+    const plan = routeCodebaseRetrieval({
+      query: "how does retry work across modules",
+    });
+    expect(
+      plan.warnings.some((w) => w.includes("Convert semantic hits to exact rg")),
+    ).toBe(true);
+    expect(
+      plan.fallback.some((f) =>
+        f.when.includes("no corroborated file/range candidates"),
+      ),
+    ).toBe(true);
+  });
 });

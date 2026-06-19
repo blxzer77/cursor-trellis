@@ -22,6 +22,7 @@ INTENT_TRAP = "trap-package-disambiguation"
 INTENT_EXTENSION = "extension-shared-symbol"
 INTENT_ENV = "env-config-literal"
 INTENT_PRESERVE = "protocol-platform-preserve"
+INTENT_CONCEPTUAL = "cross-cutting-discovery"
 
 POLICY_PATTERNS = [
     re.compile(r"\bstorage\s+policy\b", re.I),
@@ -41,6 +42,17 @@ POLICY_PATTERNS = [
     re.compile(r"\bpolicy\b", re.I),
     re.compile(r"\bownership\b", re.I),
     re.compile(r"\bresponsibilit(y|ies)\b", re.I),
+    re.compile(r"不能"),
+    re.compile(r"规则"),
+]
+
+CONCEPTUAL_PATTERNS = [
+    re.compile(r"\bhow\s+does\b", re.I),
+    re.compile(r"\bacross\s+(packages|modules)\b", re.I),
+    re.compile(r"\bwhere\s+is\b.*\b(handled|implemented)\b", re.I),
+    re.compile(r"如何"),
+    re.compile(r"机制"),
+    re.compile(r"跨"),
 ]
 
 PRESERVE_PATTERNS = [
@@ -228,6 +240,19 @@ def _classify_intents(query: str) -> list[dict[str, object]]:
             )
         )
 
+    if not exact_hits and not preserve_hits:
+        conceptual_hits = _match_any(CONCEPTUAL_PATTERNS, query)
+        if conceptual_hits:
+            intents.append(
+                _intent(
+                    INTENT_CONCEPTUAL,
+                    "Conceptual / cross-cutting discovery",
+                    conceptual_hits,
+                    _confidence(len(conceptual_hits), False),
+                    False,
+                )
+            )
+
     if not intents:
         intents.append(
             _intent(
@@ -311,14 +336,58 @@ def _ordered_routes(
     extension = INTENT_EXTENSION in ids
     env = INTENT_ENV in ids
     exact = INTENT_EXACT in ids
+    conceptual = INTENT_CONCEPTUAL in ids
     exact_primary_first = preserve or exact
+    conceptual_primary = conceptual and not preserve and not exact_primary_first
+    semantic_promoted = False
 
     routes: list[dict[str, object]] = []
 
     def append(route: dict[str, object]) -> None:
         routes.append({**route, "order": len(routes) + 1, "intentIds": active})
 
-    if policy and not preserve and not exact_primary_first:
+    if conceptual_primary:
+        if policy:
+            append(
+                {
+                    "id": "policy-docs-rg",
+                    "role": "exact",
+                    "sourceFamily": "policy-docs",
+                    "commands": [
+                        'rg -i "storage default|sidecar|sqlite only" AGENTS.md "**/AGENTS.md" '
+                        "README.md CONTRIBUTING.md .trellis/spec"
+                    ],
+                    "rationale": "Policy/document intent: search instruction and spec docs first.",
+                }
+            )
+        semantic_rationale = (
+            "Policy plus conceptual intent: semantic recall after policy docs, before exact rg follow-up."
+            if policy
+            else "Conceptual query without exact signals; semantic recall before exact rg narrowing."
+        )
+        append(
+            {
+                "id": "semantic-fast-context",
+                "role": "semantic",
+                "sourceFamily": "fast-context",
+                "commands": ["fast_context_search query=<question> project_path=<root>"],
+                "rationale": semantic_rationale,
+            }
+        )
+        semantic_promoted = True
+        append(
+            {
+                "id": "exact-rg-primary",
+                "role": "exact",
+                "sourceFamily": "rg",
+                "commands": ["rg <pattern> <path>"],
+                "rationale": (
+                    "Exact rg follow-up after semantic recall (or policy docs) "
+                    "narrows candidate files and symbols."
+                ),
+            }
+        )
+    elif policy and not preserve and not exact_primary_first:
         append(
             {
                 "id": "policy-docs-rg",
@@ -441,15 +510,16 @@ def _ordered_routes(
                 "rationale": "LSP after candidate symbols exist.",
             }
         )
-        append(
-            {
-                "id": "semantic-fast-context",
-                "role": "semantic",
-                "sourceFamily": "fast-context",
-                "commands": ["fast_context_search query=<question> project_path=<root>"],
-                "rationale": "Semantic recall last; convert to exact rg follow-ups.",
-            }
-        )
+        if not semantic_promoted:
+            append(
+                {
+                    "id": "semantic-fast-context",
+                    "role": "semantic",
+                    "sourceFamily": "fast-context",
+                    "commands": ["fast_context_search query=<question> project_path=<root>"],
+                    "rationale": "Semantic recall last; convert to exact rg follow-ups.",
+                }
+            )
 
     append(
         {
@@ -467,6 +537,7 @@ def _ordered_routes(
 def _fallback_hints(
     intents: list[dict[str, object]],
     include_optional_adapters: bool,
+    routes: list[dict[str, object]],
 ) -> list[dict[str, object]]:
     hints: list[dict[str, object]] = [
         {
@@ -490,6 +561,33 @@ def _fallback_hints(
                 "replacesRole": "semantic",
             }
         )
+    semantic_route = next(
+        (r for r in routes if str(r.get("id")) == "semantic-fast-context"),
+        None,
+    )
+    ids = {str(item["id"]) for item in intents}
+    has_conceptual = INTENT_CONCEPTUAL in ids
+    exact_primary = any(
+        str(item["id"]) == INTENT_EXACT and bool(item.get("preserveExactPrimary"))
+        for item in intents
+    )
+    if include_optional_adapters and semantic_route and (
+        has_conceptual or int(semantic_route.get("order", 99)) >= 3 or exact_primary
+    ):
+        hints.append(
+            {
+                "when": (
+                    "exact rg returns no corroborated file/range candidates "
+                    "(or only trap hits) before final Top-1"
+                ),
+                "action": (
+                    "Invoke fast_context_search per semantic-fast-context route, then narrow "
+                    "with rg on returned keywords and paths; semantic output remains recall-only "
+                    "until source reads confirm."
+                ),
+                "replacesRole": "semantic",
+            }
+        )
     return hints
 
 
@@ -502,6 +600,15 @@ def _warnings(intents: list[dict[str, object]]) -> list[str]:
     if INTENT_POLICY in ids and INTENT_PRESERVE in ids:
         warnings.append(
             "Both policy-document and protocol-platform-preserve detected; preserve keeps exact-symbol primary."
+        )
+    if (
+        INTENT_CONCEPTUAL in ids
+        and INTENT_EXACT not in ids
+        and INTENT_PRESERVE not in ids
+    ):
+        warnings.append(
+            "Conceptual intent without exact signals; semantic-fast-context route promoted in plan. "
+            "Convert semantic hits to exact rg follow-ups before final claims."
         )
     return warnings
 
@@ -519,27 +626,29 @@ def route_codebase_retrieval(
         intents = [
             _intent(INTENT_EXACT, "General codebase (exact baseline)", ["empty-query"], "low", True)
         ]
+        empty_routes = _ordered_routes(intents, include_optional)
         return {
             "version": ROUTER_VERSION,
             "query": normalized,
             "intents": intents,
-            "routes": _ordered_routes(intents, include_optional),
+            "routes": empty_routes,
             "adapterState": [],
             "freshness": [],
-            "fallback": _fallback_hints(intents, include_optional),
+            "fallback": _fallback_hints(intents, include_optional, empty_routes),
             "warnings": ["Empty query; only baseline exact route is emitted."],
             "verification": _base_verification(),
         }
 
     intents = _classify_intents(normalized)
+    routes = _ordered_routes(intents, include_optional)
     return {
         "version": ROUTER_VERSION,
         "query": normalized,
         "intents": intents,
-        "routes": _ordered_routes(intents, include_optional),
+        "routes": routes,
         "adapterState": [],
         "freshness": [],
-        "fallback": _fallback_hints(intents, include_optional),
+        "fallback": _fallback_hints(intents, include_optional, routes),
         "warnings": _warnings(intents),
         "verification": _verification_for_intents(intents),
     }

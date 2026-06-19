@@ -15,7 +15,8 @@ export type CodebaseRetrievalIntentId =
   | "trap-package-disambiguation"
   | "extension-shared-symbol"
   | "env-config-literal"
-  | "protocol-platform-preserve";
+  | "protocol-platform-preserve"
+  | "cross-cutting-discovery";
 
 export type RetrievalAdapterRole =
   | "exact"
@@ -108,6 +109,17 @@ const POLICY_SIGNALS: readonly RegExp[] = [
   /\bpolicy\b/i,
   /\bownership\b/i,
   /\bresponsibilit(y|ies)\b/i,
+  /不能/,
+  /规则/,
+];
+
+const CONCEPTUAL_SIGNALS: readonly RegExp[] = [
+  /\bhow\s+does\b/i,
+  /\bacross\s+(packages|modules)\b/i,
+  /\bwhere\s+is\b.*\b(handled|implemented)\b/i,
+  /如何/,
+  /机制/,
+  /跨/,
 ];
 
 const PRESERVE_SIGNALS: readonly RegExp[] = [
@@ -337,12 +349,35 @@ function orderedRoutesForIntents(
   const extension = ids.has("extension-shared-symbol");
   const env = ids.has("env-config-literal");
   const exact = ids.has("exact-symbol-path");
+  const conceptual = ids.has("cross-cutting-discovery");
 
   const activeIntentIds = [...ids];
   const routes: CodebaseRetrievalRoute[] = [];
   const exactPrimaryFirst = preserve || exact;
+  const conceptualPrimary = conceptual && !preserve && !exactPrimaryFirst;
+  let semanticPromoted = false;
 
-  if (policy && !preserve && !exactPrimaryFirst) {
+  if (conceptualPrimary) {
+    if (policy) {
+      routes.push({
+        ...routePolicyDocs(activeIntentIds),
+        order: routes.length + 1,
+      });
+    }
+    routes.push({
+      ...routeSemantic(activeIntentIds, routes.length + 1),
+      rationale: policy
+        ? "Policy plus conceptual intent: semantic recall after policy docs, before exact rg follow-up."
+        : "Conceptual query without exact signals; semantic recall before exact rg narrowing.",
+    });
+    semanticPromoted = true;
+    routes.push({
+      ...routeExactPrimary(activeIntentIds),
+      order: routes.length + 1,
+      rationale:
+        "Exact rg follow-up after semantic recall (or policy docs) narrows candidate files and symbols.",
+    });
+  } else if (policy && !preserve && !exactPrimaryFirst) {
     routes.push({ ...routePolicyDocs(activeIntentIds), order: 1 });
     routes.push({
       ...routeExactPrimary(activeIntentIds),
@@ -431,8 +466,10 @@ function orderedRoutesForIntents(
         "LSP navigation after candidate symbols/files exist; not a broad first pass.",
       intentIds: activeIntentIds,
     });
-    const semanticOrder = routes.length + 1;
-    routes.push(routeSemantic(activeIntentIds, semanticOrder));
+    if (!semanticPromoted) {
+      const semanticOrder = routes.length + 1;
+      routes.push(routeSemantic(activeIntentIds, semanticOrder));
+    }
   }
 
   routes.push(routeVerification(activeIntentIds, routes.length + 1));
@@ -536,6 +573,21 @@ function classifyIntents(query: string): CodebaseRetrievalIntent[] {
     );
   }
 
+  if (exactHits.length === 0 && preserveHits.length === 0) {
+    const conceptualHits = matchAny(CONCEPTUAL_SIGNALS, query);
+    if (conceptualHits.length > 0) {
+      intents.push(
+        buildIntent(
+          "cross-cutting-discovery",
+          "Conceptual / cross-cutting discovery",
+          conceptualHits,
+          intentConfidence(conceptualHits.length, false),
+          false,
+        ),
+      );
+    }
+  }
+
   if (intents.length === 0) {
     intents.push(
       buildIntent(
@@ -559,6 +611,7 @@ function classifyIntents(query: string): CodebaseRetrievalIntent[] {
 function buildFallbackHints(
   intents: CodebaseRetrievalIntent[],
   includeOptionalAdapters: boolean,
+  routes: CodebaseRetrievalRoute[],
 ): CodebaseRetrievalFallbackHint[] {
   const hints: CodebaseRetrievalFallbackHint[] = [
     {
@@ -583,6 +636,24 @@ function buildFallbackHints(
       replacesRole: "semantic",
     });
   }
+  const semanticRoute = routes.find((r) => r.id === "semantic-fast-context");
+  const hasConceptual = intents.some((i) => i.id === "cross-cutting-discovery");
+  const exactPrimary = intents.some(
+    (i) => i.id === "exact-symbol-path" && i.preserveExactPrimary,
+  );
+  if (
+    includeOptionalAdapters &&
+    semanticRoute &&
+    (hasConceptual || semanticRoute.order >= 3 || exactPrimary)
+  ) {
+    hints.push({
+      when:
+        "exact rg returns no corroborated file/range candidates (or only trap hits) before final Top-1",
+      action:
+        "Invoke fast_context_search per semantic-fast-context route, then narrow with rg on returned keywords and paths; semantic output remains recall-only until source reads confirm.",
+      replacesRole: "semantic",
+    });
+  }
   return hints;
 }
 
@@ -599,6 +670,17 @@ function buildWarnings(intents: CodebaseRetrievalIntent[]): string[] {
   if (hasPolicy && hasPreserve) {
     warnings.push(
       "Both policy-document and protocol-platform-preserve detected; preserve route keeps exact-symbol primary.",
+    );
+  }
+  const hasConceptual = intents.some((i) => i.id === "cross-cutting-discovery");
+  const hasExactIntent = intents.some((i) => i.id === "exact-symbol-path");
+  if (
+    hasConceptual &&
+    !hasExactIntent &&
+    !intents.some((i) => i.id === "protocol-platform-preserve")
+  ) {
+    warnings.push(
+      "Conceptual intent without exact signals; semantic-fast-context route promoted in plan. Convert semantic hits to exact rg follow-ups before final claims.",
     );
   }
   return warnings;
@@ -627,32 +709,38 @@ export function routeCodebaseRetrieval(
 
   if (!query) {
     const empty = emptyCodebaseRetrievalPlan(query);
+    const emptyIntent = buildIntent(
+      "exact-symbol-path",
+      "General codebase (exact baseline)",
+      ["empty-query"],
+      "low",
+      true,
+    );
+    empty.intents = [emptyIntent];
     empty.warnings.push("Empty query; only baseline exact route is emitted.");
     empty.routes = orderedRoutesForIntents(
-      [
-        buildIntent(
-          "exact-symbol-path",
-          "General codebase (exact baseline)",
-          ["empty-query"],
-          "low",
-          true,
-        ),
-      ],
+      empty.intents,
       includeOptionalAdapters,
+    );
+    empty.fallback = buildFallbackHints(
+      empty.intents,
+      includeOptionalAdapters,
+      empty.routes,
     );
     empty.verification = baseVerification();
     return empty;
   }
 
   const intents = classifyIntents(query);
+  const routes = orderedRoutesForIntents(intents, includeOptionalAdapters);
   return {
     version: CODEBASE_RETRIEVAL_ROUTER_VERSION,
     query,
     intents,
-    routes: orderedRoutesForIntents(intents, includeOptionalAdapters),
+    routes,
     adapterState: [],
     freshness: [],
-    fallback: buildFallbackHints(intents, includeOptionalAdapters),
+    fallback: buildFallbackHints(intents, includeOptionalAdapters, routes),
     warnings: buildWarnings(intents),
     verification: verificationForIntents(intents),
   };
