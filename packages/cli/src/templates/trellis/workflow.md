@@ -167,23 +167,43 @@ Phase 2: Execute → implement only after task status is in_progress
 Phase 3: Finish  → verify, record learning decision, commit, and guarded archive
 ```
 
-### Request Triage
+### Request Triage (mandatory before any work)
 
-- Simple conversation or small task: ask only whether this turn should create a Trellis task. If the user says no, skip Trellis for this session.
-- Complex task: ask whether you may create a Trellis task and enter planning. If the user says no, do not do broad inline implementation; explain, clarify scope, or suggest a smaller split.
-- User approval to create a task is not approval to start implementation. Planning still happens first.
+**Every turn that could produce work must be classified before acting.** This is a hard gate, not a suggestion. Resolve the request against the Task Ladder decision tree below, then emit the classification mark. If you cannot classify, you have not understood the request — ask a clarifying question instead of starting work.
+
+Decision tree (first match wins):
+
+1. **No durable project change** (conversation, status, explanation, read-only lookup, tiny one-turn action) → `No Task`.
+2. **Underspecified small request, no task yet** (needs focused clarification or decision pressure before work exists) → `Micro-Grill` (load `trellis-micro-grill`).
+3. **Low-risk durable work, narrow scope, local validation, no shared contract** → `Lite Task`.
+4. **Durable code/template/runtime/workflow/cross-file behavior, or framework semantics** → `Full Task`.
+5. **Multiple independent deliverables, staged/parallel execution, or final integration authority** → `Parent Task / Child Tasks`.
+
+Classification mark (R2 — visible audit trail). Start your reply with one line in this exact shape:
+
+```
+[Triage: <Mode>] <one-sentence reason citing the trigger signal>
+```
+
+- `<Mode>` ∈ `No Task | Micro-Grill | Lite | Full | Parent`.
+- The reason must reference the trigger signal from the Task Ladder table (e.g. "cross-file workflow change", "read-only explanation"). Vague reasons like "looks complex" are not acceptable.
+- For `No Task` turns the mark is still required — it is how the user audits that you actually classified rather than skipped.
+
+Consent gate. After classifying into any mode that creates a task, ask the user for task-creation consent before creating any Trellis artifact. User approval to create a task is **not** approval to start implementation — planning still happens first. If the user declines a task for a simple request, skip Trellis for this session.
+
+Selected-task continuity. When a `selected_task` already exists, do not rerun global classification on every follow-up; continue inside the selected task unless a strong conflict exists (explicit exit/switch/create language, out-of-scope request, different artifact/archive target, new independent deliverable, contract-changing request, or evidence pollution risk).
 
 ### Task Ladder And Routing
 
 Classify by risk and persistence, not raw effort size. A short change to durable framework semantics can require a Full Task; a long conversation can remain No Task when it leaves no durable project state.
 
-| Mode | Use when | Durable artifacts |
-| --- | --- | --- |
-| No Task | Conversation, status, explanation, read-only lookup, or a tiny one-turn action with no durable project change. | None. No archive unless upgraded. |
-| Micro-Grill | The user needs focused clarification, decision pressure, or a small requirement interrogation before deciding whether work exists. | Usually none. Upgrade before durable edits, validation, gates, or archive evidence. |
-| Lite Task | Low-risk durable work with narrow scope, local validation, and no shared contract change. | `task.json`, `prd.md`, `verify.md`, and archive evidence. |
-| Full Task | Durable code, template, runtime, workflow, or cross-file behavior where design, execution strategy, validation, or reviewer gates matter. | `prd.md`, `design.md`, `implement.md`, `verify.md`, Development Strategy Contract, `verification_profile`, `quality_gates`, and archive evidence. |
-| Parent Task / Child Tasks | One request contains independent deliverables, staged execution, parallel execution, or final integration authority that must be owned by a Parent. | Parent `task-map.md`, Child task artifacts, Child handoff evidence, Parent final integration evidence. |
+| Mode | Use when | Trigger signals | Durable artifacts |
+| --- | --- | --- | --- |
+| No Task | Conversation, status, explanation, read-only lookup, or a tiny one-turn action with no durable project change. | explain / status / lookup / read-only / one-liner | None. No archive unless upgraded. |
+| Micro-Grill | The user needs focused clarification, decision pressure, or a small requirement interrogation before deciding whether work exists. | small + underspecified / "depends" / needs clarification / decision tree first | Usually none. Upgrade before durable edits, validation, gates, or archive evidence. |
+| Lite Task | Low-risk durable work with narrow scope, local validation, and no shared contract change. | low-risk / single file / local validation / no contract / narrow scope | `task.json`, `prd.md`, `verify.md`, and archive evidence. |
+| Full Task | Durable code, template, runtime, workflow, or cross-file behavior where design, execution strategy, validation, or reviewer gates matter. | cross-file / framework semantics / contract change / template / runtime / workflow / multi-file behavior | `prd.md`, `design.md`, `implement.md`, `verify.md`, Development Strategy Contract, `verification_profile`, `quality_gates`, and archive evidence. |
+| Parent Task / Child Tasks | One request contains independent deliverables, staged execution, parallel execution, or final integration authority that must be owned by a Parent. | multiple independent deliverables / staged / parallel / integration authority | Parent `task-map.md`, Child task artifacts, Child handoff evidence, Parent final integration evidence. |
 
 Default Trellis framework semantics, task model, platform adapters, MCP/capability setup, runtime integration, retrieval/graph tooling, Parent/Child orchestration, and quality-gate work to Full Task or higher.
 
