@@ -274,9 +274,8 @@ python3 ./.trellis/scripts/task.py review-child <parent-task> <child-task> --dec
 
 [workflow-state:no_task]
 Trellis framework active. Selected task: none. Use `task.py dashboard` for routing; do not auto-select an existing task.
-First classify the current turn by risk and persistence across No Task, Micro-Grill, Lite Task, Full Task, and Parent Task / Child Tasks; ask for task-creation consent before creating any Trellis task.
-Simple conversation / small task: ask only whether this turn should create a Trellis task. If the user says no, skip Trellis for this session.
-Complex task: ask the user if you can create a Trellis task and enter the planning phase. If the user says no, explain, clarify scope, or suggest a smaller split.
+MANDATORY TRIAGE (hard gate, not optional): every work-capable turn must be classified FIRST, before any action, into No Task / Micro-Grill / Lite Task / Full Task / Parent Task — see "Request Triage" in workflow.md for the decision tree. Emit the classification as the first line of your reply: `[Triage: <Mode>] <one-sentence reason citing the trigger signal>`. If you cannot classify, you have not understood the request — ask a clarifying question instead of starting work.
+After classifying into any mode that creates a task, ask the user for task-creation consent before creating any Trellis artifact. User consent to create a task is NOT consent to start implementation — planning still happens first.
 Underspecified small request with no task: load `trellis-micro-grill` before creating artifacts or upgrading the ladder.
 Framework refresh with no selected task: load `trellis-start` once; after the user selects a task, use `trellis-continue` for step-level resume—not `trellis-start`.
 [/workflow-state:no_task]
