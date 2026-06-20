@@ -17,7 +17,7 @@ import {
   DEFAULT_INBOX_POLICY,
   matchesInboxPolicy,
   type InboxPolicy,
-} from "@blxzer/trellis-core/channel";
+} from "@blxzer/cursor-trellis-core/channel";
 
 import type { WorkerAdapter } from "../adapters/index.js";
 import { appendEvent } from "../store/events.js";

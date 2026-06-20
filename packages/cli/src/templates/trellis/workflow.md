@@ -885,7 +885,7 @@ Readiness `handoff.md` must include **Ready to publish**, **Not published**, and
 - Build evidence, test evidence, pack dry-run evidence
 - Prepublish blockers with disposition: `blocking` / `fixed` / `waived` / `deferred`
 
-Dry-run examples for `@blxzer/trellis` (from `packages/cli`): `check-manifest-continuity.js`, `release-preflight.js check-versions`, `publish-plan`, `verify-packed-cli`, `npm pack --dry-run`. Do not run `release.js`, `npm publish`, or `git push` during readiness.
+Dry-run examples for `@blxzer/cursor-trellis` (from `packages/cli`): `check-manifest-continuity.js`, `release-preflight.js check-versions`, `publish-plan`, `verify-packed-cli`, `npm pack --dry-run`. Do not run `release.js`, `npm publish`, or `git push` during readiness.
 
 ### Execution approval gate
 

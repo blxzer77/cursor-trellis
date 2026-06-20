@@ -40,7 +40,7 @@ The Trellis CLI source repo often sits inside the **D:\MyHarness** harness: the 
 
 Trellis is a **team AI coding harness** — it turns the monolithic `CLAUDE.md` / `AGENTS.md` / `.cursorrules` pattern into a progressive wiki of specs, tasks, workflows, and journals that agents load only when needed.
 
-Published as npm package `@blxzer/trellis` with a core SDK at `@blxzer/trellis-core`. It generates platform-specific configuration for **14 AI coding platforms**: Claude Code, Cursor, Codex, OpenCode, Kilo, Kiro, Gemini CLI, Antigravity, Windsurf, Qoder, CodeBuddy, GitHub Copilot, Factory Droid, and Pi Agent.
+Published as npm package `@blxzer/cursor-trellis` with a core SDK at `@blxzer/cursor-trellis-core`. It generates platform-specific configuration for **14 AI coding platforms**: Claude Code, Cursor, Codex, OpenCode, Kilo, Kiro, Gemini CLI, Antigravity, Windsurf, Qoder, CodeBuddy, GitHub Copilot, Factory Droid, and Pi Agent.
 
 **Key concepts delivered to user projects**:
 - `.trellis/spec/` — Team coding standards agents load automatically
@@ -56,8 +56,8 @@ Published as npm package `@blxzer/trellis` with a core SDK at `@blxzer/trellis-c
 ```
 Trellis/
   packages/
-    core/              # @blxzer/trellis-core - domain primitives
-    cli/               # @blxzer/trellis - CLI tool
+    core/              # @blxzer/cursor-trellis-core - domain primitives
+    cli/               # @blxzer/cursor-trellis - CLI tool
   drafts/              # Draft documents
   assets/              # Logo, demo gifs
   .trellis/            # Self-dogfooding Trellis workspace
@@ -92,17 +92,17 @@ Trellis/
 
 ## 3. Core Package — `packages/core/`
 
-**npm**: `@blxzer/trellis-core` — Zero runtime dependencies.
+**npm**: `@blxzer/cursor-trellis-core` — Zero runtime dependencies.
 
 ### Subpath exports
 
 | Import path | Contents |
 |-------------|----------|
-| `@blxzer/trellis-core` | Root barrel (channel + task) |
-| `@blxzer/trellis-core/channel` | Channel event log, worker lifecycle, threads, inbox |
-| `@blxzer/trellis-core/mem` | Session search, dialogue extraction |
-| `@blxzer/trellis-core/task` | Task record schema, paths, phase inference |
-| `@blxzer/trellis-core/testing` | Test utilities (NOT in root barrel) |
+| `@blxzer/cursor-trellis-core` | Root barrel (channel + task) |
+| `@blxzer/cursor-trellis-core/channel` | Channel event log, worker lifecycle, threads, inbox |
+| `@blxzer/cursor-trellis-core/mem` | Session search, dialogue extraction |
+| `@blxzer/cursor-trellis-core/task` | Task record schema, paths, phase inference |
+| `@blxzer/cursor-trellis-core/testing` | Test utilities (NOT in root barrel) |
 
 ### 3.1 Channel API — `core/src/channel/`
 
@@ -143,13 +143,13 @@ Multi-agent event log for coordinating AI workers.
 | `types.ts` | All types |
 | `adapters/` | Platform session parsers (Claude, Codex, OpenCode) |
 
-**Critical**: NOT in root barrel. Import: `import { searchMemSessions } from "@blxzer/trellis-core/mem"`
+**Critical**: NOT in root barrel. Import: `import { searchMemSessions } from "@blxzer/cursor-trellis-core/mem"`
 
 ---
 
 ## 4. CLI Package — `packages/cli/`
 
-**npm**: `@blxzer/trellis` — Bins: `trellis`, `tl`, `smart-search`
+**npm**: `@blxzer/cursor-trellis` — Bins: `trellis`, `tl`, `smart-search`
 **Dependencies**: trellis-core (workspace), chalk, commander, figlet, giget, inquirer, undici, zod
 
 ### Source layout

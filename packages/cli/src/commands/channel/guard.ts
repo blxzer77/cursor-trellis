@@ -21,7 +21,7 @@ import {
   reduceWorkerRegistry,
   type ChannelEvent,
   type WorkerState,
-} from "@blxzer/trellis-core/channel";
+} from "@blxzer/cursor-trellis-core/channel";
 
 import { DIR_NAMES } from "../../constants/paths.js";
 

@@ -1,7 +1,7 @@
 /**
  * Streaming JSONL / JSON readers for the persisted-session adapters.
  *
- * Zero-dependency on purpose — `@blxzer/trellis-core` does not depend on
+ * Zero-dependency on purpose — `@blxzer/cursor-trellis-core` does not depend on
  * `zod`. The original CLI implementation validated every line against a Zod
  * schema; the external session formats were all declared `.loose()` with every
  * field `.optional()`, so the only thing the schema actually rejected was a

@@ -10,7 +10,7 @@ importers:
 
   packages/cli:
     dependencies:
-      '@blxzer/trellis-core':
+      '@blxzer/cursor-trellis-core':
         specifier: workspace:*
         version: link:../core
       chalk:

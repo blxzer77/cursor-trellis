@@ -9,7 +9,7 @@
  * bucket of migrations.
  *
  * This guard runs before `pnpm version` bumps on every release track:
- *   1. Query npm for all published versions of @blxzer/trellis
+ *   1. Query npm for all published versions of @blxzer/cursor-trellis
  *   2. Diff against local `src/migrations/manifests/*.json`
  *   3. Fail non-zero if any npm version lacks a local manifest
  *
@@ -31,7 +31,7 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const MANIFESTS_DIR = path.join(__dirname, "../src/migrations/manifests");
-const PACKAGE_NAME = "@blxzer/trellis";
+const PACKAGE_NAME = "@blxzer/cursor-trellis";
 
 /**
  * Historical npm versions whose manifests are permanently missing from the
@@ -42,12 +42,7 @@ const PACKAGE_NAME = "@blxzer/trellis";
  * manifest from git or change the release plan) instead of appending here.
  */
 const KNOWN_GAPS = new Set([
-  // Pre-manifest era (migration-manifest system not yet in place when these shipped)
-  "0.1.0", "0.1.1", "0.1.2", "0.1.3", "0.1.4", "0.1.5", "0.1.6", "0.1.7", "0.1.8",
-  // 0.2.x era (earliest local is 0.2.0; then jumps to 0.2.12)
-  "0.2.1", "0.2.2", "0.2.3", "0.2.4", "0.2.5", "0.2.6", "0.2.7", "0.2.8", "0.2.9", "0.2.10", "0.2.11",
-  // 0.3.x beta first public prerelease, manifest not checked in
-  "0.3.10-beta.0",
+  // New package line (@blxzer/cursor-trellis): no historical npm debt yet.
 ]);
 
 const RED = "\x1b[31m";

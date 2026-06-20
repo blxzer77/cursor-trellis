@@ -1,12 +1,12 @@
 /**
- * Public surface for `@blxzer/trellis-core/mem` — reusable retrieval and
+ * Public surface for `@blxzer/cursor-trellis-core/mem` — reusable retrieval and
  * dialogue-context extraction over persisted Claude Code / Codex / OpenCode
  * sessions.
  *
  * This subpackage is intentionally NOT re-exported from the root
- * `@blxzer/trellis-core` barrel. Import it explicitly:
+ * `@blxzer/cursor-trellis-core` barrel. Import it explicitly:
  *
- *   import { searchMemSessions } from "@blxzer/trellis-core/mem";
+ *   import { searchMemSessions } from "@blxzer/cursor-trellis-core/mem";
  *
  * v1 scope: persisted-session search and context extraction only. It does not
  * read channel / forum / thread event logs and has no cursor / pagination.

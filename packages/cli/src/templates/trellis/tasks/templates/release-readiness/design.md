@@ -39,7 +39,7 @@ node scripts/check-manifest-continuity.js
 node scripts/release-preflight.js check-versions
 node scripts/release-preflight.js publish-plan
 node scripts/release-preflight.js verify-packed-cli
-pnpm --filter @blxzer/trellis exec npm pack --dry-run
+pnpm --filter @blxzer/cursor-trellis exec npm pack --dry-run
 ```
 
 Do **not** run `scripts/release.js`, `npm publish`, or `git push` in readiness.

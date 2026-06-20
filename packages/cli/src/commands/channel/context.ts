@@ -7,7 +7,7 @@ import {
   listChannelContext,
   listThreadContext,
   type ChannelScope,
-} from "@blxzer/trellis-core/channel";
+} from "@blxzer/cursor-trellis-core/channel";
 
 import { parseChannelScope } from "./store/schema.js";
 

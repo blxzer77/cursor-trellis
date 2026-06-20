@@ -71,7 +71,7 @@ function main() {
   }
 
   run("node scripts/check-manifest-continuity.js");
-  run("pnpm --filter @blxzer/trellis-core test");
+  run("pnpm --filter @blxzer/cursor-trellis-core test");
   run("pnpm test");
 
   run("git add -A");

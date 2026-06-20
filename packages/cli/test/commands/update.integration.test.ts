@@ -46,6 +46,8 @@ import { workflowMdTemplate } from "../../src/templates/trellis/index.js";
 import { replacePythonCommandLiterals } from "../../src/configurators/shared.js";
 import { compareVersions } from "../../src/utils/compare-versions.js";
 import { getConfigSectionsAddedBetween } from "../../src/migrations/index.js";
+import * as migrations from "../../src/migrations/index.js";
+import { getLegacyAllMigrations } from "../helpers/legacy-migrations.js";
 
 /** Breaking-change gate tests need CLI VERSION above bundled migration manifests (e.g. 0.5.0-beta.0). */
 const breakingMigrationGateApplies =
@@ -1007,38 +1009,52 @@ describe("update() integration", () => {
   });
 
   it("#18 safe-file-delete preserves user-modified deprecated file", async () => {
-    await setupProject();
+    const allMigrationsSpy = vi
+      .spyOn(migrations, "getAllMigrations")
+      .mockReturnValue(getLegacyAllMigrations());
+    try {
+      await setupProject();
 
-    // Create a deprecated file that exists in the 0.4.0-beta.1 safe-file-delete manifest
-    // but with user-modified content (hash won't match allowed_hashes)
-    const deprecatedDir = path.join(tmpDir, ".claude", "commands", "trellis");
-    fs.mkdirSync(deprecatedDir, { recursive: true });
-    const deprecatedFile = path.join(deprecatedDir, "before-backend-dev.md");
-    const userContent =
-      "# My customized before-backend-dev command\nUser edited this.\n";
-    fs.writeFileSync(deprecatedFile, userContent);
+      // Create a deprecated file that exists in the 0.4.0-beta.1 safe-file-delete manifest
+      // but with user-modified content (hash won't match allowed_hashes)
+      const deprecatedDir = path.join(tmpDir, ".claude", "commands", "trellis");
+      fs.mkdirSync(deprecatedDir, { recursive: true });
+      const deprecatedFile = path.join(deprecatedDir, "before-backend-dev.md");
+      const userContent =
+        "# My customized before-backend-dev command\nUser edited this.\n";
+      fs.writeFileSync(deprecatedFile, userContent);
 
-    await update({ force: true });
+      await update({ force: true });
 
-    // File should be preserved (hash doesn't match allowed_hashes)
-    expect(fs.existsSync(deprecatedFile)).toBe(true);
-    expect(fs.readFileSync(deprecatedFile, "utf-8")).toBe(userContent);
+      // File should be preserved (hash doesn't match allowed_hashes)
+      expect(fs.existsSync(deprecatedFile)).toBe(true);
+      expect(fs.readFileSync(deprecatedFile, "utf-8")).toBe(userContent);
+    } finally {
+      allMigrationsSpy.mockRestore();
+    }
   });
 
   it("#19 safe-file-delete handles missing deprecated files without crash", async () => {
-    await setupProject();
+    const allMigrationsSpy = vi
+      .spyOn(migrations, "getAllMigrations")
+      .mockReturnValue(getLegacyAllMigrations());
+    try {
+      await setupProject();
 
-    // Simulate upgrading from an old version — deprecated files don't exist
-    // The manifest has safe-file-delete entries for .claude/commands/trellis/before-backend-dev.md etc.
-    // but init() doesn't create them (templates removed). update() should not crash.
-    const versionPath = path.join(tmpDir, DIR_NAMES.WORKFLOW, ".version");
-    fs.writeFileSync(versionPath, "0.0.3.7");
+      // Simulate upgrading from an old version — deprecated files don't exist
+      // The manifest has safe-file-delete entries for .claude/commands/trellis/before-backend-dev.md etc.
+      // but init() doesn't create them (templates removed). update() should not crash.
+      const versionPath = path.join(tmpDir, DIR_NAMES.WORKFLOW, ".version");
+      fs.writeFileSync(versionPath, "0.0.3.7");
 
-    // This should complete without errors even though deprecated files don't exist
-    await update({ force: true });
+      // This should complete without errors even though deprecated files don't exist
+      await update({ force: true });
 
-    // Version updated successfully
-    expect(fs.readFileSync(versionPath, "utf-8")).toBe(VERSION);
+      // Version updated successfully
+      expect(fs.readFileSync(versionPath, "utf-8")).toBe(VERSION);
+    } finally {
+      allMigrationsSpy.mockRestore();
+    }
   });
 
   // Original template content for check-backend.md (deleted in 0.4.0-beta.1).
@@ -1061,7 +1077,11 @@ describe("update() integration", () => {
   ].join("\n");
 
   it("#20 safe-file-delete respects update.skip for deprecated files", async () => {
-    await setupProject();
+    const allMigrationsSpy = vi
+      .spyOn(migrations, "getAllMigrations")
+      .mockReturnValue(getLegacyAllMigrations());
+    try {
+      await setupProject();
 
     // Sanity: content hash must match the manifest's allowed_hashes
     expect(computeHash(ORIGINAL_CHECK_BACKEND_CONTENT)).toBe(
@@ -1090,10 +1110,17 @@ describe("update() integration", () => {
     expect(fs.readFileSync(deprecatedFile, "utf-8")).toBe(
       ORIGINAL_CHECK_BACKEND_CONTENT,
     );
+    } finally {
+      allMigrationsSpy.mockRestore();
+    }
   });
 
   it("#21 safe-file-delete deletes file when hash matches allowed_hashes", async () => {
-    await setupProject();
+    const allMigrationsSpy = vi
+      .spyOn(migrations, "getAllMigrations")
+      .mockReturnValue(getLegacyAllMigrations());
+    try {
+      await setupProject();
 
     // Sanity: content hash must match the manifest's allowed_hashes
     expect(computeHash(ORIGINAL_CHECK_BACKEND_CONTENT)).toBe(
@@ -1110,6 +1137,9 @@ describe("update() integration", () => {
 
     // File should be DELETED (hash matched allowed_hashes, no update.skip protection)
     expect(fs.existsSync(deprecatedFile)).toBe(false);
+    } finally {
+      allMigrationsSpy.mockRestore();
+    }
   });
 
   it("#22 preserves existing Claude statusLine config and hook file on update", async () => {

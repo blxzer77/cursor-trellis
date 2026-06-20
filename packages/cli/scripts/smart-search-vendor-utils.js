@@ -88,7 +88,7 @@ const cliPackFilesStatic = [
   "LICENSE",
 ];
 
-/** Expected full `package.json` `files` array for @blxzer/trellis publish. */
+/** Expected full `package.json` `files` array for @blxzer/cursor-trellis publish. */
 export function expectedCliPackageFiles(packageRoot = defaultPackageRoot()) {
   return [...cliPackFilesStatic, ...npmPackVendorFileEntries(packageRoot)];
 }

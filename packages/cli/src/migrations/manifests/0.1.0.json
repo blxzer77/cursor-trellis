@@ -1,0 +1,9 @@
+{
+  "version": "0.1.0",
+  "description": "v0.1.0 — first public release of @blxzer/cursor-trellis on npm. New package identity (successor to internal @blxzer/trellis test line). Ships Cursor-first workflow templates, router v2 retrieval, trellis-triage rules, and bundled smart-search.",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**First public cursor-trellis release.**\n\n- npm packages: `@blxzer/cursor-trellis` + `@blxzer/cursor-trellis-core` at `0.1.0`.\n- Repository: [blxzer77/cursor-trellis](https://github.com/blxzer77/cursor-trellis) (public).\n- Includes router v2 retrieval, Cursor `.cursor/rules` Triage gate, commands-only Cursor surface, session-start hook fixes, and smart-search vendor bundle.\n- Migration manifests from the legacy `@blxzer/trellis` line are archived; this package starts a fresh semver line.\n\n**From legacy `@blxzer/trellis`:** `npm uninstall -g @blxzer/trellis && npm install -g @blxzer/cursor-trellis`, then `trellis update` in each project.",
+  "migrations": [],
+  "notes": "Fresh install: `npm install -g @blxzer/cursor-trellis`. CLI binaries remain `trellis` / `tl`. Users on the old `@blxzer/trellis` npm line should switch package names; there is no in-place semver downgrade on npm."
+}

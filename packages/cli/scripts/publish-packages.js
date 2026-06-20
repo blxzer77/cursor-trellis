@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Publish @blxzer/trellis-core and @blxzer/trellis to npm in dependency order.
+ * Publish @blxzer/cursor-trellis-core and @blxzer/cursor-trellis to npm in dependency order.
  *
  * Why this exists: release.js only does the git side (bump + commit + tag +
  * push). npm publishing was manual, and manual publishing repeatedly forgot
@@ -10,7 +10,7 @@
  *
  * Order matters: core is a dependency of cli. If cli is published first, the
  * cli tarball references a core version that does not exist on npm yet, and
- * `npm install -g @blxzer/trellis` fails with ETARGET until core catches up
+ * `npm install -g @blxzer/cursor-trellis` fails with ETARGET until core catches up
  * (this exact breakage happened during 1.1.2 release).
  *
  * Safety:
@@ -67,7 +67,7 @@ function main() {
   const coreVersion = readVersion(CORE_DIR);
   if (cliVersion !== coreVersion) {
     fail(
-      `Version mismatch: @blxzer/trellis@${cliVersion} vs @blxzer/trellis-core@${coreVersion}. ` +
+      `Version mismatch: @blxzer/cursor-trellis@${cliVersion} vs @blxzer/cursor-trellis-core@${coreVersion}. ` +
         `Reconcile both package.json files before publishing.`,
     );
   }
@@ -85,7 +85,7 @@ function main() {
 
   // Step 3: publish core first (cli depends on it). Build fresh because
   // dist/ is gitignored and may be stale or absent after a clean checkout.
-  console.log("\n— @blxzer/trellis-core —");
+  console.log("\n— @blxzer/cursor-trellis-core —");
   run("pnpm run build", { cwd: CORE_DIR });
   run(publishArgs, { cwd: CORE_DIR });
 
@@ -93,7 +93,7 @@ function main() {
   // runs as part of `pnpm publish` and is the final safety gate. In --dry-run
   // mode we skip publish entirely (npm pack --dry-run does not trigger
   // prepublishOnly), so build manually to exercise the same artifact shape.
-  console.log("\n— @blxzer/trellis —");
+  console.log("\n— @blxzer/cursor-trellis —");
   if (dryRun) {
     run("pnpm run build", { cwd: CLI_DIR });
     run("pnpm run copy:release-assets", { cwd: CLI_DIR });
@@ -101,7 +101,7 @@ function main() {
   run(publishArgs, { cwd: CLI_DIR });
 
   console.log(
-    `\n\x1b[32m✓ Published @blxzer/trellis-core@${coreVersion} and @blxzer/trellis@${cliVersion}\x1b[0m`,
+    `\n\x1b[32m✓ Published @blxzer/cursor-trellis-core@${coreVersion} and @blxzer/cursor-trellis@${cliVersion}\x1b[0m`,
   );
 }
 

@@ -8,6 +8,10 @@ import {
   getMigrationSummary,
   hasPendingMigrations,
 } from "../../src/migrations/index.js";
+import {
+  getLegacyMigrationMetadata,
+  getLegacyMigrationsForVersion,
+} from "../helpers/legacy-migrations.js";
 import { compareVersions } from "../../src/utils/compare-versions.js";
 
 // Clear manifest cache before each test to ensure clean state
@@ -37,8 +41,7 @@ describe("getAllMigrationVersions", () => {
 
   it("includes known versions from manifests", () => {
     const versions = getAllMigrationVersions();
-    // The project has manifest files — at least some versions should exist
-    expect(versions.length).toBeGreaterThan(0);
+    expect(versions).toContain("0.1.0");
   });
 
   it("returns consistent results across calls (cache works)", () => {
@@ -116,8 +119,8 @@ describe("getMigrationsForVersion", () => {
     expect(migrations).toEqual([]);
   });
 
-  it("returns beta.0 migrations for 0.2.x→0.3.0 stable upgrade", () => {
-    const migrations = getMigrationsForVersion("0.2.15", "0.3.0");
+  it("returns beta.0 migrations for 0.2.x→0.3.0 stable upgrade (legacy line)", () => {
+    const migrations = getLegacyMigrationsForVersion("0.2.15", "0.3.0");
     // Should include the beta.0 shell→python migrations (all renames, no deletes)
     expect(migrations.length).toBeGreaterThan(0);
     const renames = migrations.filter((m) => m.type === "rename");
@@ -198,8 +201,8 @@ describe("getMigrationMetadata", () => {
     expect(metadata.migrationGuides).toEqual([]);
   });
 
-  it("returns breaking=true for 0.2.x→0.3.0 upgrade", () => {
-    const metadata = getMigrationMetadata("0.2.15", "0.3.0");
+  it("returns breaking=true for 0.2.x→0.3.0 upgrade (legacy line)", () => {
+    const metadata = getLegacyMigrationMetadata("0.2.15", "0.3.0");
     expect(metadata.breaking).toBe(true);
     expect(metadata.recommendMigrate).toBe(true);
   });

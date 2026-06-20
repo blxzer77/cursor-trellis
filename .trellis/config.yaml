@@ -111,8 +111,8 @@ channel:
 
 # Auto-detected monorepo packages
 packages:
-  trellis:
+  cursor-trellis:
     path: packages/cli
-  trellis-core:
+  cursor-trellis-core:
     path: packages/core
-default_package: @blxzer/trellis
+default_package: @blxzer/cursor-trellis

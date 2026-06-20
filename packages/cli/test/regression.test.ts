@@ -25,6 +25,11 @@ import {
   getMigrationsForVersion,
   hasPendingMigrations,
 } from "../src/migrations/index.js";
+import {
+  getLegacyMigrationVersions,
+  getLegacyMigrationsForVersion,
+  LEGACY_MANIFESTS_DIR_PATH,
+} from "./helpers/legacy-migrations.js";
 import { isManagedPath } from "../src/configurators/index.js";
 import { AI_TOOLS } from "../src/types/ai-tools.js";
 import { PATHS } from "../src/constants/paths.js";
@@ -7575,10 +7580,7 @@ describe("regression: cli_adapter platform support (beta.9, beta.13, beta.16)", 
   it("[migrate-flow-bugs] 0.5.0-beta.0 manifest has migrationGuide + aiInstructions (back-filled)", () => {
     const manifest = JSON.parse(
       fs.readFileSync(
-        path.join(
-          path.resolve(__dirname, ".."),
-          "src/migrations/manifests/0.5.0-beta.0.json",
-        ),
+        path.join(LEGACY_MANIFESTS_DIR_PATH, "0.5.0-beta.0.json"),
         "utf-8",
       ),
     );
@@ -7594,13 +7596,7 @@ describe("regression: cli_adapter platform support (beta.9, beta.13, beta.16)", 
   });
 
   it("[migrate-flow-bugs] all breaking+recommendMigrate manifests include migrationGuide", () => {
-    // Enforce going forward: every historical manifest where both
-    // breaking=true AND recommendMigrate=true must have a non-empty
-    // migrationGuide. create-manifest.js also rejects new ones without it.
-    const manifestsDir = path.join(
-      path.resolve(__dirname, ".."),
-      "src/migrations/manifests",
-    );
+    const manifestsDir = LEGACY_MANIFESTS_DIR_PATH;
     const files = fs
       .readdirSync(manifestsDir)
       .filter((f) => f.endsWith(".json"));
@@ -7699,17 +7695,17 @@ describe("regression: cli_adapter platform support (beta.9, beta.13, beta.16)", 
 
 describe("regression: prerelease→stable version stamp (rc.6→0.3.0)", () => {
   it("[0.3.0] rc→stable upgrade returns no migrations (all already applied)", () => {
-    const migrations = getMigrationsForVersion("0.3.0-rc.6", "0.3.0");
+    const migrations = getLegacyMigrationsForVersion("0.3.0-rc.6", "0.3.0");
     expect(migrations).toEqual([]);
   });
 
-  it("[0.3.0] 0.3.0 manifest exists and is well-formed", () => {
-    const versions = getAllMigrationVersions();
+  it("[0.3.0] 0.3.0 manifest exists and is well-formed (legacy archive)", () => {
+    const versions = getLegacyMigrationVersions();
     expect(versions).toContain("0.3.0");
   });
 
-  it("[0.3.0] prerelease sorts before stable in version ordering", () => {
-    const versions = getAllMigrationVersions();
+  it("[0.3.0] prerelease sorts before stable in version ordering (legacy archive)", () => {
+    const versions = getLegacyMigrationVersions();
     const rcIdx = versions.indexOf("0.3.0-rc.6");
     const stableIdx = versions.indexOf("0.3.0");
     expect(rcIdx).not.toBe(-1);
@@ -7718,25 +7714,20 @@ describe("regression: prerelease→stable version stamp (rc.6→0.3.0)", () => {
   });
 });
 
-describe("regression: migration manifest consistency", () => {
-  it("all manifest JSON files are loaded", () => {
-    const manifestDir = path.join(
-      path.dirname(fileURLToPath(import.meta.url)),
-      "../src/migrations/manifests",
-    );
+describe("regression: migration manifest consistency (legacy @blxzer/trellis archive)", () => {
+  it("all legacy manifest JSON files are loadable", () => {
     const jsonFiles = fs
-      .readdirSync(manifestDir)
+      .readdirSync(LEGACY_MANIFESTS_DIR_PATH)
       .filter((f) => f.endsWith(".json"));
-    const versions = getAllMigrationVersions();
+    const versions = getLegacyMigrationVersions();
     expect(versions.length).toBe(jsonFiles.length);
     expect(versions.length).toBeGreaterThan(0);
   });
 
   it("version ordering is strictly ascending", () => {
-    const versions = getAllMigrationVersions();
+    const versions = getLegacyMigrationVersions();
     // Check known ordering constraints
     const knownOrder = [
-      "0.1.9",
       "0.2.0",
       "0.2.12",
       "0.2.13",
@@ -7763,7 +7754,7 @@ describe("regression: migration manifest consistency", () => {
   });
 
   it("[beta.0] shell-to-python migration uses only renames (no deletes)", () => {
-    const migrations = getMigrationsForVersion("0.2.15", "0.3.0-beta.0");
+    const migrations = getLegacyMigrationsForVersion("0.2.15", "0.3.0-beta.0");
     const renames = migrations.filter((m) => m.type === "rename");
     const deletes = migrations.filter((m) => m.type === "delete");
     expect(renames.length).toBeGreaterThan(0);
@@ -7771,7 +7762,7 @@ describe("regression: migration manifest consistency", () => {
   });
 
   it("[#57] shell archive migrations use rename type with correct from/to paths", () => {
-    const migrations = getMigrationsForVersion("0.2.15", "0.3.0-beta.0");
+    const migrations = getLegacyMigrationsForVersion("0.2.15", "0.3.0-beta.0");
     const shellArchives = migrations.filter((m) =>
       m.to?.includes("scripts-shell-archive"),
     );
@@ -7789,7 +7780,7 @@ describe("regression: migration manifest consistency", () => {
   });
 
   it("[#57] shell archive covers all three subdirectories", () => {
-    const migrations = getMigrationsForVersion("0.2.15", "0.3.0-beta.0");
+    const migrations = getLegacyMigrationsForVersion("0.2.15", "0.3.0-beta.0");
     const shellArchives = migrations.filter((m) =>
       m.to?.includes("scripts-shell-archive"),
     );
@@ -7806,7 +7797,7 @@ describe("regression: migration manifest consistency", () => {
   });
 
   it("[0.2.14] command namespace migration renames exist", () => {
-    const migrations = getMigrationsForVersion("0.2.13", "0.2.14");
+    const migrations = getLegacyMigrationsForVersion("0.2.13", "0.2.14");
     expect(migrations.length).toBeGreaterThan(0);
     // Should include commands moved to trellis/ subdirectory
     const claudeRenames = migrations.filter(
@@ -7897,7 +7888,7 @@ describe("regression: migration manifest consistency", () => {
     ];
 
     it("has at least 65 rename entries for command→skill (13 platforms × 5 commands)", () => {
-      const migrations = getMigrationsForVersion("0.4.0", "0.5.0-beta.0");
+      const migrations = getLegacyMigrationsForVersion("0.4.0", "0.5.0-beta.0");
       const renames = migrations.filter((m) => m.type === "rename");
       // >= because additional non-command→skill renames may exist (e.g. finish-work
       // relocation under trellis- namespace on skill-only platforms).
@@ -7907,7 +7898,7 @@ describe("regression: migration manifest consistency", () => {
     });
 
     it("every platform × command pair has a matching rename entry", () => {
-      const migrations = getMigrationsForVersion("0.4.0", "0.5.0-beta.0");
+      const migrations = getLegacyMigrationsForVersion("0.4.0", "0.5.0-beta.0");
       const renames = migrations.filter((m) => m.type === "rename");
       const index = new Map(renames.map((m) => [m.from, m.to]));
 
@@ -7929,8 +7920,8 @@ describe("regression: migration manifest consistency", () => {
       // If either gets dropped accidentally, users upgrading from 0.4.x can half-migrate
       // by running `trellis update` without `--migrate`.
       const manifestPath = path.join(
-        path.dirname(fileURLToPath(import.meta.url)),
-        "../src/migrations/manifests/0.5.0-beta.0.json",
+        LEGACY_MANIFESTS_DIR_PATH,
+        "0.5.0-beta.0.json",
       );
       const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8")) as {
         breaking?: boolean;
@@ -9074,14 +9065,7 @@ describe("regression: configSectionsAdded (issue-codex-dispatch-mode)", () => {
   });
 
   it("[config-sections] manifest 0.5.7 declares the codex dispatch_mode section", () => {
-    const manifestPath = path.join(
-      path.dirname(fileURLToPath(import.meta.url)),
-      "..",
-      "src",
-      "migrations",
-      "manifests",
-      "0.5.7.json",
-    );
+    const manifestPath = path.join(LEGACY_MANIFESTS_DIR_PATH, "0.5.7.json");
     const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8")) as {
       version: string;
       configSectionsAdded?: {
