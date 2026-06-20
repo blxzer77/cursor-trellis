@@ -1,3 +1,0 @@
-{
-  "packages/cli/src/**/*.ts": ["pnpm --filter @mindfoldhq/trellis exec eslint --fix", "pnpm --filter @mindfoldhq/trellis exec prettier --write"]
-}

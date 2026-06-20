@@ -115,10 +115,4 @@ packages:
     path: packages/cli
   trellis-core:
     path: packages/core
-  docs-site:
-    path: docs-site
-    type: submodule
-  marketplace:
-    path: marketplace
-    type: submodule
 default_package: @blxzer/trellis

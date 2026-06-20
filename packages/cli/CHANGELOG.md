@@ -186,10 +186,10 @@ smart-search vendor integration finalized.
 
 ---
 
-[1.1.2]: https://github.com/blxzer77/trellis-private/releases/tag/v1.1.2
-[1.1.1]: https://github.com/blxzer77/trellis-private/releases/tag/v1.1.1
-[1.1.0]: https://github.com/blxzer77/trellis-private/releases/tag/v1.1.0
-[1.0.3]: https://github.com/blxzer77/trellis-private/releases/tag/v1.0.3
-[1.0.2]: https://github.com/blxzer77/trellis-private/releases/tag/v1.0.2
-[1.0.1]: https://github.com/blxzer77/trellis-private/releases/tag/v1.0.1
-[1.0.0]: https://github.com/blxzer77/trellis-private/releases/tag/v1.0.0
+[1.1.2]: https://github.com/blxzer77/cursor-trellis/releases/tag/v1.1.2
+[1.1.1]: https://github.com/blxzer77/cursor-trellis/releases/tag/v1.1.1
+[1.1.0]: https://github.com/blxzer77/cursor-trellis/releases/tag/v1.1.0
+[1.0.3]: https://github.com/blxzer77/cursor-trellis/releases/tag/v1.0.3
+[1.0.2]: https://github.com/blxzer77/cursor-trellis/releases/tag/v1.0.2
+[1.0.1]: https://github.com/blxzer77/cursor-trellis/releases/tag/v1.0.1
+[1.0.0]: https://github.com/blxzer77/cursor-trellis/releases/tag/v1.0.0

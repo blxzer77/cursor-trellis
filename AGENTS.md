@@ -24,7 +24,9 @@ Managed by Trellis. Edits outside this block are preserved; edits inside may be 
 
 The Trellis CLI source repo often sits inside the **D:\MyHarness** harness: the harness root holds workspace-level `.trellis/` (tasks, spec, workflow) and is **not** a git repository. Run `git`, `pnpm`, and CLI validation from **this** directory (`Trellis/`). See `D:\MyHarness\AGENTS.md` for the three-repo layout (`Trellis/`, `smartsearch-private/`, `riverfjs-skills/`).
 
-**Git remotes (local policy):** This checkout uses **only** the `private` remote (`git@github.com:blxzer77/trellis-private.git`). Do **not** add or push to `origin` / `mindfold-ai/Trellis`. Use `git push` (default remote is `private`) or `git push private <branch>`. Do not run `git push origin`.
+**Git remotes (local policy):** This checkout uses **only** the `private` remote (`git@github.com:blxzer77/cursor-trellis.git`). Do **not** add or push to `origin` / `mindfold-ai/Trellis`. Use `git push` (default remote is `private`) or `git push private <branch>`. Do not run `git push origin`.
+
+**Branch policy:** Default development branch is **`main`**. Use short-lived feature branches (`feat/…`, `fix/…`) merged back to `main`; avoid long-lived personal version branches unless cutting a release tag.
 
 ---
 
@@ -54,16 +56,12 @@ Published as npm package `@blxzer/trellis` with a core SDK at `@blxzer/trellis-c
 ```
 Trellis/
   packages/
-    core/              # @blxzer/trellis-core (v1.0.0) - domain primitives
-    cli/               # @blxzer/trellis (v1.0.0) - CLI tool
-  marketplace/         # Workflow template variants (native, tdd, etc.)
-  docs-site/           # Documentation site source
+    core/              # @blxzer/trellis-core - domain primitives
+    cli/               # @blxzer/trellis - CLI tool
   drafts/              # Draft documents
   assets/              # Logo, demo gifs
-  .github/workflows/   # CI (ci.yml) + Publish (publish.yml)
-  .husky/              # pre-commit -> pnpm lint-staged
   .trellis/            # Self-dogfooding Trellis workspace
-  .claude/ .cursor/ .codex/ .gemini/ .opencode/ .pi/
+  .claude/ .cursor/ .codex/ .agents/
   package.json         # Root workspace
   pnpm-workspace.yaml  # packages/*
 ```
@@ -315,11 +313,9 @@ Workflow: update source -> pnpm sync:smart-search -> pnpm check:smart-search
 
 **Test files**: cli/test/ (setup.ts, regression.test.ts, commands/, templates/, scripts/, utils/, runtime/, fixtures/), core/test/ (channel/ 8 files, mem/ 5 files, task/ 4 files).
 
-**CI** (.github/workflows/ci.yml): push/PR to main -> checkout -> Node 20 + pnpm -> install -> typecheck -> lint -> test -> build -> verify output.
+**CI / hooks:** No GitHub Actions or Husky hooks in this fork. Run `pnpm lint && pnpm typecheck && pnpm test && pnpm build` locally before push.
 
-**Publish** (.github/workflows/publish.yml): Release/tag -> version check -> typecheck -> test -> build -> verify pack -> plan -> publish core+cli -> verify npm.
-
-**Pre-commit**: Husky + lint-staged (eslint --fix + prettier --write).
+**Publish:** Manual via `pnpm release*` scripts; pushes tags to the `private` remote.
 
 ---
 
@@ -334,7 +330,7 @@ Workflow: update source -> pnpm sync:smart-search -> pnpm check:smart-search
 | pnpm release:rc | rc |
 | pnpm release:promote | promote |
 
-Scripts: release.js, release-preflight.js (check-versions, publish-plan, verify-packed-cli, verify-npm), bump-versions.js, check-cli-pack-files.js, check-release-pack-contents.js, check-smart-search-vendor.js, check-manifest-continuity.js, check-docs-changelog.js.
+Scripts: release.js, release-preflight.js (check-versions, publish-plan, verify-packed-cli, verify-npm), bump-versions.js, check-cli-pack-files.js, check-release-pack-contents.js, check-smart-search-vendor.js, check-manifest-continuity.js.
 
 **Version rule**: Core and CLI MUST match. CLI pins core to exact version.
 
@@ -392,7 +388,7 @@ pnpm test:coverage     # v8 coverage
 
 ## 13. Dogfooding
 
-.trellis/ in project root. Changes MUST mirror to src/templates/. marketplace/workflows/native/workflow.md must match bundled template (test-enforced).
+.trellis/ in project root. Changes MUST mirror to src/templates/.
 
 ---
 
@@ -404,7 +400,7 @@ pnpm test:coverage     # v8 coverage
 
 **New migration**: src/migrations/manifests/{version}.json -> regression test -> check-manifest-continuity.js
 
-**Modify workflow.md**: Edit src/templates/trellis/workflow.md -> mirror .trellis/workflow.md -> mirror marketplace/workflows/native/workflow.md -> template tests
+**Modify workflow.md**: Edit src/templates/trellis/workflow.md -> mirror .trellis/workflow.md -> template tests
 
 **Modify AGENTS.md template**: Edit src/templates/markdown/index.ts (user projects) or root AGENTS.md (self). Never edit inside TRELLIS:START/END block.
 
