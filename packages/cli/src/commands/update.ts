@@ -362,6 +362,45 @@ function printSafeFileDeleteSummary(
 }
 
 /**
+ * Cursor now prefers Agent Skills for manual Trellis entrypoints. Existing
+ * legacy `.cursor/commands` files are user-visible duplicates, but update must
+ * not delete them silently; surface guidance and leave cleanup explicit.
+ */
+function printCursorCommandSurfaceNotice(cwd: string): void {
+  const legacyCommands = [
+    ".cursor/commands/trellis-continue.md",
+    ".cursor/commands/trellis-finish-work.md",
+  ];
+  const skillEntrypoints = [
+    ".cursor/skills/trellis-continue/SKILL.md",
+    ".cursor/skills/trellis-finish-work/SKILL.md",
+  ];
+
+  const hasLegacyCommand = legacyCommands.some((relativePath) =>
+    fs.existsSync(path.join(cwd, relativePath)),
+  );
+  const hasSkillEntrypoint = skillEntrypoints.some((relativePath) =>
+    fs.existsSync(path.join(cwd, relativePath)),
+  );
+
+  if (!hasLegacyCommand || !hasSkillEntrypoint) return;
+
+  console.log(chalk.cyan("  Cursor command surface notice:"));
+  console.log(
+    chalk.yellow(
+      "    Agent Skills are the preferred current Cursor entrypoint surface; " +
+        "legacy .cursor/commands files are compatibility-only and were left untouched.",
+    ),
+  );
+  console.log(
+    chalk.gray(
+      "    To remove duplicate Cursor UI entries, delete the legacy command files explicitly after confirming you do not need them.",
+    ),
+  );
+  console.log("");
+}
+
+/**
  * Execute safe-file-delete items (delete files + clean up empty dirs)
  */
 function executeSafeFileDeletes(
@@ -2052,6 +2091,7 @@ export async function update(options: UpdateOptions): Promise<void> {
     codexUpgradeNeeded ? new Set<AITool>(["codex"]) : undefined,
     breakingBypass,
   );
+  printCursorCommandSurfaceNotice(cwd);
 
   // Load update.skip paths (used for both safe-file-delete and template collection)
   const skipPaths = loadUpdateSkipPaths(cwd);

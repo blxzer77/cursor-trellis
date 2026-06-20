@@ -39,6 +39,75 @@ When `smart-search doctor` is not ok or `run_smart_search.py` status is `not_con
 
 `route_codebase_retrieval.py` returns **intent + route suggestions** only. **codebase-evidence** is **candidate** until confirmed by Read/Git/tests.
 
+When the envelope includes `semantic-fast-context` and a fallback whose `when` mentions **no corroborated file/range candidates**, the agent or harness should invoke `fast_context_search` after exact `rg` fails to narrow candidates. Router hints do not know live `rg` hit counts; execution discretion follows actual search results.
+
+### Per-query execution telemetry
+
+Use per-query telemetry whenever an eval/report compares semantic planning with semantic execution. Summary metrics must be derived from rows, not hand-written.
+
+| Field group | Owner | Fields |
+| --- | --- | --- |
+| Identity | runner/harness | `query_id`, `dataset`, `query_text`, `run_id` |
+| Plan facts | router/envelope reader | `semantic_in_plan`, `semantic_order`, `fallback_hint_present`, `intents`, `routes` |
+| Execution facts | agent/harness | `tools_called`, `semantic_attempted`, `semantic_executed`, `semantic_outcome`, `semantic_success`, `semantic_skip_reason` |
+| Exact-search facts | agent/harness | `rg_candidate_count`, `rg_corrob_status`, `trap_only`, `corroborated_files` |
+| Adapter errors | agent/harness | `adapter_errors[]` with adapter, outcome/category, retryability, and fallback |
+
+Legal `rg_corrob_status` values: `not_run`, `none`, `trap_only`, `partial`, `sufficient`, `unknown`.
+
+Legal `semantic_skip_reason` values include: `rg_corrob_sufficient`, `rg_empty_semantic_required`, `trap_only_semantic_required`, `not_in_plan`, `not_applicable`, `adapter_unavailable`, `agent_stopped_early`, `unknown`, `manual_not_recorded`.
+
+Derived metrics:
+
+- `semantic_plan_rate` = rows with `semantic_in_plan=true` / total rows.
+- `semantic_exec_rate` = rows with `semantic_executed=true` / total rows.
+- `semantic_attempt_rate` = rows with `semantic_attempted=true` / total rows.
+- `semantic_exec_success_rate` = rows with `semantic_success=true` and `semantic_outcome=success` / total rows.
+
+### O2 semantic fallback compliance
+
+Router output cannot prove execution. A compliance harness should combine the router envelope with simulated or real exact-search status:
+
+- `rg_empty` + semantic route/fallback hint -> next action must be `fast_context_search`.
+- `trap_only` + semantic route/fallback hint -> continue to semantic recall or equivalent trap demotion before final claims.
+- `corroborated_exact_sufficient` -> semantic may be skipped with `semantic_skip_reason=rg_corrob_sufficient`.
+
+Harness-level simulated calls are proof of execution policy only; they are not evidence that fast-context was live or successful.
+
+### fast-context resilience policy
+
+Semantic recall outcomes: `success`, `partial`, `resource_exhausted`, `timeout`, `not_configured`, `unavailable`, `not_run`, `unknown`.
+
+- `success`: counts as attempted, executed, and semantic success, but remains candidate evidence until exact rg/source reads confirm it.
+- `partial`: counts as attempted/executed and must be corroborated; record an adapter warning/error as appropriate.
+- `resource_exhausted`, `timeout`, `not_configured`, `unavailable`: do **not** count as semantic success. Record `adapter_errors[]` and fall back to exact `rg`, CodeGraph if available/fresh, and source reads.
+- Failed fast-context calls may count toward `semantic_attempt_rate` / `semantic_exec_rate` when a call was actually made, but never toward `semantic_exec_success_rate`.
+
+H02/S08-style quota failures should be represented with `semantic_outcome=resource_exhausted`, `semantic_success=false`, an `adapter_errors[]` entry, and fallback evidence from exact search/source reads.
+
+### Result-layer ranking safeguards
+
+When a query produces more candidates than the final display budget, keep an expanded candidate pool before Top-5 compression. Apply focused result-layer ranking only after candidates have exact/source corroboration:
+
+- Caller-chain questions: prefer concrete caller/call-site files over loader, facade, barrel, registry, snapshot, or runtime assembly-only files.
+- Trap/package disambiguation: demote trap candidates such as `plugin-registry-snapshot.ts` unless corroborating exports/references prove they answer the asked package/layer.
+- Env/config literal questions: prefer `scripts/`, `e2e/`, `bench/`, CI/config, and test harness files over generic `src/auth`, `src/paths`, or general implementation modules.
+- Exact-symbol and protocol/platform preserve candidates are protected from these focused demotions.
+
+### B-class caller chain: extended pool and dual Recall@K
+
+For caller-chain queries with many expected call sites, the expanded candidate pool preserves concrete caller candidates even when they fall outside the standard pool window. When `callerPoolExpansion` is enabled, the pool is extended to include at least `minConcreteCallers` concrete caller/callsite candidates; a telemetry warning is emitted when the available concrete callers fall below the minimum.
+
+Dual Recall@K metrics measure information loss from Top-K compression:
+
+- `candidate_pool_recall`: Recall of expected files in the expanded candidate pool (before Top-K compression).
+- `final_top_k_recall`: Recall of expected files in the final Top-K output.
+- `recall_drop_rate`: `1 - (avg_final_top_k_recall / avg_candidate_pool_recall)` — the fraction of pool recall lost during compression. A high drop rate signals that Top-K is too tight for the query class or that ranking needs adjustment.
+
+Use these metrics to decide whether a query class needs a larger Top-K, expanded pool, or ranking rebalancing.
+
+Do not claim aggregate eval improvement from ranking policy alone; use fresh focused before/after evidence or the 50-query runner output.
+
 ## retrieval-pack
 
 Default `get_context.py --json` returns **retrievalGuide** only. Run `--mode retrieval-pack` after you have collected evidence JSON / smart-search manifests under `{TASK}/research/smart-search/`.
@@ -46,3 +115,14 @@ Default `get_context.py --json` returns **retrievalGuide** only. Run `--mode ret
 ## Adapters (optimization #9)
 
 Core: rg, task-artifacts, artifact-search, source-git-tests. Enhance: codegraph, fast-context, smart-search, session-memory. Placeholders: mcp/browser/network envelope only.
+
+## Cross-source priority
+
+When evidence from multiple sources overlaps or conflicts, `resolve_cross_source_conflicts()` applies intent-sensitive authority adjustments and conflict arbitration:
+
+- **Intent-sensitive authority**: Policy queries boost artifact-search (+10); caller-chain boosts codebase-evidence (+10); cross-cutting-discovery boosts smart-search (+10).
+- **Blocking conflicts**: When two verified sources contradict on the same topic, both are flagged `blocking_conflict` and require human resolution — neither is auto-overridden.
+- **Candidate downgrade**: When a verified source contradicts a candidate/unverified source, the candidate gets `conflict_flagged` and a -5 authority penalty.
+- **Stale session-memory**: Session-memory with freshness < 50 gets `stale_warning` and -10 authority penalty.
+- **Integration path**: `score_evidence_bundle()` → `resolve_cross_source_conflicts()` → final arbitrated output.
+- Retrieval-pack now applies cross-source arbitration by default: `score_evidence_bundle()` → `resolve_cross_source_conflicts()` → context-pack/envelope. Query intent from the router envelope drives intent-sensitive authority adjustments.
