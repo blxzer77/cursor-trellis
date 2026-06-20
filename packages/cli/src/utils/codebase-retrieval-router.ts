@@ -6,7 +6,26 @@
  * (router-owned fields only; adapterState/freshness are pass-through stubs).
  */
 
-export const CODEBASE_RETRIEVAL_ROUTER_VERSION = 1 as const;
+export const CODEBASE_RETRIEVAL_ROUTER_VERSION = 2 as const;
+
+export const PLATFORM_CURSOR = "cursor" as const;
+export const PLATFORM_CLAUDE_CODE = "claude-code" as const;
+export const PLATFORM_CODEX = "codex" as const;
+export const PLATFORM_GENERIC = "generic" as const;
+export const KNOWN_PLATFORMS: ReadonlySet<string> = new Set([
+  PLATFORM_CURSOR,
+  PLATFORM_CLAUDE_CODE,
+  PLATFORM_CODEX,
+  PLATFORM_GENERIC,
+]);
+
+export const MODALITY_LEXICAL = "lexical" as const;
+export const MODALITY_STRUCTURAL = "structural" as const;
+export const MODALITY_SEMANTIC = "semantic" as const;
+
+export const TOKEN_ECONOMY_HIGH = "high" as const;
+export const TOKEN_ECONOMY_MEDIUM = "medium" as const;
+export const TOKEN_ECONOMY_LOW = "low" as const;
 
 export type CodebaseRetrievalIntentId =
   | "exact-symbol-path"
@@ -42,6 +61,8 @@ export interface CodebaseRetrievalRoute {
   commands: string[];
   rationale: string;
   intentIds: CodebaseRetrievalIntentId[];
+  tokenEconomy?: "high" | "medium" | "low";
+  platformNative?: boolean;
 }
 
 export interface CodebaseRetrievalFallbackHint {
@@ -67,16 +88,22 @@ export interface CodebaseRetrievalPlanEnvelope {
   fallback: CodebaseRetrievalFallbackHint[];
   warnings: string[];
   verification: CodebaseRetrievalVerificationStep[];
+  platform: string;
+  projectFileCount: number | null;
 }
 
 export interface RouteCodebaseRetrievalInput {
   query: string;
   /** When false, optional adapter routes are omitted from the ordered plan. */
   codebaseRetrievalSelected?: boolean;
+  platform?: string;
+  projectFileCount?: number | null;
 }
 
 export function emptyCodebaseRetrievalPlan(
   query = "",
+  platform: string = PLATFORM_GENERIC,
+  projectFileCount: number | null = null,
 ): CodebaseRetrievalPlanEnvelope {
   return {
     version: CODEBASE_RETRIEVAL_ROUTER_VERSION,
@@ -88,6 +115,8 @@ export function emptyCodebaseRetrievalPlan(
     fallback: [],
     warnings: [],
     verification: [],
+    platform,
+    projectFileCount,
   };
 }
 
@@ -358,9 +387,56 @@ function routeVerification(intentIds: CodebaseRetrievalIntentId[], order: number
   };
 }
 
+function modalityForIntent(
+  intentIds: Set<CodebaseRetrievalIntentId>,
+  structuralIntents?: Set<CodebaseRetrievalIntentId>,
+): readonly string[] {
+  const structural =
+    structuralIntents ??
+    new Set<CodebaseRetrievalIntentId>([
+      "caller-chain",
+      "trap-package-disambiguation",
+      "extension-shared-symbol",
+    ]);
+
+  const hasStructural = [...intentIds].some((id) => structural.has(id));
+  if (hasStructural) {
+    return [MODALITY_STRUCTURAL, MODALITY_LEXICAL, MODALITY_SEMANTIC];
+  }
+  if (intentIds.has("cross-cutting-discovery") && !intentIds.has("exact-symbol-path")) {
+    return [MODALITY_SEMANTIC, MODALITY_LEXICAL, MODALITY_STRUCTURAL];
+  }
+  return [MODALITY_LEXICAL, MODALITY_STRUCTURAL, MODALITY_SEMANTIC];
+}
+
+function tokenEconomyForRoute(routeId: string, platform: string): "high" | "medium" | "low" {
+  const highEconomyRoutes: ReadonlySet<string> = new Set([
+    "caller-chain-ast",
+    "trap-demote-codegraph",
+    "extension-codegraph",
+    "ast-codegraph",
+    "platform-semantic",
+  ]);
+  if (highEconomyRoutes.has(routeId)) {
+    return TOKEN_ECONOMY_HIGH;
+  }
+  const lowEconomyRoutes: ReadonlySet<string> = new Set(["exact-rg-primary"]);
+  if (lowEconomyRoutes.has(routeId) && platform !== PLATFORM_CURSOR) {
+    return TOKEN_ECONOMY_LOW;
+  }
+  return TOKEN_ECONOMY_MEDIUM;
+}
+
+function largeProject(projectFileCount: number | null): boolean {
+  if (projectFileCount === null) return false;
+  return projectFileCount > 2000;
+}
+
 function orderedRoutesForIntents(
   intents: CodebaseRetrievalIntent[],
   includeOptionalAdapters: boolean,
+  platform: string = PLATFORM_GENERIC,
+  projectFileCount: number | null = null,
 ): CodebaseRetrievalRoute[] {
   const ids = new Set(intents.map((item) => item.id));
   const preserve = ids.has("protocol-platform-preserve");
@@ -372,128 +448,250 @@ function orderedRoutesForIntents(
   const exact = ids.has("exact-symbol-path");
   const conceptual = ids.has("cross-cutting-discovery");
 
-  const activeIntentIds = [...ids];
+  const activeIntentIds = [...ids] as CodebaseRetrievalIntentId[];
+  const isCursor = platform === PLATFORM_CURSOR;
+  const isLarge = largeProject(projectFileCount);
+  let semanticPromoted = false;
+
   const routes: CodebaseRetrievalRoute[] = [];
+
+  function append(route: Omit<CodebaseRetrievalRoute, "order" | "intentIds" | "tokenEconomy" | "platformNative"> & { platformNative?: boolean }): void {
+    routes.push({
+      ...route,
+      order: routes.length + 1,
+      intentIds: activeIntentIds,
+      tokenEconomy: tokenEconomyForRoute(route.id, platform),
+      platformNative: route.platformNative ?? false,
+    });
+  }
+
+  // ── Structural-first intents: caller, trap, extension ──
+  if (caller) {
+    append({
+      id: "caller-chain-ast",
+      role: "ast",
+      sourceFamily: "codegraph",
+      commands: ["codegraph callers <symbol> --path <path> --json"],
+      rationale: "Caller-chain intent: codegraph for precise call edges first.",
+    });
+    append({
+      id: "caller-rg-followup",
+      role: "exact",
+      sourceFamily: "rg",
+      commands: ["rg <symbol> --glob '*.ts'"],
+      rationale: "Caller-chain intent: rg follow-up for dynamic callsites codegraph may miss.",
+    });
+  }
+
+  if (trap && !preserve) {
+    append({
+      id: "trap-demote-codegraph",
+      role: "ast",
+      sourceFamily: "codegraph",
+      commands: ["codegraph search <symbol> --path <path> --json"],
+      rationale: "Trap intent: codegraph distinguishes same-named symbols across packages.",
+    });
+    append({
+      id: "trap-demote-rg",
+      role: "exact",
+      sourceFamily: "rg",
+      commands: ["rg <symbol> packages/<name>/", "rg <symbol> src/"],
+      rationale: "Trap intent: rg follow-up across package boundaries.",
+    });
+  }
+
+  if (extension && !preserve) {
+    append({
+      id: "extension-codegraph",
+      role: "ast",
+      sourceFamily: "codegraph",
+      commands: ["codegraph search <symbol> --path <path> --json"],
+      rationale: "Extension intent: codegraph finds cross-extension symbol definitions.",
+    });
+    append({
+      id: "extension-rg",
+      role: "exact",
+      sourceFamily: "rg",
+      commands: ["rg <symbol> extensions/"],
+      rationale: "Extension intent: rg follow-up for extension directory.",
+    });
+  }
+
+  // ── Lexical-first intents: exact, policy, preserve, env ──
   const exactPrimaryFirst = preserve || exact;
   const conceptualPrimary = conceptual && !preserve && !exactPrimaryFirst;
-  let semanticPromoted = false;
 
   if (conceptualPrimary) {
     if (policy) {
-      routes.push({
-        ...routePolicyDocs(activeIntentIds),
-        order: routes.length + 1,
+      append({
+        id: "policy-docs-rg",
+        role: "exact",
+        sourceFamily: "policy-docs",
+        commands: [
+          'rg -i "storage default|sidecar|sqlite only" AGENTS.md "**/AGENTS.md" README.md CONTRIBUTING.md .trellis/spec',
+        ],
+        rationale: "Policy/document intent: search instruction and spec docs first.",
       });
     }
-    routes.push({
-      ...routeSemantic(activeIntentIds, routes.length + 1),
-      rationale: policy
-        ? "Policy plus conceptual intent: semantic recall after policy docs, before exact rg follow-up."
-        : "Conceptual query without exact signals; semantic recall before exact rg narrowing.",
-    });
+    const semanticRationale = policy
+      ? "Policy plus conceptual intent: semantic recall after policy docs, before exact rg follow-up."
+      : "Conceptual query without exact signals; semantic recall before exact rg narrowing.";
+    if (isCursor) {
+      append({
+        id: "platform-semantic",
+        role: "semantic",
+        sourceFamily: "platform-semantic",
+        commands: ["cursor @codebase or built-in semantic search"],
+        rationale: semanticRationale + " (platform-native on Cursor)",
+        platformNative: true,
+      });
+    } else {
+      append({
+        id: "semantic-fast-context",
+        role: "semantic",
+        sourceFamily: "fast-context",
+        commands: ["fast_context_search query=<question> project_path=<root>"],
+        rationale: semanticRationale,
+      });
+    }
     semanticPromoted = true;
-    routes.push({
-      ...routeExactPrimary(activeIntentIds),
-      order: routes.length + 1,
-      rationale:
-        "Exact rg follow-up after semantic recall (or policy docs) narrows candidate files and symbols.",
+    append({
+      id: "exact-rg-primary",
+      role: "exact",
+      sourceFamily: "rg",
+      commands: ["rg <pattern> <path>"],
+      rationale: "Exact rg follow-up after semantic recall (or policy docs) narrows candidate files and symbols.",
     });
   } else if (policy && !preserve && !exactPrimaryFirst) {
-    routes.push({ ...routePolicyDocs(activeIntentIds), order: 1 });
-    routes.push({
-      ...routeExactPrimary(activeIntentIds),
-      order: 2,
-      rationale:
-        "Exact rg on narrowed paths after policy doc pass when no named symbol/path intent is present.",
+    append({
+      id: "policy-docs-rg",
+      role: "exact",
+      sourceFamily: "policy-docs",
+      commands: [
+        'rg -i "storage default|sidecar|sqlite only" AGENTS.md "**/AGENTS.md" README.md CONTRIBUTING.md .trellis/spec',
+      ],
+      rationale: "Policy/document intent: search instruction and spec docs first.",
+    });
+    append({
+      id: "exact-rg-primary",
+      role: "exact",
+      sourceFamily: "rg",
+      commands: ["rg <pattern> <path>"],
+      rationale: "Exact rg after policy doc pass when no symbol/path intent is present.",
     });
   } else if (exactPrimaryFirst) {
-    routes.push(routeExactPrimary(activeIntentIds));
+    append({
+      id: "exact-rg-primary",
+      role: "exact",
+      sourceFamily: "rg",
+      commands: ["rg <pattern> <path>"],
+      rationale: "Exact identifiers and paths stay primary.",
+    });
     if (policy && !preserve) {
-      routes.push({
-        ...routePolicyDocs(activeIntentIds),
-        order: routes.length + 1,
+      append({
+        id: "policy-docs-rg",
+        role: "exact",
+        sourceFamily: "policy-docs",
+        commands: [
+          'rg -i "storage default|sidecar|sqlite only" AGENTS.md "**/AGENTS.md" README.md CONTRIBUTING.md .trellis/spec',
+        ],
+        rationale: "Policy/document branch after exact-primary when both intents match.",
       });
     }
   }
 
   if (env && !preserve) {
-    routes.push({
-      order: routes.length + 1,
+    append({
       id: "env-scripts-rg",
       role: "exact",
       sourceFamily: "rg",
       commands: ["rg <env-prefix> scripts test e2e bench"],
-      rationale:
-        "Env/config literal intent: search scripts and test trees before src/ auth/runtime modules.",
-      intentIds: activeIntentIds,
-    });
-  }
-
-  if (extension && !preserve) {
-    routes.push({
-      order: routes.length + 1,
-      id: "extension-rg",
-      role: "exact",
-      sourceFamily: "rg",
-      commands: ["rg <symbol> extensions/"],
-      rationale:
-        "Extension disambiguation: list extension hits and filter by extension id before global semantic explore.",
-      intentIds: activeIntentIds,
-    });
-  }
-
-  if (trap && !preserve) {
-    routes.push({
-      order: routes.length + 1,
-      id: "trap-demote-rg",
-      role: "exact",
-      sourceFamily: "rg",
-      commands: ["rg <symbol> packages/<name>/", "rg <symbol> src/"],
-      rationale:
-        "Trap demotion: prefer named package paths and demote similarly named agent glue until exports confirm.",
-      intentIds: activeIntentIds,
-    });
-  }
-
-  if (caller) {
-    routes.push({
-      order: routes.length + 1,
-      id: "caller-chain-ast",
-      role: "ast",
-      sourceFamily: "codegraph",
-      commands: [
-        "codegraph callers <symbol> --path <path> --json",
-        "rg <symbol> --glob '*.ts'",
-      ],
-      rationale:
-        "Caller-chain intent: prioritize concrete call sites over facade/loader definition files.",
-      intentIds: activeIntentIds,
+      rationale: "Env/config literals: scripts and test trees before src/ modules.",
     });
   }
 
   if (!routes.some((r) => r.id === "exact-rg-primary")) {
-    routes.push(routeExactPrimary(activeIntentIds));
+    append({
+      id: "exact-rg-primary",
+      role: "exact",
+      sourceFamily: "rg",
+      commands: ["rg <pattern> <path>"],
+      rationale: "Baseline exact search.",
+    });
   }
 
+  // ── Optional adapters ──
   if (includeOptionalAdapters) {
-    routes.push(routeAst(activeIntentIds, routes.length + 1));
-    routes.push({
-      order: routes.length + 2,
-      id: "lsp-navigation",
-      role: "lsp",
-      sourceFamily: "language-server",
-      commands: ["definition", "references", "hover"],
-      rationale:
-        "LSP navigation after candidate symbols/files exist; not a broad first pass.",
-      intentIds: activeIntentIds,
-    });
+    if (!routes.some((r) => r.id === "caller-chain-ast")) {
+      const cgRationale = isLarge
+        ? "Structural search first on large codebase for token efficiency."
+        : "Structural expansion after exact candidates.";
+      append({
+        id: "ast-codegraph",
+        role: "ast",
+        sourceFamily: "codegraph",
+        commands: [
+          "codegraph query <symbol-or-search> --path <path> --json",
+          "codegraph callers <symbol> --path <path> --json",
+        ],
+        rationale: cgRationale,
+      });
+    }
+    if (isCursor) {
+      append({
+        id: "lsp-navigation",
+        role: "lsp",
+        sourceFamily: "language-server",
+        commands: ["definition", "references", "hover"],
+        rationale: "LSP via platform-native Cursor features.",
+        platformNative: true,
+      });
+    } else {
+      append({
+        id: "lsp-navigation",
+        role: "lsp",
+        sourceFamily: "language-server",
+        commands: ["definition", "references", "hover"],
+        rationale: "LSP after candidate symbols exist.",
+      });
+    }
     if (!semanticPromoted) {
-      const semanticOrder = routes.length + 1;
-      routes.push(routeSemantic(activeIntentIds, semanticOrder));
+      if (isCursor) {
+        append({
+          id: "platform-semantic",
+          role: "semantic",
+          sourceFamily: "platform-semantic",
+          commands: ["cursor @codebase or built-in semantic search"],
+          rationale: "Semantic recall via platform-native Cursor search.",
+          platformNative: true,
+        });
+      } else {
+        append({
+          id: "semantic-fast-context",
+          role: "semantic",
+          sourceFamily: "fast-context",
+          commands: ["fast_context_search query=<question> project_path=<root>"],
+          rationale: "Semantic recall last; convert to exact rg follow-ups.",
+        });
+      }
     }
   }
 
-  routes.push(routeVerification(activeIntentIds, routes.length + 1));
+  append({
+    id: "verification-source-git-tests",
+    role: "verification",
+    sourceFamily: "source-git-tests",
+    commands: ["git diff -- <path>", "Get-Content <file>"],
+    rationale: "Required proof layer for verified claims.",
+  });
+
+  // Large project: reorder so structural (ast) routes precede others
+  if (isLarge) {
+    const structural = routes.filter((r) => r.role === "ast");
+    const others = routes.filter((r) => r.role !== "ast");
+    const reordered = [...structural, ...others];
+    return reordered.map((route, index) => ({ ...route, order: index + 1 }));
+  }
 
   return routes
     .sort((a, b) => a.order - b.order)
@@ -633,6 +831,7 @@ function buildFallbackHints(
   intents: CodebaseRetrievalIntent[],
   includeOptionalAdapters: boolean,
   routes: CodebaseRetrievalRoute[],
+  platform: string = PLATFORM_GENERIC,
 ): CodebaseRetrievalFallbackHint[] {
   const hints: CodebaseRetrievalFallbackHint[] = [
     {
@@ -641,6 +840,7 @@ function buildFallbackHints(
         "Codebase retrieval readiness fails; install or expose rg before claiming readiness.",
     },
   ];
+  const isCursor = platform === PLATFORM_CURSOR;
   if (!includeOptionalAdapters) {
     hints.push({
       when: "codebase-retrieval not selected",
@@ -657,7 +857,7 @@ function buildFallbackHints(
       replacesRole: "semantic",
     });
   }
-  const semanticRoute = routes.find((r) => r.id === "semantic-fast-context");
+  const semanticRoute = routes.find((r) => r.role === "semantic");
   const hasConceptual = intents.some((i) => i.id === "cross-cutting-discovery");
   const exactPrimary = intents.some(
     (i) => i.id === "exact-symbol-path" && i.preserveExactPrimary,
@@ -667,18 +867,31 @@ function buildFallbackHints(
     semanticRoute &&
     (hasConceptual || semanticRoute.order >= 3 || exactPrimary)
   ) {
-    hints.push({
-      when:
-        "exact rg returns no corroborated file/range candidates (or only trap hits) before final Top-1",
-      action:
-        "Invoke fast_context_search per semantic-fast-context route, then narrow with rg on returned keywords and paths; semantic output remains recall-only until source reads confirm.",
-      replacesRole: "semantic",
-    });
+    if (isCursor) {
+      hints.push({
+        when:
+          "exact rg returns no corroborated file/range candidates (or only trap hits) before final Top-1",
+        action:
+          "Use Cursor @codebase or built-in semantic search per platform-semantic route, then narrow with rg on returned keywords and paths.",
+        replacesRole: "semantic",
+      });
+    } else {
+      hints.push({
+        when:
+          "exact rg returns no corroborated file/range candidates (or only trap hits) before final Top-1",
+        action:
+          "Invoke fast_context_search per semantic-fast-context route, then narrow with rg on returned keywords and paths; semantic output remains recall-only until source reads confirm.",
+        replacesRole: "semantic",
+      });
+    }
   }
   return hints;
 }
 
-function buildWarnings(intents: CodebaseRetrievalIntent[]): string[] {
+function buildWarnings(
+  intents: CodebaseRetrievalIntent[],
+  platform: string = PLATFORM_GENERIC,
+): string[] {
   const warnings: string[] = [];
   const low = intents.filter((i) => i.confidence === "low");
   if (low.length > 0) {
@@ -700,8 +913,9 @@ function buildWarnings(intents: CodebaseRetrievalIntent[]): string[] {
     !hasExactIntent &&
     !intents.some((i) => i.id === "protocol-platform-preserve")
   ) {
+    const semanticHint = platform === PLATFORM_CURSOR ? "platform-semantic" : "semantic-fast-context";
     warnings.push(
-      "Conceptual intent without exact signals; semantic-fast-context route promoted in plan. Convert semantic hits to exact rg follow-ups before final claims.",
+      `Conceptual intent without exact signals; ${semanticHint} route promoted in plan. Convert semantic hits to exact rg follow-ups before final claims.`,
     );
   }
   return warnings;
@@ -727,9 +941,12 @@ export function routeCodebaseRetrieval(
 ): CodebaseRetrievalPlanEnvelope {
   const query = normalizeQuery(input.query);
   const includeOptionalAdapters = input.codebaseRetrievalSelected !== false;
+  const platform = input.platform && KNOWN_PLATFORMS.has(input.platform)
+    ? input.platform
+    : PLATFORM_GENERIC;
+  const projectFileCount = input.projectFileCount ?? null;
 
   if (!query) {
-    const empty = emptyCodebaseRetrievalPlan(query);
     const emptyIntent = buildIntent(
       "exact-symbol-path",
       "General codebase (exact baseline)",
@@ -737,23 +954,39 @@ export function routeCodebaseRetrieval(
       "low",
       true,
     );
-    empty.intents = [emptyIntent];
-    empty.warnings.push("Empty query; only baseline exact route is emitted.");
-    empty.routes = orderedRoutesForIntents(
-      empty.intents,
+    const emptyRoutes = orderedRoutesForIntents(
+      [emptyIntent],
       includeOptionalAdapters,
+      platform,
+      projectFileCount,
     );
-    empty.fallback = buildFallbackHints(
-      empty.intents,
-      includeOptionalAdapters,
-      empty.routes,
-    );
-    empty.verification = baseVerification();
-    return empty;
+    return {
+      version: CODEBASE_RETRIEVAL_ROUTER_VERSION,
+      query,
+      intents: [emptyIntent],
+      routes: emptyRoutes,
+      adapterState: [],
+      freshness: [],
+      fallback: buildFallbackHints(
+        [emptyIntent],
+        includeOptionalAdapters,
+        emptyRoutes,
+        platform,
+      ),
+      warnings: ["Empty query; only baseline exact route is emitted."],
+      verification: baseVerification(),
+      platform,
+      projectFileCount,
+    };
   }
 
   const intents = classifyIntents(query);
-  const routes = orderedRoutesForIntents(intents, includeOptionalAdapters);
+  const routes = orderedRoutesForIntents(
+    intents,
+    includeOptionalAdapters,
+    platform,
+    projectFileCount,
+  );
   return {
     version: CODEBASE_RETRIEVAL_ROUTER_VERSION,
     query,
@@ -761,8 +994,10 @@ export function routeCodebaseRetrieval(
     routes,
     adapterState: [],
     freshness: [],
-    fallback: buildFallbackHints(intents, includeOptionalAdapters, routes),
-    warnings: buildWarnings(intents),
+    fallback: buildFallbackHints(intents, includeOptionalAdapters, routes, platform),
+    warnings: buildWarnings(intents, platform),
     verification: verificationForIntents(intents),
+    platform,
+    projectFileCount,
   };
 }

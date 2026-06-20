@@ -6,7 +6,7 @@ import {
 } from "../../src/utils/codebase-retrieval-router.js";
 
 describe("codebase retrieval router", () => {
-  it("returns version 1 envelope with empty adapterState and freshness", () => {
+  it("returns version 2 envelope with empty adapterState and freshness", () => {
     const plan = routeCodebaseRetrieval({
       query: "who calls deliverPayload in server-runtime",
     });

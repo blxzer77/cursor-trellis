@@ -13,7 +13,21 @@ import re
 from pathlib import Path
 from typing import Any
 
-ROUTER_VERSION = 1
+ROUTER_VERSION = 2
+
+PLATFORM_CURSOR = "cursor"
+PLATFORM_CLAUDE_CODE = "claude-code"
+PLATFORM_CODEX = "codex"
+PLATFORM_GENERIC = "generic"
+KNOWN_PLATFORMS = {PLATFORM_CURSOR, PLATFORM_CLAUDE_CODE, PLATFORM_CODEX, PLATFORM_GENERIC}
+
+MODALITY_LEXICAL = "lexical"
+MODALITY_STRUCTURAL = "structural"
+MODALITY_SEMANTIC = "semantic"
+
+TOKEN_ECONOMY_HIGH = "high"
+TOKEN_ECONOMY_MEDIUM = "medium"
+TOKEN_ECONOMY_LOW = "low"
 
 INTENT_EXACT = "exact-symbol-path"
 INTENT_POLICY = "policy-document"
@@ -346,9 +360,55 @@ def _verification_for_intents(intents: list[dict[str, object]]) -> list[dict[str
     return _base_verification()
 
 
+def _modality_for_intent(
+    intent_ids: set[str],
+    *,
+    structural_intents: set[str] | None = None,
+) -> list[str]:
+    """Map classified intents to an ordered list of retrieval modalities.
+
+    Structural intents (caller-chain, trap, extension) prefer structural search;
+    conceptual-only queries prefer semantic first; all others default to lexical-first.
+    """
+    if structural_intents is None:
+        structural_intents = {INTENT_CALLER, INTENT_TRAP, INTENT_EXTENSION}
+
+    if intent_ids & structural_intents:
+        return [MODALITY_STRUCTURAL, MODALITY_LEXICAL, MODALITY_SEMANTIC]
+    if INTENT_CONCEPTUAL in intent_ids and INTENT_EXACT not in intent_ids:
+        return [MODALITY_SEMANTIC, MODALITY_LEXICAL, MODALITY_STRUCTURAL]
+    return [MODALITY_LEXICAL, MODALITY_STRUCTURAL, MODALITY_SEMANTIC]
+
+
+def _token_economy_for_route(route_id: str, platform: str) -> str:
+    """Return a token-economy label for a given route ID."""
+    high_economy = {
+        "caller-chain-ast",
+        "trap-demote-codegraph",
+        "extension-codegraph",
+        "ast-codegraph",
+        "platform-semantic",
+    }
+    if route_id in high_economy:
+        return TOKEN_ECONOMY_HIGH
+    low_economy = {"exact-rg-primary"}
+    if route_id in low_economy and platform != PLATFORM_CURSOR:
+        return TOKEN_ECONOMY_LOW
+    return TOKEN_ECONOMY_MEDIUM
+
+
+def _large_project(project_file_count: int | None) -> bool:
+    if project_file_count is None:
+        return False
+    return project_file_count > 2000
+
+
 def _ordered_routes(
     intents: list[dict[str, object]],
     include_optional_adapters: bool,
+    *,
+    platform: str = PLATFORM_GENERIC,
+    project_file_count: int | None = None,
 ) -> list[dict[str, object]]:
     ids = {str(item["id"]) for item in intents}
     active = list(ids)
@@ -362,57 +422,78 @@ def _ordered_routes(
     conceptual = INTENT_CONCEPTUAL in ids
     exact_primary_first = preserve or exact
     conceptual_primary = conceptual and not preserve and not exact_primary_first
+    is_cursor = platform == PLATFORM_CURSOR
+    large = _large_project(project_file_count)
     semantic_promoted = False
 
     routes: list[dict[str, object]] = []
 
     def append(route: dict[str, object]) -> None:
-        routes.append({**route, "order": len(routes) + 1, "intentIds": active})
+        route_id = str(route.get("id", ""))
+        routes.append({
+            **route,
+            "order": len(routes) + 1,
+            "intentIds": active,
+            "tokenEconomy": _token_economy_for_route(route_id, platform),
+            "platformNative": route.get("platformNative", False),
+        })
 
+    # ── Structural-first intents: caller, trap, extension ──
+    # R2: codegraph ahead of rg for structural intents
+    if caller:
+        append({
+            "id": "caller-chain-ast",
+            "role": "ast",
+            "sourceFamily": "codegraph",
+            "commands": [
+                "codegraph callers <symbol> --path <path> --json",
+            ],
+            "rationale": "Caller-chain intent: codegraph for precise call edges first.",
+        })
+        append({
+            "id": "caller-rg-followup",
+            "role": "exact",
+            "sourceFamily": "rg",
+            "commands": ["rg <symbol> --glob '*.ts'"],
+            "rationale": "Caller-chain intent: rg follow-up for dynamic callsites codegraph may miss.",
+        })
+
+    if trap and not preserve:
+        append({
+            "id": "trap-demote-codegraph",
+            "role": "ast",
+            "sourceFamily": "codegraph",
+            "commands": ["codegraph search <symbol> --path <path> --json"],
+            "rationale": "Trap intent: codegraph distinguishes same-named symbols across packages.",
+        })
+        append({
+            "id": "trap-demote-rg",
+            "role": "exact",
+            "sourceFamily": "rg",
+            "commands": ["rg <symbol> packages/<name>/", "rg <symbol> src/"],
+            "rationale": "Trap intent: rg follow-up across package boundaries.",
+        })
+
+    if extension and not preserve:
+        append({
+            "id": "extension-codegraph",
+            "role": "ast",
+            "sourceFamily": "codegraph",
+            "commands": ["codegraph search <symbol> --path <path> --json"],
+            "rationale": "Extension intent: codegraph finds cross-extension symbol definitions.",
+        })
+        append({
+            "id": "extension-rg",
+            "role": "exact",
+            "sourceFamily": "rg",
+            "commands": ["rg <symbol> extensions/"],
+            "rationale": "Extension intent: rg follow-up for extension directory.",
+        })
+
+    # ── Lexical-first intents: exact, policy, preserve, env ──
     if conceptual_primary:
         if policy:
-            append(
-                {
-                    "id": "policy-docs-rg",
-                    "role": "exact",
-                    "sourceFamily": "policy-docs",
-                    "commands": [
-                        'rg -i "storage default|sidecar|sqlite only" AGENTS.md "**/AGENTS.md" '
-                        "README.md CONTRIBUTING.md .trellis/spec"
-                    ],
-                    "rationale": "Policy/document intent: search instruction and spec docs first.",
-                }
-            )
-        semantic_rationale = (
-            "Policy plus conceptual intent: semantic recall after policy docs, before exact rg follow-up."
-            if policy
-            else "Conceptual query without exact signals; semantic recall before exact rg narrowing."
-        )
-        append(
-            {
-                "id": "semantic-fast-context",
-                "role": "semantic",
-                "sourceFamily": "fast-context",
-                "commands": ["fast_context_search query=<question> project_path=<root>"],
-                "rationale": semantic_rationale,
-            }
-        )
-        semantic_promoted = True
-        append(
-            {
-                "id": "exact-rg-primary",
-                "role": "exact",
-                "sourceFamily": "rg",
-                "commands": ["rg <pattern> <path>"],
-                "rationale": (
-                    "Exact rg follow-up after semantic recall (or policy docs) "
-                    "narrows candidate files and symbols."
-                ),
-            }
-        )
-    elif policy and not preserve and not exact_primary_first:
-        append(
-            {
+            append({
                 "id": "policy-docs-rg",
                 "role": "exact",
                 "sourceFamily": "policy-docs",
@@ -421,99 +502,106 @@ def _ordered_routes(
                     "README.md CONTRIBUTING.md .trellis/spec"
                 ],
                 "rationale": "Policy/document intent: search instruction and spec docs first.",
-            }
+            })
+        semantic_rationale = (
+            "Policy plus conceptual intent: semantic recall after policy docs, before exact rg follow-up."
+            if policy
+            else "Conceptual query without exact signals; semantic recall before exact rg narrowing."
         )
-        append(
-            {
-                "id": "exact-rg-primary",
-                "role": "exact",
-                "sourceFamily": "rg",
-                "commands": ["rg <pattern> <path>"],
-                "rationale": "Exact rg after policy doc pass when no symbol/path intent is present.",
-            }
-        )
+        if is_cursor:
+            append({
+                "id": "platform-semantic",
+                "role": "semantic",
+                "sourceFamily": "platform-semantic",
+                "commands": ["cursor @codebase or built-in semantic search"],
+                "rationale": semantic_rationale + " (platform-native on Cursor)",
+                "platformNative": True,
+            })
+        else:
+            append({
+                "id": "semantic-fast-context",
+                "role": "semantic",
+                "sourceFamily": "fast-context",
+                "commands": ["fast_context_search query=<question> project_path=<root>"],
+                "rationale": semantic_rationale,
+            })
+        semantic_promoted = True
+        append({
+            "id": "exact-rg-primary",
+            "role": "exact",
+            "sourceFamily": "rg",
+            "commands": ["rg <pattern> <path>"],
+            "rationale": (
+                "Exact rg follow-up after semantic recall (or policy docs) "
+                "narrows candidate files and symbols."
+            ),
+        })
+    elif policy and not preserve and not exact_primary_first:
+        append({
+            "id": "policy-docs-rg",
+            "role": "exact",
+            "sourceFamily": "policy-docs",
+            "commands": [
+                'rg -i "storage default|sidecar|sqlite only" AGENTS.md "**/AGENTS.md" '
+                "README.md CONTRIBUTING.md .trellis/spec"
+            ],
+            "rationale": "Policy/document intent: search instruction and spec docs first.",
+        })
+        append({
+            "id": "exact-rg-primary",
+            "role": "exact",
+            "sourceFamily": "rg",
+            "commands": ["rg <pattern> <path>"],
+            "rationale": "Exact rg after policy doc pass when no symbol/path intent is present.",
+        })
     elif exact_primary_first:
-        append(
-            {
-                "id": "exact-rg-primary",
-                "role": "exact",
-                "sourceFamily": "rg",
-                "commands": ["rg <pattern> <path>"],
-                "rationale": "Exact identifiers and paths stay primary.",
-            }
-        )
+        append({
+            "id": "exact-rg-primary",
+            "role": "exact",
+            "sourceFamily": "rg",
+            "commands": ["rg <pattern> <path>"],
+            "rationale": "Exact identifiers and paths stay primary.",
+        })
         if policy and not preserve:
-            append(
-                {
-                    "id": "policy-docs-rg",
-                    "role": "exact",
-                    "sourceFamily": "policy-docs",
-                    "commands": [
-                        'rg -i "storage default|sidecar|sqlite only" AGENTS.md "**/AGENTS.md" '
-                        "README.md CONTRIBUTING.md .trellis/spec"
-                    ],
-                    "rationale": "Policy/document branch after exact-primary when both intents match.",
-                }
-            )
+            append({
+                "id": "policy-docs-rg",
+                "role": "exact",
+                "sourceFamily": "policy-docs",
+                "commands": [
+                    'rg -i "storage default|sidecar|sqlite only" AGENTS.md "**/AGENTS.md" '
+                    "README.md CONTRIBUTING.md .trellis/spec"
+                ],
+                "rationale": "Policy/document branch after exact-primary when both intents match.",
+            })
 
     if env and not preserve:
-        append(
-            {
-                "id": "env-scripts-rg",
-                "role": "exact",
-                "sourceFamily": "rg",
-                "commands": ["rg <env-prefix> scripts test e2e bench"],
-                "rationale": "Env/config literals: scripts and test trees before src/ modules.",
-            }
-        )
-    if extension and not preserve:
-        append(
-            {
-                "id": "extension-rg",
-                "role": "exact",
-                "sourceFamily": "rg",
-                "commands": ["rg <symbol> extensions/"],
-                "rationale": "Extension disambiguation before global semantic explore.",
-            }
-        )
-    if trap and not preserve:
-        append(
-            {
-                "id": "trap-demote-rg",
-                "role": "exact",
-                "sourceFamily": "rg",
-                "commands": ["rg <symbol> packages/<name>/", "rg <symbol> src/"],
-                "rationale": "Trap demotion across package boundaries.",
-            }
-        )
-    if caller:
-        append(
-            {
-                "id": "caller-chain-ast",
-                "role": "ast",
-                "sourceFamily": "codegraph",
-                "commands": [
-                    "codegraph callers <symbol> --path <path> --json",
-                    "rg <symbol> --glob '*.ts'",
-                ],
-                "rationale": "Caller-chain: concrete call sites over facade definitions.",
-            }
-        )
+        append({
+            "id": "env-scripts-rg",
+            "role": "exact",
+            "sourceFamily": "rg",
+            "commands": ["rg <env-prefix> scripts test e2e bench"],
+            "rationale": "Env/config literals: scripts and test trees before src/ modules.",
+        })
 
     if not any(str(item.get("id")) == "exact-rg-primary" for item in routes):
-        append(
-            {
-                "id": "exact-rg-primary",
-                "role": "exact",
-                "sourceFamily": "rg",
-                "commands": ["rg <pattern> <path>"],
-                "rationale": "Baseline exact search.",
-            }
-        )
+        append({
+            "id": "exact-rg-primary",
+            "role": "exact",
+            "sourceFamily": "rg",
+            "commands": ["rg <pattern> <path>"],
+            "rationale": "Baseline exact search.",
+        })
 
+    # ── Optional adapters ──
     if include_optional_adapters:
-        append(
-            {
+        # R4: large project → codegraph as structural-first supplement
+        if not any(str(r.get("id")) == "caller-chain-ast" for r in routes):
+            cg_rationale = (
+                "Structural search first on large codebase for token efficiency."
+                if large
+                else "Structural expansion after exact candidates."
+            )
+            append({
                 "id": "ast-codegraph",
                 "role": "ast",
                 "sourceFamily": "codegraph",
@@ -521,38 +609,57 @@ def _ordered_routes(
                     "codegraph query <symbol-or-search> --path <path> --json",
                     "codegraph callers <symbol> --path <path> --json",
                 ],
-                "rationale": "Structural expansion after exact candidates.",
-            }
-        )
-        append(
-            {
+                "rationale": cg_rationale,
+            })
+        if is_cursor:
+            append({
+                "id": "lsp-navigation",
+                "role": "lsp",
+                "sourceFamily": "language-server",
+                "commands": ["definition", "references", "hover"],
+                "rationale": "LSP via platform-native Cursor features.",
+                "platformNative": True,
+            })
+        else:
+            append({
                 "id": "lsp-navigation",
                 "role": "lsp",
                 "sourceFamily": "language-server",
                 "commands": ["definition", "references", "hover"],
                 "rationale": "LSP after candidate symbols exist.",
-            }
-        )
+            })
         if not semantic_promoted:
-            append(
-                {
+            if is_cursor:
+                append({
+                    "id": "platform-semantic",
+                    "role": "semantic",
+                    "sourceFamily": "platform-semantic",
+                    "commands": ["cursor @codebase or built-in semantic search"],
+                    "rationale": "Semantic recall via platform-native Cursor search.",
+                    "platformNative": True,
+                })
+            else:
+                append({
                     "id": "semantic-fast-context",
                     "role": "semantic",
                     "sourceFamily": "fast-context",
                     "commands": ["fast_context_search query=<question> project_path=<root>"],
                     "rationale": "Semantic recall last; convert to exact rg follow-ups.",
-                }
-            )
+                })
 
-    append(
-        {
-            "id": "verification-source-git-tests",
-            "role": "verification",
-            "sourceFamily": "source-git-tests",
-            "commands": ["git diff -- <path>", "Get-Content <file>"],
-            "rationale": "Required proof layer for verified claims.",
-        }
-    )
+    append({
+        "id": "verification-source-git-tests",
+        "role": "verification",
+        "sourceFamily": "source-git-tests",
+        "commands": ["git diff -- <path>", "Get-Content <file>"],
+        "rationale": "Required proof layer for verified claims.",
+    })
+
+    # R4: large project → reorder so codegraph routes precede rg when not already
+    if large:
+        structural = [r for r in routes if r.get("role") in ("ast",)]
+        others = [r for r in routes if r.get("role") not in ("ast",)]
+        routes = structural + others
 
     return [{**route, "order": index + 1} for index, route in enumerate(routes)]
 
@@ -561,6 +668,8 @@ def _fallback_hints(
     intents: list[dict[str, object]],
     include_optional_adapters: bool,
     routes: list[dict[str, object]],
+    *,
+    platform: str = PLATFORM_GENERIC,
 ) -> list[dict[str, object]]:
     hints: list[dict[str, object]] = [
         {
@@ -568,24 +677,21 @@ def _fallback_hints(
             "action": "Codebase retrieval readiness fails; install or expose rg.",
         }
     ]
+    is_cursor = platform == PLATFORM_CURSOR
     if not include_optional_adapters:
-        hints.append(
-            {
-                "when": "codebase-retrieval not selected",
-                "action": "Skip optional AST/LSP/semantic routes; use exact search and verification.",
-                "replacesRole": "semantic",
-            }
-        )
+        hints.append({
+            "when": "codebase-retrieval not selected",
+            "action": "Skip optional AST/LSP/semantic routes; use exact search and verification.",
+            "replacesRole": "semantic",
+        })
     if any(str(item["id"]) == INTENT_POLICY for item in intents):
-        hints.append(
-            {
-                "when": "semantic Top-1 is implementation-only for policy query",
-                "action": "Fall back to policy-doc rg and AGENTS.md/.trellis/spec reads.",
-                "replacesRole": "semantic",
-            }
-        )
+        hints.append({
+            "when": "semantic Top-1 is implementation-only for policy query",
+            "action": "Fall back to policy-doc rg and AGENTS.md/.trellis/spec reads.",
+            "replacesRole": "semantic",
+        })
     semantic_route = next(
-        (r for r in routes if str(r.get("id")) == "semantic-fast-context"),
+        (r for r in routes if str(r.get("role")) == "semantic"),
         None,
     )
     ids = {str(item["id"]) for item in intents}
@@ -597,8 +703,20 @@ def _fallback_hints(
     if include_optional_adapters and semantic_route and (
         has_conceptual or int(semantic_route.get("order", 99)) >= 3 or exact_primary
     ):
-        hints.append(
-            {
+        if is_cursor:
+            hints.append({
+                "when": (
+                    "exact rg returns no corroborated file/range candidates "
+                    "(or only trap hits) before final Top-1"
+                ),
+                "action": (
+                    "Use Cursor @codebase or built-in semantic search per platform-semantic route, "
+                    "then narrow with rg on returned keywords and paths."
+                ),
+                "replacesRole": "semantic",
+            })
+        else:
+            hints.append({
                 "when": (
                     "exact rg returns no corroborated file/range candidates "
                     "(or only trap hits) before final Top-1"
@@ -609,12 +727,15 @@ def _fallback_hints(
                     "until source reads confirm."
                 ),
                 "replacesRole": "semantic",
-            }
-        )
+            })
     return hints
 
 
-def _warnings(intents: list[dict[str, object]]) -> list[str]:
+def _warnings(
+    intents: list[dict[str, object]],
+    *,
+    platform: str = PLATFORM_GENERIC,
+) -> list[str]:
     warnings: list[str] = []
     low = [str(item["id"]) for item in intents if item.get("confidence") == "low"]
     if low:
@@ -629,8 +750,11 @@ def _warnings(intents: list[dict[str, object]]) -> list[str]:
         and INTENT_EXACT not in ids
         and INTENT_PRESERVE not in ids
     ):
+        semantic_hint = (
+            "platform-semantic" if platform == PLATFORM_CURSOR else "semantic-fast-context"
+        )
         warnings.append(
-            "Conceptual intent without exact signals; semantic-fast-context route promoted in plan. "
+            f"Conceptual intent without exact signals; {semantic_hint} route promoted in plan. "
             "Convert semantic hits to exact rg follow-ups before final claims."
         )
     return warnings
@@ -640,16 +764,22 @@ def route_codebase_retrieval(
     query: str,
     *,
     codebase_retrieval_selected: bool = True,
+    platform: str = PLATFORM_GENERIC,
+    project_file_count: int | None = None,
 ) -> dict[str, object]:
     """Return the shared evidence envelope with router-owned fields populated."""
     normalized = _normalize_query(query)
     include_optional = codebase_retrieval_selected
+    normalized_platform = platform if platform in KNOWN_PLATFORMS else PLATFORM_GENERIC
 
     if not normalized:
         intents = [
             _intent(INTENT_EXACT, "General codebase (exact baseline)", ["empty-query"], "low", True)
         ]
-        empty_routes = _ordered_routes(intents, include_optional)
+        empty_routes = _ordered_routes(
+            intents, include_optional,
+            platform=normalized_platform, project_file_count=project_file_count,
+        )
         return {
             "version": ROUTER_VERSION,
             "query": normalized,
@@ -657,13 +787,18 @@ def route_codebase_retrieval(
             "routes": empty_routes,
             "adapterState": [],
             "freshness": [],
-            "fallback": _fallback_hints(intents, include_optional, empty_routes),
+            "fallback": _fallback_hints(intents, include_optional, empty_routes, platform=normalized_platform),
             "warnings": ["Empty query; only baseline exact route is emitted."],
             "verification": _base_verification(),
+            "platform": normalized_platform,
+            "projectFileCount": project_file_count,
         }
 
     intents = _classify_intents(normalized)
-    routes = _ordered_routes(intents, include_optional)
+    routes = _ordered_routes(
+        intents, include_optional,
+        platform=normalized_platform, project_file_count=project_file_count,
+    )
     return {
         "version": ROUTER_VERSION,
         "query": normalized,
@@ -671,9 +806,11 @@ def route_codebase_retrieval(
         "routes": routes,
         "adapterState": [],
         "freshness": [],
-        "fallback": _fallback_hints(intents, include_optional, routes),
-        "warnings": _warnings(intents),
+        "fallback": _fallback_hints(intents, include_optional, routes, platform=normalized_platform),
+        "warnings": _warnings(intents, platform=normalized_platform),
         "verification": _verification_for_intents(intents),
+        "platform": normalized_platform,
+        "projectFileCount": project_file_count,
     }
 
 

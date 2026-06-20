@@ -37,6 +37,18 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="Treat codebase-retrieval as unselected (omit optional adapter routes).",
     )
+    parser.add_argument(
+        "--platform",
+        default="generic",
+        choices=["cursor", "claude-code", "codex", "generic"],
+        help="Host platform for platform-adaptive routing (default: generic).",
+    )
+    parser.add_argument(
+        "--project-file-count",
+        type=int,
+        default=None,
+        help="Total file count in project for token economy signals (e.g. 5000).",
+    )
     parser.add_argument("--json", action="store_true", help="Emit JSON to stdout (default).")
     parser.add_argument("--pretty", action="store_true", help="Pretty-print JSON.")
     return parser.parse_args(argv)
@@ -50,7 +62,12 @@ def main(argv: list[str] | None = None) -> int:
         if args.no_codebase_retrieval
         else codebase_retrieval_selected_from_capabilities(caps)
     )
-    plan = route_codebase_retrieval(args.query, codebase_retrieval_selected=selected)
+    plan = route_codebase_retrieval(
+        args.query,
+        codebase_retrieval_selected=selected,
+        platform=args.platform,
+        project_file_count=args.project_file_count,
+    )
     indent = 2 if args.pretty else None
     print(json.dumps(plan, indent=indent, ensure_ascii=False))
     return 0
