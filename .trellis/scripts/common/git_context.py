@@ -63,7 +63,8 @@ def main() -> None:
         help=(
             "Output mode: default (full context), record (for record-session), "
             "packages (package info only), phase (workflow step extraction), "
-            "retrieval-pack (score and pack already-collected retrieval evidence)"
+            "retrieval-pack (score and pack already-collected retrieval evidence; "
+            "use after research collection, not on every SessionStart)"
         ),
     )
     parser.add_argument(
@@ -76,7 +77,10 @@ def main() -> None:
     )
     parser.add_argument(
         "--input",
-        help="Path to evidence JSON for --mode retrieval-pack. Defaults to stdin when omitted.",
+        help=(
+            "Evidence JSON for --mode retrieval-pack (artifactSearchResults, "
+            "smartSearchManifestPaths, codebaseCandidates, etc.). Stdin when omitted."
+        ),
     )
     parser.add_argument(
         "--max-items",
@@ -132,6 +136,7 @@ def main() -> None:
             max_estimated_tokens=args.max_estimated_tokens,
             include_diagnostics=args.include_diagnostics,
             pretty=args.json,
+            platform=args.platform,
         )
     else:
         if args.json:

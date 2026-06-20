@@ -136,6 +136,7 @@ def main() -> None:
             max_estimated_tokens=args.max_estimated_tokens,
             include_diagnostics=args.include_diagnostics,
             pretty=args.json,
+            platform=args.platform,
         )
     else:
         if args.json:

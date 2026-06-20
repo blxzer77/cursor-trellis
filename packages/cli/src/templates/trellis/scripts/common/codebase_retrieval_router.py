@@ -844,6 +844,8 @@ def resolve_router_envelope(
     *,
     explicit_router: dict[str, Any] | None = None,
     query: str | None = None,
+    platform: str | None = None,
+    project_file_count: int | None = None,
 ) -> dict[str, object] | None:
     """Prefer explicit routerEnvelope; otherwise route from query when present."""
     if explicit_router:
@@ -853,4 +855,10 @@ def resolve_router_envelope(
         return None
     caps = load_capabilities_json(repo_root)
     selected = codebase_retrieval_selected_from_capabilities(caps)
-    return route_codebase_retrieval(normalized, codebase_retrieval_selected=selected)
+    resolved_platform = platform if platform in KNOWN_PLATFORMS else PLATFORM_GENERIC
+    return route_codebase_retrieval(
+        normalized,
+        codebase_retrieval_selected=selected,
+        platform=resolved_platform,
+        project_file_count=project_file_count,
+    )
