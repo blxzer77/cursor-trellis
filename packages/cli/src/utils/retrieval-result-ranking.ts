@@ -176,7 +176,7 @@ export function rankRetrievalResultCandidates(
       return a.baseRank - b.baseRank;
     });
 
-  let expandedPool = ranked.slice(0, expandedPoolSize);
+  const expandedPool = ranked.slice(0, expandedPoolSize);
 
   const callerExpansion = options.callerPoolExpansion;
   if (callerExpansion?.enabled && includesIntent(options.intents, "caller-chain")) {
