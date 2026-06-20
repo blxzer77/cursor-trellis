@@ -678,6 +678,218 @@ def clamp(value: int, lower: int, upper: int) -> int:
     return max(lower, min(upper, value))
 
 
+# ---------------------------------------------------------------------------
+# RB-009: Cross-source conflict resolution PoC
+# ---------------------------------------------------------------------------
+
+INTENT_AUTHORITY_ADJUSTMENTS: dict[str, dict[str, int]] = {
+    "policy-document": {SOURCE_ARTIFACT_SEARCH: 10, SOURCE_CODEBASE_EVIDENCE: -5},
+    "caller-chain": {SOURCE_CODEBASE_EVIDENCE: 10},
+    "env-config-literal": {SOURCE_CODEBASE_EVIDENCE: 5, SOURCE_SMART_SEARCH: -10},
+    "cross-cutting-discovery": {SOURCE_SMART_SEARCH: 10, SOURCE_CODEBASE_EVIDENCE: -5},
+}
+
+STALE_FRESHNESS_THRESHOLD = 50
+CONFLICT_PENALTY_CANDIDATE = 5
+STALE_PENALTY = 10
+
+
+def _title_tokens(title: str) -> set[str]:
+    return set(normalize_space(title).lower().split())
+
+
+def _jaccard_similarity(tokens_a: set[str], tokens_b: set[str]) -> float:
+    if not tokens_a or not tokens_b:
+        return 0.0
+    intersection = tokens_a & tokens_b
+    union = tokens_a | tokens_b
+    return len(intersection) / len(union)
+
+
+def _effective_authority(
+    item: ScoredEvidence,
+    query_intent: str | None,
+) -> int:
+    base = item.source_authority
+    if not query_intent:
+        return base
+    adjustments = INTENT_AUTHORITY_ADJUSTMENTS.get(query_intent, {})
+    return clamp(base + adjustments.get(item.source, 0), 0, 100)
+
+
+@dataclass
+class ConflictDescriptor:
+    source_a: str
+    reference_a: str
+    source_b: str
+    reference_b: str
+    conflict_type: str  # "blocking" | "downgrade" | "stale"
+    resolution: str
+
+
+@dataclass
+class ArbitratedEvidence:
+    item: ScoredEvidence
+    effective_authority: int
+    conflict_flags: list[str]
+    arbitration_reasons: list[str]
+
+    def to_json(self) -> dict[str, Any]:
+        result = self.item.to_json()
+        result["effectiveAuthority"] = self.effective_authority
+        result["conflictFlags"] = list(self.conflict_flags)
+        result["arbitrationReasons"] = list(self.arbitration_reasons)
+        return result
+
+
+def resolve_cross_source_conflicts(
+    items: list[ScoredEvidence],
+    *,
+    query_intent: str | None = None,
+    conflict_threshold: float = 0.5,
+    freshness_threshold: int = STALE_FRESHNESS_THRESHOLD,
+) -> dict[str, Any]:
+    """Resolve cross-source conflicts in scored evidence.
+
+    Returns dict with:
+      - items: list of ArbitratedEvidence, sorted by effective authority then score
+      - conflicts: list of ConflictDescriptor
+      - metrics: conflict/arbitration summary
+    """
+    conflicts: list[ConflictDescriptor] = []
+    arbitrated: list[ArbitratedEvidence] = []
+
+    for item in items:
+        effective = _effective_authority(item, query_intent)
+        flags: list[str] = []
+        reasons: list[str] = []
+
+        # Stale session-memory penalty
+        if item.source == SOURCE_SESSION_MEMORY and item.freshness < freshness_threshold:
+            effective = clamp(effective - STALE_PENALTY, 0, 100)
+            flags.append("stale_warning")
+            reasons.append(
+                f"session-memory freshness {item.freshness} < {freshness_threshold}; authority penalty -{STALE_PENALTY}"
+            )
+
+        arbitrated.append(
+            ArbitratedEvidence(
+                item=item,
+                effective_authority=effective,
+                conflict_flags=flags,
+                arbitration_reasons=reasons,
+            )
+        )
+
+    # Pairwise conflict detection
+    n = len(arbitrated)
+    for i in range(n):
+        for j in range(i + 1, n):
+            a = arbitrated[i]
+            b = arbitrated[j]
+            if a.item.source == b.item.source:
+                continue
+
+            tokens_a = _title_tokens(a.item.title)
+            tokens_b = _title_tokens(b.item.title)
+            similarity = _jaccard_similarity(tokens_a, tokens_b)
+            if similarity < conflict_threshold:
+                continue
+
+            # Potential conflict detected
+            a_verified = a.item.validation_state == VALIDATION_VERIFIED
+            b_verified = b.item.validation_state == VALIDATION_VERIFIED
+
+            if a_verified and b_verified:
+                conflict_type = "blocking"
+                resolution = (
+                    f"Both sources verified and overlapping (sim={similarity:.2f}); "
+                    "requires human resolution"
+                )
+                a.conflict_flags.append("blocking_conflict")
+                b.conflict_flags.append("blocking_conflict")
+                a.arbitration_reasons.append(
+                    f"blocking conflict with {b.item.source}: {b.item.reference}"
+                )
+                b.arbitration_reasons.append(
+                    f"blocking conflict with {a.item.source}: {a.item.reference}"
+                )
+            elif a_verified and not b_verified:
+                conflict_type = "downgrade"
+                resolution = (
+                    f"{a.item.source} verified vs {b.item.source} {b.item.validation_state}; "
+                    f"downgrading {b.item.source}"
+                )
+                b.effective_authority = clamp(
+                    b.effective_authority - CONFLICT_PENALTY_CANDIDATE, 0, 100
+                )
+                b.conflict_flags.append("conflict_flagged")
+                b.arbitration_reasons.append(
+                    f"downgraded due to conflict with verified {a.item.source}"
+                )
+            elif b_verified and not a_verified:
+                conflict_type = "downgrade"
+                resolution = (
+                    f"{b.item.source} verified vs {a.item.source} {a.item.validation_state}; "
+                    f"downgrading {a.item.source}"
+                )
+                a.effective_authority = clamp(
+                    a.effective_authority - CONFLICT_PENALTY_CANDIDATE, 0, 100
+                )
+                a.conflict_flags.append("conflict_flagged")
+                a.arbitration_reasons.append(
+                    f"downgraded due to conflict with verified {b.item.source}"
+                )
+            else:
+                continue
+
+            conflicts.append(
+                ConflictDescriptor(
+                    source_a=a.item.source,
+                    reference_a=a.item.reference,
+                    source_b=b.item.source,
+                    reference_b=b.item.reference,
+                    conflict_type=conflict_type,
+                    resolution=resolution,
+                )
+            )
+
+    # Re-sort by effective authority (desc) then score (desc) then source order
+    arbitrated.sort(
+        key=lambda ae: (
+            -ae.effective_authority,
+            -ae.item.score,
+            SOURCE_ORDER.get(ae.item.source, 99),
+        )
+    )
+
+    blocking_count = sum(1 for c in conflicts if c.conflict_type == "blocking")
+    downgrade_count = sum(1 for ae in arbitrated if "conflict_flagged" in ae.conflict_flags)
+
+    return {
+        "version": 1,
+        "total": len(arbitrated),
+        "items": [ae.to_json() for ae in arbitrated],
+        "conflicts": [
+            {
+                "sourceA": c.source_a,
+                "referenceA": c.reference_a,
+                "sourceB": c.source_b,
+                "referenceB": c.reference_b,
+                "type": c.conflict_type,
+                "resolution": c.resolution,
+            }
+            for c in conflicts
+        ],
+        "metrics": {
+            "totalItems": len(arbitrated),
+            "conflictCount": len(conflicts),
+            "blockingConflictCount": blocking_count,
+            "downgradeCount": downgrade_count,
+        },
+    }
+
+
 def dict_value(value: Any) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
 
