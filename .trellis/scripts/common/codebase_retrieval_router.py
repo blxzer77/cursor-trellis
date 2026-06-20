@@ -79,9 +79,14 @@ CONCEPTUAL_PATTERNS = [
     re.compile(r"\bhow\s+does\b", re.I),
     re.compile(r"\bacross\s+(packages|modules)\b", re.I),
     re.compile(r"\bwhere\s+is\b.*\b(handled|implemented)\b", re.I),
+    re.compile(r"\bdifference\s+between\b", re.I),
+    re.compile(r"\boverall\s+design\b", re.I),
     re.compile(r"如何"),
     re.compile(r"机制"),
     re.compile(r"跨"),
+    re.compile(r"为什么"),
+    re.compile(r"原理"),
+    re.compile(r"区别"),
 ]
 
 PRESERVE_PATTERNS = [
@@ -103,8 +108,14 @@ CALLER_PATTERNS = [
     re.compile(r"\bwired\b", re.I),
     re.compile(r"\bdelegate(s|d)?\b", re.I),
     re.compile(r"\bassembly\b", re.I),
+    re.compile(r"\bdependents\b", re.I),
+    re.compile(r"\busages?\s+of\b", re.I),
     re.compile(r"谁调用"),
     re.compile(r"调用链"),
+    re.compile(r"影响面"),
+    re.compile(r"被哪些"),
+    re.compile(r"哪些地方"),
+    re.compile(r"哪里用到"),
 ]
 
 TRAP_PATTERNS = [
@@ -351,9 +362,36 @@ def _verification_for_intents(intents: list[dict[str, object]]) -> list[dict[str
             {
                 "id": "caller-sites",
                 "requirement": (
-                    "Collect concrete call sites before treating a helper/loader file as sufficient Top-1."
+                    "Confirm codegraph-caller results cover the call chain, then verify "
+                    "dynamic dispatch points (callbacks, event handlers, DI registrations) "
+                    "that codegraph may not resolve statically."
                 ),
                 "appliesToRoles": ["exact", "ast"],
+            },
+            *_base_verification(),
+        ]
+    if INTENT_TRAP in ids:
+        return [
+            {
+                "id": "trap-package-check",
+                "requirement": (
+                    "When multiple same-named symbols exist across packages, confirm the "
+                    "codegraph result belongs to the correct package by checking the file's "
+                    "package root or AGENTS.md scope before ranking."
+                ),
+                "appliesToRoles": ["ast", "exact"],
+            },
+            *_base_verification(),
+        ]
+    if INTENT_EXTENSION in ids:
+        return [
+            {
+                "id": "extension-scope-check",
+                "requirement": (
+                    "Confirm the symbol definition lives inside the target extension "
+                    "directory, not in a shared core module with the same name."
+                ),
+                "appliesToRoles": ["ast", "exact"],
             },
             *_base_verification(),
         ]

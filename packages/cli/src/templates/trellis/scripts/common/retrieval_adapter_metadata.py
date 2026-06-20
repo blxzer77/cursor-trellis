@@ -32,6 +32,7 @@ ADAPTER_RG = "rg"
 ADAPTER_CODEGRAPH = "codegraph"
 ADAPTER_LSP = "language-server"
 ADAPTER_FAST_CONTEXT = "fast-context-mcp"
+ADAPTER_PLATFORM_SEMANTIC = "platform-semantic"
 ADAPTER_SMART_SEARCH = "smart-search"
 ADAPTER_ARTIFACT_SEARCH = "artifact-search"
 ADAPTER_SESSION_MEMORY = "session-memory"
@@ -54,6 +55,7 @@ ROLE_BY_ADAPTER = {
     ADAPTER_CODEGRAPH: "ast",
     ADAPTER_LSP: "lsp",
     ADAPTER_FAST_CONTEXT: "semantic",
+    ADAPTER_PLATFORM_SEMANTIC: "semantic",
     ADAPTER_SMART_SEARCH: "external",
     ADAPTER_ARTIFACT_SEARCH: "local-artifact",
     ADAPTER_SESSION_MEMORY: "historical-context",
@@ -126,6 +128,7 @@ def build_evidence_envelope(
         scored_items=list_value(scored_evidence.get("items")),
         recommended_sources=recommended_sources,
         hints=hints,
+        router=router,
     )
     freshness = build_freshness_signals(adapter_states, scored_items=list_value(scored_evidence.get("items")))
     fallback = build_fallback_decisions(adapter_states, hints=hints)
@@ -158,6 +161,7 @@ def build_adapter_states(
     scored_items: list[Any],
     recommended_sources: set[str | None],
     hints: dict[str, dict[str, Any]],
+    router: dict[str, Any] | None = None,
 ) -> list[dict[str, object]]:
     states: list[dict[str, object]] = []
 
@@ -230,6 +234,19 @@ def build_adapter_states(
     for adapter in OPTIONAL_INTEGRATION_ADAPTERS:
         states.append(
             optional_integration_adapter_state(adapter=adapter, hints=hints)
+        )
+
+    # Platform-semantic: replaces fast-context on Cursor
+    platform = string_value(router.get("platform")) if router else None
+    if platform == "cursor":
+        states.append(
+            adapter_state_entry(
+                adapter=ADAPTER_PLATFORM_SEMANTIC,
+                state=STATE_AVAILABLE,
+                required=False,
+                invoked=False,
+                reason="Platform-native semantic search on Cursor (e.g. @codebase); supersedes fast-context",
+            )
         )
 
     states.append(

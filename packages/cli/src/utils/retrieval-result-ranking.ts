@@ -18,6 +18,9 @@ export interface RetrievalResultCandidate {
     | "env-script"
     | "implementation"
     | "protocol"
+    | "codegraph-symbol"
+    | "codegraph-caller"
+    | "platform-semantic"
     | string;
   sourceRole?: string;
   corroborated?: boolean;
@@ -115,6 +118,10 @@ function scoreCandidate(
   }
 
   if (!exactPreserve && includesIntent(intents, "caller-chain")) {
+    if (candidate.evidenceType === "codegraph-caller") {
+      adjustedScore += 30;
+      rankingReasons.push("codegraph-caller-boost");
+    }
     if (isConcreteCallerCandidate(candidate)) {
       adjustedScore += 150;
       rankingReasons.push("concrete-caller-boost");
