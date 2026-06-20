@@ -161,9 +161,14 @@ const CONCEPTUAL_SIGNALS: readonly RegExp[] = [
   /\bhow\s+does\b/i,
   /\bacross\s+(packages|modules)\b/i,
   /\bwhere\s+is\b.*\b(handled|implemented)\b/i,
+  /\bdifference\s+between\b/i,
+  /\boverall\s+design\b/i,
   /如何/,
   /机制/,
   /跨/,
+  /为什么/,
+  /原理/,
+  /区别/,
 ];
 
 const PRESERVE_SIGNALS: readonly RegExp[] = [
@@ -185,8 +190,14 @@ const CALLER_CHAIN_SIGNALS: readonly RegExp[] = [
   /\bwired\b/i,
   /\bdelegate(s|d)?\b/i,
   /\bassembly\b/i,
+  /\bdependents\b/i,
+  /\busages?\s+of\b/i,
   /谁调用/,
   /调用链/,
+  /影响面/,
+  /被哪些/,
+  /哪些地方/,
+  /哪里用到/,
 ];
 
 const TRAP_SIGNALS: readonly RegExp[] = [
@@ -310,8 +321,37 @@ function callerVerification(): CodebaseRetrievalVerificationStep[] {
     {
       id: "caller-sites",
       requirement:
-        "Collect concrete call sites (codegraph callers with raised limit or rg references) before treating a helper/loader file as sufficient Top-1.",
+        "Confirm codegraph-caller results cover the call chain, then verify " +
+        "dynamic dispatch points (callbacks, event handlers, DI registrations) " +
+        "that codegraph may not resolve statically.",
       appliesToRoles: ["exact", "ast"],
+    },
+    ...baseVerification(),
+  ];
+}
+
+function trapVerification(): CodebaseRetrievalVerificationStep[] {
+  return [
+    {
+      id: "trap-package-check",
+      requirement:
+        "When multiple same-named symbols exist across packages, confirm the " +
+        "codegraph result belongs to the correct package by checking the file's " +
+        "package root or AGENTS.md scope before ranking.",
+      appliesToRoles: ["ast", "exact"],
+    },
+    ...baseVerification(),
+  ];
+}
+
+function extensionVerification(): CodebaseRetrievalVerificationStep[] {
+  return [
+    {
+      id: "extension-scope-check",
+      requirement:
+        "Confirm the symbol definition lives inside the target extension " +
+        "directory, not in a shared core module with the same name.",
+      appliesToRoles: ["ast", "exact"],
     },
     ...baseVerification(),
   ];
@@ -929,6 +969,12 @@ function verificationForIntents(
   }
   if (intents.some((i) => i.id === "caller-chain")) {
     return callerVerification();
+  }
+  if (intents.some((i) => i.id === "trap-package-disambiguation")) {
+    return trapVerification();
+  }
+  if (intents.some((i) => i.id === "extension-shared-symbol")) {
+    return extensionVerification();
   }
   return baseVerification();
 }

@@ -684,7 +684,9 @@ def clamp(value: int, lower: int, upper: int) -> int:
 
 INTENT_AUTHORITY_ADJUSTMENTS: dict[str, dict[str, int]] = {
     "policy-document": {SOURCE_ARTIFACT_SEARCH: 10, SOURCE_CODEBASE_EVIDENCE: -5},
-    "caller-chain": {SOURCE_CODEBASE_EVIDENCE: 10},
+    "caller-chain": {SOURCE_CODEBASE_EVIDENCE: 20},
+    "trap-package-disambiguation": {SOURCE_CODEBASE_EVIDENCE: 15},
+    "extension-shared-symbol": {SOURCE_CODEBASE_EVIDENCE: 15},
     "env-config-literal": {SOURCE_CODEBASE_EVIDENCE: 5, SOURCE_SMART_SEARCH: -10},
     "cross-cutting-discovery": {SOURCE_SMART_SEARCH: 10, SOURCE_CODEBASE_EVIDENCE: -5},
 }
