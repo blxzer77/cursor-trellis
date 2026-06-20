@@ -50,7 +50,7 @@ export interface RetrievalAdapterError {
     | "unknown";
   message?: string;
   retryable: boolean;
-  fallback: Array<"exact-rg" | "codegraph" | "source-read" | string>;
+  fallback: ("exact-rg" | "codegraph" | "source-read" | string)[];
 }
 
 export interface RetrievalQueryTelemetry {
@@ -180,8 +180,8 @@ export function deriveRetrievalTelemetryMetrics(
     }
   }
 
-  const rate = (count: number) => (total === 0 ? 0 : count / total);
-  const avg = (values: number[]) => (values.length === 0 ? 0 : values.reduce((a, b) => a + b, 0) / values.length);
+  const rate = (count: number): number => (total === 0 ? 0 : count / total);
+  const avg = (values: number[]): number => (values.length === 0 ? 0 : values.reduce((a, b) => a + b, 0) / values.length);
 
   const avgCandidatePoolRecall = avg(candidatePoolRecalls);
   const avgFinalTopKRecall = avg(finalTopKRecalls);
