@@ -35,6 +35,21 @@ POLICY_PATTERNS = [
     re.compile(r"\bconvention(s)?\b", re.I),
     re.compile(r"\bforbidden\b", re.I),
     re.compile(r"\ballowed\b", re.I),
+    re.compile(r"\bwhere\s+is\s+\w+\s+defined\b", re.I),
+    re.compile(r"\bwho\s+owns\b", re.I),
+    re.compile(r"\bwho\s+is\s+responsible\s+for\b", re.I),
+    re.compile(r"\bwhich\s+module\s+handles\b", re.I),
+    re.compile(r"\bwhich\s+package\s+is\s+responsible\b", re.I),
+    re.compile(r"\ballowed\s+in\b", re.I),
+    re.compile(r"\bforbidden\s+in\b", re.I),
+    re.compile(r"\brestricted\s+to\b", re.I),
+    re.compile(r"\bmust\s+not\b", re.I),
+    re.compile(r"\bshould\s+not\b", re.I),
+    re.compile(r"\bboundary\s+between\b", re.I),
+    re.compile(r"\bboundary\s+of\b", re.I),
+    re.compile(r"\bcode\s+boundary\b", re.I),
+    re.compile(r"\bmodule\s+boundary\b", re.I),
+    re.compile(r"\bpackage\s+boundary\b", re.I),
     re.compile(r"规定"),
     re.compile(r"边界"),
     re.compile(r"为什么不能"),
@@ -304,6 +319,14 @@ def _verification_for_intents(intents: list[dict[str, object]]) -> list[dict[str
                 "requirement": (
                     "For policy/document intents, confirm Top-1 policy evidence from "
                     "AGENTS.md or .trellis/spec before ranking implementation modules first."
+                ),
+                "appliesToRoles": ["exact", "semantic"],
+            },
+            {
+                "id": "agents-neighborhood",
+                "requirement": (
+                    "Read AGENTS.md neighborhood: root AGENTS.md, nested **/AGENTS.md, "
+                    "and package-level policy files before searching implementation modules."
                 ),
                 "appliesToRoles": ["exact", "semantic"],
             },

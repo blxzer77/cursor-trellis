@@ -178,4 +178,49 @@ describe("codebase retrieval router", () => {
       ),
     ).toBe(true);
   });
+
+  it("RB-006: new English policy signals trigger policy-document intent — where is X defined", () => {
+    const plan = routeCodebaseRetrieval({
+      query: "where is storage defined",
+    });
+    expect(plan.intents.map((i) => i.id)).toContain("policy-document");
+  });
+
+  it("RB-006: new English policy signals trigger policy-document intent — who is responsible for", () => {
+    const plan = routeCodebaseRetrieval({
+      query: "who is responsible for persistence",
+    });
+    expect(plan.intents.map((i) => i.id)).toContain("policy-document");
+  });
+
+  it("RB-006: new English policy signals trigger policy-document intent — module boundary", () => {
+    const plan = routeCodebaseRetrieval({
+      query: "module boundary between core and plugins",
+    });
+    expect(plan.intents.map((i) => i.id)).toContain("policy-document");
+  });
+
+  it("RB-006: new English policy signals trigger policy-document intent — must not", () => {
+    const plan = routeCodebaseRetrieval({
+      query: "must not import from internal",
+    });
+    expect(plan.intents.map((i) => i.id)).toContain("policy-document");
+  });
+
+  it("RB-006: new English policy signals trigger policy-document intent — code boundary", () => {
+    const plan = routeCodebaseRetrieval({
+      query: "code boundary enforcement",
+    });
+    expect(plan.intents.map((i) => i.id)).toContain("policy-document");
+  });
+
+  it("RB-006: policy intent produces AGENTS-neighborhood verification step", () => {
+    const plan = routeCodebaseRetrieval({
+      query: "storage policy sidecar",
+    });
+    expect(plan.intents.map((i) => i.id)).toContain("policy-document");
+    expect(plan.verification.some((v) => v.id === "agents-neighborhood")).toBe(
+      true,
+    );
+  });
 });
