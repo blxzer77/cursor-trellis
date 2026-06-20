@@ -181,7 +181,6 @@ Full reference: `.trellis/spec/docs-site/docs/release-lifecycle.md`.
 Run local verification only; do not publish locally.
 
 ```bash
-node packages/cli/scripts/check-docs-changelog.js --type <beta|rc|promote>
 node packages/cli/scripts/release-preflight.js check-versions
 node packages/cli/scripts/release-preflight.js verify-packed-cli
 node packages/cli/scripts/release-preflight.js publish-plan
@@ -190,7 +189,7 @@ pnpm typecheck
 pnpm test
 ```
 
-Skip `check-docs-changelog` only for stable patch releases where that command is not required by the release type.
+This fork does not bundle `docs-site`; skip upstream docs changelog wiring.
 
 ## Step 10: Review and Confirm
 

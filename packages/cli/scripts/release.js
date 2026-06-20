@@ -4,7 +4,7 @@
  *
  * This keeps package.json as a thin command table while the release sequence
  * stays in one place:
- *   manifest/docs guards -> tests -> pre-release commit -> synchronized bump
+ *   manifest guards -> tests -> pre-release commit -> synchronized bump
  *   -> version check -> version commit -> tag -> push
  */
 import { execSync } from "node:child_process";
@@ -58,18 +58,9 @@ function hasGitDiff() {
   }
 }
 
-function docsGuard(type) {
-  if (type === "beta" || type === "rc" || type === "promote") {
-    run(`node scripts/check-docs-changelog.js --type ${type}`);
-  }
-}
-
 function pushTarget(_type) {
-  // Fork policy: this repo only has a `private` remote (no `origin`) and all
-  // release work happens on the developer's working branch (e.g.
-  // personal-v0.6.0-beta.x). Always push the current branch HEAD rather than
-  // a hardcoded `main`, so releases can be cut from any working branch and
-  // land on `private`.
+  // Fork policy: push only to the `private` remote on the current branch
+  // (default: `main`). Do not push to `origin` / upstream.
   return "HEAD";
 }
 
@@ -80,11 +71,10 @@ function main() {
   }
 
   run("node scripts/check-manifest-continuity.js");
-  docsGuard(type);
   run("pnpm --filter @blxzer/trellis-core test");
   run("pnpm test");
 
-  run("git add -A -- ':!docs-site' ':!marketplace'");
+  run("git add -A");
   if (hasGitDiff()) {
     run("git commit -m 'chore: pre-release updates'");
   }
