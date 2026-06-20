@@ -17,7 +17,7 @@ from typing import Any
 from common.codebase_retrieval_router import resolve_router_envelope
 from common.context_pack import build_context_pack
 from common.retrieval_adapter_metadata import build_evidence_envelope
-from common.retrieval_evidence import score_evidence_bundle
+from common.retrieval_evidence import ScoredEvidence, resolve_cross_source_conflicts, score_evidence_bundle
 
 ORCHESTRATOR_VERSION = 1
 ORCHESTRATOR_SOURCE = "retrieval-pack-orchestrator"
@@ -79,8 +79,26 @@ def build_retrieval_pack(
     }
 
     scored_evidence = score_evidence_bundle(bundle)
+
+    # RB-010: Cross-source arbitration
+    query_intent = None
+    if router_envelope and isinstance(router_envelope, dict):
+        intents = router_envelope.get("intents", [])
+        if intents and isinstance(intents[0], dict):
+            query_intent = intents[0].get("id")
+
+    scored_items = _reconstruct_scored_items(scored_evidence)
+    arbitrated_evidence = resolve_cross_source_conflicts(
+        scored_items, query_intent=query_intent
+    )
+
+    scored_evidence_compat = {
+        **scored_evidence,
+        "items": arbitrated_evidence.get("items", []),
+    }
+
     context_pack = build_context_pack(
-        scored_evidence,
+        scored_evidence_compat,
         max_items=max_items,
         max_estimated_tokens=max_estimated_tokens,
         include_diagnostics=include_diagnostics,
@@ -93,6 +111,7 @@ def build_retrieval_pack(
         orchestrator_warnings=warnings,
         router_envelope=router_envelope,
         adapter_hints=adapter_hints,
+        arbitrated_evidence=arbitrated_evidence,
     )
 
     return {
@@ -100,11 +119,39 @@ def build_retrieval_pack(
         "source": ORCHESTRATOR_SOURCE,
         "bundle": bundle,
         "scoredEvidence": scored_evidence,
+        "arbitratedEvidence": arbitrated_evidence,
         "contextPack": context_pack,
         "collection": collection,
         "warnings": warnings,
         "evidenceEnvelope": evidence_envelope,
     }
+
+
+def _reconstruct_scored_items(scored_evidence: dict[str, Any]) -> list[ScoredEvidence]:
+    """Reconstruct ScoredEvidence objects from scored evidence JSON items."""
+    items: list[ScoredEvidence] = []
+    for item_dict in scored_evidence.get("items", []):
+        if not isinstance(item_dict, dict):
+            continue
+        items.append(
+            ScoredEvidence(
+                source=item_dict.get("source", ""),
+                kind=item_dict.get("kind", ""),
+                reference=item_dict.get("reference", ""),
+                title=item_dict.get("title", ""),
+                status=item_dict.get("status", ""),
+                trust=item_dict.get("trust", ""),
+                confidence=item_dict.get("confidence", ""),
+                relevance=item_dict.get("relevance", 0),
+                freshness=item_dict.get("freshness", 0),
+                source_authority=item_dict.get("sourceAuthority", 0),
+                validation_state=item_dict.get("validationState", ""),
+                score=item_dict.get("score", 0),
+                reasons=item_dict.get("reasons", []),
+                warnings=item_dict.get("warnings", []),
+            )
+        )
+    return items
 
 
 def collect_smart_search_manifests(
@@ -270,6 +317,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Repository root for read-only Smart Search manifest discovery.",
     )
     parser.add_argument(
+        "--platform",
+        default=None,
+        help="Host platform for platform-adaptive retrieval routing (e.g. cursor, claude-code, codex).",
+    )
+    parser.add_argument(
         "--max-items",
         type=int,
         default=None,
@@ -333,6 +385,7 @@ def main(argv: list[str] | None = None) -> int:
             resolve_repo_root(args.root),
             explicit_router=dict_value(payload.get("routerEnvelope")) or None,
             query=string_value(payload.get("query")) or None,
+            platform=args.platform,
         ),
         adapter_hints=normalize_dict_list(list_value(payload.get("adapterHints"))),
     )

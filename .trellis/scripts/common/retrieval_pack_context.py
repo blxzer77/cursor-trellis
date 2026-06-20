@@ -51,6 +51,8 @@ def get_context_retrieval_pack_json(
     max_items: int | None = None,
     max_estimated_tokens: int | None = None,
     include_diagnostics: bool = False,
+    platform: str | None = None,
+    project_file_count: int | None = None,
 ) -> dict[str, object]:
     """Build a retrieval pack from session guidance and optional evidence input."""
     if repo_root is None:
@@ -90,6 +92,8 @@ def get_context_retrieval_pack_json(
             repo_root,
             explicit_router=dict_value(payload.get("routerEnvelope")) or None,
             query=string_value(payload.get("query")) or None,
+            platform=platform,
+            project_file_count=project_file_count,
         ),
         adapter_hints=normalize_dict_list(list_value(payload.get("adapterHints"))),
     )
@@ -103,6 +107,8 @@ def output_retrieval_pack_json(
     max_estimated_tokens: int | None = None,
     include_diagnostics: bool = False,
     pretty: bool = False,
+    platform: str | None = None,
+    project_file_count: int | None = None,
 ) -> None:
     """Print retrieval pack JSON to stdout."""
     result = get_context_retrieval_pack_json(
@@ -111,6 +117,8 @@ def output_retrieval_pack_json(
         max_items=max_items,
         max_estimated_tokens=max_estimated_tokens,
         include_diagnostics=include_diagnostics,
+        platform=platform,
+        project_file_count=project_file_count,
     )
     if pretty:
         print(json.dumps(result, indent=2, ensure_ascii=False))
