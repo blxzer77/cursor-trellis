@@ -54,7 +54,7 @@ cd packages/cli
 node scripts/release-preflight.js check-versions
 node scripts/release-preflight.js publish-plan
 # After approval:
-pnpm --filter @blxzer/trellis release:beta   # or patch/minor/major per policy
+pnpm --filter @blxzer/cursor-trellis release:beta   # or patch/minor/major per policy
 node scripts/release-preflight.js verify-npm --package all
 ```
 

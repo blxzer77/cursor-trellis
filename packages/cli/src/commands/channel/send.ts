@@ -2,7 +2,7 @@ import {
   parseDeliveryMode,
   sendMessage as coreSendMessage,
   type ChannelScope,
-} from "@blxzer/trellis-core/channel";
+} from "@blxzer/cursor-trellis-core/channel";
 
 import { parseChannelScope, parseCsv } from "./store/schema.js";
 import { resolveChannelTextBody } from "./text-body.js";

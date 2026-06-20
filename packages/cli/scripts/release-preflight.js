@@ -3,8 +3,8 @@
  * Shared release / publish preflight.
  *
  * One source of truth for:
- *   1. Version match between `@blxzer/trellis` and
- *      `@blxzer/trellis-core` (and the current git tag when checked from
+ *   1. Version match between `@blxzer/cursor-trellis` and
+ *      `@blxzer/cursor-trellis-core` (and the current git tag when checked from
  *      a tag context).
  *   2. The npm dist-tag derived from the shared version (`beta`, `rc`,
  *      `alpha`, or `latest`).
@@ -24,7 +24,7 @@
  *                                    skipped (but version mismatches still
  *                                    fail loudly).
  *   verify-packed-cli                Pack the CLI and assert its dependency
- *                                    on @blxzer/trellis-core resolves
+ *                                    on @blxzer/cursor-trellis-core resolves
  *                                    to the exact shared version (not
  *                                    "workspace:*" or a loose range).
  *   verify-npm [--package all|core|cli]
@@ -258,18 +258,18 @@ function verifyPackedCli() {
       stdio: ["pipe", "pipe", "pipe"],
     });
     const packedPkg = readJSON(path.join(extractDir, "package/package.json"));
-    const dep = packedPkg.dependencies?.["@blxzer/trellis-core"];
+    const dep = packedPkg.dependencies?.["@blxzer/cursor-trellis-core"];
     if (!dep) {
-      fail(`packed CLI is missing dependency on @blxzer/trellis-core.`);
+      fail(`packed CLI is missing dependency on @blxzer/cursor-trellis-core.`);
     }
     if (dep !== v.cliVersion) {
       fail(
-        `packed CLI depends on @blxzer/trellis-core@"${dep}" but expected exact "${v.cliVersion}".\n` +
+        `packed CLI depends on @blxzer/cursor-trellis-core@"${dep}" but expected exact "${v.cliVersion}".\n` +
           `pnpm should rewrite workspace:* to the exact published version; got "${dep}" instead.`,
       );
     }
     console.log(
-      `${GREEN}ok${RESET} packed CLI pins @blxzer/trellis-core to exact ${v.cliVersion}.`,
+      `${GREEN}ok${RESET} packed CLI pins @blxzer/cursor-trellis-core to exact ${v.cliVersion}.`,
     );
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });

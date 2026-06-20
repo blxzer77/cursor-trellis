@@ -25,7 +25,7 @@ function fail(message, code = 5) {
 
 if (!fs.existsSync(path.join(vendorRoot, "pyproject.toml"))) {
   fail(
-    "Trellis smart-search runtime is missing. Reinstall @blxzer/trellis or run the package build again.",
+    "Trellis smart-search runtime is missing. Reinstall @blxzer/cursor-trellis or run the package build again.",
   );
 }
 
