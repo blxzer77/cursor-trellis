@@ -97,6 +97,7 @@ def build_evidence_envelope(
     orchestrator_warnings: list[str],
     router_envelope: dict[str, Any] | None = None,
     adapter_hints: list[dict[str, Any]] | None = None,
+    arbitrated_evidence: dict[str, Any] | None = None,
 ) -> dict[str, object]:
     """Build the shared parent evidence envelope for retrieval pack output."""
     envelope = empty_evidence_envelope()
@@ -107,6 +108,9 @@ def build_evidence_envelope(
         envelope["fallback"] = normalize_envelope_list(router.get("fallback"))
         envelope["warnings"] = normalize_warning_list(router.get("warnings"))
         envelope["verification"] = normalize_envelope_list(router.get("verification"))
+
+    if arbitrated_evidence:
+        envelope["conflictMetrics"] = arbitrated_evidence.get("metrics", {})
 
     hints = index_adapter_hints(adapter_hints)
     recommendations = list_value(bundle.get("recommendations"))
