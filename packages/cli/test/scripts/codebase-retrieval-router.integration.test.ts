@@ -3,6 +3,7 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { CODEBASE_RETRIEVAL_ROUTER_VERSION } from "../../src/utils/codebase-retrieval-router.js";
 import { getAllScripts } from "../../src/templates/trellis/index.js";
 import { resolvePython } from "./retrieval-eval-fixtures.js";
 
@@ -39,9 +40,9 @@ describe.skipIf(pythonCmd === null)("codebase_retrieval_router.py", () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it("emits version 1 envelope with empty adapter slices", () => {
+  it("emits version 2 envelope with empty adapter slices", () => {
     const plan = runRouter(tmpDir, "who calls the loader and list call sites");
-    expect(plan.version).toBe(1);
+    expect(plan.version).toBe(CODEBASE_RETRIEVAL_ROUTER_VERSION);
     expect(plan.adapterState).toEqual([]);
     expect(plan.freshness).toEqual([]);
     const intents = plan.intents as { id: string }[];
