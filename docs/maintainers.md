@@ -76,6 +76,26 @@ pnpm lint
 pnpm typecheck
 ```
 
+### Router copy sync guard (REC-09 / R-CR-012)
+
+After changing `packages/cli/src/utils/codebase-retrieval-router.ts` or template Python under `packages/cli/src/templates/trellis/scripts/`:
+
+1. Sync dogfood copies: `Trellis/.trellis/scripts/common/codebase_retrieval_router.py` and `route_codebase_retrieval.py` from the CLI template (or run `trellis update` in `Trellis/`).
+2. Harness MyHarness: keep `.trellis/scripts/common/codebase_retrieval_router.py` and `route_codebase_retrieval.py` aligned with the same template.
+
+```bash
+cd D:\MyHarness\Trellis\packages\cli
+pnpm run check:router-copy-sync:hash   # fast: byte hashes only (CI / pre-test)
+pnpm build
+pnpm run check:router-copy-sync        # full: hashes + O1/O2/O3 golden + TS/PY parity
+```
+
+Optional harness check from Trellis repo root:
+
+```bash
+python scripts/check_router_copy_sync.py --hash-only --extra-workspace-root D:\MyHarness
+```
+
 仅文档任务可只做 Markdown/链接检查；见任务 `verify.md`。
 
 ## 文档维护

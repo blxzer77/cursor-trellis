@@ -7,12 +7,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 from common.codebase_retrieval_router import (
     codebase_retrieval_selected_from_capabilities,
     route_codebase_retrieval,
 )
+from common.retrieval_agent_instructions import render_agent_instructions
 
 
 def load_capabilities(path: Path | None) -> dict[str, object] | None:
@@ -49,6 +51,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=None,
         help="Total file count in project for token economy signals (e.g. 5000).",
     )
+    parser.add_argument(
+        "--locale",
+        default="zh",
+        choices=["zh", "en"],
+        help="Language for agent instructions (default: zh).",
+    )
+    parser.add_argument(
+        "--instructions",
+        action="store_true",
+        help="Print agent-executable instructions only (no JSON).",
+    )
     parser.add_argument("--json", action="store_true", help="Emit JSON to stdout (default).")
     parser.add_argument("--pretty", action="store_true", help="Pretty-print JSON.")
     return parser.parse_args(argv)
@@ -68,8 +81,17 @@ def main(argv: list[str] | None = None) -> int:
         platform=args.platform,
         project_file_count=args.project_file_count,
     )
+    instructions = render_agent_instructions(
+        plan,
+        platform=args.platform,
+        locale=args.locale,
+    )
+    if args.instructions:
+        sys.stdout.write(instructions)
+        return 0
+    payload: dict[str, object] = {**plan, "agentInstructions": instructions}
     indent = 2 if args.pretty else None
-    print(json.dumps(plan, indent=indent, ensure_ascii=False))
+    print(json.dumps(payload, indent=indent, ensure_ascii=False))
     return 0
 
 
