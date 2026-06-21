@@ -27,6 +27,8 @@ from .packages_context import (
     get_context_packages_text,
     get_context_packages_json,
 )
+from .paths import get_repo_root
+from .project_file_stats import resolve_project_file_count_arg
 from .retrieval_pack_context import output_retrieval_pack_json, read_evidence_input
 from .trellis_config import read_trellis_config
 from .workflow_phase import (
@@ -99,6 +101,15 @@ def main() -> None:
         action="store_true",
         help="Include failed/unavailable evidence in retrieval-pack output when budget allows.",
     )
+    parser.add_argument(
+        "--project-file-count",
+        default="auto",
+        metavar="N|auto",
+        help=(
+            "For --mode retrieval-pack: file count when resolving router envelope "
+            "(default auto from repo root)."
+        ),
+    )
 
     args = parser.parse_args()
 
@@ -128,6 +139,10 @@ def main() -> None:
     elif args.mode == "retrieval-pack":
         try:
             evidence = read_evidence_input(args.input)
+            project_file_count = resolve_project_file_count_arg(
+                args.project_file_count,
+                repo_root=get_repo_root(),
+            )
         except (OSError, json.JSONDecodeError, ValueError) as error:
             parser.exit(1, f"retrieval pack error: {error}\n")
         output_retrieval_pack_json(
@@ -137,6 +152,7 @@ def main() -> None:
             include_diagnostics=args.include_diagnostics,
             pretty=args.json,
             platform=args.platform,
+            project_file_count=project_file_count,
         )
     else:
         if args.json:

@@ -45,6 +45,8 @@ Each route in the router output includes a `tokenEconomy` label:
 
 When `projectFileCount > 2000`, the router promotes structural (codegraph) routes ahead of rg routes for better token efficiency on large codebases.
 
+**Dogfood default (REC-10):** `route_codebase_retrieval.py` and `get_context.py --mode retrieval-pack` default `--project-file-count` to **`auto`** — they count files under the Trellis repo root (`git ls-files` when `.git` exists, else a bounded walk). Override with an integer (e.g. `5000`) for eval fixtures or non-git trees. **Harness note:** `D:\MyHarness` is not a git repo; dogfood from `Trellis/` or pass `--project-file-count` explicitly when routing from the workspace root.
+
 ## Commands
 
 ```powershell
@@ -53,7 +55,7 @@ python ./.trellis/scripts/search_memory.py --query "<topic>" --json
 python ./.trellis/scripts/run_smart_search.py "<question>" --intent deep-research --json
 python ./.trellis/scripts/route_codebase_retrieval.py "<question>" --json --platform cursor
 python ./.trellis/scripts/route_codebase_retrieval.py "<question>" --platform cursor --instructions
-python ./.trellis/scripts/get_context.py --mode retrieval-pack --json --input evidence.json
+python ./.trellis/scripts/get_context.py --mode retrieval-pack --json --input evidence.json --platform cursor
 python ./.trellis/scripts/codegraph_session_smoke.py --json
 ```
 

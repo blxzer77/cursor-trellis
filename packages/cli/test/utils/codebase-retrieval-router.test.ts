@@ -223,4 +223,24 @@ describe("codebase retrieval router", () => {
       true,
     );
   });
+
+  it("R-CR-013: large projectFileCount promotes ast routes before exact rg", () => {
+    const small = routeCodebaseRetrieval({
+      query: "how does retry work across modules",
+      projectFileCount: 100,
+    });
+    const large = routeCodebaseRetrieval({
+      query: "how does retry work across modules",
+      projectFileCount: 5000,
+    });
+    expect(large.projectFileCount).toBe(5000);
+    const astIndex = (routes: typeof small.routes) =>
+      routes.findIndex((r) => r.role === "ast");
+    const rgIndex = (routes: typeof small.routes) =>
+      routes.findIndex((r) => r.id === "exact-rg-primary");
+    expect(astIndex(large.routes)).toBeGreaterThanOrEqual(0);
+    expect(rgIndex(large.routes)).toBeGreaterThanOrEqual(0);
+    expect(astIndex(large.routes)).toBeLessThan(rgIndex(large.routes));
+    expect(astIndex(small.routes)).toBeGreaterThan(rgIndex(small.routes));
+  });
 });
