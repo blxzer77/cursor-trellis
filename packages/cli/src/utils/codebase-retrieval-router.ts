@@ -591,7 +591,8 @@ function orderedRoutesForIntents(
         role: "lsp",
         sourceFamily: "language-server",
         commands: ["definition", "references", "hover"],
-        rationale: "LSP via platform-native Cursor features.",
+        rationale:
+          "Optional editor/LSP navigation via platform-native Cursor when exposed; not guaranteed in Agent tool telemetry — prefer Read/Grep/codegraph after candidates exist.",
         platformNative: true,
       });
     } else {

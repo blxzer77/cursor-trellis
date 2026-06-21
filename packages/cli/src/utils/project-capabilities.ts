@@ -80,11 +80,11 @@ export const PROJECT_CAPABILITIES: readonly ProjectCapability[] = [
     ],
     title: "Codebase retrieval",
     description:
-      "Role-based local code retrieval through exact search, AST/structure, LSP expansion, semantic recall, and verification.",
+      "Role-based local code retrieval through exact search, AST/structure, optional editor/LSP navigation, semantic recall, and verification.",
     routing:
-      "Use for codebase questions by retrieval role: extract exact identifiers, path hints, and policy phrases, run rg first, apply intent-gated policy/document-first routing for architecture, boundary, and storage-policy questions, apply other intent-gated branches (caller-chain, trap demotion, extension disambiguation, env/config literals) only when the question matches that class, expand structural candidates with CodeGraph when available and fresh enough, use LSP for navigation after candidate symbols/files exist, use fast-context for semantic recall last on policy/env-heavy queries, then promote only source/Git/test-backed findings to final claims.",
+      "Use for codebase questions by retrieval role: extract exact identifiers, path hints, and policy phrases, run rg first, apply intent-gated policy/document-first routing for architecture, boundary, and storage-policy questions, apply other intent-gated branches (caller-chain, trap demotion, extension disambiguation, env/config literals) only when the question matches that class, expand structural candidates with CodeGraph when available and fresh enough, optionally use editor/LSP navigation (GO_TO_DEFINITION / find references) only after candidate symbols/files exist and when the host exposes it — not as a guaranteed Agent default tool, use fast-context for semantic recall last on policy/env-heavy queries, then promote only source/Git/test-backed findings to final claims.",
     readiness:
-      "Required exact search (`rg`) is available. Optional CodeGraph, LSP, and fast-context adapters are reported as available, unavailable, or unverified without startup side effects.",
+      "Required exact search (`rg`) is available. Optional CodeGraph, editor/LSP navigation, and fast-context adapters are reported as available, unavailable, or unverified without startup side effects. On Cursor Agent sessions, LSP is optional and often uncounted in benchmarks; prefer Grep, Read, and codegraph.",
     fallback: [
       "Install or expose `rg` on PATH before claiming codebase retrieval readiness.",
       "Ensure `npx -y fast-context-mcp` and `npx -y @colbymchenry/codegraph serve --mcp` can launch before generated MCP adapter entries are claimed as usable.",
@@ -117,11 +117,11 @@ export const PROJECT_CAPABILITIES: readonly ProjectCapability[] = [
         provider: "language-server",
         required: false,
         purpose:
-          "Expand high-confidence candidates through definitions, references, implementations, hover, and workspace symbols.",
+          "Optional editor/LSP navigation (definitions, references, hover) after candidates exist — not a guaranteed Cursor Agent tool; use Read and Grep when LSP is absent or uninvoked.",
         readiness:
-          "A project-appropriate language server is configured by the host; Trellis does not start it during init/update.",
+          "Host-dependent: IDE language services or GO_TO_DEFINITION when exposed. Trellis does not start language servers during init/update; Agent cold runs may show zero LSP tool calls.",
         evidenceStatus:
-          "Navigation candidate until exact file/range evidence is verified by source reads.",
+          "Navigation candidate until exact file/range evidence is verified by source reads; label uninvoked LSP as unverified.",
       },
       semantic: {
         provider: "fast-context-mcp",
@@ -527,7 +527,7 @@ function appendCodebaseRetrievalWorkflow(lines: string[]): void {
     "2. Run exact `rg` search first when exact signals exist and keep file/range candidates tied to source evidence.",
     "3. Classify intent (policy/document, caller-chain, trap/package, extension spread, env literal, protocol/platform) and apply **Policy and Document-First Routing** or the matching branch from **Query Intent Branches** when it fits; skip branches that do not match.",
     "4. Use AST/CodeGraph when available and fresh enough to resolve symbols, imports, callers, callees, impact, and affected files.",
-    "5. Use LSP navigation only after candidate files or symbols exist; do not use it as the broad first-pass search.",
+    "5. Optionally use editor/LSP navigation (GO_TO_DEFINITION / references) only after candidate files or symbols exist; not a guaranteed Agent default — continue with Read and Grep when LSP is unavailable or uninvoked.",
     "6. Use semantic recall for conceptual, poorly named, or cross-cutting areas, then turn returned files/ranges/keywords into exact follow-up checks; deprioritize semantic Top-1 for policy/storage-policy, env-literal, and extension-disambiguation questions until policy docs or `rg` narrow candidates.",
     "7. Fuse candidates by source proximity, tests, current Git state, and adapter freshness.",
     "8. Read files, inspect relevant Git evidence, and run task-appropriate validation before making final behavior, impact, or test-coverage claims.",
