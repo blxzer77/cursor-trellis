@@ -14,6 +14,12 @@
         "timeout": 30
       }
     ],
+    "beforeSubmitPrompt": [
+      {
+        "command": "{{PYTHON_CMD}} .cursor/hooks/inject-retrieval-plan.py",
+        "timeout": 15
+      }
+    ],
     "beforeShellExecution": [
       {
         "command": "{{PYTHON_CMD}} .cursor/hooks/inject-shell-session-context.py",

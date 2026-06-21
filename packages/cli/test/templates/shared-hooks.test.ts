@@ -9,6 +9,7 @@ import {
 const ALL_HOOK_FILES = [
   "session-start.py",
   "inject-shell-session-context.py",
+  "inject-retrieval-plan.py",
   "inject-workflow-state.py",
   "inject-subagent-context.py",
   "research-end-retrieval-pack.py",
@@ -74,6 +75,20 @@ describe("shared-hooks capability table", () => {
   it("codex + copilot do not take the shared session-start.py (they bundle their own)", () => {
     expect(SHARED_HOOKS_BY_PLATFORM.codex).not.toContain("session-start.py");
     expect(SHARED_HOOKS_BY_PLATFORM.copilot).not.toContain("session-start.py");
+  });
+
+  it("inject-retrieval-plan.py goes to Cursor only", () => {
+    for (const [platform, hooks] of Object.entries(
+      SHARED_HOOKS_BY_PLATFORM,
+    )) {
+      const has = hooks.includes("inject-retrieval-plan.py");
+      if (platform === "cursor") expect(has).toBe(true);
+      else
+        expect(
+          has,
+          `${platform} declares inject-retrieval-plan.py but only Cursor wires beforeSubmitPrompt`,
+        ).toBe(false);
+    }
   });
 
   it("inject-shell-session-context.py goes to Cursor only", () => {
