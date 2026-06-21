@@ -17,6 +17,7 @@ import {
   commonSmartSearchResolve,
   commonRetrievalEvidence,
   commonCodebaseRetrievalRouter,
+  commonRetrievalAgentInstructions,
   commonContextPack,
   commonRetrievalPack,
   commonRetrievalPackContext,
@@ -330,6 +331,7 @@ describe("getAllScripts", () => {
     expect(scripts.has("common/smart_search_evidence.py")).toBe(true);
     expect(scripts.has("common/smart_search_resolve.py")).toBe(true);
     expect(scripts.has("common/retrieval_evidence.py")).toBe(true);
+    expect(scripts.has("common/retrieval_agent_instructions.py")).toBe(true);
     expect(scripts.has("common/context_pack.py")).toBe(true);
     expect(scripts.has("common/retrieval_pack.py")).toBe(true);
     expect(scripts.has("common/retrieval_pack_context.py")).toBe(true);
@@ -371,6 +373,9 @@ describe("getAllScripts", () => {
     );
     expect(scripts.get("common/codebase_retrieval_router.py")).toBe(
       commonCodebaseRetrievalRouter,
+    );
+    expect(scripts.get("common/retrieval_agent_instructions.py")).toBe(
+      commonRetrievalAgentInstructions,
     );
     expect(scripts.get("common/context_pack.py")).toBe(commonContextPack);
     expect(scripts.get("common/retrieval_pack.py")).toBe(commonRetrievalPack);

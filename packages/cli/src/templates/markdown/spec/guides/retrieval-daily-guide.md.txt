@@ -16,7 +16,8 @@ For **external / current / web facts**, **smart-search** (`run_smart_search.py`)
 | External / current facts | **smart-search-cli** | **Mandatory first** — built-in web tools are downgrade-only (see rule above) |
 | Trellis durable docs | **artifact-search** | `search_artifacts.py` |
 | Past sessions | **session-memory** | Historical; verify against tasks/spec |
-| Intent hint for code questions | **router** | `route_codebase_retrieval.py --platform <name>` — suggests only |
+| Intent hint for code questions | **router** | `route_codebase_retrieval.py --platform <name>` — plan JSON + `agentInstructions`; `--instructions` for steps only |
+| Agent follows plan on Cursor | **`.cursor/rules/retrieval-routing.mdc`** | Primary channel; not `sessionStart` / retrieval-pack hooks (#158452) |
 | Score collected evidence | **retrieval-pack** | `get_context.py --mode retrieval-pack` — does **not** search |
 
 ## Platform differences
@@ -51,6 +52,7 @@ python ./.trellis/scripts/search_artifacts.py --query "<topic>" --json
 python ./.trellis/scripts/search_memory.py --query "<topic>" --json
 python ./.trellis/scripts/run_smart_search.py "<question>" --intent deep-research --json
 python ./.trellis/scripts/route_codebase_retrieval.py "<question>" --json --platform cursor
+python ./.trellis/scripts/route_codebase_retrieval.py "<question>" --platform cursor --instructions
 python ./.trellis/scripts/get_context.py --mode retrieval-pack --json --input evidence.json
 ```
 
@@ -62,7 +64,9 @@ When `smart-search doctor` is not ok or `run_smart_search.py` status is `not_con
 
 ## Router vs execution
 
-`route_codebase_retrieval.py` returns **intent + route suggestions** only. **codebase-evidence** is **candidate** until confirmed by Read/Git/tests.
+`route_codebase_retrieval.py` returns **intent + route suggestions** and **`agentInstructions`** (numbered steps with Cursor-native tool names). **codebase-evidence** is **candidate** until confirmed by Read/Git/tests.
+
+On **Cursor**, durable policy lives in **`.cursor/rules/retrieval-routing.mdc`** (`alwaysApply`). Do **not** rely on `sessionStart` hook injection (#158452) or end-of-turn **retrieval-pack** to deliver per-query plans — retrieval-pack **scores** collected evidence; it does not search.
 
 ### Structural-first routing (v2)
 

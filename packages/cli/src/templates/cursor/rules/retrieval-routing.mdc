@@ -1,0 +1,52 @@
+---
+description: "Trellis codebase retrieval on Cursor — follow router-derived plans; Rules are the primary injection channel (not sessionStart hooks)"
+alwaysApply: true
+---
+
+# Codebase retrieval routing (Cursor)
+
+Before answering **code-location / architecture / caller-chain / config-schema** questions in this repo, use the retrieval layer deliberately. On Cursor, **`.cursor/rules` is the reliable channel** — do not depend on `sessionStart` hook `additional_context` (#158452) or end-of-turn retrieval-pack hooks for per-query plans.
+
+## When a retrieval plan block is present
+
+If the user message or Trellis context contains a block starting with `## 代码库检索计划` or `## Codebase retrieval plan`:
+
+1. Execute steps **in order** before stating file paths or behavior claims.
+2. Treat each step as mandatory tooling (not suggestions).
+3. Finish with **Read** (or GO_TO_DEFINITION) verification on cited sources.
+
+Generate a fresh plan when needed:
+
+```powershell
+python ./.trellis/scripts/route_codebase_retrieval.py "<question>" --platform cursor --instructions
+```
+
+JSON (includes `agentInstructions`):
+
+```powershell
+python ./.trellis/scripts/route_codebase_retrieval.py "<question>" --platform cursor --json
+```
+
+## Default tool order (no plan block)
+
+| Need | Tool (Cursor) |
+| --- | --- |
+| Exact string / path | **Grep** (Instant Grep) |
+| Who calls / blast radius | **codegraph_callers** → Grep for imports/callbacks |
+| Same name across packages (trap) | **codegraph_search** / **codegraph_explore** → Grep |
+| Extension symbols | **codegraph_search** under `extensions/` |
+| Conceptual / how does X work | Cursor **built-in codebase semantic search** (@codebase-class; **not** fast-context MCP) |
+| Definition jump | **GO_TO_DEFINITION** / find references |
+| Wide cross-cutting explore | **DEEP_SEARCH** or Explore subagent, then verify with Grep/codegraph |
+
+## Semantic on Cursor
+
+Router id: `platform-semantic` (`platformNative: true`). Use Cursor **built-in semantic / codebase search**. Do **not** call `fast_context_search` on Cursor.
+
+## codegraph-only value
+
+Use codegraph for **call chains**, **cross-package trap disambiguation**, **extension symbol resolution**, and **impact** — not for pure literal search (Grep) or single-hop definition (LSP).
+
+## External facts
+
+Web/current events: **smart-search** first per `.trellis/spec/guides/retrieval-daily-guide.md`.
