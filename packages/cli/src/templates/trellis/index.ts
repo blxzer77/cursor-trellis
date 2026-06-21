@@ -79,6 +79,12 @@ export const commonCodebaseRetrievalRouter = readTemplate(
 export const commonProjectFileStats = readTemplate(
   "scripts/common/project_file_stats.py",
 );
+export const commonRetrievalToolClassification = readTemplate(
+  "scripts/common/retrieval_tool_classification.py",
+);
+export const aggregateRetrievalTelemetryScript = readTemplate(
+  "scripts/aggregate_retrieval_telemetry.py",
+);
 export const commonRetrievalAgentInstructions = readTemplate(
   "scripts/common/retrieval_agent_instructions.py",
 );
@@ -209,6 +215,10 @@ export function getAllScripts(): Map<string, string> {
   scripts.set("common/codebase_retrieval_router.py", commonCodebaseRetrievalRouter);
   scripts.set("common/project_file_stats.py", commonProjectFileStats);
   scripts.set(
+    "common/retrieval_tool_classification.py",
+    commonRetrievalToolClassification,
+  );
+  scripts.set(
     "common/retrieval_agent_instructions.py",
     commonRetrievalAgentInstructions,
   );
@@ -236,6 +246,10 @@ export function getAllScripts(): Map<string, string> {
   scripts.set("build_retrieval_pack.py", buildRetrievalPackScript);
   scripts.set("route_codebase_retrieval.py", routeCodebaseRetrievalScript);
   scripts.set("codegraph_session_smoke.py", codegraphSessionSmokeScript);
+  scripts.set(
+    "aggregate_retrieval_telemetry.py",
+    aggregateRetrievalTelemetryScript,
+  );
 
   return scripts;
 }

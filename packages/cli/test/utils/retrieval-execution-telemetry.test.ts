@@ -2,12 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import { routeCodebaseRetrieval } from "../../src/utils/codebase-retrieval-router.js";
 import {
+  computeComplianceScore,
   deriveRetrievalTelemetryMetrics,
   evaluateO2SemanticFallback,
+  migrateTelemetryRecord,
   RETRIEVAL_TELEMETRY_EXAMPLES,
   RETRIEVAL_TELEMETRY_FIELD_OWNERSHIP,
+  RETRIEVAL_TELEMETRY_SCHEMA_VERSION,
 } from "../../src/utils/retrieval-execution-telemetry.js";
-
 describe("retrieval execution telemetry", () => {
   it("defines plan-owned and execution-owned fields", () => {
     expect(RETRIEVAL_TELEMETRY_FIELD_OWNERSHIP.router_plan).toContain(
@@ -25,8 +27,65 @@ describe("retrieval execution telemetry", () => {
     expect(RETRIEVAL_TELEMETRY_FIELD_OWNERSHIP.execution_harness).toContain(
       "final_top_k_recall",
     );
+    expect(RETRIEVAL_TELEMETRY_FIELD_OWNERSHIP.execution_harness).toContain(
+      "compliance_score",
+    );
+    expect(RETRIEVAL_TELEMETRY_FIELD_OWNERSHIP.execution_harness).toContain(
+      "codegraph_executed",
+    );
   });
 
+  it("uses schema v2 on bundled examples", () => {
+    expect(RETRIEVAL_TELEMETRY_EXAMPLES.main50RgSufficientSkip.schema_version).toBe(
+      RETRIEVAL_TELEMETRY_SCHEMA_VERSION,
+    );
+    expect(
+      RETRIEVAL_TELEMETRY_EXAMPLES.main50RgSufficientSkip.read_verification_done,
+    ).toBe(true);
+    expect(
+      RETRIEVAL_TELEMETRY_EXAMPLES.cursorColdBlindGrepOnly.compliance_score,
+    ).toBeLessThan(1);
+  });
+
+  it("derives codegraph and compliance aggregates", () => {
+    const metrics = deriveRetrievalTelemetryMetrics([
+      RETRIEVAL_TELEMETRY_EXAMPLES.main50RgSufficientSkip,
+      RETRIEVAL_TELEMETRY_EXAMPLES.cursorColdBlindGrepOnly,
+    ]);
+
+    expect(metrics.codegraph_plan_count).toBe(2);
+    expect(metrics.codegraph_exec_count).toBe(0);
+    expect(metrics.avg_answer_score).toBe(3);
+    expect(metrics.avg_compliance_score).toBeGreaterThan(0);
+  });
+
+  it("migrates legacy JSONL rows and classifies tools", () => {
+    const row = migrateTelemetryRecord({
+      query_id: "A01",
+      routes: ["exact-rg-primary", "caller-chain-ast", "platform-semantic"],
+      tools_called: ["Grep", "codegraph_search"],
+      semantic_in_plan: true,
+    });
+
+    expect(row.schema_version).toBe(2);
+    expect(row.codegraph_executed).toBe(true);
+    expect(row.structural_in_plan).toBe(true);
+    expect(row.compliance_score).not.toBeNull();
+  });
+
+  it("scores rg_corrob_sufficient as compliant for semantic-in-plan", () => {
+    const score = computeComplianceScore({
+      structural_in_plan: true,
+      codegraph_executed: false,
+      semantic_in_plan: true,
+      semantic_executed: false,
+      semantic_skip_reason: "rg_corrob_sufficient",
+      read_verification_done: true,
+      router_cli_invoked: false,
+      plan_block_in_prompt: false,
+    });
+    expect(score).toBeGreaterThan(0.5);
+  });
   it("derives plan and execution rates from per-query rows", () => {
     const metrics = deriveRetrievalTelemetryMetrics([
       RETRIEVAL_TELEMETRY_EXAMPLES.main50RgSufficientSkip,

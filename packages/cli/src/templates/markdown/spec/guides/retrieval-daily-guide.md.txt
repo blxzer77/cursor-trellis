@@ -107,6 +107,23 @@ On **other platforms**: the router outputs `semantic-fast-context` routes as bef
 
 Plan-level presence does not imply execution-level use (see parent research `06-19` OQ-1 双轨).
 
+### Execution telemetry (schema v2, eval / openclaw)
+
+Store **one JSON object per query** in JSONL (`schema_version: 2`). Split scores:
+
+| Field | Owner | Meaning |
+| --- | --- | --- |
+| `answer_score` | Human rubric | Top-1 / Recall@5 / answer quality (0–6 per query in main-50) |
+| `compliance_score` | Derived | Plan vs exec layer compliance (0–1); structural/codegraph, semantic, read verify |
+
+Report **summary rates must not be hand-copied** from batch router envelopes. Aggregate from JSONL:
+
+```powershell
+python .trellis/scripts/aggregate_retrieval_telemetry.py runs/<run>/telemetry.jsonl --markdown
+```
+
+Key exec fields (fill from session tool log): `tools_called`, `grep_count`, `read_count`, `codegraph_executed`, `semantic_executed`, `router_cli_invoked`, `plan_block_in_prompt`, `read_verification_done`. TypeScript contract: `packages/cli/src/utils/retrieval-execution-telemetry.ts` (`RETRIEVAL_TELEMETRY_FIELD_OWNERSHIP`).
+
 ## retrieval-pack
 
 Default `get_context.py --json` returns **retrievalGuide** only. Run `--mode retrieval-pack` after you have collected evidence JSON / smart-search manifests under `{TASK}/research/smart-search/`.
