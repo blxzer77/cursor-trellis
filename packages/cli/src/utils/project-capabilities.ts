@@ -482,6 +482,14 @@ function appendCodebaseRetrievalIntentBranches(lines: string[]): void {
     "- After exact hits on the helper or symbol, run `codegraph callers` with a raised limit (or repeat with `rg` references/imports) until concrete callee modules appear; follow assembly nodes (`*-runtime`, `server-runtime-services`, registry entry vs snapshot) with `codegraph callees` or targeted `rg`.",
     "- Rank concrete call-site files above the file that only defines or loads the helper.",
     "",
+    "### Cross-cutting / conceptual discovery",
+    "",
+    "- Use when the question has no named symbol, path, or protocol constant but asks how behavior works, spans modules/packages, or uses conceptual phrasing (for example English *how does* / *across packages*, or Chinese 如何 / 机制 / 跨).",
+    "- The deterministic router emits intent `cross-cutting-discovery` and promotes semantic recall to plan order 1–2 (after `policy-docs-rg` when policy intent also matches); follow with exact `rg` on returned keywords and paths.",
+    "- **On Cursor**: router route id `platform-semantic` (`platformNative: true`) — use Cursor built-in codebase / semantic search (see `.cursor/rules/retrieval-routing.mdc`). **Do not** use `fast_context_search` or fast-context MCP for semantic recall on Cursor.",
+    "- **On Codex, Claude Code, and other non-Cursor hosts**: router route id `semantic-fast-context` — invoke `fast_context_search` when the envelope fallback calls for semantic recall after uncorroborated exact `rg`.",
+    "- When exact-symbol or F/G preserve intents match, keep exact `rg` primary; do not apply this branch.",
+    "",
     "### Trap demotion and package boundary (E-class)",
     "",
     "- Use when similarly named files exist in a different package or layer (for example `src/agents/*` vs `packages/*-core`).",
@@ -561,6 +569,20 @@ function appendCodebaseRetrievalWorkflow(lines: string[]): void {
     );
   }
 
+  lines.push(
+    "## Semantic recall by host platform",
+    "",
+    "The `semantic` adapter role above lists **fast-context-mcp** as the default MCP provider for generated templates. **Host overrides** (aligned with `route_codebase_retrieval.py --platform cursor`):",
+    "",
+    "| Host | Semantic provider | Agent action |",
+    "| --- | --- | --- |",
+    "| **Cursor** | Platform-native (`platform-semantic`, `platformNative: true`) | Built-in codebase / semantic search; **not** fast-context MCP |",
+    "| **Codex / Claude Code / generic** | fast-context-mcp | `fast_context_search` when router promotes `semantic-fast-context` |",
+    "",
+    "On Cursor, treat fast-context MCP as optional for non-semantic tooling only; do not map router semantic steps to `fast_context_search`. Prefer `.cursor/rules/retrieval-routing.mdc` and `retrieval-daily-guide.md` for tool names.",
+    "",
+  );
+
   appendCodebaseRetrievalIntentBranches(lines);
 }
 
@@ -598,6 +620,8 @@ export function renderCapabilitiesMarkdown(
     "- Exact `rg` search and direct source reads are the baseline for current-code claims.",
     "- CodeGraph output is structural guidance until index freshness and current source/Git evidence are confirmed.",
     "- fast-context output is semantic recall only and must be converted into exact source checks before final claims.",
+    "- On **Cursor**, semantic recall uses platform-native search (`platform-semantic`); do not substitute fast-context MCP. See **Semantic recall by host platform** under codebase-retrieval.",
+    "- On Cursor, per-query tool order also lives in `.cursor/rules/retrieval-routing.mdc` (`alwaysApply`).",
     "- GitHub MCP uses the GitHub API server package; remote writes require explicit user intent and the host's credential/tool posture must be clear.",
     "- Playwright MCP should be used for rendered UI evidence only when browser verification is part of the task.",
     "",
