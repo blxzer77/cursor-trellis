@@ -91,6 +91,12 @@ export const commonRetrievalAgentInstructions = readTemplate(
 export const commonRetrievalPlanGate = readTemplate(
   "scripts/common/retrieval_plan_gate.py",
 );
+export const commonRetrievalResultRanking = readTemplate(
+  "scripts/common/retrieval_result_ranking.py",
+);
+export const rankRetrievalCandidatesScript = readTemplate(
+  "scripts/rank_retrieval_candidates.py",
+);
 export const commonRetrievalAdapterMetadata = readTemplate(
   "scripts/common/retrieval_adapter_metadata.py",
 );
@@ -226,6 +232,7 @@ export function getAllScripts(): Map<string, string> {
     commonRetrievalAgentInstructions,
   );
   scripts.set("common/retrieval_plan_gate.py", commonRetrievalPlanGate);
+  scripts.set("common/retrieval_result_ranking.py", commonRetrievalResultRanking);
   scripts.set("common/retrieval_adapter_metadata.py", commonRetrievalAdapterMetadata);
   scripts.set("common/context_pack.py", commonContextPack);
   scripts.set("common/retrieval_pack.py", commonRetrievalPack);
@@ -254,6 +261,7 @@ export function getAllScripts(): Map<string, string> {
     "aggregate_retrieval_telemetry.py",
     aggregateRetrievalTelemetryScript,
   );
+  scripts.set("rank_retrieval_candidates.py", rankRetrievalCandidatesScript);
 
   return scripts;
 }
