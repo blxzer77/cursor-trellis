@@ -14,6 +14,8 @@ from common.codebase_retrieval_router import (
     codebase_retrieval_selected_from_capabilities,
     route_codebase_retrieval,
 )
+from common.paths import get_repo_root
+from common.project_file_stats import resolve_project_file_count_arg
 from common.retrieval_agent_instructions import render_agent_instructions
 
 
@@ -47,9 +49,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--project-file-count",
-        type=int,
-        default=None,
-        help="Total file count in project for token economy signals (e.g. 5000).",
+        default="auto",
+        metavar="N|auto",
+        help=(
+            "File count for large-repo routing (>2000 promotes codegraph). "
+            "Default auto: git ls-files or walk from repo root. Example: 5000."
+        ),
     )
     parser.add_argument(
         "--locale",
@@ -69,6 +74,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
+    try:
+        project_file_count = resolve_project_file_count_arg(
+            args.project_file_count,
+            repo_root=get_repo_root(),
+        )
+    except ValueError as error:
+        print(f"route_codebase_retrieval: {error}", file=sys.stderr)
+        return 2
     caps = load_capabilities(Path(args.capabilities) if args.capabilities else None)
     selected = (
         False
@@ -79,7 +92,7 @@ def main(argv: list[str] | None = None) -> int:
         args.query,
         codebase_retrieval_selected=selected,
         platform=args.platform,
-        project_file_count=args.project_file_count,
+        project_file_count=project_file_count,
     )
     instructions = render_agent_instructions(
         plan,

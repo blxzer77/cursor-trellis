@@ -17,6 +17,7 @@ import {
   commonSmartSearchResolve,
   commonRetrievalEvidence,
   commonCodebaseRetrievalRouter,
+  commonProjectFileStats,
   commonRetrievalAgentInstructions,
   commonContextPack,
   commonRetrievalPack,
@@ -374,6 +375,9 @@ describe("getAllScripts", () => {
     );
     expect(scripts.get("common/codebase_retrieval_router.py")).toBe(
       commonCodebaseRetrievalRouter,
+    );
+    expect(scripts.get("common/project_file_stats.py")).toBe(
+      commonProjectFileStats,
     );
     expect(scripts.get("common/retrieval_agent_instructions.py")).toBe(
       commonRetrievalAgentInstructions,
