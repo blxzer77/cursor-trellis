@@ -91,6 +91,9 @@ export const commonRetrievalAgentInstructions = readTemplate(
 export const commonRetrievalPlanGate = readTemplate(
   "scripts/common/retrieval_plan_gate.py",
 );
+export const commonSemanticPlanGate = readTemplate(
+  "scripts/common/semantic_plan_gate.py",
+);
 export const commonRetrievalResultRanking = readTemplate(
   "scripts/common/retrieval_result_ranking.py",
 );
@@ -100,6 +103,7 @@ export const rankRetrievalCandidatesScript = readTemplate(
 export const batchPlanEnvelopeScript = readTemplate(
   "scripts/batch_plan_envelope.py",
 );
+export const scoreEvidenceScript = readTemplate("scripts/score_evidence.py");
 export const commonRetrievalAdapterMetadata = readTemplate(
   "scripts/common/retrieval_adapter_metadata.py",
 );
@@ -235,6 +239,7 @@ export function getAllScripts(): Map<string, string> {
     commonRetrievalAgentInstructions,
   );
   scripts.set("common/retrieval_plan_gate.py", commonRetrievalPlanGate);
+  scripts.set("common/semantic_plan_gate.py", commonSemanticPlanGate);
   scripts.set("common/retrieval_result_ranking.py", commonRetrievalResultRanking);
   scripts.set("common/retrieval_adapter_metadata.py", commonRetrievalAdapterMetadata);
   scripts.set("common/context_pack.py", commonContextPack);
@@ -266,6 +271,7 @@ export function getAllScripts(): Map<string, string> {
   );
   scripts.set("rank_retrieval_candidates.py", rankRetrievalCandidatesScript);
   scripts.set("batch_plan_envelope.py", batchPlanEnvelopeScript);
+  scripts.set("score_evidence.py", scoreEvidenceScript);
 
   return scripts;
 }
