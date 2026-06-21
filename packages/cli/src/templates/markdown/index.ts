@@ -100,6 +100,9 @@ export const guidesDurableLearningDecisionGuideContent: string =
 export const guidesRetrievalDailyGuideContent: string = readLocalTemplate(
   "spec/guides/retrieval-daily-guide.md.txt",
 );
+export const guidesCursorSemanticComplianceContent: string = readLocalTemplate(
+  "spec/guides/cursor-semantic-compliance.md.txt",
+);
 export const guidesCursorSubagentPolicyContent: string = readLocalTemplate(
   "spec/guides/cursor-subagent-policy.md.txt",
 );

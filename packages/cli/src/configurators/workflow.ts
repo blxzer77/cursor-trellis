@@ -34,6 +34,7 @@ import {
   guidesCodeReuseThinkingGuideContent,
   guidesDurableLearningDecisionGuideContent,
   guidesRetrievalDailyGuideContent,
+  guidesCursorSemanticComplianceContent,
   guidesCursorSubagentPolicyContent,
 } from "../templates/markdown/index.js";
 
@@ -254,6 +255,10 @@ async function createSpecTemplates(
     {
       name: "retrieval-daily-guide.md",
       content: guidesRetrievalDailyGuideContent,
+    },
+    {
+      name: "cursor-semantic-compliance.md",
+      content: guidesCursorSemanticComplianceContent,
     },
     {
       name: "cursor-subagent-policy.md",
