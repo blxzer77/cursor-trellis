@@ -36,7 +36,8 @@ python ./.trellis/scripts/route_codebase_retrieval.py "<question>" --platform cu
 | Same name across packages (trap) | **codegraph_search** / **codegraph_explore** → Grep |
 | Extension symbols | **codegraph_search** under `extensions/` |
 | Conceptual / how does X work | Cursor **built-in codebase semantic search** (@codebase-class; **not** fast-context MCP) |
-| Definition jump | **GO_TO_DEFINITION** / find references |
+| Policy / architecture / boundaries / storage rules | **Grep** on `AGENTS.md`, `**/AGENTS.md`, `.trellis/spec/**`, `README.md` (router `policy-docs-rg`) before implementation modules |
+| Definition jump | **GO_TO_DEFINITION** / find references **when the host exposes them**; otherwise **Read** + **Grep** on known candidates (LSP is optional, not a guaranteed Agent default) |
 | Wide cross-cutting explore | **DEEP_SEARCH** or Explore subagent, then verify with Grep/codegraph |
 
 ## Semantic on Cursor

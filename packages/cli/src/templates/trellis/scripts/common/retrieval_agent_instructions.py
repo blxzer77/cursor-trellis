@@ -149,7 +149,8 @@ def _cursor_step_for_route(route: dict[str, object], *, symbol: str, query: str)
 
     if route_id == "lsp-navigation" or role == "lsp":
         return (
-            f"对候选定义使用 **GO_TO_DEFINITION** / 查找引用，核对 `{symbol}` 的真实定义与引用。"
+            f"可选：若宿主暴露 **GO_TO_DEFINITION** / 查找引用，在已有候选上核对 `{symbol}`；"
+            "非 Agent 默认保证，未调用时用 **Read** + **Grep** 验证。"
         )
 
     if route_id == "policy-docs-rg" or str(route.get("sourceFamily")) == "policy-docs":

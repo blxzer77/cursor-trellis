@@ -29,7 +29,7 @@ The router is platform-adaptive since v2. Different platforms have different bui
 | Semantic search | Platform-native (`@codebase`) | **fast-context** MCP | **fast-context** MCP |
 | Exact search | Platform-native Grep | rg | rg |
 | Structural search | **codegraph** MCP | **codegraph** MCP | **codegraph** MCP |
-| LSP | Platform-native | N/A | N/A |
+| LSP / definition jump | Optional (GO_TO_DEFINITION when exposed) | N/A | N/A |
 
 **Key implication on Cursor**: Do NOT use `fast-context` for semantic search — Cursor's own `@codebase` and built-in search are higher quality (custom embedding model trained on agent sessions). The router outputs `platform-semantic` routes with `platformNative: true` instead of `semantic-fast-context` on cursor.
 
