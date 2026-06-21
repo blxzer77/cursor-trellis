@@ -332,18 +332,57 @@ def check_ts_py_parity(report: SyncReport) -> None:
     report.checks.append(CheckResult("ts-py-intent-parity", passed, detail))
 
 
+def check_extra_workspace_copies(report: SyncReport, extra_root: Path) -> None:
+    """Optional: harness/eval workspace .trellis copies vs CLI template."""
+    extra_router = extra_root / ".trellis" / "scripts" / "common" / "codebase_retrieval_router.py"
+    extra_launcher = extra_root / ".trellis" / "scripts" / "route_codebase_retrieval.py"
+    label = extra_root.name or str(extra_root)
+
+    if extra_router.is_file() and CLI_TEMPLATE_PY.is_file():
+        passed = file_sha256(extra_router) == file_sha256(CLI_TEMPLATE_PY)
+        detail = (
+            f"{label} router byte-identical to template"
+            if passed
+            else f"DRIFT: sync Copy-Item '{CLI_TEMPLATE_PY}' '{extra_router}' -Force"
+        )
+        report.checks.append(CheckResult(f"extra-python-hash:{label}", passed, detail))
+    if extra_launcher.is_file() and CLI_TEMPLATE_LAUNCHER.is_file():
+        passed = file_sha256(extra_launcher) == file_sha256(CLI_TEMPLATE_LAUNCHER)
+        detail = (
+            f"{label} launcher byte-identical to template"
+            if passed
+            else f"DRIFT: sync Copy-Item '{CLI_TEMPLATE_LAUNCHER}' '{extra_launcher}' -Force"
+        )
+        report.checks.append(CheckResult(f"extra-launcher-hash:{label}", passed, detail))
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Router copy sync guard")
     parser.add_argument("--json", action="store_true", help="Machine-readable JSON output")
+    parser.add_argument(
+        "--hash-only",
+        action="store_true",
+        help="Only byte-hash checks (no TS dist / golden smoke)",
+    )
+    parser.add_argument(
+        "--extra-workspace-root",
+        action="append",
+        default=[],
+        metavar="PATH",
+        help="Also compare PATH/.trellis/scripts/* to CLI template (repeatable)",
+    )
     args = parser.parse_args()
 
     report = SyncReport()
 
     check_python_hash(report)
     check_launcher_hash(report)
-    check_ts_golden(report)
-    check_py_golden(report)
-    check_ts_py_parity(report)
+    for extra in args.extra_workspace_root:
+        check_extra_workspace_copies(report, Path(extra).resolve())
+    if not args.hash_only:
+        check_ts_golden(report)
+        check_py_golden(report)
+        check_ts_py_parity(report)
 
     if args.json:
         output = {

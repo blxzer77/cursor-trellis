@@ -71,6 +71,7 @@ function main() {
   }
 
   run("node scripts/check-manifest-continuity.js");
+  run("pnpm run check:router-copy-sync:hash");
   run("pnpm --filter @blxzer/cursor-trellis-core test");
   run("pnpm test");
 

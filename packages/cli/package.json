@@ -22,6 +22,8 @@
     "check:smart-search": "node scripts/check-smart-search-vendor.js",
     "check:pack-files": "node scripts/check-cli-pack-files.js",
     "check:release-pack": "node scripts/check-release-pack-contents.js",
+    "check:router-copy-sync": "node scripts/check-router-copy-sync.js",
+    "check:router-copy-sync:hash": "node scripts/check-router-copy-sync.js --hash-only",
     "copy:release-assets": "node scripts/copy-release-assets.js",
     "sync:pack-files": "node scripts/sync-cli-pack-files.js",
     "dev": "tsc --watch",
