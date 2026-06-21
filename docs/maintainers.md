@@ -80,8 +80,8 @@ pnpm typecheck
 
 After changing `packages/cli/src/utils/codebase-retrieval-router.ts` or template Python under `packages/cli/src/templates/trellis/scripts/`:
 
-1. Sync dogfood copies: `Trellis/.trellis/scripts/common/codebase_retrieval_router.py`, `common/project_file_stats.py`, `common/git_context.py`, and `route_codebase_retrieval.py` from the CLI template (or run `trellis update` in `Trellis/`).
-2. Harness MyHarness: keep the same four paths under `.trellis/scripts/` aligned with the template (REC-10 adds `project_file_stats.py` for `--project-file-count auto`).
+1. Sync dogfood copies: `Trellis/.trellis/scripts/common/codebase_retrieval_router.py`, `common/project_file_stats.py`, `common/retrieval_tool_classification.py`, `common/git_context.py`, `route_codebase_retrieval.py`, and `aggregate_retrieval_telemetry.py` from the CLI template (or run `trellis update` in `Trellis/`).
+2. Harness MyHarness: keep the same paths under `.trellis/scripts/` aligned with the template (REC-03 adds telemetry JSONL aggregation; REC-10 adds `project_file_stats.py` for `--project-file-count auto`).
 
 ```bash
 cd D:\MyHarness\Trellis\packages\cli
