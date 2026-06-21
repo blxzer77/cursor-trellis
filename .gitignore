@@ -192,3 +192,6 @@ tmp1/
 .pack-verify-*/
 .playwright-mcp
 .gitnexus
+
+# Internal maintainer release/publish notes (local only)
+docs/release-publish-internal.md
