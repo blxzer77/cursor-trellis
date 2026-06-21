@@ -54,7 +54,25 @@ python ./.trellis/scripts/run_smart_search.py "<question>" --intent deep-researc
 python ./.trellis/scripts/route_codebase_retrieval.py "<question>" --json --platform cursor
 python ./.trellis/scripts/route_codebase_retrieval.py "<question>" --platform cursor --instructions
 python ./.trellis/scripts/get_context.py --mode retrieval-pack --json --input evidence.json
+python ./.trellis/scripts/codegraph_session_smoke.py --json
 ```
+
+## Codegraph session readiness (eval / dogfood)
+
+Before a **cold benchmark** or structural-heavy run:
+
+1. **MCP**: In Cursor project MCP settings, enable the **codegraph** server for the workspace (or eval checkout).
+2. **Index on disk**: Run `python ./.trellis/scripts/codegraph_session_smoke.py` (exit 0 = at least one `.codegraph/` under workspace root or a top-level subproject). Use `--root <eval-checkout>` when the agent root is not the harness.
+3. **Live MCP smoke** (manual): one `codegraph_search` with a known symbol in that repo; stale-index banner → re-read affected files.
+
+Paste into the **run report header** (markdown):
+
+| Field | Example |
+| --- | --- |
+| `codegraph_mcp` | `configured` / `off` / `unknown` |
+| `codegraph_index_path` | from smoke JSON `codegraph_index_paths[0]` |
+| `codegraph_smoke_at` | ISO8601 UTC |
+| `codegraph_smoke_ok` | `true` / `false` |
 
 ## smart-search fallback
 

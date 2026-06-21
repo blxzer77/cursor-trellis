@@ -22,6 +22,7 @@ import {
   commonRetrievalPack,
   commonRetrievalPackContext,
   routeCodebaseRetrievalScript,
+  codegraphSessionSmokeScript,
   getDeveloperScript,
   initDeveloperScript,
   taskScript,
@@ -386,6 +387,9 @@ describe("getAllScripts", () => {
     expect(scripts.get("build_retrieval_pack.py")).toBe(buildRetrievalPackScript);
     expect(scripts.get("route_codebase_retrieval.py")).toBe(
       routeCodebaseRetrievalScript,
+    );
+    expect(scripts.get("codegraph_session_smoke.py")).toBe(
+      codegraphSessionSmokeScript,
     );
     expect(scripts.get("task.py")).toBe(taskScript);
     expect(scripts.get("search_artifacts.py")).toBe(searchArtifactsScript);
