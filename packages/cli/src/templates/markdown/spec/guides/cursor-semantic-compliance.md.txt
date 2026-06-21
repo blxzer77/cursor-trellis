@@ -1,0 +1,49 @@
+# Cursor semantic compliance (REC-06)
+
+## Plan vs exec
+
+| Layer | What counts |
+| --- | --- |
+| **Plan** | Router route `platform-semantic` (`platformNative: true`) or injected plan step「内置代码库语义搜索」 |
+| **Exec (Cursor)** | Tool log matches **platform semantic** patterns only — see `retrieval_tool_classification` |
+| **Not semantic exec on Cursor** | `fast_context_search`, pure Grep/Read/codegraph |
+
+## Classifying tool names from session logs
+
+Use the same patterns as telemetry:
+
+```powershell
+python -c "from common.retrieval_tool_classification import classify_tool_calls; print(classify_tool_calls(['Grep','codebase_search'], platform='cursor'))"
+```
+
+(Run from `.trellis/scripts` with `PYTHONPATH` set to that directory.)
+
+On **cursor**, `semantic_executed` = `platform_semantic_executed`. Track `fast_context_count` and `cursor_fast_context_misuse` separately.
+
+## Plan-only metrics (eval)
+
+```powershell
+python .trellis/scripts/batch_plan_envelope.py --platform cursor --queries queries-semantic-slice.jsonl --pretty
+```
+
+Do **not** use legacy `scripts/batch-plan-envelope.py` (looks for `semantic-fast-context` on all platforms).
+
+## 12-query slice experiment
+
+Prompt: `prompts/run-semantic-slice-12.md` in openclaw-retrieval-eval (or Trellis template copy).
+
+Record per query:
+
+- `plan_block_in_prompt` (visible `## 代码库检索计划` + 语义合规 block)
+- `tools_called` verbatim from Cursor
+- `platform_semantic_executed` / `fast_context_count` from classifier
+
+Aggregate:
+
+```powershell
+python .trellis/scripts/aggregate_retrieval_telemetry.py runs/<run>/telemetry.jsonl --markdown
+```
+
+## Agent instructions
+
+When `platform-semantic` is in the route list, `render_agent_instructions` appends **语义合规（Cursor）** requiring one built-in semantic search before Top-1 and logging the host tool name.

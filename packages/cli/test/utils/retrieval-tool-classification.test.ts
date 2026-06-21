@@ -20,8 +20,21 @@ describe("retrieval tool classification", () => {
   });
 
   it("detects platform semantic tool names when present in logs", () => {
-    const result = classifyToolCalls(["Grep", "codebase_search", "Read"]);
+    const result = classifyToolCalls(["Grep", "codebase_search", "Read"], {
+      platform: "cursor",
+    });
     expect(result.semantic_executed).toBe(true);
+    expect(result.platform_semantic_executed).toBe(true);
+    expect(result.fast_context_count).toBe(0);
+  });
+
+  it("REC-06: on cursor, fast-context does not count as semantic_exec", () => {
+    const result = classifyToolCalls(["Grep", "fast_context_search", "Read"], {
+      platform: "cursor",
+    });
+    expect(result.semantic_executed).toBe(false);
+    expect(result.fast_context_count).toBe(1);
+    expect(result.cursor_fast_context_misuse).toBe(true);
   });
 
   it("flags structural routes in plan", () => {

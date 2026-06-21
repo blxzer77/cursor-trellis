@@ -121,6 +121,8 @@ On **other platforms**: the router outputs `semantic-fast-context` routes as bef
 | `semantic_plan_rate` | Share of queries whose routing envelope lists a semantic route |
 | `semantic_exec_rate` | Share of queries with ≥1 semantic search tool call |
 
+On **Cursor**, `semantic_exec_rate` uses **platform-native** tool names only (`classify_tool_calls(..., platform=cursor)`); `fast_context_search` is tracked as **misuse**, not semantic exec. See `cursor-semantic-compliance.md`.
+
 Plan-level presence does not imply execution-level use (see parent research `06-19` OQ-1 双轨).
 
 ### Execution telemetry (schema v2, eval / openclaw)

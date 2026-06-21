@@ -37,6 +37,7 @@ describe("retrieval agent instructions", () => {
     expect(plan.routes.some((r) => r.id === "platform-semantic")).toBe(true);
     expect(text).toContain("内置代码库语义搜索");
     expect(text).not.toContain("fast_context_search");
+    expect(text).toContain("语义合规");
   });
 
   it("renders trap intent with codegraph disambiguation", () => {
