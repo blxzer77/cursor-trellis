@@ -297,6 +297,16 @@ def render_agent_instructions(
             )
 
     try:
+        from .semantic_plan_gate import semantic_compliance_gate_hint  # noqa: PLC0415
+
+        gate_hint = semantic_compliance_gate_hint(envelope, platform=platform, locale=locale)
+        if gate_hint:
+            lines.append("")
+            lines.append(gate_hint)
+    except Exception:
+        pass
+
+    try:
         from .retrieval_result_ranking import (  # noqa: PLC0415
             intent_ids_from_router_envelope,
             result_layer_ranking_hint,

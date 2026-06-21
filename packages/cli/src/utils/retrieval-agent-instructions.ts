@@ -232,6 +232,11 @@ export function renderAgentInstructions(
     );
   }
 
+  const gateHint = semanticComplianceGateHint(plan, platform, locale);
+  if (gateHint) {
+    lines.push("", gateHint);
+  }
+
   const rankingHint = resultLayerRankingHint(
     plan.intents.map((i) => i.id),
     locale,
@@ -241,6 +246,28 @@ export function renderAgentInstructions(
   }
 
   return `${lines.join("\n").trim()}\n`;
+}
+
+function semanticComplianceGateHint(
+  plan: CodebaseRetrievalPlanEnvelope,
+  platform: string,
+  locale: string,
+): string {
+  if (platform !== PLATFORM_CURSOR) return "";
+  const semRoute = plan.routes.find((r) => r.id === "platform-semantic");
+  if (!semRoute || semRoute.order > 2) return "";
+  if (locale !== "zh") {
+    return (
+      `**Plan gate (REC-11):** \`platform-semantic\` is step #${semRoute.order}. ` +
+      "Before Top-1 you MUST run one Cursor built-in codebase semantic search and log the exact tool name. " +
+      "Do not use fast-context MCP. Corroborate semantic hits with Read (verified layer)."
+    );
+  }
+  return (
+    `**计划门控（REC-11）：** 本问 \`platform-semantic\` 为第 ${semRoute.order} 步。` +
+    "定 Top-1 前 **必须** 执行 1 次 Cursor **内置代码库语义搜索**并记录工具名；" +
+    "**禁止** fast-context MCP；语义结果须 **Read** 验证（verified 层）。"
+  );
 }
 
 function resultLayerRankingHint(

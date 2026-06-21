@@ -38,6 +38,7 @@ describe("retrieval agent instructions", () => {
     expect(text).toContain("内置代码库语义搜索");
     expect(text).not.toContain("fast_context_search");
     expect(text).toContain("语义合规");
+    expect(text).toContain("计划门控");
   });
 
   it("renders trap intent with codegraph disambiguation", () => {
