@@ -301,6 +301,10 @@ describe("project capabilities", () => {
     expect(capabilitiesMd).toContain(">= 4/6");
     expect(capabilitiesMd).toContain("## Codebase Retrieval Workflow");
     expect(capabilitiesMd).toContain("## Query Intent Branches (intent-gated)");
+    expect(capabilitiesMd).toContain("Semantic recall by host platform");
+    expect(capabilitiesMd).toContain("platform-semantic");
+    expect(capabilitiesMd).toContain("### Cross-cutting / conceptual discovery");
+    expect(capabilitiesMd).toContain("retrieval-routing.mdc");
     expect(capabilitiesMd).toContain("### Caller and assembly chain (B-class)");
     expect(capabilitiesMd).toContain(
       "### Trap demotion and package boundary (E-class)",
