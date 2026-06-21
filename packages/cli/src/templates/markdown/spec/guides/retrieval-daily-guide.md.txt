@@ -17,7 +17,7 @@ For **external / current / web facts**, **smart-search** (`run_smart_search.py`)
 | Trellis durable docs | **artifact-search** | `search_artifacts.py` |
 | Past sessions | **session-memory** | Historical; verify against tasks/spec |
 | Intent hint for code questions | **router** | `route_codebase_retrieval.py --platform <name>` — plan JSON + `agentInstructions`; `--instructions` for steps only |
-| Agent follows plan on Cursor | **`.cursor/rules/retrieval-routing.mdc`** | Primary channel; not `sessionStart` / retrieval-pack hooks (#158452) |
+| Agent follows plan on Cursor | **`beforeSubmitPrompt` → `inject-retrieval-plan.py`** + **`.cursor/rules/retrieval-routing.mdc`** | Per-turn plan block from router `--instructions`; Rules enforce execution; not `sessionStart` (#158452) |
 | Score collected evidence | **retrieval-pack** | `get_context.py --mode retrieval-pack` — does **not** search |
 
 ## Platform differences
@@ -86,7 +86,7 @@ When `smart-search doctor` is not ok or `run_smart_search.py` status is `not_con
 
 `route_codebase_retrieval.py` returns **intent + route suggestions** and **`agentInstructions`** (numbered steps with Cursor-native tool names). **codebase-evidence** is **candidate** until confirmed by Read/Git/tests.
 
-On **Cursor**, durable policy lives in **`.cursor/rules/retrieval-routing.mdc`** (`alwaysApply`). Do **not** rely on `sessionStart` hook injection (#158452) or end-of-turn **retrieval-pack** to deliver per-query plans — retrieval-pack **scores** collected evidence; it does not search.
+On **Cursor**, per-query plans come from **`beforeSubmitPrompt` → `inject-retrieval-plan.py`**; durable execution policy lives in **`.cursor/rules/retrieval-routing.mdc`** (`alwaysApply`). Do **not** rely on `sessionStart` hook injection (#158452) or end-of-turn **retrieval-pack** for plans — retrieval-pack **scores** collected evidence; it does not search.
 
 ### Structural-first routing (v2)
 

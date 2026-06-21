@@ -193,6 +193,11 @@ def _intent(
     }
 
 
+def classify_codebase_retrieval_intents(query: str) -> list[dict[str, object]]:
+    """Public intent classifier for hooks and dogfood scripts."""
+    return _classify_intents(query)
+
+
 def _classify_intents(query: str) -> list[dict[str, object]]:
     intents: list[dict[str, object]] = []
 

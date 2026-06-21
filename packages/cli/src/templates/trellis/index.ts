@@ -88,6 +88,9 @@ export const aggregateRetrievalTelemetryScript = readTemplate(
 export const commonRetrievalAgentInstructions = readTemplate(
   "scripts/common/retrieval_agent_instructions.py",
 );
+export const commonRetrievalPlanGate = readTemplate(
+  "scripts/common/retrieval_plan_gate.py",
+);
 export const commonRetrievalAdapterMetadata = readTemplate(
   "scripts/common/retrieval_adapter_metadata.py",
 );
@@ -222,6 +225,7 @@ export function getAllScripts(): Map<string, string> {
     "common/retrieval_agent_instructions.py",
     commonRetrievalAgentInstructions,
   );
+  scripts.set("common/retrieval_plan_gate.py", commonRetrievalPlanGate);
   scripts.set("common/retrieval_adapter_metadata.py", commonRetrievalAdapterMetadata);
   scripts.set("common/context_pack.py", commonContextPack);
   scripts.set("common/retrieval_pack.py", commonRetrievalPack);

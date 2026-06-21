@@ -99,15 +99,14 @@ const PLATFORM_HOOK_CONFIGS = [
     unit: "s",
   },
   {
-    // Cursor's beforeSubmitPrompt schema accepts only `{continue, user_message}`
-    // — it cannot inject context. The per-turn workflow-state hook is therefore
-    // not wired for Cursor; only sessionStart carries Trellis context.
+    // Cursor maps Claude UserPromptSubmit → beforeSubmitPrompt. Trellis injects
+    // router-derived retrieval plans there (not workflow-state breadcrumbs).
     platform: "cursor",
     path: "cursor/hooks.json",
     schema: "flat",
     sessionStartEvent: "sessionStart",
     sessionStartTimeoutField: "timeout",
-    userPromptEvent: null,
+    userPromptEvent: "beforeSubmitPrompt",
     userPromptTimeoutField: "timeout",
     unit: "s",
   },

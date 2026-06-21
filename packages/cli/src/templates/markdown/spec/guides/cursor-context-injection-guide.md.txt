@@ -11,6 +11,7 @@ Cursor has **four** channels that can put text in front of the model. They are *
 | Channel | How it loads | Reliable on Cursor? | Trellis content here |
 |---|---|---|---|
 | `.cursor/rules/*.mdc` (`alwaysApply: true`) | Prepended before **every** prompt, independent path | ✅ **Yes** | `trellis-triage.mdc` (Request Triage hard gate) |
+| `beforeSubmitPrompt` hook → `additional_context` | Per user message; router emits `## 代码库检索计划` | ⚠️ **Verify on your Cursor build** (docs list field; forum reports vary) | `inject-retrieval-plan.py` + `retrieval-routing.mdc` enforcement |
 | `AGENTS.md` (repo root + nested) | Read automatically, treated as an always-on rule | ✅ **Yes** | smart-search-first rule, command surface, remote policy (the `<!-- TRELLIS:START -->` block) |
 | `sessionStart` hook → `additional_context` | Hook fires, JSON parsed... **but content never reaches the model's system context** | ❌ **No (confirmed bug)** | workflow.md Phase Index + Task Dashboard + first-reply notice |
 | `.trellis/workflow.md` (read on demand) | Only if the agent explicitly runs `get_context.py` or reads the file | ⚠️ Depends on agent taking action | Full Request Triage section, Task Ladder, workflow-state breadcrumbs |

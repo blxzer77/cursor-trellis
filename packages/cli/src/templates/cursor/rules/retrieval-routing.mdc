@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Codebase retrieval routing (Cursor)
 
-Before answering **code-location / architecture / caller-chain / config-schema** questions in this repo, use the retrieval layer deliberately. On Cursor, **`.cursor/rules` is the reliable channel** — do not depend on `sessionStart` hook `additional_context` (#158452) or end-of-turn retrieval-pack hooks for per-query plans.
+Before answering **code-location / architecture / caller-chain / config-schema** questions in this repo, use the retrieval layer deliberately. On Cursor, **`.cursor/rules` is the reliable policy channel**; **per-query `## 代码库检索计划` blocks** are injected by the **`beforeSubmitPrompt`** hook (`.cursor/hooks/inject-retrieval-plan.py`) when the user message looks like a codebase question. Do **not** depend on `sessionStart` hook `additional_context` (#158452) or end-of-turn retrieval-pack hooks for plans.
 
 ## When a retrieval plan block is present
 
