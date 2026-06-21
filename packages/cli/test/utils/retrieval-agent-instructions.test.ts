@@ -47,5 +47,16 @@ describe("retrieval agent instructions", () => {
     const text = renderAgentInstructions(plan, { platform: "cursor" });
     expect(text).toMatch(/codegraph_search|codegraph_explore/);
     expect(text).toContain("trap");
+    expect(text).toContain("结果层排序");
+  });
+
+  it("appends result-layer ranking hint for caller-chain intent", () => {
+    const plan = routeCodebaseRetrieval({
+      query: "Which modules invoke buildToolPlan and list call sites?",
+      platform: "cursor",
+    });
+    const text = renderAgentInstructions(plan, { platform: "cursor" });
+    expect(text).toContain("结果层排序");
+    expect(text).toContain("调用链");
   });
 });

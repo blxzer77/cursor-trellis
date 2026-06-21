@@ -220,7 +220,57 @@ export function renderAgentInstructions(
     );
   }
 
+  const rankingHint = resultLayerRankingHint(
+    plan.intents.map((i) => i.id),
+    locale,
+  );
+  if (rankingHint) {
+    lines.push("", rankingHint.trimEnd());
+  }
+
   return `${lines.join("\n").trim()}\n`;
+}
+
+function resultLayerRankingHint(
+  intentIds: readonly string[],
+  locale: string,
+): string {
+  const lines: string[] = [];
+  const zh = locale === "zh";
+  if (
+    !intentIds.includes("caller-chain") &&
+    !intentIds.includes("trap-package-disambiguation") &&
+    !intentIds.includes("env-config-literal")
+  ) {
+    return "";
+  }
+  lines.push(
+    zh
+      ? "**结果层排序（定 Top-1 / Top-5 前）：**"
+      : "**Result-layer ranking (before Top-1 / Top-5):**",
+  );
+  if (intentIds.includes("caller-chain")) {
+    lines.push(
+      zh
+        ? "- 调用链：先扩大候选池（codegraph callers + rg），具体调用点优先于 facade/barrel/runtime/registry 等装配文件。"
+        : "- Caller-chain: keep an expanded pool; prefer concrete call sites over assembly-only files.",
+    );
+  }
+  if (intentIds.includes("trap-package-disambiguation")) {
+    lines.push(
+      zh
+        ? "- 干扰项：压低 snapshot/registry/overlay 与跨包同名；除非 Read 确认就是所问层级。"
+        : "- Trap: demote snapshot/registry overlays unless Read confirms the asked layer.",
+    );
+  }
+  if (intentIds.includes("env-config-literal")) {
+    lines.push(
+      zh
+        ? "- 环境变量/配置字面量：优先 scripts/e2e/bench/test 等路径，低于泛化 src/auth/paths 实现文件。"
+        : "- Env literals: prefer scripts/e2e/bench/test paths over generic src/auth/paths.",
+    );
+  }
+  return `${lines.join("\n")}\n`;
 }
 
 export function attachAgentInstructions(

@@ -44,6 +44,10 @@ python ./.trellis/scripts/route_codebase_retrieval.py "<question>" --platform cu
 
 Router id: `platform-semantic` (`platformNative: true`). Use Cursor **built-in semantic / codebase search**. Do **not** call `fast_context_search` on Cursor.
 
+## Result-layer ranking (B / E / D)
+
+When the plan block includes **结果层排序**, apply it **after** collecting path candidates and **before** stating Top-1 / Top-5: caller concrete sites over assembly files; trap demotion; env scripts/e2e/bench over generic `src/auth`/`paths`. Offline reorder: `rank_retrieval_candidates.py`.
+
 ## codegraph-only value
 
 Use codegraph for **call chains**, **cross-package trap disambiguation**, **extension symbol resolution**, and **impact** — not for pure literal search (Grep) or single-hop definition (LSP).

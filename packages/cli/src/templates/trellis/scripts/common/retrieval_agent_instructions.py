@@ -271,4 +271,18 @@ def render_agent_instructions(
             "纯字面搜索用 Grep，单点定义用 GO_TO_DEFINITION。"
         )
 
+    try:
+        from .retrieval_result_ranking import (  # noqa: PLC0415
+            intent_ids_from_router_envelope,
+            result_layer_ranking_hint,
+        )
+
+        intent_ids = intent_ids_from_router_envelope(envelope)
+        ranking_hint = result_layer_ranking_hint(intent_ids, locale=locale)
+        if ranking_hint:
+            lines.append("")
+            lines.append(ranking_hint.rstrip())
+    except Exception:
+        pass
+
     return "\n".join(lines).strip() + "\n"

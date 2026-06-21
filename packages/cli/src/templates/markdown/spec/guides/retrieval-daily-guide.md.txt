@@ -88,6 +88,22 @@ When `smart-search doctor` is not ok or `run_smart_search.py` status is `not_con
 
 On **Cursor**, per-query plans come from **`beforeSubmitPrompt` → `inject-retrieval-plan.py`**; durable execution policy lives in **`.cursor/rules/retrieval-routing.mdc`** (`alwaysApply`). Do **not** rely on `sessionStart` hook injection (#158452) or end-of-turn **retrieval-pack** for plans — retrieval-pack **scores** collected evidence; it does not search.
 
+### Result-layer ranking (B / E / D — REC-05)
+
+After Grep/codegraph/semantic produce **path candidates**, reorder before choosing Top-1 / Top-5:
+
+| Intent | Rule |
+| --- | --- |
+| `caller-chain` | Expanded pool first; boost concrete call sites; demote facade/barrel/runtime/registry **assembly-only** files. |
+| `trap-package-disambiguation` | Demote snapshot/registry/`src/agents/` trap paths unless Read confirms the asked layer. |
+| `env-config-literal` | Prefer `scripts/`, `e2e/`, `bench/`, `test/` over generic `src/auth` / `src/paths`. |
+
+- **Agent plans**: `render_agent_instructions` / `inject-retrieval-plan.py` append a **结果层排序** block when these intents appear.
+- **Eval / offline**: `python ./.trellis/scripts/rank_retrieval_candidates.py --candidates fixtures.json --intents caller-chain --top-k 5 --pretty`
+- **Library**: TS `packages/cli/src/utils/retrieval-result-ranking.ts` (Vitest fixtures B03/B05/D03); Python mirror `common/retrieval_result_ranking.py`.
+
+Do **not** claim aggregate openclaw score gains from ranking alone without fresh telemetry (`candidate_pool_recall` vs final Top-K).
+
 ### Structural-first routing (v2)
 
 For structural intents (caller-chain, trap-package-disambiguation, extension-shared-symbol), the router now suggests **codegraph before rg**. This reflects codegraph's superior token economy for structural queries (~80-150 tokens/answer vs rg's ~3557 for naive grep). The agent should still use rg to fill gaps codegraph misses (dynamic dispatch, string-based callsites).
