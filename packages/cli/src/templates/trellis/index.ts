@@ -118,6 +118,9 @@ export const buildRetrievalPackScript = readTemplate("scripts/build_retrieval_pa
 export const routeCodebaseRetrievalScript = readTemplate(
   "scripts/route_codebase_retrieval.py",
 );
+export const codegraphSessionSmokeScript = readTemplate(
+  "scripts/codegraph_session_smoke.py",
+);
 
 // Configuration files
 export const workflowMdTemplate = readTemplate("workflow.md");
@@ -228,6 +231,7 @@ export function getAllScripts(): Map<string, string> {
   scripts.set("build_context_pack.py", buildContextPackScript);
   scripts.set("build_retrieval_pack.py", buildRetrievalPackScript);
   scripts.set("route_codebase_retrieval.py", routeCodebaseRetrievalScript);
+  scripts.set("codegraph_session_smoke.py", codegraphSessionSmokeScript);
 
   return scripts;
 }
