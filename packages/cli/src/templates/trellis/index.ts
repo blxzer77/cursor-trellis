@@ -97,6 +97,9 @@ export const commonRetrievalResultRanking = readTemplate(
 export const rankRetrievalCandidatesScript = readTemplate(
   "scripts/rank_retrieval_candidates.py",
 );
+export const batchPlanEnvelopeScript = readTemplate(
+  "scripts/batch_plan_envelope.py",
+);
 export const commonRetrievalAdapterMetadata = readTemplate(
   "scripts/common/retrieval_adapter_metadata.py",
 );
@@ -262,6 +265,7 @@ export function getAllScripts(): Map<string, string> {
     aggregateRetrievalTelemetryScript,
   );
   scripts.set("rank_retrieval_candidates.py", rankRetrievalCandidatesScript);
+  scripts.set("batch_plan_envelope.py", batchPlanEnvelopeScript);
 
   return scripts;
 }

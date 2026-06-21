@@ -271,6 +271,31 @@ def render_agent_instructions(
             "纯字面搜索用 Grep，单点定义用 GO_TO_DEFINITION。"
         )
 
+    if use_cursor and any(
+        isinstance(r, dict) and r.get("id") == "platform-semantic" for r in route_list
+    ):
+        lines.append("")
+        if locale != "zh":
+            lines.append("**Semantic compliance (Cursor):**")
+            lines.append(
+                "- When this plan lists **platform-semantic**, run **one** Cursor built-in "
+                "codebase / semantic search before final Top-1 (not fast-context MCP)."
+            )
+            lines.append(
+                "- Log the **exact tool name** from the host (e.g. codebase_search, @codebase) "
+                "in your run notes for semantic_exec_rate."
+            )
+        else:
+            lines.append("**语义合规（Cursor）：**")
+            lines.append(
+                "- 本计划含 **platform-semantic** 时：定 Top-1 前至少执行 **1 次** "
+                "Cursor **内置代码库语义搜索**（不要用 fast-context MCP）。"
+            )
+            lines.append(
+                "- 在 run 记录中写下宿主返回的**真实工具名**（如 codebase_search、@codebase），"
+                "供 semantic_exec 统计。"
+            )
+
     try:
         from .retrieval_result_ranking import (  # noqa: PLC0415
             intent_ids_from_router_envelope,

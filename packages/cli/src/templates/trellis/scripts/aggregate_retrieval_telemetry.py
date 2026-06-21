@@ -86,7 +86,8 @@ def migrate_record(raw: dict[str, Any]) -> dict[str, Any]:
     tools = raw.get("tools_called") or []
     if not isinstance(tools, list):
         tools = []
-    classified = classify_tool_calls([str(t) for t in tools])
+    platform = str(raw.get("platform", "cursor"))
+    classified = classify_tool_calls([str(t) for t in tools], platform=platform)
 
     structural_in = raw.get("structural_in_plan")
     if not isinstance(structural_in, bool):
@@ -102,7 +103,7 @@ def migrate_record(raw: dict[str, Any]) -> dict[str, Any]:
         "dataset": str(raw.get("dataset", "unknown")),
         "query_text": str(raw.get("query_text", "")),
         "run_id": str(raw.get("run_id", "")),
-        "platform": str(raw.get("platform", "generic")),
+        "platform": platform,
         "semantic_in_plan": bool(semantic_in),
         "semantic_order": raw.get("semantic_order")
         if isinstance(raw.get("semantic_order"), int)
@@ -164,6 +165,13 @@ def migrate_record(raw: dict[str, Any]) -> dict[str, Any]:
         "compliance_score": raw.get("compliance_score")
         if isinstance(raw.get("compliance_score"), (int, float))
         else None,
+        "platform_semantic_executed": bool(
+            raw.get("platform_semantic_executed", classified.platform_semantic_executed)
+        ),
+        "fast_context_count": int(raw.get("fast_context_count", classified.fast_context_count)),
+        "cursor_fast_context_misuse": bool(
+            raw.get("cursor_fast_context_misuse", classified.cursor_fast_context_misuse)
+        ),
     }
     if record["compliance_score"] is None:
         record["compliance_score"] = compute_compliance_score(record)
@@ -176,6 +184,7 @@ def derive_metrics(records: list[dict[str, Any]]) -> dict[str, Any]:
     skip_counts = {k: 0 for k in SEMANTIC_SKIP_REASONS}
 
     semantic_plan = semantic_exec = semantic_attempt = semantic_success = 0
+    platform_sem_exec = fast_context_total = fast_context_misuse = 0
     codegraph_plan = codegraph_exec = router_cli = plan_block = read_verify = 0
     compliance_scores: list[float] = []
     answer_scores: list[float] = []
@@ -187,6 +196,13 @@ def derive_metrics(records: list[dict[str, Any]]) -> dict[str, Any]:
             semantic_plan += 1
         if rec.get("semantic_executed"):
             semantic_exec += 1
+        if rec.get("platform_semantic_executed"):
+            platform_sem_exec += 1
+        fc = rec.get("fast_context_count")
+        if isinstance(fc, int) and fc > 0:
+            fast_context_total += fc
+        if rec.get("cursor_fast_context_misuse"):
+            fast_context_misuse += 1
         if rec.get("semantic_attempted"):
             semantic_attempt += 1
         if rec.get("semantic_success") and rec.get("semantic_outcome") == "success":
@@ -235,6 +251,11 @@ def derive_metrics(records: list[dict[str, Any]]) -> dict[str, Any]:
         "semantic_exec_success_count": semantic_success,
         "semantic_plan_rate": _rate(semantic_plan, total),
         "semantic_exec_rate": _rate(semantic_exec, total),
+        "platform_semantic_exec_count": platform_sem_exec,
+        "platform_semantic_exec_rate": _rate(platform_sem_exec, total),
+        "fast_context_invocation_total": fast_context_total,
+        "cursor_fast_context_misuse_count": fast_context_misuse,
+        "cursor_fast_context_misuse_rate": _rate(fast_context_misuse, total),
         "semantic_attempt_rate": _rate(semantic_attempt, total),
         "semantic_exec_success_rate": _rate(semantic_success, total),
         "codegraph_plan_count": codegraph_plan,
@@ -303,6 +324,8 @@ def main() -> int:
         print(f"| total_queries | {m['total_queries']} |")
         print(f"| semantic_plan_rate | {m['semantic_plan_rate']:.1%} |")
         print(f"| semantic_exec_rate | {m['semantic_exec_rate']:.1%} |")
+        print(f"| platform_semantic_exec_rate | {m.get('platform_semantic_exec_rate', 0):.1%} |")
+        print(f"| cursor_fast_context_misuse_rate | {m.get('cursor_fast_context_misuse_rate', 0):.1%} |")
         print(f"| codegraph_plan_rate | {m['codegraph_plan_rate']:.1%} |")
         print(f"| codegraph_exec_rate | {m['codegraph_exec_rate']:.1%} |")
         print(f"| router_cli_rate | {m['router_cli_rate']:.1%} |")

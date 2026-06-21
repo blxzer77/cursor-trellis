@@ -1,0 +1,41 @@
+# REC-06 — 12 题 semantic 切片实验（Cursor）
+
+> 复制 `---BEGIN---` … `---END---` 到 **openclaw-retrieval-eval** 工作区新会话。  
+> 数据：`queries-semantic-slice.jsonl`（S01–S12）。
+
+---BEGIN---
+
+在 **`D:\openclaw-retrieval-eval`** 对 **`queries-semantic-slice.jsonl`** 共 **12 条**做 codebase 检索实验（非全 50 条）。
+
+### 目的
+
+测量 **semantic plan → semantic exec** 裂隙：计划含 `platform-semantic` 时，Agent 是否至少调用 **1 次 Cursor 内置代码库语义搜索**（**不要** fast-context MCP）。
+
+### 约束
+
+1. 代码根：`openclaw/`（pin `092075534e545ab4e0fe7824a3abe7e9784b3df7`）。
+2. 每条只用 JSONL 里 **`query` 原文**；盲测阶段不看 `expected_files`。
+3. 自然遵循 Trellis Rules + hook 注入的检索计划；若计划含 **语义合规** / **platform-semantic** 步骤，**必须执行**一次内置语义再定 Top-1。
+4. 每条记录：**完整 `tools_called` 列表**（Cursor 显示的工具名原样）、是否看到 `## 代码库检索计划`、是否执行内置语义。
+
+### 跑前
+
+```powershell
+python .trellis/scripts/batch_plan_envelope.py --platform cursor --queries queries-semantic-slice.jsonl --pretty
+```
+
+### 产出
+
+1. `runs/cursor-semantic-slice-<YYYYMMDD>.md`：12 条明细 + 工具表。
+2. `runs/cursor-semantic-slice-<YYYYMMDD>/telemetry.jsonl`：每行含 `query_id`、`platform":"cursor"`、`tools_called`、`plan_block_in_prompt`、`semantic_in_plan`（可先 `batch_plan_envelope` 填 plan 字段）。
+3. 汇总：
+
+```powershell
+python .trellis/scripts/aggregate_retrieval_telemetry.py runs/cursor-semantic-slice-<YYYYMMDD>/telemetry.jsonl --markdown
+```
+
+报告须含：`semantic_plan_rate`、`semantic_exec_rate`、`platform_semantic_exec_rate`、`cursor_fast_context_misuse_rate`。
+
+从 **S01** 开始，逐条执行。
+
+---END---

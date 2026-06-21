@@ -220,6 +220,18 @@ export function renderAgentInstructions(
     );
   }
 
+  if (
+    useCursor &&
+    plan.routes.some((r) => r.id === "platform-semantic")
+  ) {
+    lines.push(
+      "",
+      "**语义合规（Cursor）：**",
+      "- 本计划含 **platform-semantic** 时：定 Top-1 前至少执行 **1 次** Cursor **内置代码库语义搜索**（不要用 fast-context MCP）。",
+      "- 在 run 记录中写下宿主返回的**真实工具名**（如 codebase_search、@codebase），供 semantic_exec 统计。",
+    );
+  }
+
   const rankingHint = resultLayerRankingHint(
     plan.intents.map((i) => i.id),
     locale,

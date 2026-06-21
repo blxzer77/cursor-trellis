@@ -7,8 +7,20 @@ export interface ClassifiedToolCalls {
   codegraph_attempted: boolean;
   codegraph_executed: boolean;
   semantic_attempted: boolean;
+  /** True when a platform-appropriate semantic tool fired (see classify options). */
   semantic_executed: boolean;
   router_cli_invoked: boolean;
+  /** Cursor: built-in semantic only (excludes fast-context MCP). */
+  platform_semantic_executed?: boolean;
+  /** Count of fast_context_search / fast-context MCP invocations. */
+  fast_context_count?: number;
+  /** Cursor platform: fast-context used while semantic route is platform-native (misuse signal). */
+  cursor_fast_context_misuse?: boolean;
+}
+
+export interface ClassifyToolCallsOptions {
+  /** When `cursor`, semantic_exec counts platform-native tools only; fast-context is tracked separately. */
+  platform?: string;
 }
 
 const CODEGRAPH_PATTERNS = [
@@ -20,12 +32,28 @@ const CODEGRAPH_PATTERNS = [
   /codegraph_node/i,
 ];
 
-const SEMANTIC_PATTERNS = [
-  /fast_context_search/i,
+/** Cursor built-in / host semantic (REC-06). Not fast-context MCP. */
+const PLATFORM_SEMANTIC_PATTERNS = [
   /@codebase/i,
   /semantic.?search/i,
   /DEEP_SEARCH/i,
   /codebase.?search/i,
+  /SemanticSearch/i,
+  /Instant Search/i,
+  /Cursor.*semantic/i,
+  /built-?in.*codebase/i,
+];
+
+const FAST_CONTEXT_PATTERNS = [
+  /fast_context_search/i,
+  /fast-context/i,
+  /fast_context/i,
+];
+
+/** Legacy: any semantic signal including fast-context (non-cursor aggregate). */
+const LEGACY_SEMANTIC_PATTERNS = [
+  ...FAST_CONTEXT_PATTERNS,
+  ...PLATFORM_SEMANTIC_PATTERNS,
 ];
 
 const GREP_PATTERNS = [/^grep$/i, /^Grep$/i, /^rg$/i, /ripgrep/i, /Instant Grep/i];
@@ -41,13 +69,27 @@ function matchesAny(name: string, patterns: RegExp[]): boolean {
   return patterns.some((p) => p.test(name));
 }
 
-export function classifyToolCalls(raw: readonly string[]): ClassifiedToolCalls {
+export function isPlatformSemanticToolName(name: string): boolean {
+  return matchesAny(name.trim(), PLATFORM_SEMANTIC_PATTERNS);
+}
+
+export function isFastContextToolName(name: string): boolean {
+  return matchesAny(name.trim(), FAST_CONTEXT_PATTERNS);
+}
+
+export function classifyToolCalls(
+  raw: readonly string[],
+  options: ClassifyToolCallsOptions = {},
+): ClassifiedToolCalls {
+  const platform = (options.platform ?? "cursor").toLowerCase();
   const tools_called = [...raw];
   let grep_count = 0;
   let read_count = 0;
   let codegraph_executed = false;
   let semantic_executed = false;
   let router_cli_invoked = false;
+  let platform_semantic_executed = false;
+  let fast_context_count = 0;
 
   for (const name of raw) {
     const trimmed = name.trim();
@@ -55,20 +97,39 @@ export function classifyToolCalls(raw: readonly string[]): ClassifiedToolCalls {
     if (matchesAny(trimmed, GREP_PATTERNS)) grep_count += 1;
     if (matchesAny(trimmed, READ_PATTERNS)) read_count += 1;
     if (matchesAny(trimmed, CODEGRAPH_PATTERNS)) codegraph_executed = true;
-    if (matchesAny(trimmed, SEMANTIC_PATTERNS)) semantic_executed = true;
     if (matchesAny(trimmed, ROUTER_CLI_PATTERNS)) router_cli_invoked = true;
+    if (isFastContextToolName(trimmed)) fast_context_count += 1;
+    if (isPlatformSemanticToolName(trimmed)) platform_semantic_executed = true;
   }
 
-  return {
+  if (platform === "cursor") {
+    semantic_executed = platform_semantic_executed;
+  } else {
+    semantic_executed =
+      platform_semantic_executed || fast_context_count > 0 ||
+      raw.some((n) => matchesAny(n.trim(), LEGACY_SEMANTIC_PATTERNS));
+  }
+
+  const semantic_attempted = semantic_executed || fast_context_count > 0;
+
+  const out: ClassifiedToolCalls = {
     tools_called,
     grep_count,
     read_count,
     codegraph_attempted: codegraph_executed,
     codegraph_executed,
-    semantic_attempted: semantic_executed,
+    semantic_attempted,
     semantic_executed,
     router_cli_invoked,
+    platform_semantic_executed,
+    fast_context_count,
   };
+
+  if (platform === "cursor") {
+    out.cursor_fast_context_misuse = fast_context_count > 0;
+  }
+
+  return out;
 }
 
 export function structuralRoutesInPlan(routes: readonly string[]): boolean {
@@ -86,4 +147,9 @@ export function semanticRoutesInPlan(routes: readonly string[]): boolean {
   return routes.some(
     (id) => id === "platform-semantic" || id === "semantic-fast-context",
   );
+}
+
+export function platformSemanticRouteOrder(routes: readonly { id: string; order: number }[]): number | null {
+  const hit = routes.find((r) => r.id === "platform-semantic");
+  return hit?.order ?? null;
 }
