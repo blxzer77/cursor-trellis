@@ -264,7 +264,7 @@ describe("project capabilities", () => {
     expect(capabilitiesMd).toContain(">= 4/6");
     expect(capabilitiesMd).toContain("## Codebase Retrieval Workflow");
     expect(capabilitiesMd).toContain("## Query Intent Branches (intent-gated)");
-    expect(capabilitiesMd).toContain("Semantic recall by host platform");
+    expect(capabilitiesMd).toContain("Semantic recall (Cursor)");
     expect(capabilitiesMd).toContain("platform-semantic");
     expect(capabilitiesMd).toContain("### Cross-cutting / conceptual discovery");
     expect(capabilitiesMd).toContain("retrieval-routing.mdc");

@@ -151,7 +151,6 @@ def main() -> None:
             max_estimated_tokens=args.max_estimated_tokens,
             include_diagnostics=args.include_diagnostics,
             pretty=args.json,
-            platform=args.platform,
             project_file_count=project_file_count,
         )
     else:

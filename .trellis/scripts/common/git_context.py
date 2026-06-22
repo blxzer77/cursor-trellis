@@ -75,7 +75,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--platform",
-        help="Platform name for --mode phase, e.g. cursor, claude-code. Filters platform-tagged blocks.",
+        help="Platform name for --mode phase, e.g. cursor. Filters platform-tagged blocks.",
     )
     parser.add_argument(
         "--input",
@@ -151,7 +151,6 @@ def main() -> None:
             max_estimated_tokens=args.max_estimated_tokens,
             include_diagnostics=args.include_diagnostics,
             pretty=args.json,
-            platform=args.platform,
             project_file_count=project_file_count,
         )
     else:

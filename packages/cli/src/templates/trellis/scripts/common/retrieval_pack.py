@@ -317,11 +317,6 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Repository root for read-only Smart Search manifest discovery.",
     )
     parser.add_argument(
-        "--platform",
-        default=None,
-        help="Host platform for platform-adaptive retrieval routing (e.g. cursor).",
-    )
-    parser.add_argument(
         "--max-items",
         type=int,
         default=None,
@@ -385,7 +380,6 @@ def main(argv: list[str] | None = None) -> int:
             resolve_repo_root(args.root),
             explicit_router=dict_value(payload.get("routerEnvelope")) or None,
             query=string_value(payload.get("query")) or None,
-            platform=args.platform,
         ),
         adapter_hints=normalize_dict_list(list_value(payload.get("adapterHints"))),
     )

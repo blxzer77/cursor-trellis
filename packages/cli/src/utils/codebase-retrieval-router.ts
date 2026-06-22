@@ -8,11 +8,6 @@
 
 export const CODEBASE_RETRIEVAL_ROUTER_VERSION = 2 as const;
 
-export const PLATFORM_CURSOR = "cursor" as const;
-export const KNOWN_PLATFORMS: ReadonlySet<string> = new Set([
-  PLATFORM_CURSOR,
-]);
-
 export const MODALITY_LEXICAL = "lexical" as const;
 export const MODALITY_STRUCTURAL = "structural" as const;
 export const MODALITY_SEMANTIC = "semantic" as const;
@@ -82,7 +77,6 @@ export interface CodebaseRetrievalPlanEnvelope {
   fallback: CodebaseRetrievalFallbackHint[];
   warnings: string[];
   verification: CodebaseRetrievalVerificationStep[];
-  platform: string;
   projectFileCount: number | null;
 }
 
@@ -90,13 +84,11 @@ export interface RouteCodebaseRetrievalInput {
   query: string;
   /** When false, optional adapter routes are omitted from the ordered plan. */
   codebaseRetrievalSelected?: boolean;
-  platform?: string;
   projectFileCount?: number | null;
 }
 
 export function emptyCodebaseRetrievalPlan(
   query = "",
-  platform: string = PLATFORM_CURSOR,
   projectFileCount: number | null = null,
 ): CodebaseRetrievalPlanEnvelope {
   return {
@@ -109,7 +101,6 @@ export function emptyCodebaseRetrievalPlan(
     fallback: [],
     warnings: [],
     verification: [],
-    platform,
     projectFileCount,
   };
 }
@@ -351,7 +342,7 @@ function extensionVerification(): CodebaseRetrievalVerificationStep[] {
   ];
 }
 
-function tokenEconomyForRoute(routeId: string, platform: string): "high" | "medium" | "low" {
+function tokenEconomyForRoute(routeId: string): "high" | "medium" | "low" {
   const highEconomyRoutes: ReadonlySet<string> = new Set([
     "caller-chain-ast",
     "trap-demote-codegraph",
@@ -373,7 +364,6 @@ function largeProject(projectFileCount: number | null): boolean {
 function orderedRoutesForIntents(
   intents: CodebaseRetrievalIntent[],
   includeOptionalAdapters: boolean,
-  platform: string = PLATFORM_CURSOR,
   projectFileCount: number | null = null,
 ): CodebaseRetrievalRoute[] {
   const ids = new Set(intents.map((item) => item.id));
@@ -387,7 +377,6 @@ function orderedRoutesForIntents(
   const conceptual = ids.has("cross-cutting-discovery");
 
   const activeIntentIds = [...ids] as CodebaseRetrievalIntentId[];
-  const isCursor = platform === PLATFORM_CURSOR;
   const isLarge = largeProject(projectFileCount);
   let semanticPromoted = false;
 
@@ -398,7 +387,7 @@ function orderedRoutesForIntents(
       ...route,
       order: routes.length + 1,
       intentIds: activeIntentIds,
-      tokenEconomy: tokenEconomyForRoute(route.id, platform),
+      tokenEconomy: tokenEconomyForRoute(route.id),
       platformNative: route.platformNative ?? false,
     });
   }
@@ -474,24 +463,14 @@ function orderedRoutesForIntents(
     const semanticRationale = policy
       ? "Policy plus conceptual intent: semantic recall after policy docs, before exact rg follow-up."
       : "Conceptual query without exact signals; semantic recall before exact rg narrowing.";
-    if (isCursor) {
-      append({
-        id: "platform-semantic",
-        role: "semantic",
-        sourceFamily: "platform-semantic",
-        commands: ["cursor @codebase or built-in semantic search"],
-        rationale: semanticRationale + " (platform-native on Cursor)",
-        platformNative: true,
-      });
-    } else {
-      append({
-        id: "semantic-fast-context",
-        role: "semantic",
-        sourceFamily: "fast-context",
-        commands: ["fast_context_search query=<question> project_path=<root>"],
-        rationale: semanticRationale,
-      });
-    }
+    append({
+      id: "platform-semantic",
+      role: "semantic",
+      sourceFamily: "platform-semantic",
+      commands: ["cursor @codebase or built-in semantic search"],
+      rationale: semanticRationale + " (Cursor built-in semantic search)",
+      platformNative: true,
+    });
     semanticPromoted = true;
     append({
       id: "exact-rg-primary",
@@ -575,44 +554,24 @@ function orderedRoutesForIntents(
         rationale: cgRationale,
       });
     }
-    if (isCursor) {
+    append({
+      id: "lsp-navigation",
+      role: "lsp",
+      sourceFamily: "language-server",
+      commands: ["definition", "references", "hover"],
+      rationale:
+        "Optional editor/LSP navigation when exposed; not guaranteed in Agent tool telemetry — prefer Read/Grep/codegraph after candidates exist.",
+      platformNative: true,
+    });
+    if (!semanticPromoted) {
       append({
-        id: "lsp-navigation",
-        role: "lsp",
-        sourceFamily: "language-server",
-        commands: ["definition", "references", "hover"],
-        rationale:
-          "Optional editor/LSP navigation via platform-native Cursor when exposed; not guaranteed in Agent tool telemetry — prefer Read/Grep/codegraph after candidates exist.",
+        id: "platform-semantic",
+        role: "semantic",
+        sourceFamily: "platform-semantic",
+        commands: ["cursor @codebase or built-in semantic search"],
+        rationale: "Semantic recall via Cursor built-in codebase search.",
         platformNative: true,
       });
-    } else {
-      append({
-        id: "lsp-navigation",
-        role: "lsp",
-        sourceFamily: "language-server",
-        commands: ["definition", "references", "hover"],
-        rationale: "LSP after candidate symbols exist.",
-      });
-    }
-    if (!semanticPromoted) {
-      if (isCursor) {
-        append({
-          id: "platform-semantic",
-          role: "semantic",
-          sourceFamily: "platform-semantic",
-          commands: ["cursor @codebase or built-in semantic search"],
-          rationale: "Semantic recall via platform-native Cursor search.",
-          platformNative: true,
-        });
-      } else {
-        append({
-          id: "semantic-fast-context",
-          role: "semantic",
-          sourceFamily: "fast-context",
-          commands: ["fast_context_search query=<question> project_path=<root>"],
-          rationale: "Semantic recall last; convert to exact rg follow-ups.",
-        });
-      }
     }
   }
 
@@ -770,7 +729,6 @@ function buildFallbackHints(
   intents: CodebaseRetrievalIntent[],
   includeOptionalAdapters: boolean,
   routes: CodebaseRetrievalRoute[],
-  platform: string = PLATFORM_CURSOR,
 ): CodebaseRetrievalFallbackHint[] {
   const hints: CodebaseRetrievalFallbackHint[] = [
     {
@@ -779,7 +737,6 @@ function buildFallbackHints(
         "Codebase retrieval readiness fails; install or expose rg before claiming readiness.",
     },
   ];
-  const isCursor = platform === PLATFORM_CURSOR;
   if (!includeOptionalAdapters) {
     hints.push({
       when: "codebase-retrieval not selected",
@@ -806,30 +763,19 @@ function buildFallbackHints(
     semanticRoute &&
     (hasConceptual || semanticRoute.order >= 3 || exactPrimary)
   ) {
-    if (isCursor) {
-      hints.push({
-        when:
-          "exact rg returns no corroborated file/range candidates (or only trap hits) before final Top-1",
-        action:
-          "Use Cursor @codebase or built-in semantic search per platform-semantic route, then narrow with rg on returned keywords and paths.",
-        replacesRole: "semantic",
-      });
-    } else {
-      hints.push({
-        when:
-          "exact rg returns no corroborated file/range candidates (or only trap hits) before final Top-1",
-        action:
-          "Invoke fast_context_search per semantic-fast-context route, then narrow with rg on returned keywords and paths; semantic output remains recall-only until source reads confirm.",
-        replacesRole: "semantic",
-      });
-    }
+    hints.push({
+      when:
+        "exact rg returns no corroborated file/range candidates (or only trap hits) before final Top-1",
+      action:
+        "Use Cursor @codebase or built-in semantic search per platform-semantic route, then narrow with rg on returned keywords and paths.",
+      replacesRole: "semantic",
+    });
   }
   return hints;
 }
 
 function buildWarnings(
   intents: CodebaseRetrievalIntent[],
-  platform: string = PLATFORM_CURSOR,
 ): string[] {
   const warnings: string[] = [];
   const low = intents.filter((i) => i.confidence === "low");
@@ -852,7 +798,7 @@ function buildWarnings(
     !hasExactIntent &&
     !intents.some((i) => i.id === "protocol-platform-preserve")
   ) {
-    const semanticHint = platform === PLATFORM_CURSOR ? "platform-semantic" : "semantic-fast-context";
+    const semanticHint = "platform-semantic";
     warnings.push(
       `Conceptual intent without exact signals; ${semanticHint} route promoted in plan. Convert semantic hits to exact rg follow-ups before final claims.`,
     );
@@ -886,9 +832,6 @@ export function routeCodebaseRetrieval(
 ): CodebaseRetrievalPlanEnvelope {
   const query = normalizeQuery(input.query);
   const includeOptionalAdapters = input.codebaseRetrievalSelected !== false;
-  const platform = input.platform && KNOWN_PLATFORMS.has(input.platform)
-    ? input.platform
-    : PLATFORM_CURSOR;
   const projectFileCount = input.projectFileCount ?? null;
 
   if (!query) {
@@ -902,7 +845,6 @@ export function routeCodebaseRetrieval(
     const emptyRoutes = orderedRoutesForIntents(
       [emptyIntent],
       includeOptionalAdapters,
-      platform,
       projectFileCount,
     );
     return {
@@ -916,11 +858,9 @@ export function routeCodebaseRetrieval(
         [emptyIntent],
         includeOptionalAdapters,
         emptyRoutes,
-        platform,
       ),
       warnings: ["Empty query; only baseline exact route is emitted."],
       verification: baseVerification(),
-      platform,
       projectFileCount,
     };
   }
@@ -929,7 +869,6 @@ export function routeCodebaseRetrieval(
   const routes = orderedRoutesForIntents(
     intents,
     includeOptionalAdapters,
-    platform,
     projectFileCount,
   );
   return {
@@ -939,10 +878,9 @@ export function routeCodebaseRetrieval(
     routes,
     adapterState: [],
     freshness: [],
-    fallback: buildFallbackHints(intents, includeOptionalAdapters, routes, platform),
-    warnings: buildWarnings(intents, platform),
+    fallback: buildFallbackHints(intents, includeOptionalAdapters, routes),
+    warnings: buildWarnings(intents),
     verification: verificationForIntents(intents),
-    platform,
     projectFileCount,
   };
 }

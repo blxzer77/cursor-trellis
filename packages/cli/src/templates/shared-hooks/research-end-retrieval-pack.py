@@ -95,13 +95,7 @@ def _has_research_signals(task_dir: Path) -> bool:
     return False
 
 
-_PLATFORM_ARG_MAP = {
-    "cursor": "cursor",
-    "claude": "claude-code",
-}
-
-
-def _run_retrieval_pack(repo_root: Path, platform: str | None) -> dict[str, Any] | None:
+def _run_retrieval_pack(repo_root: Path) -> dict[str, Any] | None:
     script = repo_root / DIR_WORKFLOW / "scripts" / "get_context.py"
     if not script.is_file():
         return None
@@ -116,9 +110,6 @@ def _run_retrieval_pack(repo_root: Path, platform: str | None) -> dict[str, Any]
         "retrieval-pack",
         "--json",
     ]
-    if platform:
-        router_platform = _PLATFORM_ARG_MAP.get(platform, platform)
-        cmd.extend(["--platform", router_platform])
     proc = subprocess.run(
         cmd,
         cwd=str(repo_root),
@@ -187,7 +178,7 @@ def main() -> None:
     if not _has_research_signals(task_dir):
         return
 
-    pack = _run_retrieval_pack(repo_root, _detect_platform(input_data))
+    pack = _run_retrieval_pack(repo_root)
     if not pack:
         return
 

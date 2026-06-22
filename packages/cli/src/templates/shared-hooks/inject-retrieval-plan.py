@@ -116,7 +116,6 @@ def main() -> int:
 
     try:
         from common.codebase_retrieval_router import (  # type: ignore[import-not-found]
-            PLATFORM_CURSOR,
             codebase_retrieval_selected_from_capabilities,
             route_codebase_retrieval,
         )
@@ -137,10 +136,6 @@ def main() -> int:
     if not should_inject_retrieval_plan(query):
         return 0
 
-    platform = _detect_platform(data) or PLATFORM_CURSOR
-    if platform != PLATFORM_CURSOR:
-        platform = PLATFORM_CURSOR
-
     try:
         project_file_count = resolve_project_file_count_arg("auto", repo_root=root)
     except ValueError:
@@ -151,12 +146,10 @@ def main() -> int:
     plan = route_codebase_retrieval(
         query,
         codebase_retrieval_selected=selected,
-        platform=platform,
         project_file_count=project_file_count,
     )
     instructions = render_agent_instructions(
         plan,
-        platform=platform,
         locale="zh",
     )
     if PLAN_MARKER_ZH not in instructions and PLAN_MARKER_EN not in instructions:
