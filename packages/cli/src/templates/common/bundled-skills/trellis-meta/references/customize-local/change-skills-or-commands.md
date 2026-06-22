@@ -55,26 +55,23 @@ If a command only repeats workflow rules, prefer making it reference/read `.trel
 
 | Platform | Entry directories |
 | --- | --- |
-| Claude Code | `.claude/skills/`, `.claude/commands/` |
-| Cursor | `.cursor/skills/`, `.cursor/commands/` |
-| OpenCode | `.opencode/skills/`, `.opencode/commands/` |
-| Codex | `.agents/skills/`, `.codex/skills/` |
-| GitHub Copilot | `.github/skills/`, `.github/prompts/` |
-| Kilo / Antigravity / Windsurf | workflows + skills |
+| Cursor | `.cursor/skills/` (preferred); `.cursor/commands/` is legacy compatibility-only |
+
+If a user project still contains legacy platform skill directories (`.claude/skills/`, `.codex/skills/`, etc.), inspect them but route new skill additions to `.cursor/skills/`.
 
 ## Add A Project-Local Skill
 
 If the user wants to document team-private customizations, create a project-local skill, for example:
 
 ```text
-.claude/skills/project-trellis-local/
+.cursor/skills/project-trellis-local/
 └── SKILL.md
 ```
 
-For multi-platform projects, add equivalent versions in each platform skill directory, or use `.agents/skills/` on platforms that support the shared layer.
+For shared skill layers across tools, consider `.agents/skills/` on platforms that read that path — but do not extend new Trellis behavior there; new Trellis behavior ships to `.cursor/skills/`.
 
 ## Notes
 
-- Do not mix every platform's syntax into one file.
-- Do not change only one platform entry point while claiming all platforms are supported.
+- Do not mix platform-specific syntax from removed adapters into the Cursor skill files.
+- Do not change only the dogfooded `.cursor/skills/` copy while forgetting to mirror the published template `packages/cli/src/templates/cursor/skills/` (and vice versa); see `cross-layer-thinking-guide.md.txt` → Cross-Package Template Consistency.
 - Do not hide long-term engineering conventions inside a command; write them to `.trellis/spec/`.

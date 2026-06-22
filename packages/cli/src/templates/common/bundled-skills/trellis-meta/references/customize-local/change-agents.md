@@ -14,16 +14,9 @@ When the user wants to change `trellis-research`, `trellis-implement`, or `trell
 
 | Platform | Path |
 | --- | --- |
-| Claude Code | `.claude/agents/trellis-*.md` |
 | Cursor | `.cursor/agents/trellis-*.md` |
-| OpenCode | `.opencode/agents/trellis-*.md` |
-| Codex | `.codex/agents/trellis-*.toml` |
-| Kiro | `.kiro/agents/trellis-*.json` |
-| Gemini CLI | `.gemini/agents/trellis-*.md` |
-| Qoder | `.qoder/agents/trellis-*.md` |
-| CodeBuddy | `.codebuddy/agents/trellis-*.md` |
-| Factory Droid | `.factory/droids/trellis-*.md` |
-| Pi Agent | `.pi/agents/trellis-*.md` |
+
+If a user project still contains legacy platform agent directories (`.claude/agents/`, `.codex/agents/`, etc.), inspect them but route new agent definitions to `.cursor/agents/`.
 
 Use the actual paths in the user project as authoritative.
 
@@ -43,12 +36,12 @@ Use the actual paths in the user project as authoritative.
 2. **Do not hard-code project specs into agents**: long-term specs belong in `.trellis/spec/`; agents are responsible for reading them.
 3. **Make read order explicit**: selected task -> PRD -> info -> JSONL -> spec/research.
 4. **Make write boundaries explicit**: which directories may be written and which may not.
-5. **Synchronize across platforms**: when the user configured multiple platforms, decide whether to change only the current platform or all platform agents.
+5. **Treat dogfood + published copies consistently**: `.cursor/agents/trellis-*.md` (dogfooded) and `packages/cli/src/templates/cursor/agents/trellis-*.md` (published template) must stay in sync — see `cross-layer-thinking-guide.md.txt` → Cross-Package Template Consistency.
 
-## Agent Pull Platforms
+## Agent Pull Mode
 
 If an agent file contains a prelude for "read task/context after startup," do not remove those steps when editing. Otherwise the agent will work only from chat context and bypass Trellis's core mechanism.
 
-## Hook Push Platforms
+## Hook Push Mode
 
 If context is injected by a hook, the agent file should still retain responsibility boundaries. Do not remove PRD/spec requirements from the agent just because a hook injects context.

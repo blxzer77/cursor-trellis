@@ -45,7 +45,7 @@ print("Run: {{PYTHON_CMD}} ./.trellis/scripts/task.py <args>")
 
 ```typescript
 // In template file (settings.json):
-{ "command": "{{PYTHON_CMD}} .claude/hooks/script.py" }
+{ "command": "{{PYTHON_CMD}} .cursor/hooks/script.py" }
 
 // In configurator:
 function getPythonCommand(): string {
@@ -85,7 +85,7 @@ function warnIfPythonTooOld(): void {
 }
 ```
 
-**Rule 5**: Don't assume the Python version the AI CLI uses matches your shell's `python3`. The user's terminal may resolve `python3` → homebrew 3.11, but AI CLI hosts (including enterprise-forked Claude Code / Cursor distributions) spawn hook subprocesses with a minimal PATH that resolves `python3` → `/usr/bin/python3` → macOS system 3.9. Distributed templates must either target the lowest plausible version or use `from __future__ import annotations` for PEP 604 syntax. See `cli/backend/script-conventions.md` → **CRITICAL: PEP 604 Annotations Require `from __future__ import annotations`** for the hard rule and audit check.
+**Rule 5**: Don't assume the Python version the AI CLI uses matches your shell's `python3`. The user's terminal may resolve `python3` → homebrew 3.11, but Cursor spawns hook subprocesses with a minimal PATH that resolves `python3` → `/usr/bin/python3` → macOS system 3.9. Distributed templates must either target the lowest plausible version or use `from __future__ import annotations` for PEP 604 syntax. See `cli/backend/script-conventions.md` → **CRITICAL: PEP 604 Annotations Require `from __future__ import annotations`** for the hard rule and audit check.
 
 **Rule 6**: When calling Python from Python, use `sys.executable`:
 
@@ -137,7 +137,7 @@ A path string has two distinct roles. **Treat them differently.**
 function collectTemplates(): Map<string, string> {
   const files = new Map<string, string>();
   for (const entry of walk(dir)) {
-    files.set(path.join(".opencode", entry), readFile(entry));  // \ on Windows
+    files.set(path.join(".cursor", entry), readFile(entry));  // \ on Windows
   }
   return files;
 }
@@ -148,7 +148,7 @@ import { toPosix } from "../utils/posix.js";
 function collectTemplates(): Map<string, string> {
   const files = new Map<string, string>();
   for (const entry of walk(dir)) {
-    files.set(toPosix(path.join(".opencode", entry)), readFile(entry));
+    files.set(toPosix(path.join(".cursor", entry)), readFile(entry));
   }
   return files;
 }
@@ -340,10 +340,10 @@ result = subprocess.run(
 When making platform-related changes, check **all these locations**:
 
 ### Commands / Skills Sync
-- [ ] New command/skill added to ALL platforms (claude, cursor, iflow, codex, and any new platform)
-- [ ] Each platform's test file updated with new entry in `EXPECTED_COMMAND_NAMES` / `EXPECTED_SKILL_NAMES`
-- [ ] Platform-integration spec's required command table updated if adding a new required command
-- [ ] Command format matches platform convention (see `platform-integration.md` → Command Format by Platform)
+- [ ] New command/skill added to the Cursor templates (`src/templates/cursor/` and `src/templates/common/`)
+- [ ] Cursor test file updated with new entry in `EXPECTED_COMMAND_NAMES` / `EXPECTED_SKILL_NAMES`
+- [ ] Command format matches Cursor convention (see `platform-integration.md` → Command Format)
+- [ ] If the command exists in the dogfooded copy (`.cursor/`), sync it too
 
 ### Documentation & Help Text
 - [ ] Docstrings at top of Python files
@@ -388,7 +388,7 @@ Before committing cross-platform code:
 
 ### 7. External Tool API Contracts
 
-When integrating with external tools (Claude Code, Cursor, etc.), their API contracts are **implicit assumptions**.
+When integrating with external tools (Cursor, etc.), their API contracts are **implicit assumptions**.
 
 **Rule**: Verify API formats from official documentation, don't guess.
 
@@ -624,9 +624,8 @@ printf '{"name":"trellis-smoke","version":"0.0.0"}\n' > "$tmpdir/package.json"
 git -C "$tmpdir" init -q
 (
   cd "$tmpdir"
-  node /path/to/Trellis/packages/cli/bin/trellis.js init -u smoke --yes --claude --codex
-  test -f .claude/skills/<skill>/SKILL.md
-  test -f .agents/skills/<skill>/SKILL.md
+  node /path/to/Trellis/packages/cli/bin/trellis.js init -u smoke --yes --cursor
+  test -f .cursor/skills/<skill>/SKILL.md
   grep -q '<skill>' .trellis/.template-hashes.json
   node /path/to/Trellis/packages/cli/bin/trellis.js update --dry-run
 )

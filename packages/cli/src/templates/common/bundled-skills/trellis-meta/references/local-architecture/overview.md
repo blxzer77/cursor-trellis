@@ -5,8 +5,8 @@
 Therefore, when an AI uses this skill, the default customization target is local files inside the user project:
 
 - `.trellis/`: workflow, tasks, specs, memory, scripts, and runtime state.
-- Platform directories: `.claude/`, `.codex/`, `.cursor/`, `.opencode/`, `.kiro/`, `.gemini/`, `.qoder/`, `.codebuddy/`, `.github/`, `.factory/`, `.pi/`, `.kilocode/`, `.agent/`, `.windsurf/`, and similar directories.
-- Shared skill layer: `.agents/skills/`.
+- Platform directory: `.cursor/` — skills, agents, hooks, commands, rules.
+- Shared skill layer: `.agents/skills/` (industry skill-sharing path; kept when present but not extended by new Trellis behavior).
 
 Do not default to guiding the user to fork the Trellis CLI repository. Treat upstream source code as the operating target only when the user explicitly says they want to change Trellis upstream source, publish an npm package, or contribute a PR.
 

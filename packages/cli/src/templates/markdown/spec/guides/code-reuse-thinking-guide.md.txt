@@ -146,29 +146,29 @@ of that replay model.
 
 ## Gotcha: Python if/elif/else Exhaustive Check
 
-**Problem**: Python's if/elif/else chains have no compile-time exhaustive check. When you add a new value to a `Literal` type (e.g., `Platform`), existing if/elif/else chains silently fall through to `else` with wrong defaults.
+**Problem**: Python's if/elif/else chains have no compile-time exhaustive check. When you add a new value to a `Literal` type (e.g., a hook event name), existing if/elif/else chains silently fall through to `else` with wrong defaults.
 
-**Symptom**: New platform works partially — some methods return Claude defaults instead of platform-specific values. No error is raised.
+**Symptom**: New value works partially — some methods return the default branch instead of the new value's specific behavior. No error is raised.
 
 **Example** (`cli_adapter.py`):
 ```python
-# BAD: "gemini" falls through to else, returns "claude"
+# BAD: "on_session_end" falls through to else, returns session-start defaults
 @property
-def cli_name(self) -> str:
-    if self.platform == "opencode":
-        return "opencode"
+def hook_kind(self) -> str:
+    if self.event == "on_session_start":
+        return "session-start"
     else:
-        return "claude"  # gemini silently gets "claude"!
+        return "session-start"  # on_session_end silently gets "session-start"!
 
-# GOOD: explicit branch for every platform
+# GOOD: explicit branch for every value
 @property
-def cli_name(self) -> str:
-    if self.platform == "opencode":
-        return "opencode"
-    elif self.platform == "gemini":
-        return "gemini"
+def hook_kind(self) -> str:
+    if self.event == "on_session_start":
+        return "session-start"
+    elif self.event == "on_session_end":
+        return "session-end"
     else:
-        return "claude"
+        return "session-start"
 ```
 
 **Prevention**: When adding a new value to a Python `Literal` type, search for ALL if/elif/else chains that switch on that type and add explicit branches. Don't rely on `else` being correct for new values.

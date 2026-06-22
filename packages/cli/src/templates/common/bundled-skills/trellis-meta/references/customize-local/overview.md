@@ -17,7 +17,7 @@ This directory is for local AI working in a user project where Trellis was insta
 
 ## General Operation Order
 
-1. **Confirm platform and directories**: inspect which directories exist, such as `.claude/`, `.codex/`, `.cursor/`.
+1. **Confirm platform and directories**: inspect which directories exist; on a fresh `trellis init --cursor` only `.cursor/` and `.trellis/` are created.
 2. **Confirm the selected task**: run `python3 ./.trellis/scripts/task.py selected --source`.
 3. **Read the local source of truth**: prefer `.trellis/workflow.md`, `.trellis/config.yaml`, and relevant platform files.
 4. **Modify narrowly**: edit only files related to the user's request.
@@ -32,7 +32,7 @@ This directory is for local AI working in a user project where Trellis was insta
 | Task material | `.trellis/tasks/<task>/` |
 | Project specs | `.trellis/spec/` |
 | Runtime scripts | `.trellis/scripts/` |
-| Platform integration | `.claude/`, `.codex/`, `.cursor/`, `.opencode/`, and similar directories |
+| Platform integration | `.cursor/` plus legacy adapter directories preserved by `trellis update` |
 | Shared skill | `.agents/skills/` |
 
 ## Things Not To Do By Default

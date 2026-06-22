@@ -4,7 +4,7 @@ Hooks are the automation layer that connects a platform to Trellis. When the use
 
 ## Read These Files First
 
-1. Target platform settings/config, such as `.claude/settings.json`, `.codex/hooks.json`, `.cursor/hooks.json`
+1. Target platform settings/config: `.cursor/hooks.json`
 2. Target platform hooks directory
 3. `.trellis/scripts/common/active_task.py`
 4. `.trellis/scripts/common/session_context.py`
@@ -32,8 +32,8 @@ Hooks are the automation layer that connects a platform to Trellis. When the use
 First find the session-start hook:
 
 ```text
-.claude/settings.json
-.claude/hooks/session-start.py
+.cursor/hooks.json
+.cursor/hooks/session-start.py
 ```
 
 If the hook ultimately calls `.trellis/scripts/get_context.py` or `session_context.py`, editing the local script is usually more robust than hard-coding content in the hook.
@@ -52,6 +52,6 @@ If the task and JSONL are correct, determine whether the platform uses hook push
 ## Notes
 
 - Settings handle registration, hook scripts handle behavior; inspect both together.
-- Different platforms support different hook events. Do not directly copy another platform's settings.
+- Cursor's hook event surface has changed between releases; confirm against the current Cursor build before wiring a new event.
 - Hooks should read project-local `.trellis/`; they should not depend on Trellis upstream source paths.
 - Hook failures should produce visible errors so AI does not silently lose context.

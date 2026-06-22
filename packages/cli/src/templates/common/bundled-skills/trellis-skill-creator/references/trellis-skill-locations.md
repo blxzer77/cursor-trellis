@@ -6,8 +6,8 @@ Choose the target directory before writing content. Local files are authoritativ
 
 | User goal | Default location | Notes |
 | --- | --- | --- |
-| Add a skill for one Trellis project across compatible tools | `.agents/skills/<skill-name>/` | Good default for Codex and tools that read the shared agentskills layer. |
-| Add a skill for one specific platform | Platform skill directory such as `.claude/skills/`, `.cursor/skills/`, `.qoder/skills/`, or `.pi/skills/` | Use when the platform has unique syntax, trigger behavior, or runtime expectations. |
+| Add a skill for one Trellis project on Cursor | `.cursor/skills/<skill-name>/` | Default target — Trellis is Cursor-only. |
+| Add a skill shared across tools that read the agentskills.io convention | `.agents/skills/<skill-name>/` | Use only when explicitly sharing with a non-Trellis tool that reads the shared agentskills layer. New Trellis behavior stays in `.cursor/skills/`. |
 | Change an existing local Trellis skill | The existing skill directory in the user's project | Preserve local customizations and read the current `SKILL.md` first. |
 | Add a public Trellis bundled skill | `packages/cli/src/templates/common/bundled-skills/<skill-name>/` | Only when working in the Trellis source repository. Update tests that assert bundled skill installation and template tracking. |
 | Add a personal cross-project skill | User's configured global skills directory | Requires explicit user approval because it changes global behavior outside the project. |

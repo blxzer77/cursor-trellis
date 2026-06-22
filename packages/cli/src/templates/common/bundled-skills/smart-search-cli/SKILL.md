@@ -262,10 +262,10 @@ Use this when the user wants work that can be inspected, resumed, or audited.
 - Prefer the CLI's local config file managed by `smart-search setup` / `smart-search config`.
 - Environment variables remain supported for CI and advanced users, and override the local config file.
 - Do not ask users to set Windows global API-key environment variables by default.
-- If keys are changed with `smart-search config set`, rerun the CLI; no Codex restart is needed.
-- If PATH is changed, a new terminal or Codex restart may be needed.
+- If keys are changed with `smart-search config set`, rerun the CLI; no Cursor reload is needed.
+- If PATH is changed, a new terminal or Cursor reload may be needed.
 - On Windows, the default local config file is `%LOCALAPPDATA%\smart-search\config.json`. Linux/macOS default to `~/.config/smart-search/config.json`.
-- In sandboxed runtimes (Codex CLI, containers, CI) where the default config directory is not writable or must be pinned, set `SMART_SEARCH_CONFIG_DIR` to an absolute writable path. The CLI uses it for both config and relative logs and skips default-directory selection.
+- In sandboxed runtimes (Cursor agent-sandbox subprocesses, containers, CI) where the default config directory is not writable or must be pinned, set `SMART_SEARCH_CONFIG_DIR` to an absolute writable path. The CLI uses it for both config and relative logs and skips default-directory selection.
 - The default research evidence root is `evidence` under the active config directory. Set `SMART_SEARCH_EVIDENCE_DIR` only when evidence needs a separate absolute location; `config path` and `doctor` report both the configured and resolved evidence paths.
 - Earlier Windows source defaults used `~\.config\smart-search\config.json`, while some installs were already pinned to `%LOCALAPPDATA%\smart-search` through `SMART_SEARCH_CONFIG_DIR`. If the new default file is missing but the old file exists, `doctor` reports `legacy_windows_home` as the active source so upgrades do not silently lose configuration. It also reports the override value and whether it matches the current default.
 - Use `smart-search doctor --format json` for agent/script parsing and `smart-search doctor --format markdown` when a human wants a detailed diagnostic report.
