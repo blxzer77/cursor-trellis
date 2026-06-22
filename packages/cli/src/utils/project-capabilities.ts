@@ -2,7 +2,6 @@ import fs from "node:fs";
 import path from "node:path";
 
 import type { AITool } from "../types/ai-tools.js";
-import { getConfigTemplate as getCodexConfigTemplate } from "../templates/codex/index.js";
 import { ensureDir, writeFile } from "./file-writer.js";
 
 export const PROJECT_CAPABILITY_IDS = [
@@ -787,16 +786,6 @@ export function buildProjectCapabilityTemplates(
   files.set(CAPABILITIES_MD_PATH, renderCapabilitiesMarkdown(selectedIds));
 
   const platformSet = new Set(platforms);
-  if (platformSet.has("codex")) {
-    const config = getCodexConfigTemplate();
-    files.set(
-      `.codex/${config.targetPath}`,
-      applyCodexCapabilityConfig(config.content, selectedIds),
-    );
-  }
-  if (platformSet.has("claude-code")) {
-    files.set(".mcp.json", renderMcpJson(selectedIds));
-  }
   if (platformSet.has("cursor")) {
     files.set(".cursor/mcp.json", renderMcpJson(selectedIds));
   }
@@ -817,15 +806,6 @@ export async function writeProjectCapabilityFiles(
   for (const [relativePath, content] of files) {
     const targetPath = path.join(cwd, ...relativePath.split("/"));
     ensureDir(path.dirname(targetPath));
-    if (
-      relativePath === ".codex/config.toml" &&
-      fs.existsSync(targetPath) &&
-      normalizeLineEndings(fs.readFileSync(targetPath, "utf-8")) ===
-        normalizeLineEndings(getCodexConfigTemplate().content)
-    ) {
-      fs.writeFileSync(targetPath, content);
-      continue;
-    }
     await writeFile(targetPath, content);
   }
 }
