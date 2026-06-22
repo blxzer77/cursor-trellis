@@ -15,8 +15,9 @@ Cursor has **four** channels that can put text in front of the model. They are *
 | `AGENTS.md` (repo root + nested) | Read automatically, treated as an always-on rule | ✅ **Yes** | smart-search-first rule, command surface, remote policy (the `<!-- TRELLIS:START -->` block) |
 | `sessionStart` hook → `additional_context` | Hook fires, JSON parsed... **but content never reaches the model's system context** | ❌ **No (confirmed bug)** | workflow.md Phase Index + Task Dashboard + first-reply notice |
 | `.trellis/workflow.md` (read on demand) | Only if the agent explicitly runs `get_context.py` or reads the file | ⚠️ Depends on agent taking action | Full Request Triage section, Task Ladder, workflow-state breadcrumbs |
+| **`task.py generate-dispatch-prompt` → Task `prompt`** (CLI Layer 2) | Main session runs Trellis script before `Task(...)` | ✅ **Yes (primary for subagent task context on Cursor)** | Full embed: marker, `Selected task:`, prd/jsonl/spec bodies |
 
-**Key takeaway**: anything that must reach the model **every turn without the agent choosing to load it** must live in `.cursor/rules` or `AGENTS.md`. Anything in `workflow.md` that depends on `sessionStart` injection is **invisible to Cursor agents** until the bug is fixed.
+**Key takeaway**: anything that must reach the model **every turn without the agent choosing to load it** must live in `.cursor/rules` or `AGENTS.md`. Subagent task context on Cursor uses **CLI Layer 2** before Task dispatch; `preToolUse` hook injection is best-effort only (see forum reports + 2026-06-22 spike). Anything in `workflow.md` that depends on `sessionStart` injection is **invisible to Cursor agents** until the bug is fixed.
 
 ---
 

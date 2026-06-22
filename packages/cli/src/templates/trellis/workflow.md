@@ -580,38 +580,21 @@ Use retrieval layers before and during implementation when context is incomplete
 - Record exploratory chains in `{TASK_DIR}/research/` and final source/Git/test proof in `verify.md`.
 
 
-Spawn the implement sub-agent:
+Spawn the implement sub-agent (Full / Parent — Cursor):
 
 - **Agent type**: `trellis-implement`
-- **Task description**: Implement the reviewed task artifacts, consulting materials under `{TASK_DIR}/research/`; finish by running project lint and type-check
+- **Orchestrator contract**: After `start-execution --approved`, the main session assembles the full dispatch prompt via Trellis scripts (CLI Layer 2), then calls `Task(subagent_type=trellis-implement, prompt=<assembled>)`. Do **not** rely on the preToolUse hook alone for context on Cursor — see `cursor-context-injection-guide.md`.
 - **Dispatch prompt guard**: Tell the spawned agent it is already the `trellis-implement` sub-agent and must implement directly, not spawn another `trellis-implement` / `trellis-check`.
 
-The platform hook/plugin auto-handles:
-- Reads `implement.jsonl` and injects referenced spec/research files into the agent prompt
-- Injects `prd.md`, `design.md` if present, and `implement.md` if present
-
-
-
-
-Spawn the implement sub-agent:
-
-- **Agent type**: `trellis-implement`
-- **Task description**: Implement the reviewed task artifacts, consulting materials under `{TASK_DIR}/research/`; finish by running project lint and type-check
-- **Dispatch prompt guard**: Tell the spawned agent it is already the `trellis-implement` sub-agent and must implement directly, not spawn another `trellis-implement` / `trellis-check`.
-
-The platform prelude auto-handles the context load requirement:
-- Reads `implement.jsonl` and injects referenced spec/research files into the agent prompt
-- Injects `prd.md`, `design.md` if present, and `implement.md` if present
-
-
+Context embedded in the dispatch prompt includes `implement.jsonl` references, `prd.md`, `design.md` if present, and `implement.md` if present.
 
 #### 2.2 Quality check `[required · repeatable]`
 
 
-Spawn the check sub-agent:
+Spawn the check sub-agent (Full / Parent — Cursor):
 
 - **Agent type**: `trellis-check`
-- **Task description**: Review all code changes against specs and task artifacts; fix implementation defects only inside the approved contract; route contract-changing findings instead of silently expanding scope; ensure lint and type-check pass
+- **Orchestrator contract**: Assemble the full dispatch prompt via Trellis scripts (CLI Layer 2) before `Task(subagent_type=trellis-check, prompt=<assembled>)`. Hook-only injection is best-effort on Cursor.
 - **Dispatch prompt guard**: Tell the spawned agent it is already the `trellis-check` sub-agent and must review/fix only inside the approved contract, not spawn another `trellis-check` / `trellis-implement`.
 
 The check agent's job:

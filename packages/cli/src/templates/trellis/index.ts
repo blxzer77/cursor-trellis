@@ -58,6 +58,9 @@ export const commonTaskMap = readTemplate("scripts/common/task_map.py");
 export const commonParentOrchestration = readTemplate(
   "scripts/common/parent_orchestration.py",
 );
+export const commonSubagentDispatch = readTemplate(
+  "scripts/common/subagent_dispatch.py",
+);
 export const commonArtifactSearch = readTemplate(
   "scripts/common/artifact_search.py",
 );
@@ -223,6 +226,7 @@ export function getAllScripts(): Map<string, string> {
   scripts.set("common/task_gates.py", commonTaskGates);
   scripts.set("common/task_map.py", commonTaskMap);
   scripts.set("common/parent_orchestration.py", commonParentOrchestration);
+  scripts.set("common/subagent_dispatch.py", commonSubagentDispatch);
   scripts.set("common/artifact_search.py", commonArtifactSearch);
   scripts.set("common/session_memory.py", commonSessionMemory);
   scripts.set("common/smart_search_evidence.py", commonSmartSearchEvidence);
