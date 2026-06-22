@@ -16,9 +16,9 @@ This repository is a **public fork** focused on **Cursor-first** workflow. Upstr
 
 - **Context rot**: agents miss rules buried in a single markdown file.
 - **No task continuity**: PRDs, design, and verification scatter across chats.
-- **Platform drift**: Cursor, Claude, Codex each need different config shapes.
+- **Platform drift**: Cursor rules, commands, hooks, and agents each need the right shape.
 
-Trellis generates the right **adapter** for your stack. In this fork, **Cursor** is the primary documented path; other platforms are init flags only (see [docs/cursor.md](docs/cursor.md)).
+Trellis generates the **Cursor adapter** (`.cursor/`) for your stack. This fork is **Cursor-only** for init and public docs (see [docs/cursor.md](docs/cursor.md)).
 
 ## Quick start (Cursor)
 

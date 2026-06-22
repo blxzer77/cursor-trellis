@@ -1,6 +1,8 @@
-# Cross-Platform Thinking Guide
+# Cross-Platform Thinking Guide (OS / path)
 
-> **Purpose**: Catch platform-specific assumptions before they become bugs.
+> **Purpose**: Catch OS and path assumptions before they become bugs.
+>
+> **Note (cursor-only fork):** This guide covers **operating-system and filesystem** portability (Windows vs macOS/Linux). AI platform adapter sync is Cursor-only; see `cross-layer-thinking-guide.md` for template consistency.
 
 ---
 

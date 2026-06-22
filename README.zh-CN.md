@@ -16,9 +16,9 @@
 
 - **上下文腐烂**：规则堆在一个文件里，Agent 容易漏读。
 - **任务不连续**：PRD、设计、验证散落在对话中。
-- **平台形态不一**：Cursor、Claude、Codex 需要不同配置结构。
+- **平台形态不一**：Cursor 的 rules、commands、hooks、agents 需要正确生成。
 
-Trellis 为你的栈生成对应**适配层**。本 fork 公开文档以 **Cursor** 为主线；其他平台仅通过 init 标志启用（见 [docs/cursor.zh-CN.md](docs/cursor.zh-CN.md)）。
+Trellis 为你的栈生成 **Cursor 适配层**（`.cursor/`）。本 fork 的 init 与公开文档为 **Cursor-only**（见 [docs/cursor.zh-CN.md](docs/cursor.zh-CN.md)）。
 
 ## 快速开始（Cursor）
 

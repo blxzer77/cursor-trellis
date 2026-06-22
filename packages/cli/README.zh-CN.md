@@ -35,7 +35,7 @@ smart-search --version
 | `rollout` | 对多个项目路径批量 `update` |
 | `workflow` | 工作流模板工具（进阶） |
 
-与 **mem**、**channel** 相关的命令服务于其他工作流，不属于 Cursor-first 公开文档范围。完整列表：`trellis --help`。
+与 **channel** 相关的命令服务于进阶多 Agent 工作流，不属于 Cursor-first 公开文档范围。完整列表：`trellis --help`。
 
 下文详述 **`init`**、**`update`**、**`uninstall`**。
 
@@ -49,16 +49,14 @@ smart-search --version
 trellis init --cursor
 ```
 
-### 平台标志（节选）
+### 平台标志
 
 | 标志 | 平台 |
 | --- | --- |
-| `--cursor` | Cursor（`.cursor/`） |
-| `--claude` | Claude Code |
-| `--codex` | Codex |
-| `--opencode`、`--gemini`、`--kiro` 等 | 其他平台（见 `trellis init --help`） |
+| `--cursor` | Cursor（`.cursor/`）— 默认文档路径 |
+| `--cursor2plus` | Cursor++ BYOK 本地包（须同时 `--cursor`） |
 
-Cursor 深入说明：[../../docs/cursor.zh-CN.md](../../docs/cursor.zh-CN.md)。
+本 fork 的 init 与公开文档为 **Cursor-only**：[../../docs/cursor.zh-CN.md](../../docs/cursor.zh-CN.md)。
 
 ### 常用标志
 

@@ -129,29 +129,6 @@ To remove Trellis-managed Cursor files:
 trellis uninstall
 ```
 
-## Other platforms (appendix)
-
-This fork’s **public narrative is Cursor-first**. Other tools remain available via `trellis init --<flag>` and `trellis update` tracking. Use this table only for orientation—not equal-depth docs for each platform.
-
-| CLI flag | Platform | Tier | Config root |
-| --- | --- | --- | --- |
-| `--claude` | Claude Code | first-class | `.claude/` |
-| `--cursor` | Cursor | first-class | `.cursor/` |
-| `--codex` | Codex | first-class | `.codex/` (+ may use `.agents/skills/`) |
-| `--opencode` | OpenCode | legacy | `.opencode/` |
-| `--gemini` | Gemini CLI | legacy | `.gemini/` |
-| `--kiro` | Kiro Code | legacy | `.kiro/` |
-| `--kilo` | Kilo CLI | legacy | `.kilocode/` |
-| `--antigravity` | Antigravity | legacy | `.agent/workflows/` |
-| `--windsurf` | Windsurf | legacy | `.windsurf/workflows/` |
-| `--qoder` | Qoder | legacy | `.qoder/` |
-| `--codebuddy` | CodeBuddy | legacy | `.codebuddy/` |
-| `--copilot` | GitHub Copilot | legacy | `.github/copilot/` (+ extra paths) |
-| `--droid` | Factory Droid | legacy | (see `ai-tools.ts`) |
-| `--pi` | Pi Agent | legacy | (see `ai-tools.ts`) |
-
-Source of truth: `packages/cli/src/types/ai-tools.ts`.
-
 ## See also
 
 - [Workflow in Cursor](workflow.md)
