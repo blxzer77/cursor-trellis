@@ -16,22 +16,13 @@ For **external / current / web facts**, **smart-search** (`run_smart_search.py`)
 | External / current facts | **smart-search-cli** | **Mandatory first** — built-in web tools are downgrade-only (see rule above) |
 | Trellis durable docs | **artifact-search** | `search_artifacts.py` |
 | Past sessions | **session-memory** | Historical; verify against tasks/spec |
-| Intent hint for code questions | **router** | `route_codebase_retrieval.py --platform cursor` — plan JSON + `agentInstructions`; `--instructions` for steps only |
+| Intent hint for code questions | **router** | `route_codebase_retrieval.py` — plan JSON + `agentInstructions`; `--instructions` for steps only |
 | Agent follows plan on Cursor | **`beforeSubmitPrompt` → `inject-retrieval-plan.py`** + **`.cursor/rules/retrieval-routing.mdc`** | Per-turn plan block from router `--instructions`; Rules enforce execution; not `sessionStart` (#158452) |
 | Score collected evidence | **retrieval-pack** | `get_context.py --mode retrieval-pack` — does **not** search |
 
-## Platform routing on Cursor
+## Semantic routing (Cursor)
 
-On Cursor the router routes semantic intents to **platform-native `@codebase` and built-in agent search** (custom embedding model trained on agent sessions). Do **not** use the third-party `fast-context` MCP on Cursor.
-
-| Capability | Cursor |
-| --- | --- |
-| Semantic search | Platform-native (`@codebase`) — do **not** use `fast-context` on Cursor |
-| Exact search | Platform-native Grep |
-| Structural search | **codegraph** MCP |
-| LSP / definition jump | Optional (GO_TO_DEFINITION when exposed) |
-
-**Key implication**: The router outputs `platform-semantic` routes with `platformNative: true` on Cursor (instead of `semantic-fast-context`). Reach for `@codebase` first.
+The retrieval planner routes semantic intents to **built-in `@codebase` and agent semantic search**. Do **not** use the third-party `fast-context` MCP on Cursor.
 
 ## Token economy signals
 
@@ -53,9 +44,9 @@ When `projectFileCount > 2000`, the router promotes structural (codegraph) route
 python ./.trellis/scripts/search_artifacts.py --query "<topic>" --json
 python ./.trellis/scripts/search_memory.py --query "<topic>" --json
 python ./.trellis/scripts/run_smart_search.py "<question>" --intent deep-research --json
-python ./.trellis/scripts/route_codebase_retrieval.py "<question>" --json --platform cursor
-python ./.trellis/scripts/route_codebase_retrieval.py "<question>" --platform cursor --instructions
-python ./.trellis/scripts/get_context.py --mode retrieval-pack --json --input evidence.json --platform cursor
+python ./.trellis/scripts/route_codebase_retrieval.py "<question>" --json
+python ./.trellis/scripts/route_codebase_retrieval.py "<question>" --instructions
+python ./.trellis/scripts/get_context.py --mode retrieval-pack --json --input evidence.json
 python ./.trellis/scripts/codegraph_session_smoke.py --json
 ```
 
@@ -110,7 +101,7 @@ For structural intents (caller-chain, trap-package-disambiguation, extension-sha
 
 ### Semantic routing on Cursor
 
-On Cursor, the router outputs `platform-semantic` routes (with `platformNative: true`) instead of `semantic-fast-context`. The agent should use `@codebase` or Cursor's built-in agent search — these are higher quality than third-party `fast-context`'s Devstral model, and `fast_context_search` calls on Cursor are tracked as **misuse** in eval telemetry.
+On Cursor, the router outputs `platform-semantic` routes (with `platformNative: true`). The agent should use `@codebase` or Cursor's built-in agent search — `fast_context_search` calls are tracked as **misuse** in eval telemetry.
 
 ### Semantic dual metrics (openclaw / eval)
 

@@ -16,7 +16,6 @@ from typing import Any
 ROUTER_VERSION = 2
 
 PLATFORM_CURSOR = "cursor"
-KNOWN_PLATFORMS = {PLATFORM_CURSOR}
 
 MODALITY_LEXICAL = "lexical"
 MODALITY_STRUCTURAL = "structural"
@@ -420,7 +419,7 @@ def _modality_for_intent(
     return [MODALITY_LEXICAL, MODALITY_STRUCTURAL, MODALITY_SEMANTIC]
 
 
-def _token_economy_for_route(route_id: str, platform: str) -> str:
+def _token_economy_for_route(route_id: str) -> str:
     """Return a token-economy label for a given route ID."""
     high_economy = {
         "caller-chain-ast",
@@ -444,7 +443,6 @@ def _ordered_routes(
     intents: list[dict[str, object]],
     include_optional_adapters: bool,
     *,
-    platform: str = PLATFORM_CURSOR,
     project_file_count: int | None = None,
 ) -> list[dict[str, object]]:
     ids = {str(item["id"]) for item in intents}
@@ -459,7 +457,6 @@ def _ordered_routes(
     conceptual = INTENT_CONCEPTUAL in ids
     exact_primary_first = preserve or exact
     conceptual_primary = conceptual and not preserve and not exact_primary_first
-    is_cursor = platform == PLATFORM_CURSOR
     large = _large_project(project_file_count)
     semantic_promoted = False
 
@@ -471,7 +468,7 @@ def _ordered_routes(
             **route,
             "order": len(routes) + 1,
             "intentIds": active,
-            "tokenEconomy": _token_economy_for_route(route_id, platform),
+            "tokenEconomy": _token_economy_for_route(route_id),
             "platformNative": route.get("platformNative", False),
         })
 
@@ -545,23 +542,14 @@ def _ordered_routes(
             if policy
             else "Conceptual query without exact signals; semantic recall before exact rg narrowing."
         )
-        if is_cursor:
-            append({
-                "id": "platform-semantic",
-                "role": "semantic",
-                "sourceFamily": "platform-semantic",
-                "commands": ["cursor @codebase or built-in semantic search"],
-                "rationale": semantic_rationale + " (platform-native on Cursor)",
-                "platformNative": True,
-            })
-        else:
-            append({
-                "id": "semantic-fast-context",
-                "role": "semantic",
-                "sourceFamily": "fast-context",
-                "commands": ["fast_context_search query=<question> project_path=<root>"],
-                "rationale": semantic_rationale,
-            })
+        append({
+            "id": "platform-semantic",
+            "role": "semantic",
+            "sourceFamily": "platform-semantic",
+            "commands": ["cursor @codebase or built-in semantic search"],
+            "rationale": semantic_rationale + " (Cursor built-in semantic search)",
+            "platformNative": True,
+        })
         semantic_promoted = True
         append({
             "id": "exact-rg-primary",
@@ -648,44 +636,26 @@ def _ordered_routes(
                 ],
                 "rationale": cg_rationale,
             })
-        if is_cursor:
+        append({
+            "id": "lsp-navigation",
+            "role": "lsp",
+            "sourceFamily": "language-server",
+            "commands": ["definition", "references", "hover"],
+            "rationale": (
+                "Optional editor/LSP navigation when exposed; "
+                "not guaranteed in Agent tool telemetry — prefer Read/Grep/codegraph after candidates exist."
+            ),
+            "platformNative": True,
+        })
+        if not semantic_promoted:
             append({
-                "id": "lsp-navigation",
-                "role": "lsp",
-                "sourceFamily": "language-server",
-                "commands": ["definition", "references", "hover"],
-                "rationale": (
-                    "Optional editor/LSP navigation via platform-native Cursor when exposed; "
-                    "not guaranteed in Agent tool telemetry — prefer Read/Grep/codegraph after candidates exist."
-                ),
+                "id": "platform-semantic",
+                "role": "semantic",
+                "sourceFamily": "platform-semantic",
+                "commands": ["cursor @codebase or built-in semantic search"],
+                "rationale": "Semantic recall via Cursor built-in codebase search.",
                 "platformNative": True,
             })
-        else:
-            append({
-                "id": "lsp-navigation",
-                "role": "lsp",
-                "sourceFamily": "language-server",
-                "commands": ["definition", "references", "hover"],
-                "rationale": "LSP after candidate symbols exist.",
-            })
-        if not semantic_promoted:
-            if is_cursor:
-                append({
-                    "id": "platform-semantic",
-                    "role": "semantic",
-                    "sourceFamily": "platform-semantic",
-                    "commands": ["cursor @codebase or built-in semantic search"],
-                    "rationale": "Semantic recall via platform-native Cursor search.",
-                    "platformNative": True,
-                })
-            else:
-                append({
-                    "id": "semantic-fast-context",
-                    "role": "semantic",
-                    "sourceFamily": "fast-context",
-                    "commands": ["fast_context_search query=<question> project_path=<root>"],
-                    "rationale": "Semantic recall last; convert to exact rg follow-ups.",
-                })
 
     append({
         "id": "verification-source-git-tests",
@@ -708,8 +678,6 @@ def _fallback_hints(
     intents: list[dict[str, object]],
     include_optional_adapters: bool,
     routes: list[dict[str, object]],
-    *,
-    platform: str = PLATFORM_CURSOR,
 ) -> list[dict[str, object]]:
     hints: list[dict[str, object]] = [
         {
@@ -717,7 +685,6 @@ def _fallback_hints(
             "action": "Codebase retrieval readiness fails; install or expose rg.",
         }
     ]
-    is_cursor = platform == PLATFORM_CURSOR
     if not include_optional_adapters:
         hints.append({
             "when": "codebase-retrieval not selected",
@@ -743,38 +710,22 @@ def _fallback_hints(
     if include_optional_adapters and semantic_route and (
         has_conceptual or int(semantic_route.get("order", 99)) >= 3 or exact_primary
     ):
-        if is_cursor:
-            hints.append({
-                "when": (
-                    "exact rg returns no corroborated file/range candidates "
-                    "(or only trap hits) before final Top-1"
-                ),
-                "action": (
-                    "Use Cursor @codebase or built-in semantic search per platform-semantic route, "
-                    "then narrow with rg on returned keywords and paths."
-                ),
-                "replacesRole": "semantic",
-            })
-        else:
-            hints.append({
-                "when": (
-                    "exact rg returns no corroborated file/range candidates "
-                    "(or only trap hits) before final Top-1"
-                ),
-                "action": (
-                    "Invoke fast_context_search per semantic-fast-context route, then narrow "
-                    "with rg on returned keywords and paths; semantic output remains recall-only "
-                    "until source reads confirm."
-                ),
-                "replacesRole": "semantic",
-            })
+        hints.append({
+            "when": (
+                "exact rg returns no corroborated file/range candidates "
+                "(or only trap hits) before final Top-1"
+            ),
+            "action": (
+                "Use Cursor @codebase or built-in semantic search per platform-semantic route, "
+                "then narrow with rg on returned keywords and paths."
+            ),
+            "replacesRole": "semantic",
+        })
     return hints
 
 
 def _warnings(
     intents: list[dict[str, object]],
-    *,
-    platform: str = PLATFORM_CURSOR,
 ) -> list[str]:
     warnings: list[str] = []
     low = [str(item["id"]) for item in intents if item.get("confidence") == "low"]
@@ -790,9 +741,7 @@ def _warnings(
         and INTENT_EXACT not in ids
         and INTENT_PRESERVE not in ids
     ):
-        semantic_hint = (
-            "platform-semantic" if platform == PLATFORM_CURSOR else "semantic-fast-context"
-        )
+        semantic_hint = "platform-semantic"
         warnings.append(
             f"Conceptual intent without exact signals; {semantic_hint} route promoted in plan. "
             "Convert semantic hits to exact rg follow-ups before final claims."
@@ -804,21 +753,18 @@ def route_codebase_retrieval(
     query: str,
     *,
     codebase_retrieval_selected: bool = True,
-    platform: str = PLATFORM_CURSOR,
     project_file_count: int | None = None,
 ) -> dict[str, object]:
     """Return the shared evidence envelope with router-owned fields populated."""
     normalized = _normalize_query(query)
     include_optional = codebase_retrieval_selected
-    normalized_platform = platform if platform in KNOWN_PLATFORMS else PLATFORM_CURSOR
-
     if not normalized:
         intents = [
             _intent(INTENT_EXACT, "General codebase (exact baseline)", ["empty-query"], "low", True)
         ]
         empty_routes = _ordered_routes(
             intents, include_optional,
-            platform=normalized_platform, project_file_count=project_file_count,
+            project_file_count=project_file_count,
         )
         return {
             "version": ROUTER_VERSION,
@@ -827,17 +773,16 @@ def route_codebase_retrieval(
             "routes": empty_routes,
             "adapterState": [],
             "freshness": [],
-            "fallback": _fallback_hints(intents, include_optional, empty_routes, platform=normalized_platform),
+            "fallback": _fallback_hints(intents, include_optional, empty_routes),
             "warnings": ["Empty query; only baseline exact route is emitted."],
             "verification": _base_verification(),
-            "platform": normalized_platform,
             "projectFileCount": project_file_count,
         }
 
     intents = _classify_intents(normalized)
     routes = _ordered_routes(
         intents, include_optional,
-        platform=normalized_platform, project_file_count=project_file_count,
+        project_file_count=project_file_count,
     )
     return {
         "version": ROUTER_VERSION,
@@ -846,10 +791,9 @@ def route_codebase_retrieval(
         "routes": routes,
         "adapterState": [],
         "freshness": [],
-        "fallback": _fallback_hints(intents, include_optional, routes, platform=normalized_platform),
-        "warnings": _warnings(intents, platform=normalized_platform),
+        "fallback": _fallback_hints(intents, include_optional, routes),
+        "warnings": _warnings(intents),
         "verification": _verification_for_intents(intents),
-        "platform": normalized_platform,
         "projectFileCount": project_file_count,
     }
 
@@ -884,7 +828,6 @@ def resolve_router_envelope(
     *,
     explicit_router: dict[str, Any] | None = None,
     query: str | None = None,
-    platform: str | None = None,
     project_file_count: int | None = None,
 ) -> dict[str, object] | None:
     """Prefer explicit routerEnvelope; otherwise route from query when present."""
@@ -895,10 +838,8 @@ def resolve_router_envelope(
         return None
     caps = load_capabilities_json(repo_root)
     selected = codebase_retrieval_selected_from_capabilities(caps)
-    resolved_platform = platform if platform in KNOWN_PLATFORMS else PLATFORM_CURSOR
     return route_codebase_retrieval(
         normalized,
         codebase_retrieval_selected=selected,
-        platform=resolved_platform,
         project_file_count=project_file_count,
     )

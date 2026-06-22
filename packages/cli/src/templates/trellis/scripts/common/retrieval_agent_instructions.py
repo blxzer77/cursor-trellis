@@ -12,8 +12,6 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from .codebase_retrieval_router import PLATFORM_CURSOR
-
 _SYMBOL_CANDIDATE = re.compile(
     r"\b([A-Za-z_][\w$]{2,})\b|"
     r"`([^`]+)`|"
@@ -143,8 +141,7 @@ def _cursor_step_for_route(route: dict[str, object], *, symbol: str, query: str)
         )
     if role == "semantic":
         return (
-            "使用 **fast_context_search**（非 Cursor 平台语义路由）；"
-            "若在 Cursor 上应改用内置语义搜索。"
+            "使用 Cursor **内置代码库语义搜索**（不要用 fast-context MCP）。"
         )
 
     if route_id == "lsp-navigation" or role == "lsp":
@@ -186,7 +183,6 @@ def _generic_step_for_route(route: dict[str, object], *, symbol: str, query: str
 def render_agent_instructions(
     plan: dict[str, object],
     *,
-    platform: str = PLATFORM_CURSOR,
     locale: str = "zh",
 ) -> str:
     """
@@ -207,9 +203,9 @@ def render_agent_instructions(
     symbol = guess_symbol_from_query(query) or "<symbol>"
 
     if locale != "zh":
-        header = f"## Codebase retrieval plan ({platform})\n"
+        header = "## Codebase retrieval plan\n"
     else:
-        header = f"## 代码库检索计划（{platform}）\n"
+        header = "## 代码库检索计划\n"
 
     lines = [
         header.rstrip(),
@@ -219,7 +215,6 @@ def render_agent_instructions(
     ]
 
     step = 0
-    use_cursor = platform == PLATFORM_CURSOR
     sorted_routes = sorted(
         route_list,
         key=lambda r: int(r.get("order", 0)) if isinstance(r, dict) else 0,
@@ -227,11 +222,7 @@ def render_agent_instructions(
     for route in sorted_routes:
         if not isinstance(route, dict):
             continue
-        text = (
-            _cursor_step_for_route(route, symbol=symbol, query=query)
-            if use_cursor
-            else _generic_step_for_route(route, symbol=symbol, query=query)
-        )
+        text = _cursor_step_for_route(route, symbol=symbol, query=query)
         if not text:
             continue
         step += 1
@@ -264,14 +255,13 @@ def render_agent_instructions(
             if req:
                 lines.append(f"- {req}")
 
-    if use_cursor:
-        lines.append("")
-        lines.append(
-            "**codegraph 独用场景**：调用链、跨包 trap、extension 符号、影响面；"
-            "纯字面搜索用 Grep，单点定义用 GO_TO_DEFINITION。"
-        )
+    lines.append("")
+    lines.append(
+        "**codegraph 独用场景**：调用链、跨包 trap、extension 符号、影响面；"
+        "纯字面搜索用 Grep，单点定义用 GO_TO_DEFINITION。"
+    )
 
-    if use_cursor and any(
+    if any(
         isinstance(r, dict) and r.get("id") == "platform-semantic" for r in route_list
     ):
         lines.append("")
@@ -299,7 +289,7 @@ def render_agent_instructions(
     try:
         from .semantic_plan_gate import semantic_compliance_gate_hint  # noqa: PLC0415
 
-        gate_hint = semantic_compliance_gate_hint(envelope, platform=platform, locale=locale)
+        gate_hint = semantic_compliance_gate_hint(envelope, locale=locale)
         if gate_hint:
             lines.append("")
             lines.append(gate_hint)

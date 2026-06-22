@@ -22,15 +22,12 @@ def platform_semantic_order_from_envelope(envelope: dict[str, Any]) -> int | Non
 def semantic_compliance_gate_hint(
     envelope: dict[str, Any],
     *,
-    platform: str = "cursor",
     locale: str = "zh",
 ) -> str:
     """
     When platform-semantic is order 1 (or 2 on policy-first routes), append a
     hard compliance strip for eval / hook-injected plans (REC-06 + REC-11).
     """
-    if platform != "cursor":
-        return ""
     order = platform_semantic_order_from_envelope(envelope)
     if order is None or order > 2:
         return ""

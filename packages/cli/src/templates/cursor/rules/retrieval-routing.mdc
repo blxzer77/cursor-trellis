@@ -18,13 +18,13 @@ If the user message or Trellis context contains a block starting with `## 代码
 Generate a fresh plan when needed:
 
 ```powershell
-python ./.trellis/scripts/route_codebase_retrieval.py "<question>" --platform cursor --instructions
+python ./.trellis/scripts/route_codebase_retrieval.py "<question>" --instructions
 ```
 
 JSON (includes `agentInstructions`):
 
 ```powershell
-python ./.trellis/scripts/route_codebase_retrieval.py "<question>" --platform cursor --json
+python ./.trellis/scripts/route_codebase_retrieval.py "<question>" --json
 ```
 
 ## Default tool order (no plan block)

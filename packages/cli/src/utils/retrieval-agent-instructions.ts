@@ -4,7 +4,6 @@
  */
 
 import {
-  PLATFORM_CURSOR,
   type CodebaseRetrievalPlanEnvelope,
   type CodebaseRetrievalRoute,
 } from "./codebase-retrieval-router.js";
@@ -93,7 +92,7 @@ function intentSummary(
     .join("、");
 }
 
-function cursorStepForRoute(
+function stepForRoute(
   route: CodebaseRetrievalRoute,
   symbol: string,
   query: string,
@@ -121,9 +120,6 @@ function cursorStepForRoute(
   ) {
     return "使用 Cursor **内置代码库语义搜索**（Agent 语义搜索能力，等同 @codebase 语义索引；**不要**使用 fast-context MCP）。";
   }
-  if (role === "semantic") {
-    return "使用 **fast_context_search**（非 Cursor 平台语义路由）；若在 Cursor 上应改用内置语义搜索。";
-  }
 
   if (routeId === "lsp-navigation" || role === "lsp") {
     return `对候选定义使用 **GO_TO_DEFINITION** / 查找引用，核对 \`${symbol}\` 的真实定义与引用。`;
@@ -144,18 +140,7 @@ function cursorStepForRoute(
   return `按路由 \`${routeId}\`（${role}）执行，再 Read 源码确认。`;
 }
 
-function genericStepForRoute(
-  route: CodebaseRetrievalRoute,
-  symbol: string,
-  query: string,
-): string | null {
-  if (route.role === "verification") return null;
-  const cmdHint = route.commands[0]?.slice(0, 160) ?? "";
-  return `执行路由 \`${route.id}\`（${route.role}）：${cmdHint || query.slice(0, 80)}`;
-}
-
 export interface RenderAgentInstructionsOptions {
-  platform?: string;
   locale?: string;
 }
 
@@ -163,16 +148,14 @@ export function renderAgentInstructions(
   plan: CodebaseRetrievalPlanEnvelope,
   options: RenderAgentInstructionsOptions = {},
 ): string {
-  const platform = options.platform ?? plan.platform ?? PLATFORM_CURSOR;
   const locale = options.locale ?? "zh";
   const query = plan.query ?? "";
   const symbol = guessSymbolFromQuery(query) ?? "<symbol>";
-  const useCursor = platform === PLATFORM_CURSOR;
 
   const header =
     locale === "zh"
-      ? `## 代码库检索计划（${platform}）`
-      : `## Codebase retrieval plan (${platform})`;
+      ? "## 代码库检索计划"
+      : "## Codebase retrieval plan";
 
   const lines: string[] = [
     header,
@@ -184,9 +167,7 @@ export function renderAgentInstructions(
   let step = 0;
   const sortedRoutes = [...plan.routes].sort((a, b) => a.order - b.order);
   for (const route of sortedRoutes) {
-    const text = useCursor
-      ? cursorStepForRoute(route, symbol, query)
-      : genericStepForRoute(route, symbol, query);
+    const text = stepForRoute(route, symbol, query);
     if (!text) continue;
     step += 1;
     lines.push(`${step}. ${text}`);
@@ -213,17 +194,12 @@ export function renderAgentInstructions(
     }
   }
 
-  if (useCursor) {
-    lines.push(
-      "",
-      "**codegraph 独用场景**：调用链、跨包 trap、extension 符号、影响面；纯字面搜索用 Grep，单点定义用 GO_TO_DEFINITION。",
-    );
-  }
+  lines.push(
+    "",
+    "**codegraph 独用场景**：调用链、跨包 trap、extension 符号、影响面；纯字面搜索用 Grep，单点定义用 GO_TO_DEFINITION。",
+  );
 
-  if (
-    useCursor &&
-    plan.routes.some((r) => r.id === "platform-semantic")
-  ) {
+  if (plan.routes.some((r) => r.id === "platform-semantic")) {
     lines.push(
       "",
       "**语义合规（Cursor）：**",
@@ -232,7 +208,7 @@ export function renderAgentInstructions(
     );
   }
 
-  const gateHint = semanticComplianceGateHint(plan, platform, locale);
+  const gateHint = semanticComplianceGateHint(plan, locale);
   if (gateHint) {
     lines.push("", gateHint);
   }
@@ -250,10 +226,8 @@ export function renderAgentInstructions(
 
 function semanticComplianceGateHint(
   plan: CodebaseRetrievalPlanEnvelope,
-  platform: string,
   locale: string,
 ): string {
-  if (platform !== PLATFORM_CURSOR) return "";
   const semRoute = plan.routes.find((r) => r.id === "platform-semantic");
   if (!semRoute || semRoute.order > 2) return "";
   if (locale !== "zh") {

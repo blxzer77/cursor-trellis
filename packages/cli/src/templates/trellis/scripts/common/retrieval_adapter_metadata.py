@@ -236,18 +236,16 @@ def build_adapter_states(
             optional_integration_adapter_state(adapter=adapter, hints=hints)
         )
 
-    # Platform-semantic: replaces fast-context on Cursor
-    platform = string_value(router.get("platform")) if router else None
-    if platform == "cursor":
-        states.append(
-            adapter_state_entry(
-                adapter=ADAPTER_PLATFORM_SEMANTIC,
-                state=STATE_AVAILABLE,
-                required=False,
-                invoked=False,
-                reason="Platform-native semantic search on Cursor (e.g. @codebase); supersedes fast-context",
-            )
+    # Platform-semantic: Cursor built-in semantic search (replaces fast-context)
+    states.append(
+        adapter_state_entry(
+            adapter=ADAPTER_PLATFORM_SEMANTIC,
+            state=STATE_AVAILABLE,
+            required=False,
+            invoked=False,
+            reason="Platform-native semantic search on Cursor (e.g. @codebase); supersedes fast-context",
         )
+    )
 
     states.append(
         adapter_state_entry(

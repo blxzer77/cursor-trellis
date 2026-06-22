@@ -48,7 +48,7 @@ describe("codebase retrieval router", () => {
     expect(plan.intents.map((i) => i.id)).toContain("policy-document");
     const policyIndex = plan.routes.findIndex((r) => r.id === "policy-docs-rg");
     const semanticIndex = plan.routes.findIndex(
-      (r) => r.id === "semantic-fast-context",
+      (r) => r.id === "platform-semantic",
     );
     expect(policyIndex).toBeGreaterThanOrEqual(0);
     if (semanticIndex >= 0) {
@@ -133,12 +133,12 @@ describe("codebase retrieval router", () => {
     expect(plan.intents.map((i) => i.id)).toContain("cross-cutting-discovery");
     expect(plan.intents.map((i) => i.id)).not.toContain("exact-symbol-path");
     const semantic = plan.routes.find(
-      (r) => r.id === "platform-semantic" || r.id === "semantic-fast-context",
+      (r) => r.id === "platform-semantic",
     );
     expect(semantic?.order).toBeLessThanOrEqual(2);
     expect(
       plan.routes.filter(
-        (r) => r.id === "platform-semantic" || r.id === "semantic-fast-context",
+        (r) => r.id === "platform-semantic",
       ).length,
     ).toBe(1);
   });
@@ -151,7 +151,7 @@ describe("codebase retrieval router", () => {
     expect(plan.intents.map((i) => i.id)).toContain("cross-cutting-discovery");
     const policyIndex = plan.routes.findIndex((r) => r.id === "policy-docs-rg");
     const semanticIndex = plan.routes.findIndex(
-      (r) => r.id === "platform-semantic" || r.id === "semantic-fast-context",
+      (r) => r.id === "platform-semantic",
     );
     expect(policyIndex).toBe(0);
     expect(semanticIndex).toBe(1);

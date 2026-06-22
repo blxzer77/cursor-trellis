@@ -42,12 +42,6 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Treat codebase-retrieval as unselected (omit optional adapter routes).",
     )
     parser.add_argument(
-        "--platform",
-        default="cursor",
-        choices=["cursor"],
-        help="Host platform for platform-adaptive routing (default: cursor).",
-    )
-    parser.add_argument(
         "--project-file-count",
         default="auto",
         metavar="N|auto",
@@ -91,12 +85,10 @@ def main(argv: list[str] | None = None) -> int:
     plan = route_codebase_retrieval(
         args.query,
         codebase_retrieval_selected=selected,
-        platform=args.platform,
         project_file_count=project_file_count,
     )
     instructions = render_agent_instructions(
         plan,
-        platform=args.platform,
         locale=args.locale,
     )
     if args.instructions:

@@ -21,7 +21,7 @@
 ### 跑前
 
 ```powershell
-python .trellis/scripts/batch_plan_envelope.py --platform cursor --queries queries-semantic-slice.jsonl --pretty
+python .trellis/scripts/batch_plan_envelope.py --queries queries-semantic-slice.jsonl --pretty
 ```
 
 ### 产出

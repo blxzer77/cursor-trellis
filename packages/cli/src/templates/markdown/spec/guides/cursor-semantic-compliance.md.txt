@@ -23,7 +23,7 @@ On **cursor**, `semantic_executed` = `platform_semantic_executed`. Track `fast_c
 ## Plan-only metrics (eval)
 
 ```powershell
-python .trellis/scripts/batch_plan_envelope.py --platform cursor --queries queries-semantic-slice.jsonl --pretty
+python .trellis/scripts/batch_plan_envelope.py --queries queries-semantic-slice.jsonl --pretty
 ```
 
 Do **not** use legacy `scripts/batch-plan-envelope.py` (looks for `semantic-fast-context` on all platforms).
