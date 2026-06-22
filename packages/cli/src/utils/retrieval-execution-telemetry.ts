@@ -430,7 +430,7 @@ export function migrateTelemetryRecord(
     dataset: String(raw.dataset ?? "unknown"),
     query_text: String(raw.query_text ?? ""),
     run_id: String(raw.run_id ?? ""),
-    platform: String(raw.platform ?? "generic"),
+    platform: String(raw.platform ?? "cursor"),
     semantic_in_plan: semanticIn,
     semantic_order:
       typeof raw.semantic_order === "number" ? raw.semantic_order : null,
