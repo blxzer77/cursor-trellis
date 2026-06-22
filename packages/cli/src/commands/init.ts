@@ -806,7 +806,7 @@ async function handleReinit(
       console.log(chalk.gray(`Already initialized with: ${configuredNames}`));
       console.log(
         chalk.gray(
-          "Use platform flags (e.g., --codex) or -u <name> to add platforms/developer.",
+          "Use platform flags (e.g., --cursor) or -u <name> to add platforms/developer.",
         ),
       );
       return true;
@@ -970,19 +970,6 @@ async function handleReinit(
 
 interface InitOptions {
   cursor?: boolean;
-  claude?: boolean;
-  opencode?: boolean;
-  codex?: boolean;
-  kilo?: boolean;
-  kiro?: boolean;
-  gemini?: boolean;
-  antigravity?: boolean;
-  windsurf?: boolean;
-  qoder?: boolean;
-  codebuddy?: boolean;
-  copilot?: boolean;
-  droid?: boolean;
-  pi?: boolean;
   yes?: boolean;
   user?: string;
   force?: boolean;
