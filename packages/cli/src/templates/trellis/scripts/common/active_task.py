@@ -32,50 +32,19 @@ _CONVERSATION_KEYS = ("conversation_id", "conversationId", "conversationID")
 _TRANSCRIPT_KEYS = ("transcript_path", "transcriptPath", "transcript")
 _NESTED_KEYS = ("input", "properties", "event", "hook_input", "hookInput")
 _KNOWN_PLATFORMS = {
-    "claude",
-    "codex",
     "cursor",
-    "opencode",
-    "gemini",
-    "droid",
-    "qoder",
-    "codebuddy",
-    "kiro",
-    "copilot",
-    "pi",
 }
 
 _ENV_SESSION_KEYS: tuple[tuple[str, tuple[str, ...]], ...] = (
-    ("claude", ("CLAUDE_SESSION_ID", "CLAUDE_CODE_SESSION_ID")),
-    ("codex", ("CODEX_SESSION_ID", "CODEX_THREAD_ID")),
     ("cursor", ("CURSOR_SESSION_ID",)),
-    ("opencode", ("OPENCODE_SESSION_ID", "OPENCODE_SESSIONID", "OPENCODE_RUN_ID")),
-    ("gemini", ("GEMINI_SESSION_ID",)),
-    ("droid", ("FACTORY_SESSION_ID", "DROID_SESSION_ID")),
-    ("qoder", ("QODER_SESSION_ID",)),
-    ("codebuddy", ("CODEBUDDY_SESSION_ID",)),
-    ("kiro", ("KIRO_SESSION_ID",)),
-    ("copilot", ("COPILOT_SESSION_ID", "COPILOT_SESSIONID")),
-    ("pi", ("PI_SESSION_ID", "PI_SESSIONID")),
 )
 _ENV_CONVERSATION_KEYS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("cursor", ("CURSOR_CONVERSATION_ID", "CURSOR_CONVERSATIONID")),
 )
 _ENV_TRANSCRIPT_KEYS: tuple[tuple[str, tuple[str, ...]], ...] = (
-    ("claude", ("CLAUDE_TRANSCRIPT_PATH",)),
-    ("codex", ("CODEX_TRANSCRIPT_PATH",)),
     ("cursor", ("CURSOR_TRANSCRIPT_PATH",)),
-    ("gemini", ("GEMINI_TRANSCRIPT_PATH",)),
-    ("droid", ("FACTORY_TRANSCRIPT_PATH", "DROID_TRANSCRIPT_PATH")),
-    ("qoder", ("QODER_TRANSCRIPT_PATH",)),
-    ("codebuddy", ("CODEBUDDY_TRANSCRIPT_PATH",)),
 )
-_ENV_PLATFORM_ALIASES = {
-    "claude-code": "claude",
-    "factory": "droid",
-    "factory-ai": "droid",
-    "github-copilot": "copilot",
-}
+_ENV_PLATFORM_ALIASES: dict[str, str] = {}
 
 
 @dataclass(frozen=True)
