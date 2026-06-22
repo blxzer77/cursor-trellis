@@ -132,7 +132,7 @@ def get_step(step_id: str) -> str:
 
 
 def _platform_matches(platform: str, block_names: list[str]) -> bool:
-    """Case-insensitive fuzzy match: accept 'cursor', 'Cursor', 'claude-code', 'Claude Code'."""
+    """Case-insensitive fuzzy match: accept 'cursor' or 'Cursor'."""
     needle = platform.lower().replace("-", "").replace("_", "").replace(" ", "")
     for name in block_names:
         hay = name.lower().replace("-", "").replace("_", "").replace(" ", "")
@@ -142,29 +142,8 @@ def _platform_matches(platform: str, block_names: list[str]) -> bool:
 
 
 def resolve_effective_platform(platform: str, config: dict) -> str:
-    """Map ``codex`` to a dispatch-mode-namespaced virtual platform name.
-
-    When ``--platform codex`` is passed, return ``"codex-inline"`` (default)
-    or ``"codex-sub-agent"`` based on ``.trellis/config.yaml`` ``codex.dispatch_mode``.
-    ``filter_platform`` then surfaces blocks whose marker lists include the
-    namespaced name (e.g. ``[codex-sub-agent, ...]`` or ``[codex-inline, Kilo,
-    Antigravity, Windsurf]``).
-
-    Default is ``inline`` because Codex sub-agents run with ``fork_turns="none"``
-    isolation and can't inherit the parent session's task context — inline
-    keeps the main agent in charge so context isn't lost. Invalid / missing
-    values also fall back to inline.
-
-    Other platforms are returned unchanged.
-    """
-    if platform == "codex":
-        mode = "inline"
-        codex_cfg = config.get("codex") if isinstance(config, dict) else None
-        if isinstance(codex_cfg, dict):
-            cfg_mode = codex_cfg.get("dispatch_mode")
-            if cfg_mode in ("inline", "sub-agent"):
-                mode = cfg_mode
-        return f"codex-{mode}"
+    """Return the platform name unchanged (Cursor-only fork)."""
+    _ = config
     return platform
 
 

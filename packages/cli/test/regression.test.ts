@@ -7077,7 +7077,7 @@ print(len(entries))
     expect(parsed.codex?.dispatch_mode).toBe("inline");
   });
 
-  it("[issue-codex-dispatch-mode] resolve_effective_platform namespaces codex into codex-sub-agent / codex-inline", () => {
+  it("[cursor-only] resolve_effective_platform is identity (no codex dispatch)", () => {
     setupTaskRepo();
     writeTrellisScripts();
     const probePath = path.join(tmpDir, "probe_effective_platform.py");
@@ -7088,11 +7088,8 @@ print(len(entries))
         `sys.path.insert(0, ${JSON.stringify(path.join(tmpDir, ".trellis", "scripts"))})`,
         "from common.workflow_phase import resolve_effective_platform",
         "result = {",
-        "  'codex_default': resolve_effective_platform('codex', {}),",
-        "  'codex_explicit_subagent': resolve_effective_platform('codex', {'codex': {'dispatch_mode': 'sub-agent'}}),",
-        "  'codex_inline': resolve_effective_platform('codex', {'codex': {'dispatch_mode': 'inline'}}),",
-        "  'codex_invalid_mode': resolve_effective_platform('codex', {'codex': {'dispatch_mode': 'invalid'}}),",
-        "  'claude_passthrough': resolve_effective_platform('claude', {'codex': {'dispatch_mode': 'inline'}}),",
+        "  'cursor': resolve_effective_platform('cursor', {}),",
+        "  'cursor_with_codex_cfg': resolve_effective_platform('cursor', {'codex': {'dispatch_mode': 'sub-agent'}}),",
         "}",
         "print(json.dumps(result))",
       ].join("\n"),
@@ -7104,13 +7101,8 @@ print(len(entries))
     const result = JSON.parse(
       output.split("\n").filter((l) => l.startsWith("{")).pop() ?? "{}",
     ) as Record<string, string>;
-    expect(result.codex_default).toBe("codex-inline");
-    expect(result.codex_explicit_subagent).toBe("codex-sub-agent");
-    expect(result.codex_inline).toBe("codex-inline");
-    // Invalid mode falls back to default inline rather than passing through.
-    expect(result.codex_invalid_mode).toBe("codex-inline");
-    // Non-codex platforms ignore the codex.dispatch_mode setting.
-    expect(result.claude_passthrough).toBe("claude");
+    expect(result.cursor).toBe("cursor");
+    expect(result.cursor_with_codex_cfg).toBe("cursor");
   });
 
   it("[issue-codex-dispatch-mode] codex hook injects <codex-mode> banner reflecting dispatch_mode", () => {
@@ -7341,174 +7333,42 @@ describe("regression: platform additions (beta.9, beta.13, beta.16)", () => {
   });
 });
 
-describe("regression: cli_adapter platform support (beta.9, beta.13, beta.16)", () => {
-  it("[beta.9] cli_adapter.py supports opencode platform", () => {
-    expect(commonCliAdapter).toContain('"opencode"');
-    expect(commonCliAdapter).toContain(".opencode");
-  });
-
-  it("[beta.13] cli_adapter.py supports cursor platform", () => {
+describe("regression: cli_adapter cursor-only (S7)", () => {
+  it("[cursor-only] cli_adapter.py supports only cursor platform", () => {
+    expect(commonCliAdapter).toContain('Platform = Literal["cursor"]');
     expect(commonCliAdapter).toContain('"cursor"');
     expect(commonCliAdapter).toContain(".cursor");
+    expect(commonCliAdapter).not.toContain('"opencode"');
+    expect(commonCliAdapter).not.toContain('"codex"');
+    expect(commonCliAdapter).not.toContain('"claude"');
   });
 
-  it("[codex] cli_adapter.py supports codex platform", () => {
-    expect(commonCliAdapter).toContain('"codex"');
-    expect(commonCliAdapter).toContain(".agents");
-    expect(commonCliAdapter).toContain(".codex");
-  });
-
-  it("[kiro] cli_adapter.py supports kiro platform", () => {
-    expect(commonCliAdapter).toContain('"kiro"');
-    expect(commonCliAdapter).toContain(".kiro");
-  });
-
-  it("[gemini] cli_adapter.py supports gemini platform", () => {
-    expect(commonCliAdapter).toContain('"gemini"');
-    expect(commonCliAdapter).toContain(".gemini");
-  });
-
-  it("[antigravity] cli_adapter.py supports antigravity platform", () => {
-    expect(commonCliAdapter).toContain('"antigravity"');
-    expect(commonCliAdapter).toContain(".agent");
-  });
-
-  it("[windsurf] cli_adapter.py supports windsurf platform", () => {
-    expect(commonCliAdapter).toContain('"windsurf"');
-    expect(commonCliAdapter).toContain(".windsurf");
-  });
-
-  it("[qoder] cli_adapter.py supports qoder platform", () => {
-    expect(commonCliAdapter).toContain('"qoder"');
-    expect(commonCliAdapter).toContain(".qoder");
-  });
-
-  it("[codebuddy] cli_adapter.py supports codebuddy platform", () => {
-    expect(commonCliAdapter).toContain('"codebuddy"');
-    expect(commonCliAdapter).toContain(".codebuddy");
-  });
-
-  it("[copilot] cli_adapter.py supports copilot platform", () => {
-    expect(commonCliAdapter).toContain('"copilot"');
-    expect(commonCliAdapter).toContain(".github/copilot");
-  });
-
-  it("[droid] cli_adapter.py supports droid platform", () => {
-    expect(commonCliAdapter).toContain('"droid"');
-    expect(commonCliAdapter).toContain(".factory");
-  });
-
-  it("[pi] cli_adapter.py supports pi platform", () => {
-    expect(commonCliAdapter).toContain('"pi"');
-    expect(commonCliAdapter).toContain(".pi");
-    expect(commonCliAdapter).toContain('cmd = ["pi", "-p", prompt]');
-    expect(commonCliAdapter).toContain('return ["pi", "-c", session_id]');
+  it("[cursor-only] get_trellis_command_path uses Cursor prefix layout", () => {
     expect(commonCliAdapter).toContain(
-      'return f".pi/prompts/trellis-{name}.md"',
+      'return f".cursor/commands/trellis-{name}.md"',
     );
   });
 
-  it("[droid] cli_adapter.py treats droid as commands-only (no CLI run/resume yet)", () => {
+  it("[cursor-only] Cursor is IDE-only (no CLI agent run)", () => {
     expect(commonCliAdapter).toContain(
-      "Factory Droid CLI agent run is not yet supported.",
+      "Cursor is IDE-only; CLI agent run is not supported",
     );
-    expect(commonCliAdapter).toContain(
-      "Factory Droid CLI resume is not yet supported.",
-    );
-    expect(commonCliAdapter).toContain('elif self.platform == "droid":');
-    expect(commonCliAdapter).toContain('return "droid"');
-    expect(commonCliAdapter).toContain(
-      'return f".factory/commands/trellis/{name}.md"',
-    );
+    expect(commonCliAdapter).toMatch(/def supports_cli_agents[\s\S]*?return False/);
   });
 
-  it("[droid] cli_adapter.py has explicit droid branches in all key methods", () => {
-    expect(commonCliAdapter).toMatch(
-      /def get_trellis_command_path[\s\S]*?elif self\.platform == "droid":[\s\S]*?\.factory\/commands\/trellis\//,
-    );
-    expect(commonCliAdapter).toMatch(
-      /def get_non_interactive_env[\s\S]*?elif self\.platform == "droid":[\s\S]*?return \{\}/,
-    );
-    expect(commonCliAdapter).toMatch(
-      /def build_run_command[\s\S]*?elif self\.platform == "droid":[\s\S]*?CLI agent run is not yet supported/,
-    );
-    expect(commonCliAdapter).toMatch(
-      /def build_resume_command[\s\S]*?elif self\.platform == "droid":[\s\S]*?CLI resume is not yet supported/,
-    );
-    expect(commonCliAdapter).toMatch(
-      /def cli_name[\s\S]*?elif self\.platform == "droid":[\s\S]*?return "droid"/,
-    );
-  });
-
-  it("[droid] cli_adapter.py detect_platform handles .factory directory", () => {
-    expect(commonCliAdapter).toContain('return "droid"');
-    expect(commonCliAdapter).toMatch(
-      /detect_platform[\s\S]*?\.factory[\s\S]*?return "droid"/,
-    );
-  });
-
-  it("[beta.9] cli_adapter.py has detect_platform function", () => {
+  it("[cursor-only] detect_platform returns cursor", () => {
     expect(commonCliAdapter).toContain("def detect_platform");
+    expect(commonCliAdapter).toMatch(/_ALL_PLATFORM_CONFIG_DIRS\s*=\s*\(\s*"\.cursor"/);
+    expect(commonCliAdapter).toContain('return "cursor"');
   });
 
-  // Regression for 04-22-migrate-flow-bugs Bug A: codex/kiro branches of
-  // get_trellis_command_path were missing the `trellis-` prefix that
-  // 0.5.0-beta.0 introduced via 60+ rename manifest entries. Without the
-  // prefix, any caller that built skill paths via get_trellis_command_path
-  // (add-context, check agent prelude, etc.) would produce paths that don't
-  // resolve to any real skill file.
-  it("[migrate-flow-bugs] get_trellis_command_path codex branch uses trellis- prefix", () => {
-    expect(commonCliAdapter).toMatch(
-      /def get_trellis_command_path[\s\S]*?elif self\.platform == "codex":[\s\S]*?return f"\.agents\/skills\/trellis-\{name\}\/SKILL\.md"/,
-    );
-    expect(commonCliAdapter).not.toMatch(
-      /def get_trellis_command_path[\s\S]*?elif self\.platform == "codex":[\s\S]*?return f"\.agents\/skills\/\{name\}\/SKILL\.md"/,
-    );
+  it("[cursor-only] get_cli_adapter rejects non-cursor platforms", () => {
+    expect(commonCliAdapter).toContain("must be 'cursor'");
   });
 
-  it("[migrate-flow-bugs] get_trellis_command_path kiro branch uses trellis- prefix", () => {
-    expect(commonCliAdapter).toMatch(
-      /def get_trellis_command_path[\s\S]*?elif self\.platform == "kiro":[\s\S]*?return f"\.kiro\/skills\/trellis-\{name\}\/SKILL\.md"/,
-    );
-    expect(commonCliAdapter).not.toMatch(
-      /def get_trellis_command_path[\s\S]*?elif self\.platform == "kiro":[\s\S]*?return f"\.kiro\/skills\/\{name\}\/SKILL\.md"/,
-    );
-  });
+});
 
-  // Regression for 04-22-migrate-flow-bugs Bug B: .agents/skills/ is a shared
-  // layer (Codex writes, Amp/Cline consume via agentskills.io standard) — not
-  // a single-platform config dir. Previously included in
-  // _ALL_PLATFORM_CONFIG_DIRS, which caused Kiro / Antigravity / Windsurf
-  // detection to fail whenever .agents/ existed (codex had already excluded
-  // it, other platforms had not).
-  it("[migrate-flow-bugs] _ALL_PLATFORM_CONFIG_DIRS excludes .agents (shared layer, not platform-specific)", () => {
-    expect(commonCliAdapter).toMatch(/_ALL_PLATFORM_CONFIG_DIRS\s*=\s*\(/);
-    const tupleMatch = commonCliAdapter.match(
-      /_ALL_PLATFORM_CONFIG_DIRS\s*=\s*\(([\s\S]*?)\)/,
-    );
-    expect(tupleMatch).toBeTruthy();
-    const tupleBody = (tupleMatch as RegExpMatchArray)[1];
-    expect(tupleBody).not.toMatch(/"\.agents"/);
-    // Must still include actual platform dirs
-    expect(tupleBody).toContain('".claude"');
-    expect(tupleBody).toContain('".codex"');
-    expect(tupleBody).toContain('".kiro"');
-  });
-
-  it("[migrate-flow-bugs] detect_platform has codex shared-skills fallback guarded by no-other-platform-dir check", () => {
-    // Fallback fires when .agents/skills/trellis-* exists AND no other
-    // platform dir is present. Guard is essential — .agents/skills/ can
-    // legitimately coexist with .claude (claude user + shared layer for
-    // other agents) and must not trigger codex in that case.
-    expect(commonCliAdapter).toMatch(
-      /agents_skills\s*=\s*project_root\s*\/\s*"\.agents"\s*\/\s*"skills"/,
-    );
-    expect(commonCliAdapter).toMatch(
-      /if agents_skills\.is_dir\(\) and not _has_other_platform_dir\(\s*project_root,\s*set\(\)/,
-    );
-    expect(commonCliAdapter).toMatch(/entry\.name\.startswith\("trellis-"\)/);
-  });
-
+describe("regression: trellis scripts (init-context, migrate-flow-bugs)", () => {
   // v0.5.0-beta.12 removed `task.py init-context`; jsonl manifests are now
   // curated during planning when needed. The subparser, cmd_init_context, and get_check_context
   // helpers are all gone. task.py still guards against old invocations with
@@ -7623,63 +7483,6 @@ describe("regression: cli_adapter platform support (beta.9, beta.13, beta.16)", 
     expect(copilotStart).not.toContain("task.py init-context");
   });
 
-  it("[beta.9] cli_adapter.py has get_cli_adapter function with validation", () => {
-    expect(commonCliAdapter).toContain("def get_cli_adapter");
-    // Should validate platform parameter
-    expect(commonCliAdapter).toContain("Unsupported platform");
-  });
-
-  it("[beta.12] cli_adapter.py has config_dir_name property for each platform", () => {
-    expect(commonCliAdapter).toContain("config_dir_name");
-    expect(commonCliAdapter).toContain(".claude");
-    expect(commonCliAdapter).toContain(".cursor");
-    expect(commonCliAdapter).toContain(".opencode");
-    expect(commonCliAdapter).toContain(".codex");
-    expect(commonCliAdapter).toContain(".kiro");
-    expect(commonCliAdapter).toContain(".gemini");
-    expect(commonCliAdapter).toContain(".agent");
-    expect(commonCliAdapter).toContain(".windsurf");
-    expect(commonCliAdapter).toContain(".qoder");
-    expect(commonCliAdapter).toContain(".codebuddy");
-    expect(commonCliAdapter).toContain(".github/copilot");
-    expect(commonCliAdapter).toContain(".factory");
-    expect(commonCliAdapter).toContain(".pi");
-  });
-
-  it("[copilot] cli_adapter.py treats copilot as IDE-only (no CLI run/resume)", () => {
-    expect(commonCliAdapter).toContain(
-      "GitHub Copilot is IDE-only; CLI agent run is not supported.",
-    );
-    expect(commonCliAdapter).toContain(
-      "GitHub Copilot is IDE-only; CLI resume is not supported.",
-    );
-    expect(commonCliAdapter).toContain('elif self.platform == "copilot":');
-    expect(commonCliAdapter).toContain('return "copilot"');
-    expect(commonCliAdapter).toContain(
-      'return f".github/prompts/{name}.prompt.md"',
-    );
-  });
-
-  it("[copilot] cli_adapter.py has explicit copilot branches in all key methods", () => {
-    expect(commonCliAdapter).toMatch(
-      /def get_commands_path[\s\S]*?if self\.platform == "copilot":[\s\S]*?prompts_dir/,
-    );
-    expect(commonCliAdapter).toMatch(
-      /def get_trellis_command_path[\s\S]*?elif self\.platform == "copilot":[\s\S]*?\.github\/prompts\//,
-    );
-    expect(commonCliAdapter).toMatch(
-      /def get_non_interactive_env[\s\S]*?elif self\.platform == "copilot":[\s\S]*?return \{\}/,
-    );
-    expect(commonCliAdapter).toMatch(
-      /def build_run_command[\s\S]*?elif self\.platform == "copilot":[\s\S]*?CLI agent run is not supported/,
-    );
-    expect(commonCliAdapter).toMatch(
-      /def build_resume_command[\s\S]*?elif self\.platform == "copilot":[\s\S]*?CLI resume is not supported/,
-    );
-    expect(commonCliAdapter).toMatch(
-      /def cli_name[\s\S]*?elif self\.platform == "copilot":[\s\S]*?return "copilot"/,
-    );
-  });
 });
 
 // =============================================================================

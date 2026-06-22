@@ -319,7 +319,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--platform",
         default=None,
-        help="Host platform for platform-adaptive retrieval routing (e.g. cursor, claude-code, codex).",
+        help="Host platform for platform-adaptive retrieval routing (e.g. cursor).",
     )
     parser.add_argument(
         "--max-items",
