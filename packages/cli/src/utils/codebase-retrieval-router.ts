@@ -9,14 +9,8 @@
 export const CODEBASE_RETRIEVAL_ROUTER_VERSION = 2 as const;
 
 export const PLATFORM_CURSOR = "cursor" as const;
-export const PLATFORM_CLAUDE_CODE = "claude-code" as const;
-export const PLATFORM_CODEX = "codex" as const;
-export const PLATFORM_GENERIC = "generic" as const;
 export const KNOWN_PLATFORMS: ReadonlySet<string> = new Set([
   PLATFORM_CURSOR,
-  PLATFORM_CLAUDE_CODE,
-  PLATFORM_CODEX,
-  PLATFORM_GENERIC,
 ]);
 
 export const MODALITY_LEXICAL = "lexical" as const;
@@ -102,7 +96,7 @@ export interface RouteCodebaseRetrievalInput {
 
 export function emptyCodebaseRetrievalPlan(
   query = "",
-  platform: string = PLATFORM_GENERIC,
+  platform: string = PLATFORM_CURSOR,
   projectFileCount: number | null = null,
 ): CodebaseRetrievalPlanEnvelope {
   return {
@@ -368,10 +362,6 @@ function tokenEconomyForRoute(routeId: string, platform: string): "high" | "medi
   if (highEconomyRoutes.has(routeId)) {
     return TOKEN_ECONOMY_HIGH;
   }
-  const lowEconomyRoutes: ReadonlySet<string> = new Set(["exact-rg-primary"]);
-  if (lowEconomyRoutes.has(routeId) && platform !== PLATFORM_CURSOR) {
-    return TOKEN_ECONOMY_LOW;
-  }
   return TOKEN_ECONOMY_MEDIUM;
 }
 
@@ -383,7 +373,7 @@ function largeProject(projectFileCount: number | null): boolean {
 function orderedRoutesForIntents(
   intents: CodebaseRetrievalIntent[],
   includeOptionalAdapters: boolean,
-  platform: string = PLATFORM_GENERIC,
+  platform: string = PLATFORM_CURSOR,
   projectFileCount: number | null = null,
 ): CodebaseRetrievalRoute[] {
   const ids = new Set(intents.map((item) => item.id));
@@ -780,7 +770,7 @@ function buildFallbackHints(
   intents: CodebaseRetrievalIntent[],
   includeOptionalAdapters: boolean,
   routes: CodebaseRetrievalRoute[],
-  platform: string = PLATFORM_GENERIC,
+  platform: string = PLATFORM_CURSOR,
 ): CodebaseRetrievalFallbackHint[] {
   const hints: CodebaseRetrievalFallbackHint[] = [
     {
@@ -839,7 +829,7 @@ function buildFallbackHints(
 
 function buildWarnings(
   intents: CodebaseRetrievalIntent[],
-  platform: string = PLATFORM_GENERIC,
+  platform: string = PLATFORM_CURSOR,
 ): string[] {
   const warnings: string[] = [];
   const low = intents.filter((i) => i.confidence === "low");
@@ -898,7 +888,7 @@ export function routeCodebaseRetrieval(
   const includeOptionalAdapters = input.codebaseRetrievalSelected !== false;
   const platform = input.platform && KNOWN_PLATFORMS.has(input.platform)
     ? input.platform
-    : PLATFORM_GENERIC;
+    : PLATFORM_CURSOR;
   const projectFileCount = input.projectFileCount ?? null;
 
   if (!query) {
