@@ -116,7 +116,6 @@ interface ChangeAnalysis {
 
 type ConflictAction = "overwrite" | "skip" | "create-new";
 
-const CLAUDE_SETTINGS_PATH = ".claude/settings.json";
 const TRELLIS_BLOCK_START = "<!-- TRELLIS:START -->";
 const TRELLIS_BLOCK_END = "<!-- TRELLIS:END -->";
 const LEGACY_UNTRACKED_AGENTS_MD_BLOCK_HASHES = new Set<string>([
@@ -607,52 +606,13 @@ export function applyConfigSectionsAdded(
  * Collect all template files that should be managed by update
  * Only collects templates for platforms that are already configured (have directories)
  */
-function preserveExistingClaudeStatusLine(
-  cwd: string,
-  templates: Map<string, string>,
-): void {
-  const newSettingsContent = templates.get(CLAUDE_SETTINGS_PATH);
-  if (!newSettingsContent) return;
-
-  const settingsPath = path.join(cwd, CLAUDE_SETTINGS_PATH);
-  if (!fs.existsSync(settingsPath)) return;
-
-  try {
-    const existingSettings = JSON.parse(
-      fs.readFileSync(settingsPath, "utf-8"),
-    ) as Record<string, unknown>;
-
-    if (!Object.prototype.hasOwnProperty.call(existingSettings, "statusLine")) {
-      return;
-    }
-
-    const newSettings = JSON.parse(newSettingsContent) as Record<
-      string,
-      unknown
-    >;
-
-    if (Object.prototype.hasOwnProperty.call(newSettings, "statusLine")) {
-      return;
-    }
-
-    newSettings.statusLine = existingSettings.statusLine;
-    templates.set(
-      CLAUDE_SETTINGS_PATH,
-      `${JSON.stringify(newSettings, null, 2)}\n`,
-    );
-  } catch {
-    // Invalid local JSON is handled by the normal conflict path.
-  }
-}
-
 function collectTemplateFiles(
   cwd: string,
-  extraPlatforms?: Set<AITool>,
   /**
    * Bypass `update.skip` when collecting templates. Enable this for breaking
    * releases so new files (e.g. `continue.md` added in 0.5.0) and template
    * updates can land even under skip-protected paths. Without this, users with
-   * `.claude/commands/` in their skip list would silently miss new commands.
+   * `.cursor/commands/` in their skip list would silently miss new commands.
    * Existing user customizations are still guarded at WRITE time via the
    * "Modified by you" conflict prompt — they can skip per-file there.
    */
@@ -660,11 +620,6 @@ function collectTemplateFiles(
 ): Map<string, string> {
   const files = new Map<string, string>();
   const platforms = getConfiguredPlatforms(cwd);
-  if (extraPlatforms) {
-    for (const p of extraPlatforms) {
-      platforms.add(p);
-    }
-  }
 
   // Python scripts (single source of truth: getAllScripts())
   for (const [scriptPath, content] of getAllScripts()) {
@@ -732,8 +687,6 @@ function collectTemplateFiles(
   )) {
     files.set(filePath, content);
   }
-
-  preserveExistingClaudeStatusLine(cwd, files);
 
   // Apply update.skip from config.yaml (unless bypassed for breaking release)
   if (!bypassUpdateSkip) {
@@ -1026,10 +979,8 @@ const BACKUP_EXCLUDE_PATTERNS = [
   "/agent-traces/", // Agent traces (user data, legacy name)
   // Platform-native worktree dirs — these are full sub-repos the CLI
   // spawns for parallel sessions. Backing them up on every update would
-  // snapshot the entire nested working tree. Confirmed conventions:
-  //   Claude Code: .claude/worktrees/
+  // snapshot the entire nested working tree. Confirmed convention:
   //   Cursor CLI:  .cursor/worktrees/
-  //   Gemini CLI:  .gemini/worktrees/
   // Matches any platform using the same convention (future-proof).
   "/worktrees/",
   "/worktree/",
@@ -1042,7 +993,7 @@ const BACKUP_EXCLUDE_PATTERNS = [
 export function shouldExcludeFromBackup(relativePath: string): boolean {
   // Normalize Windows backslashes to forward slashes so patterns like
   // "/worktrees/" / "/tasks/" match regardless of host OS. Without this,
-  // Windows `path.relative` returns `.claude\worktrees\...` and none of
+  // Windows `path.relative` returns `.cursor\worktrees\...` and none of
   // the slash-prefixed exclude patterns trigger — which causes
   // `collectAllFiles` to descend into platform worktrees (full nested
   // project copies) and explode the scan. Same normalization pattern
@@ -1504,7 +1455,7 @@ export function cleanupEmptyDirs(cwd: string, dirPath: string): void {
     return;
   }
 
-  // Safety: never delete managed root directories themselves (e.g., .claude, .trellis)
+  // Safety: never delete managed root directories themselves (e.g., .cursor, .trellis)
   if (isManagedRootDir(dirPath)) {
     return;
   }
@@ -1997,9 +1948,7 @@ export async function update(options: UpdateOptions): Promise<void> {
 
   // Self-heal poisoned manifests: prune entries that no current platform
   // configurator owns. This silently removes user-owned paths that early
-  // buggy versions of `trellis init` over-hashed (e.g. .codex/sessions/*).
-  // Include codex in known-platforms when codexUpgradeNeeded so legacy Codex
-  // markers under .agents/skills/ survive into the upgrade flow.
+  // buggy versions of `trellis init` over-hashed (e.g. legacy session dirs).
   {
     const configuredPlatforms = new Set<AITool>(getConfiguredPlatforms(cwd));
     const prune = pruneOrphanManifestKeys(
@@ -2035,11 +1984,7 @@ export async function update(options: UpdateOptions): Promise<void> {
     })();
 
   // Collect templates (used for both migration classification and change analysis)
-  const templates = collectTemplateFiles(
-    cwd,
-    undefined,
-    breakingBypass,
-  );
+  const templates = collectTemplateFiles(cwd, breakingBypass);
   printCursorCommandSurfaceNotice(cwd);
 
   // Load update.skip paths (used for both safe-file-delete and template collection)

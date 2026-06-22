@@ -36,13 +36,7 @@ import {
   homedirGuardMessage,
   homedirBypassEnabled,
 } from "../utils/cwd-guard.js";
-import {
-  scrubHooksJson,
-  scrubOpencodePackageJson,
-  scrubPiSettings,
-  scrubCodexConfigToml,
-  type ScrubResult,
-} from "../utils/uninstall-scrubbers.js";
+import { scrubHooksJson, type ScrubResult } from "../utils/uninstall-scrubbers.js";
 
 export interface UninstallOptions {
   yes?: boolean;
@@ -70,48 +64,11 @@ interface StructuredFileSpec {
  */
 function buildStructuredFileSpecs(): Map<string, StructuredFileSpec> {
   const specs: StructuredFileSpec[] = [
-    // Nested hooks.{Event}.[].hooks.[] schema
-    ...(
-      [
-        ".claude/settings.json",
-        ".gemini/settings.json",
-        ".factory/settings.json",
-        ".codebuddy/settings.json",
-        ".qoder/settings.json",
-        ".codex/hooks.json",
-      ] as const
-    ).map(
-      (p): StructuredFileSpec => ({
-        posixPath: p,
-        reason: "Strip trellis hooks; preserve user fields",
-        scrub: (content, deletedPaths) =>
-          scrubHooksJson(content, deletedPaths, "nested"),
-      }),
-    ),
-    // Flat hooks.{Event}.[] schema
-    ...([".cursor/hooks.json", ".github/copilot/hooks.json"] as const).map(
-      (p): StructuredFileSpec => ({
-        posixPath: p,
-        reason: "Strip trellis hooks; preserve user fields",
-        scrub: (content, deletedPaths) =>
-          scrubHooksJson(content, deletedPaths, "flat"),
-      }),
-    ),
     {
-      posixPath: ".opencode/package.json",
-      reason: "Remove @opencode-ai/plugin dep; preserve other deps",
-      scrub: (content) => scrubOpencodePackageJson(content),
-    },
-    {
-      posixPath: ".pi/settings.json",
-      reason:
-        "Strip trellis extension/skills/prompts entries; preserve user fields",
-      scrub: (content) => scrubPiSettings(content),
-    },
-    {
-      posixPath: ".codex/config.toml",
-      reason: "Remove trellis project_doc_fallback_filenames and notes",
-      scrub: (content) => scrubCodexConfigToml(content),
+      posixPath: ".cursor/hooks.json",
+      reason: "Strip trellis hooks; preserve user fields",
+      scrub: (content, deletedPaths) =>
+        scrubHooksJson(content, deletedPaths, "flat"),
     },
   ];
   const map = new Map<string, StructuredFileSpec>();
