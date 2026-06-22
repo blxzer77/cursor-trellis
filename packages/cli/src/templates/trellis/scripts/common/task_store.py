@@ -1272,6 +1272,38 @@ def cmd_integrate_child(args: argparse.Namespace) -> int:
 # Command: generate-child-prompt / parent-status / review-child
 # =============================================================================
 
+def cmd_generate_dispatch_prompt(args: argparse.Namespace) -> int:
+    """Build a full Task dispatch prompt (Agent-facing CLI Layer 2)."""
+    from .subagent_dispatch import build_dispatch_prompt
+
+    repo_root = get_repo_root()
+    task_dir = resolve_task_dir(args.task_dir, repo_root)
+    role = args.role
+    scope = getattr(args, "scope", None)
+    finish = bool(getattr(args, "finish", False))
+    max_chars = getattr(args, "max_chars", None)
+
+    prompt, warnings, errors = build_dispatch_prompt(
+        repo_root,
+        task_dir,
+        role,
+        scope=scope,
+        finish=finish,
+        max_chars=max_chars,
+    )
+    for item in warnings:
+        print(f"[generate-dispatch-prompt] WARN: {item}", file=sys.stderr)
+    if errors:
+        for item in errors:
+            print(f"[generate-dispatch-prompt] Error: {item}", file=sys.stderr)
+        return 1
+    if prompt is None:
+        print(colored("Error: could not build dispatch prompt", Colors.RED), file=sys.stderr)
+        return 1
+    print(prompt)
+    return 0
+
+
 def cmd_generate_child_prompt(args: argparse.Namespace) -> int:
     """Generate a child implementation prompt for parent orchestration."""
     from .parent_orchestration import build_child_prompt

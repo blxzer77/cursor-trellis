@@ -28,6 +28,7 @@ Usage:
     python task.py set-child-state <parent-dir> <child-dir> <state> --evidence <ref>
     python task.py integrate-child <parent-dir> <child-dir> <state> --evidence <ref>
     python task.py generate-child-prompt <parent-dir> <child-dir> [--mode inline|subagent]
+    python task.py generate-dispatch-prompt <task-dir> <role> [--scope TEXT] [--finish] [--max-chars N]
     python task.py parent-status <parent-dir>
     python task.py review-child <parent-dir> <child-dir> [--check] [--decision accept|changes|cancel|integrate-through]
 """
@@ -90,6 +91,7 @@ from common.task_store import (
     cmd_set_child_state,
     cmd_integrate_child,
     cmd_generate_child_prompt,
+    cmd_generate_dispatch_prompt,
     cmd_parent_status,
     cmd_review_child,
 )
@@ -750,6 +752,29 @@ def main() -> int:
     p_integrate_child.add_argument("--execute-merge", action="store_true", help="Execute git merge --no-ff --no-commit for an integrated Child")
     p_integrate_child.add_argument("--check", action="store_true", help="Run non-mutating integration readiness check")
 
+    # generate-dispatch-prompt
+    p_dispatch_prompt = subparsers.add_parser(
+        "generate-dispatch-prompt",
+        help="Build full Task dispatch prompt (Agent-facing)",
+    )
+    p_dispatch_prompt.add_argument("task_dir", help="Task directory")
+    p_dispatch_prompt.add_argument(
+        "role",
+        choices=["implement", "check", "research"],
+        help="Subagent role",
+    )
+    p_dispatch_prompt.add_argument("--scope", help="One-line task instruction for subagent")
+    p_dispatch_prompt.add_argument(
+        "--finish",
+        action="store_true",
+        help="Use finish check context (role=check only)",
+    )
+    p_dispatch_prompt.add_argument(
+        "--max-chars",
+        type=int,
+        help="Hard truncate embedded context block",
+    )
+
     # generate-child-prompt
     p_gen_prompt = subparsers.add_parser(
         "generate-child-prompt",
@@ -834,6 +859,7 @@ def main() -> int:
         "set-child-state": cmd_set_child_state,
         "integrate-child": cmd_integrate_child,
         "generate-child-prompt": cmd_generate_child_prompt,
+        "generate-dispatch-prompt": cmd_generate_dispatch_prompt,
         "parent-status": cmd_parent_status,
         "review-child": cmd_review_child,
         "list": cmd_list,

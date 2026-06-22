@@ -19,7 +19,8 @@ How did I reach trellis-research / trellis-implement / trellis-check?
 │
 ├─ Main session dispatched Task(subagent_type=trellis-*)
 │  → Task dispatch. ONLY path where BYOK json5 + Method 2.5 applies.
-│    Hook injects task context (<!-- trellis-hook-injected --> marker).
+│    Context: CLI Layer 2 pre-embed (primary on Cursor); hook is best-effort
+│    (<!-- trellis-hook-injected --> marker; skips if already present).
 │
 └─ Used the trellis-check SKILL in main session (no subagent spawn)
    → Skill form. Main-session model. Only trellis-check has both
@@ -35,8 +36,8 @@ If unsure: Task dispatch is the path Trellis workflow routes through; Agent sess
 | Scene                                               | Mechanism                                                      | Mode                                | Output / notes                                                                               |
 | --------------------------------------------------- | -------------------------------------------------------------- | ----------------------------------- | -------------------------------------------------------------------------------------------- |
 | Code, history, or external research                 | `ttrellis-research`                                             | Cursor **Agent** (writable)         | `{TASK}/research/*.md`; smart-search-cli first, Cursor web fallback per skill                |
-| Implementation (after `start-execution --approved`) | `ttrellis-implement`                                            | Agent                               | Code edits; no `git commit` in subagent                                                      |
-| Post-implementation verification                    | `ttrellis-check`                                                | Agent                               | Fixes + `verify.md` / gate hints; main session records gates when required                   |
+| Implementation (after `start-execution --approved`) | `ttrellis-implement`                                            | Agent                               | Code edits; no `git commit` in subagent; **CLI Layer 2** dispatch prompt on Cursor |
+| Post-implementation verification                    | `ttrellis-check`                                                | Agent                               | Fixes + `verify.md` / gate hints; **CLI Layer 2** on Cursor; main session records gates |
 | Parent/Child child worker                           | `generate-child-prompt --mode subagent`                        | **Parent Task** `trellis-implement` (default) | Child delivers `verify.md` + `handoff.md`; rare per-child model → **new writable Agent** session when user names that child |
 | Architecture / deep review                          | `ttrellis-check` or documented inline deep review               | Agent or main session               | Model via dispatch strategy (Methods 1–2.5, 3–4 below)                                               |
 | PRD Grill (planning)                                | `trellis-micro-grill` contract **inside** `trellis-brainstorm` | **Not** a subagent                  | Single-question business follow-ups only                                                     |
@@ -306,6 +307,18 @@ trellis_task_subagents:
 - Do not spawn `ttrellis-implement` from inside `ttrellis-implement` (recursion guard in agent defs).
 - Do not spawn a subagent for PRD Grill — use brainstorm Phase B + micro-grill contract.
 - Do not leave `model:` on agent files after dispatch (always restore).
+
+---
+
+## Maintainer: subagent missing task context (Cursor)
+
+If a dispatched subagent cannot answer from `prd.md` / jsonl (empty or generic replies):
+
+1. Confirm the main session used **CLI Layer 2** before `Task(...)` (workflow Phase 2.1 / 2.2).
+2. **Manual fallback (Method 3):** run `python ./.trellis/scripts/task.py generate-dispatch-prompt <task-dir> <role> [--scope "..."]`, paste stdout into `Task(subagent_type=..., prompt=...)`.
+3. Hook-only injection is best-effort on Cursor; do not treat `preToolUse` as the sole source.
+
+This command is **Agent-facing** — not listed in user README or slash command surface.
 
 ---
 
