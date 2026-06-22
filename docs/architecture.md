@@ -29,7 +29,7 @@ Trellis/                          # This git repository
 
 | Package | npm name | Role |
 | --- | --- | --- |
-| `packages/core` | `@blxzer/cursor-trellis-core` | Shared domain primitives (task, channel, mem exports for CLI/services) |
+| `packages/core` | `@blxzer/cursor-trellis-core` | Shared domain primitives (task, channel exports for CLI/services) |
 | `packages/cli` | `@blxzer/cursor-trellis` | User-facing CLI, template copy, platform configuration |
 
 Build order: **core before cli** (`pnpm build`). Node **≥ 18.17**, Python **≥ 3.9** for hook scripts in generated projects.

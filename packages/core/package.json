@@ -17,11 +17,6 @@
       "import": "./dist/channel/index.js",
       "default": "./dist/channel/index.js"
     },
-    "./mem": {
-      "types": "./dist/mem/index.d.ts",
-      "import": "./dist/mem/index.js",
-      "default": "./dist/mem/index.js"
-    },
     "./task": {
       "types": "./dist/task/index.d.ts",
       "import": "./dist/task/index.js",

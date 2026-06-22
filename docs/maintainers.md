@@ -35,7 +35,7 @@ git push private main    # 或 git push（若 default remote 为 private）
 
 ### 包边界
 
-- `@blxzer/cursor-trellis-core`：`packages/core/src/` — task/channel/mem 等领域导出。
+- `@blxzer/cursor-trellis-core`：`packages/core/src/` — task/channel 等领域导出。
 - `@blxzer/cursor-trellis`：`packages/cli/src/` — Commander、commands、configurators、templates。
 
 构建顺序：**core → cli**（`pnpm build`）。
