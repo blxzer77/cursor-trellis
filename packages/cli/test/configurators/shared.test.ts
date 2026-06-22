@@ -514,21 +514,14 @@ describe("resolvePlaceholdersNeutral", () => {
 // ---------------------------------------------------------------------------
 
 describe("resolveSkillsNeutral / resolveAllAsSkillsNeutral", () => {
-  it("resolveSkillsNeutral produces byte-identical output for Codex and Gemini", () => {
-    const codexSkills = resolveSkillsNeutral(AI_TOOLS.codex.templateContext);
-    const geminiSkills = resolveSkillsNeutral(AI_TOOLS.gemini.templateContext);
-    expect(codexSkills.length).toBe(geminiSkills.length);
-    for (let i = 0; i < codexSkills.length; i++) {
-      expect(codexSkills[i].name).toBe(geminiSkills[i].name);
-      expect(codexSkills[i].content).toBe(geminiSkills[i].content);
-    }
+  it("resolveSkillsNeutral produces stable shared skill set for Cursor context", () => {
+    const cursorSkills = resolveSkillsNeutral(AI_TOOLS.cursor.templateContext);
+    expect(cursorSkills.length).toBeGreaterThan(0);
+    expect(cursorSkills.map((s) => s.name)).toContain("trellis-before-dev");
   });
 
   it("resolveSkillsNeutral renders CMD_REF without platform-specific prefix", () => {
-    // The neutral output must not contain platform-prefixed tokens for any
-    // command that CMD_REF references in the shared skills (Codex `$name`,
-    // Claude `/trellis:name`, Cursor `/trellis-name`).
-    const neutral = resolveSkillsNeutral(AI_TOOLS.codex.templateContext);
+    const neutral = resolveSkillsNeutral(AI_TOOLS.cursor.templateContext);
     const cmdRefNames = [
       "start",
       "brainstorm",
@@ -555,9 +548,9 @@ describe("resolveSkillsNeutral / resolveAllAsSkillsNeutral", () => {
     }
   });
 
-  it("resolveAllAsSkillsNeutral keeps the 5 shared skills byte-identical to resolveSkillsNeutral", () => {
-    const all = resolveAllAsSkillsNeutral(AI_TOOLS.codex.templateContext);
-    const fiveOnly = resolveSkillsNeutral(AI_TOOLS.codex.templateContext);
+  it("resolveAllAsSkillsNeutral keeps shared skills byte-identical to resolveSkillsNeutral", () => {
+    const all = resolveAllAsSkillsNeutral(AI_TOOLS.cursor.templateContext);
+    const fiveOnly = resolveSkillsNeutral(AI_TOOLS.cursor.templateContext);
     const sharedNames = new Set(fiveOnly.map((s) => s.name));
     const allShared = all.filter((s) => sharedNames.has(s.name));
     expect(allShared.length).toBe(fiveOnly.length);

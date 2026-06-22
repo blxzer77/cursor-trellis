@@ -43,9 +43,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--platform",
-        default="generic",
-        choices=["cursor", "claude-code", "codex", "generic"],
-        help="Host platform for platform-adaptive routing (default: generic).",
+        default="cursor",
+        choices=["cursor"],
+        help="Host platform for platform-adaptive routing (default: cursor).",
     )
     parser.add_argument(
         "--project-file-count",
