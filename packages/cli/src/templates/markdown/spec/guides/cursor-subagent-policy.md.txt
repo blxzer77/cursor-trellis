@@ -288,13 +288,13 @@ trellis_task_subagents:
 | `beforeShellExecution`     | Short-lived ticket for `task.py select` / `selected` / `exit` in shells |
 | `stop`                     | Optional `retrieval-pack-latest.json` when task has `research/`         |
 
-**Per-turn workflow-state on Cursor:** deferred — use `sessionStart` + `/trellis-continue` / `get_context.py --mode phase` instead of Claude `UserPromptSubmit` injection.
+**Per-turn workflow-state on Cursor:** deferred — use `sessionStart` + `/trellis-continue` / `get_context.py --mode phase` instead of a per-turn hook injection (the relevant Cursor channel has a confirmed `additional_context` bug, see `cursor-context-injection-guide.md`).
 
 ---
 
 ## Parent/Child alignment
 
-- `generate-child-prompt --mode subagent` → Parent **Task** `trellis-implement` by default; inline mode remains the portable default for non-Cursor platforms.
+- `generate-child-prompt --mode subagent` → Parent **Task** `trellis-implement` by default; inline mode is the portable default when dispatching without spawning a subagent.
 - Child workers call `task.py set-child-state <parent> <child> <open|working|blocked|review> --evidence <ref>` — **no** session identity required for this command.
 - Integration states (`accepted`, `integrating`, `integrated`, …) are **Parent-only** via `integrate-child` / `review-child`.
 

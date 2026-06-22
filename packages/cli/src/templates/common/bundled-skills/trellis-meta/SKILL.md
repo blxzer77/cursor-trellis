@@ -10,8 +10,10 @@ This skill is for local Trellis users who have already run `trellis init` in a p
 The default operating scope is local files in the user project:
 
 - `.trellis/`: workflow, config, tasks, spec, workspace, scripts, and runtime state.
-- Platform directories: first-class `.claude/`, `.codex/`, `.cursor/`; legacy adapter directories such as `.opencode/`, `.kiro/`, `.gemini/`, `.qoder/`, `.codebuddy/`, `.github/`, `.factory/`, `.pi/`, `.kilocode/`, `.agent/`, `.windsurf/`, and similar directories.
-- Shared skill layer: `.agents/skills/`.
+- Platform directory: `.cursor/` — skills, agents, hooks, commands, rules.
+- Shared skill layer: `.agents/skills/` (industry skill-sharing path, kept when present but not extended by new Trellis behavior).
+
+Trellis previously supported many AI-platform adapter directories (`.claude/`, `.codex/`, `.opencode/`, `.kiro/`, `.gemini/`, `.qoder/`, `.codebuddy/`, `.github/`, `.factory/`, `.pi/`, `.kilocode/`, `.agent/`, `.windsurf/`). The project has converged on **Cursor-only**. Legacy adapter directories in upgraded projects are preserved by `trellis update` but new Trellis behavior ships to `.cursor/` only.
 
 Do not assume the user has the Trellis source repository. Do not default to modifying the global npm install directory or `node_modules`.
 

@@ -12,26 +12,26 @@ For **external / current / web facts**, **smart-search** (`run_smart_search.py`)
 | --- | --- | --- |
 | Exact string / path / log line | **rg** (Grep) | Fast literal match in repo |
 | Symbol, callers, edit blast radius | **codegraph** MCP | Structure-first for caller/trap/extension intents |
-| Unknown keywords, semantic discovery | **@codebase** (Cursor) or **fast-context** (other platforms) | Cursor: platform-native semantics; others: fast-context MCP |
+| Unknown keywords, semantic discovery | **@codebase** (Cursor) | Cursor's platform-native semantic search |
 | External / current facts | **smart-search-cli** | **Mandatory first** — built-in web tools are downgrade-only (see rule above) |
 | Trellis durable docs | **artifact-search** | `search_artifacts.py` |
 | Past sessions | **session-memory** | Historical; verify against tasks/spec |
-| Intent hint for code questions | **router** | `route_codebase_retrieval.py --platform <name>` — plan JSON + `agentInstructions`; `--instructions` for steps only |
+| Intent hint for code questions | **router** | `route_codebase_retrieval.py --platform cursor` — plan JSON + `agentInstructions`; `--instructions` for steps only |
 | Agent follows plan on Cursor | **`beforeSubmitPrompt` → `inject-retrieval-plan.py`** + **`.cursor/rules/retrieval-routing.mdc`** | Per-turn plan block from router `--instructions`; Rules enforce execution; not `sessionStart` (#158452) |
 | Score collected evidence | **retrieval-pack** | `get_context.py --mode retrieval-pack` — does **not** search |
 
-## Platform differences
+## Platform routing on Cursor
 
-The router is platform-adaptive since v2. Different platforms have different built-in capabilities, and the router adjusts its route suggestions accordingly.
+The router is platform-adaptive. On Cursor it routes semantic intents to **Cursor's platform-native `@codebase` and built-in agent search** (custom embedding model trained on agent sessions), which is higher quality than the third-party `fast-context` MCP used as a fallback on other platforms.
 
-| Capability | Cursor | Claude Code / Codex | Generic |
-| --- | --- | --- | --- |
-| Semantic search | Platform-native (`@codebase`) | **fast-context** MCP | **fast-context** MCP |
-| Exact search | Platform-native Grep | rg | rg |
-| Structural search | **codegraph** MCP | **codegraph** MCP | **codegraph** MCP |
-| LSP / definition jump | Optional (GO_TO_DEFINITION when exposed) | N/A | N/A |
+| Capability | Cursor |
+| --- | --- |
+| Semantic search | Platform-native (`@codebase`) — do **not** use `fast-context` on Cursor |
+| Exact search | Platform-native Grep |
+| Structural search | **codegraph** MCP |
+| LSP / definition jump | Optional (GO_TO_DEFINITION when exposed) |
 
-**Key implication on Cursor**: Do NOT use `fast-context` for semantic search — Cursor's own `@codebase` and built-in search are higher quality (custom embedding model trained on agent sessions). The router outputs `platform-semantic` routes with `platformNative: true` instead of `semantic-fast-context` on cursor.
+**Key implication**: The router outputs `platform-semantic` routes with `platformNative: true` on Cursor (instead of `semantic-fast-context`). Reach for `@codebase` first.
 
 ## Token economy signals
 
@@ -108,11 +108,9 @@ Do **not** claim aggregate openclaw score gains from ranking alone without fresh
 
 For structural intents (caller-chain, trap-package-disambiguation, extension-shared-symbol), the router now suggests **codegraph before rg**. This reflects codegraph's superior token economy for structural queries (~80-150 tokens/answer vs rg's ~3557 for naive grep). The agent should still use rg to fill gaps codegraph misses (dynamic dispatch, string-based callsites).
 
-### Semantic routing by platform
+### Semantic routing on Cursor
 
-On **Cursor**: the router outputs `platform-semantic` routes (with `platformNative: true`) instead of `semantic-fast-context`. The agent should use `@codebase` or Cursor's built-in agent search — these are higher quality than fast-context's Devstral model.
-
-On **other platforms**: the router outputs `semantic-fast-context` routes as before. When the envelope fallback mentions no corroborated candidates, invoke `fast_context_search` after exact rg fails.
+On Cursor, the router outputs `platform-semantic` routes (with `platformNative: true`) instead of `semantic-fast-context`. The agent should use `@codebase` or Cursor's built-in agent search — these are higher quality than third-party `fast-context`'s Devstral model, and `fast_context_search` calls on Cursor are tracked as **misuse** in eval telemetry.
 
 ### Semantic dual metrics (openclaw / eval)
 
@@ -148,4 +146,4 @@ Default `get_context.py --json` returns **retrievalGuide** only. Run `--mode ret
 
 ## Adapters (optimization #9)
 
-Core: rg, task-artifacts, artifact-search, source-git-tests. Enhance: codegraph (structural-first), platform-semantic (Cursor) / fast-context (other), smart-search, session-memory. Placeholders: mcp/browser/network envelope only.
+Core: rg, task-artifacts, artifact-search, source-git-tests. Enhance: codegraph (structural-first), platform-semantic (Cursor `@codebase`), smart-search, session-memory. Placeholders: mcp/browser/network envelope only.

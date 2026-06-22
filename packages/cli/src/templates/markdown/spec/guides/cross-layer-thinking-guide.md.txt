@@ -123,18 +123,17 @@ After implementation:
 
 ---
 
-## Cross-Platform Template Consistency
+## Cross-Package Template Consistency
 
-In Trellis, command templates (e.g., `record-session.md`) exist in **multiple platforms** with identical or near-identical content. This is a cross-layer boundary.
+In Trellis, command templates (e.g., `record-session.md`) exist in **multiple locations** with identical or near-identical content — the published template (`packages/cli/src/templates/cursor/commands/...`) and the dogfooded copy (`.cursor/commands/...`). This is a cross-layer boundary.
 
 ### Checklist: After Modifying Any Command Template
 
-- [ ] Find all platforms with the same command: `find src/templates/*/commands/trellis/ -name "<command>.*"`
-- [ ] Update all platform copies (Markdown `.md` and TOML `.toml`)
-- [ ] For Gemini TOML: adapt line continuations (`\\` vs `\`) and triple-quoted strings
+- [ ] Find every copy that owns the same command: `find packages/cli/src/templates -name "<command>.*"` plus the dogfood mirror under `.cursor/commands/`
+- [ ] Update every copy (Markdown `.md` and any TOML sidecar)
 - [ ] Run `/trellis:check-cross-layer` to verify nothing was missed
 
-**Real-world example**: Updated `record-session.md` in Claude to use `--mode record`, but forgot iFlow, Kilo, OpenCode, and Gemini — caught by cross-layer check.
+**Real-world example**: Updated `record-session.md` in the dogfooded `.cursor/commands/` to use `--mode record`, but forgot to mirror it under `packages/cli/src/templates/cursor/commands/` — caught by cross-layer check.
 
 ---
 
@@ -177,20 +176,9 @@ release line.
 - [ ] Treat beta content appearing under root release paths as a source-path bug,
       not a rendering bug
 
-**Real-world example**: A beta-only task workflow change documented
-`prd.md` + `design.md` + `implement.md`, task-creation consent, and Codex
-mode banners under root `start/` and `advanced/` paths. The docs site then
-served 0.6 beta behavior under the Release selector. The fix was to restore root
-release docs, move the 0.6 content to `beta/` and `zh/beta/`, and add a grep
-audit for beta markers against the root release tree.
+**Real-world example**: A beta-only task workflow change documented `prd.md` + `design.md` + `implement.md` and task-creation consent under root `start/` and `advanced/` paths. The docs site then served 0.6 beta behavior under the Release selector. The fix was to restore root release docs, move the 0.6 content to `beta/` and `zh/beta/`, and add a grep audit for beta markers against the root release tree.
 
-**Real-world example**: Codex inline mode changed workflow platform markers from
-`[Codex]` / `[Kilo, Antigravity, Windsurf]` to `[codex-sub-agent]` /
-`[codex-inline, Kilo, Antigravity, Windsurf]`. Fresh init was correct, but
-`trellis update` only merged `[workflow-state:*]` blocks and preserved stale
-markers outside those blocks. Result: upgraded projects got new hook scripts
-but old workflow routing, so `get_context.py --mode phase --platform codex`
-could return empty Phase 2.1 detail.
+**Real-world example**: A workflow-phase marker refactor rewrote `[workflow-state:*]` blocks in `.trellis/workflow.md`. Fresh `init` was correct, but `trellis update` only merged the tagged `[workflow-state:*]` blocks and preserved stale free-text routing between them. Result: upgraded projects got new hook scripts but old workflow routing, so `get_context.py --mode phase` could return empty Phase 2.1 detail. (Historical note: the affected markers used to be platform-tagged when Trellis supported multiple AI platforms; the platform tags were removed when Trellis converged on Cursor-only.)
 
 ---
 

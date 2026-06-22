@@ -35,15 +35,18 @@ This page only describes files that are visible and editable inside the user pro
 
 ## Platform Directories
 
-Different platforms generate different directories. Common categories:
+On a fresh `trellis init --cursor`, the only platform directory created is `.cursor/`. Trellis previously generated per-platform directories for many AI tools (`.claude/`, `.codex/`, `.opencode/`, etc.); those legacy directories are preserved by `trellis update` but new Trellis behavior ships to `.cursor/` only.
 
-| Category | Example paths | Purpose |
+Common categories inside `.cursor/`:
+
+| Category | Path | Purpose |
 | --- | --- | --- |
-| hooks | `.claude/hooks/`, `.codex/hooks/`, `.cursor/hooks/` | Inject session context, workflow-state, and sub-agent context. |
-| settings | `.claude/settings.json`, `.codex/hooks.json`, `.qoder/settings.json` | Tell the platform when to run hooks or plugins. |
-| agents | `.claude/agents/`, `.codex/agents/`, `.kiro/agents/` | Define agents such as `trellis-research`, `trellis-implement`, and `trellis-check`. |
-| skills | `.claude/skills/`, `.agents/skills/`, `.qoder/skills/` | Skills that auto-trigger or can be read by AI. |
-| commands/prompts/workflows | `.cursor/commands/`, `.github/prompts/`, `.windsurf/workflows/` | Explicit user-invoked command or workflow entry points. |
+| hooks | `.cursor/hooks/` | Hook scripts invoked from `.cursor/hooks.json`. Inject session context, workflow-state, and sub-agent context. |
+| settings/registration | `.cursor/hooks.json` | Registers which scripts run on which Cursor events. |
+| rules | `.cursor/rules/*.mdc` (`alwaysApply: true`) | Per-turn policy prepended before every prompt. |
+| agents | `.cursor/agents/` | Define agents such as `trellis-research`, `trellis-implement`, and `trellis-check`. |
+| skills | `.cursor/skills/` | Skills that auto-trigger or can be read by AI. |
+| commands | `.cursor/commands/` | Legacy compatibility-only user-invoked entry points. |
 
 When modifying a platform directory, also confirm whether `.trellis/workflow.md` still describes the same flow.
 

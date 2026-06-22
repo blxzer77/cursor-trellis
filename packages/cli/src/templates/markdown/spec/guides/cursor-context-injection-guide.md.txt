@@ -24,7 +24,7 @@ Cursor has **four** channels that can put text in front of the model. They are *
 
 - **Bug**: Cursor forum #158452 — `sessionStart` hook `additional_context` is executed and JSON-parsed correctly, but the value is **never added to the agent's initial system context**.
 - **Status**: Confirmed by Cursor team (deanrie), internal bug filed, **no ETA** as of 2026-06-19.
-- **Scope**: Affects `sessionStart` and `postToolUse` `additional_context` on Cursor IDE. The `env` field of the same hook **does** work (separate storage path). Claude Code / OpenCode `sessionStart.additionalContext` is unaffected.
+- **Scope**: Affects `sessionStart` and `postToolUse` `additional_context` on Cursor IDE. The `env` field of the same hook **does** work (separate storage path).
 - **Symptom**: hook runs (verifiable via side-channel log), valid JSON emitted, but the agent has zero awareness of the injected text (e.g. won't say a first-reply notice phrase).
 
 ### How to diagnose "is sessionStart injection actually reaching the model?"
