@@ -65,28 +65,13 @@ function collectOption(value: string, previous: string[]): string[] {
 
 program
   .name("trellis")
-  .description(
-    "AI-assisted development workflow framework for Codex, Claude Code, and Cursor",
-  )
+  .description("AI-assisted development workflow framework for Cursor")
   .version(VERSION, "-v, --version", "output the version number");
 
 program
   .command("init")
   .description("Initialize trellis in the current project")
   .option("--cursor", "Include Cursor commands")
-  .option("--claude", "Include Claude Code commands")
-  .option("--opencode", "Include OpenCode commands")
-  .option("--codex", "Include Codex skills")
-  .option("--kilo", "Include Kilo CLI commands")
-  .option("--kiro", "Include Kiro Code skills")
-  .option("--gemini", "Include Gemini CLI commands")
-  .option("--antigravity", "Include Antigravity workflows")
-  .option("--windsurf", "Include Windsurf workflows")
-  .option("--qoder", "Include Qoder commands")
-  .option("--codebuddy", "Include CodeBuddy commands")
-  .option("--copilot", "Include GitHub Copilot hooks")
-  .option("--droid", "Include Factory Droid commands")
-  .option("--pi", "Include Pi Agent extension assets")
   .option("-y, --yes", "Skip prompts and use defaults")
   .option(
     "--cursor2plus",
