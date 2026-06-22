@@ -119,29 +119,6 @@ trellis update
 trellis uninstall
 ```
 
-## 其他平台（附录）
-
-公开文档以 **Cursor-first** 为主线。其他工具仍可通过 `trellis init --<flag>` 启用。下表仅供对照，不在公开文档中逐平台展开。
-
-| CLI flag | 平台 | 层级 | 配置根目录 |
-| --- | --- | --- | --- |
-| `--claude` | Claude Code | first-class | `.claude/` |
-| `--cursor` | Cursor | first-class | `.cursor/` |
-| `--codex` | Codex | first-class | `.codex/` |
-| `--opencode` | OpenCode | legacy | `.opencode/` |
-| `--gemini` | Gemini CLI | legacy | `.gemini/` |
-| `--kiro` | Kiro Code | legacy | `.kiro/` |
-| `--kilo` | Kilo CLI | legacy | `.kilocode/` |
-| `--antigravity` | Antigravity | legacy | `.agent/workflows/` |
-| `--windsurf` | Windsurf | legacy | `.windsurf/workflows/` |
-| `--qoder` | Qoder | legacy | `.qoder/` |
-| `--codebuddy` | CodeBuddy | legacy | `.codebuddy/` |
-| `--copilot` | GitHub Copilot | legacy | `.github/copilot/` |
-| `--droid` | Factory Droid | legacy | 见 `ai-tools.ts` |
-| `--pi` | Pi Agent | legacy | 见 `ai-tools.ts` |
-
-权威数据：`packages/cli/src/types/ai-tools.ts`。
-
 ## 延伸阅读
 
 - [Cursor 中的工作流](workflow.zh-CN.md)

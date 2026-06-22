@@ -35,7 +35,7 @@ smart-search --version
 | `rollout` | Run `update` across multiple project paths |
 | `workflow` | Workflow template utilities (advanced) |
 
-Commands related to **mem** and **channel** exist for other workflows; they are not part of the Cursor-first public docs. Use `trellis --help` for the full list.
+Commands related to **channel** exist for advanced multi-agent workflows; they are not part of the Cursor-first public docs. Use `trellis --help` for the full list.
 
 The sections below detail **`init`**, **`update`**, and **`uninstall`**.
 
@@ -49,16 +49,14 @@ Run from the **target project root**.
 trellis init --cursor
 ```
 
-### Platform flags (selection)
+### Platform flags
 
 | Flag | Platform |
 | --- | --- |
-| `--cursor` | Cursor (`.cursor/`) |
-| `--claude` | Claude Code |
-| `--codex` | Codex |
-| `--opencode`, `--gemini`, `--kiro`, … | Other platforms (see `trellis init --help`) |
+| `--cursor` | Cursor (`.cursor/`) — default documented path |
+| `--cursor2plus` | Cursor++ BYOK local bundle (requires `--cursor`) |
 
-This fork documents **Cursor** in depth: [../../docs/cursor.md](../../docs/cursor.md).
+This fork is **Cursor-only** for init and public docs: [../../docs/cursor.md](../../docs/cursor.md).
 
 ### Frequently used flags
 

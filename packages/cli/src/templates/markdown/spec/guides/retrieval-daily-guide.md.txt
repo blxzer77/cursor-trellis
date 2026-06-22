@@ -22,7 +22,7 @@ For **external / current / web facts**, **smart-search** (`run_smart_search.py`)
 
 ## Platform routing on Cursor
 
-The router is platform-adaptive. On Cursor it routes semantic intents to **Cursor's platform-native `@codebase` and built-in agent search** (custom embedding model trained on agent sessions), which is higher quality than the third-party `fast-context` MCP used as a fallback on other platforms.
+On Cursor the router routes semantic intents to **platform-native `@codebase` and built-in agent search** (custom embedding model trained on agent sessions). Do **not** use the third-party `fast-context` MCP on Cursor.
 
 | Capability | Cursor |
 | --- | --- |

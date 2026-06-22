@@ -418,7 +418,7 @@ listed in per-task jsonl manifests. Empty spec = sub-agents write generic
 code. Real spec = sub-agents match the team's actual patterns.
 
 Don't dump instructions. Open with a short greeting, figure out if the repo
-has any existing convention docs (CLAUDE.md, .cursorrules, etc.), and drive
+has any existing convention docs (AGENTS.md, .cursorrules, CONTRIBUTING.md, etc.), and drive
 the rest conversationally.
 
 ---
@@ -476,18 +476,11 @@ Search the repo for existing convention docs. If any exist, read them and
 extract the relevant rules into the matching \`.trellis/spec/\` files —
 usually much faster than documenting from scratch.
 
-| File / Directory | Tool |
+| File / Directory | Notes |
 |------|------|
-| \`CLAUDE.md\` / \`CLAUDE.local.md\` | Claude Code |
-| \`AGENTS.md\` | Codex / Claude Code / agent-compatible tools |
-| \`.cursorrules\` | Cursor |
-| \`.cursor/rules/*.mdc\` | Cursor (rules directory) |
-| \`.windsurfrules\` | Windsurf |
-| \`.clinerules\` | Cline |
-| \`.roomodes\` | Roo Code |
-| \`.github/copilot-instructions.md\` | GitHub Copilot |
-| \`.vscode/settings.json\` → \`github.copilot.chat.codeGeneration.instructions\` | VS Code Copilot |
-| \`CONVENTIONS.md\` / \`.aider.conf.yml\` | aider |
+| \`AGENTS.md\` | Agent entry / managed instructions |
+| \`.cursorrules\` | Legacy Cursor rules file |
+| \`.cursor/rules/*.mdc\` | Cursor rules directory |
 | \`CONTRIBUTING.md\` | General project conventions |
 | \`.editorconfig\` | Editor formatting rules |
 
@@ -542,7 +535,7 @@ After archive, every new developer who joins this project will get a
 "Welcome to Trellis! Your init just set me up to help you fill the project
 spec — a one-time setup so every future AI session follows the team's
 conventions instead of writing generic code. Before we start, do you have
-any existing convention docs (CLAUDE.md, .cursorrules, CONTRIBUTING.md,
+any existing convention docs (AGENTS.md, .cursorrules, CONTRIBUTING.md,
 etc.) I can pull from, or should I scan the codebase from scratch?"
 `;
 
