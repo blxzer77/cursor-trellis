@@ -2,10 +2,6 @@ import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import {
   getTrellisTemplatePath,
-  getClaudeTemplatePath,
-  getOpenCodeTemplatePath,
-  getPiTemplatePath,
-  getPiSourcePath,
   getTrellisSourcePath,
   readTrellisFile,
   readTemplate,
@@ -23,24 +19,6 @@ describe("template path functions", () => {
     expect(fs.existsSync(p)).toBe(true);
     expect(fs.statSync(p).isDirectory()).toBe(true);
   });
-
-  it("getClaudeTemplatePath returns existing directory", () => {
-    const p = getClaudeTemplatePath();
-    expect(fs.existsSync(p)).toBe(true);
-    expect(fs.statSync(p).isDirectory()).toBe(true);
-  });
-
-  it("getOpenCodeTemplatePath returns existing directory", () => {
-    const p = getOpenCodeTemplatePath();
-    expect(fs.existsSync(p)).toBe(true);
-    expect(fs.statSync(p).isDirectory()).toBe(true);
-  });
-
-  it("getPiTemplatePath returns existing directory", () => {
-    const p = getPiTemplatePath();
-    expect(fs.existsSync(p)).toBe(true);
-    expect(fs.statSync(p).isDirectory()).toBe(true);
-  });
 });
 
 // =============================================================================
@@ -50,10 +28,6 @@ describe("template path functions", () => {
 describe("deprecated source path aliases", () => {
   it("getTrellisSourcePath equals getTrellisTemplatePath", () => {
     expect(getTrellisSourcePath()).toBe(getTrellisTemplatePath());
-  });
-
-  it("getPiSourcePath equals getPiTemplatePath", () => {
-    expect(getPiSourcePath()).toBe(getPiTemplatePath());
   });
 });
 

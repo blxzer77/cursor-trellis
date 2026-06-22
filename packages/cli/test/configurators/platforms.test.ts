@@ -10,21 +10,7 @@ import {
 } from "../../src/configurators/index.js";
 import { AI_TOOLS } from "../../src/types/ai-tools.js";
 import { setWriteMode } from "../../src/utils/file-writer.js";
-import {
-  getAllAgents as getAllCodexAgents,
-  getConfigTemplate as getCodexConfigTemplate,
-  getHooksConfig as getCodexHooksConfig,
-} from "../../src/templates/codex/index.js";
-import {
-  getAllHooks as getAllCopilotHooks,
-  getHooksConfig as getCopilotHooksConfig,
-} from "../../src/templates/copilot/index.js";
 import { getHooksConfig as getCursorHooksConfig } from "../../src/templates/cursor/index.js";
-import {
-  getAllAgents as getPiAgents,
-  getExtensionTemplate as getPiExtensionTemplate,
-  getSettingsTemplate as getPiSettings,
-} from "../../src/templates/pi/index.js";
 import {
   resolvePlaceholders,
   resolveAllAsSkills,
