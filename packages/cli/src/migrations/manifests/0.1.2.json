@@ -1,0 +1,9 @@
+{
+  "version": "0.1.2",
+  "description": "v0.1.2 — Agent dispatch context assembly: `generate-dispatch-prompt` CLI (Layer 2) plus shared subagent_dispatch builder and slim preToolUse hook.",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Subagent dispatch Layer 2 (Agent-facing).**\n\n- feat(cli): `task.py generate-dispatch-prompt <task-dir> <role>` assembles full Task prompts (marker, Selected task, prd/jsonl/spec embed).\n- refactor(scripts): `common/subagent_dispatch.py` single builder; hook is thin wrapper with marker dedup.\n- docs: workflow Phase 2.1/2.2 orchestrator contract; cursor-context-injection-guide + cursor-subagent-policy Layer 2 rows.\n\nFull/Parent implement/check on Cursor: main session should run dispatch CLI before `Task(trellis-*)`. Hook remains best-effort.",
+  "migrations": [],
+  "notes": "No user README changes. Run `trellis update` in each project to sync `.trellis/scripts` and hooks."
+}
