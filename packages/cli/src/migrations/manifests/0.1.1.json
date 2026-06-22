@@ -1,0 +1,9 @@
+{
+  "version": "0.1.1",
+  "description": "v0.1.1 — Cursor-only platform reduction. Trellis templates, CLI init/update/uninstall, retrieval router, and docs converge on Cursor as the sole managed platform.",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Cursor-only product trim.**\n\n- refactor(cli): platform registry, init, uninstall/update, and template dirs reduced to Cursor-only (S1–S11).\n- refactor(retrieval): drop `--platform` / non-Cursor dead branches from codebase retrieval planner (R12).\n- refactor(core): remove mem module export (R13).\n- docs/spec: workflow, AGENTS, README, and guides aligned to cursor-only surface.\n\nRun `trellis update` in each project to sync templates and scripts.",
+  "migrations": [],
+  "notes": "Backfilled manifest for npm 0.1.1 (published without local manifest). No automated migrations; template sync via `trellis update`."
+}
