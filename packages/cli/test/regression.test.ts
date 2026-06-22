@@ -33,12 +33,6 @@ import {
 import { isManagedPath } from "../src/configurators/index.js";
 import { AI_TOOLS } from "../src/types/ai-tools.js";
 import { PATHS } from "../src/constants/paths.js";
-import {
-  settingsTemplate as claudeSettingsTemplate,
-  getAllAgents as getClaudeAgents,
-} from "../src/templates/claude/index.js";
-import { getAllHooks as getCodexHooks } from "../src/templates/codex/index.js";
-import { getAllHooks as getCopilotHooks } from "../src/templates/copilot/index.js";
 import { getSharedHookScripts } from "../src/templates/shared-hooks/index.js";
 import {
   getBundledSkillTemplates,
@@ -68,7 +62,6 @@ import {
   workspaceIndexContent,
 } from "../src/templates/markdown/index.js";
 import * as markdownExports from "../src/templates/markdown/index.js";
-import { TrellisContext } from "../src/templates/opencode/lib/trellis-context.js";
 
 afterEach(() => {
   clearManifestCache();
