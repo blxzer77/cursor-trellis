@@ -132,10 +132,14 @@ describe("codebase retrieval router", () => {
     });
     expect(plan.intents.map((i) => i.id)).toContain("cross-cutting-discovery");
     expect(plan.intents.map((i) => i.id)).not.toContain("exact-symbol-path");
-    const semantic = plan.routes.find((r) => r.id === "semantic-fast-context");
+    const semantic = plan.routes.find(
+      (r) => r.id === "platform-semantic" || r.id === "semantic-fast-context",
+    );
     expect(semantic?.order).toBeLessThanOrEqual(2);
     expect(
-      plan.routes.filter((r) => r.id === "semantic-fast-context").length,
+      plan.routes.filter(
+        (r) => r.id === "platform-semantic" || r.id === "semantic-fast-context",
+      ).length,
     ).toBe(1);
   });
 
@@ -147,7 +151,7 @@ describe("codebase retrieval router", () => {
     expect(plan.intents.map((i) => i.id)).toContain("cross-cutting-discovery");
     const policyIndex = plan.routes.findIndex((r) => r.id === "policy-docs-rg");
     const semanticIndex = plan.routes.findIndex(
-      (r) => r.id === "semantic-fast-context",
+      (r) => r.id === "platform-semantic" || r.id === "semantic-fast-context",
     );
     expect(policyIndex).toBe(0);
     expect(semanticIndex).toBe(1);
@@ -162,7 +166,7 @@ describe("codebase retrieval router", () => {
       f.when.includes("no corroborated file/range candidates"),
     );
     expect(rgEmptyHint?.replacesRole).toBe("semantic");
-    expect(rgEmptyHint?.action).toMatch(/fast_context_search/i);
+    expect(rgEmptyHint?.action).toMatch(/@codebase|semantic search/i);
   });
 
   it("O2: conceptual warning mentions rg follow-up", () => {

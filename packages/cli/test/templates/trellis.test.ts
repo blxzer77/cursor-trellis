@@ -188,20 +188,21 @@ describe("trellis template constants", () => {
   });
 
   it("[issue-225] workflow.md in_progress breadcrumb has class-2 sub-agent dispatch protocol", () => {
-    // The in_progress breadcrumb instructs the main agent to prefix
-    // dispatch prompts with "Selected task: <path>" on class-2 platforms.
-    // Without this line, codex/copilot/gemini/qoder sub-agents cannot
-    // find the selected task (no PreToolUse hook to inject context).
+    // Cursor-only fork: dispatch guidance targets Cursor sub-agents via
+    // Selected task path injection (no multi-platform host list).
     const block = inProgressBreadcrumb();
     expect(block).toContain("Selected task:");
-    expect(block.toLowerCase()).toContain("class-2");
-    expect(block.toLowerCase()).toMatch(/codex|copilot|gemini|qoder/);
+    expect(block.toLowerCase()).toContain("dispatch prompt");
+  });
+
+  it("workflow.md planning breadcrumbs mention parent child split guidance", () => {
+    const planning = workflowStateBreadcrumb("planning");
+    expect(planning).toContain("Multi-deliverable scope");
+    expect(planning).toContain("parent task plus independently verifiable child tasks");
+    expect(planning).toContain("not implied by tree position");
   });
 
   it("[issue-237] workflow.md in_progress breadcrumb self-exempts implement/check sub-agents", () => {
-    // The in_progress breadcrumb may be injected into sub-agent turns on some
-    // hosts, so its main-session dispatch guidance must not recursively apply
-    // to a sub-agent that is already doing the requested work.
     const block = inProgressBreadcrumb();
     expect(block).toContain("Main-session default");
     expect(block).toContain("Sub-agent self-exemption");
@@ -252,16 +253,6 @@ describe("trellis template constants", () => {
       "Parent/child structure is not a dependency system",
     );
     expect(step).toContain("Do not start the parent unless");
-  });
-
-  it("workflow.md planning breadcrumbs mention parent child split guidance", () => {
-    const planning = workflowStateBreadcrumb("planning");
-    const planningInline = workflowStateBreadcrumb("planning-inline");
-    for (const block of [planning, planningInline]) {
-      expect(block).toContain("Multi-deliverable scope");
-      expect(block).toContain("parent task plus independently verifiable child tasks");
-      expect(block).toContain("not implied by tree position");
-    }
   });
 
   it("gitignoreTemplate contains ignore patterns", () => {

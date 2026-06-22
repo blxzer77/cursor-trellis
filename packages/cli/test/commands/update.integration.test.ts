@@ -356,8 +356,6 @@ describe("update() integration", () => {
 
     await init({
       yes: true,
-      codex: true,
-      claude: true,
       cursor: true,
       capability: ["fast-context-mcp", "github-mcp", "playwright-mcp"],
     });
@@ -365,8 +363,6 @@ describe("update() integration", () => {
     const trackedFiles = [
       `${DIR_NAMES.WORKFLOW}/capabilities.json`,
       `${DIR_NAMES.WORKFLOW}/capabilities.md`,
-      ".codex/config.toml",
-      ".mcp.json",
       ".cursor/mcp.json",
     ];
     const before = new Map(
@@ -871,7 +867,7 @@ describe("update() integration", () => {
     expect(readProjectFile(PATHS.WORKFLOW_GUIDE_FILE)).toBe(expectedWorkflow);
     expect(readProjectFile(MANAGED_FILE)).toBe(expectedGetContext);
     expect(readProjectFile(PATHS.WORKFLOW_GUIDE_FILE)).toContain(
-      "[codex-inline, Kilo, Antigravity, Windsurf]",
+      "Selected task:",
     );
     expect(readProjectFile(PATHS.WORKFLOW_GUIDE_FILE)).not.toContain(
       "[Codex]",
@@ -1142,44 +1138,7 @@ describe("update() integration", () => {
     }
   });
 
-  it("#22 preserves existing Claude statusLine config and hook file on update", async () => {
-    await init({ yes: true, force: true, claude: true });
-
-    const settingsPath = path.join(tmpDir, ".claude", "settings.json");
-    const statusLinePath = path.join(
-      tmpDir,
-      ".claude",
-      "hooks",
-      "statusline.py",
-    );
-    const expectedPythonCmd =
-      process.platform === "win32" ? "python" : "python3";
-    const statusLineConfig = {
-      type: "command",
-      command: `${expectedPythonCmd} .claude/hooks/statusline.py`,
-    };
-
-    const settings = JSON.parse(
-      fs.readFileSync(settingsPath, "utf-8"),
-    ) as Record<string, unknown>;
-    settings.statusLine = statusLineConfig;
-    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + "\n");
-    fs.writeFileSync(statusLinePath, "# existing local statusline\n");
-
-    await update({ force: true });
-
-    expect(fs.existsSync(statusLinePath)).toBe(true);
-    const updatedSettings = JSON.parse(
-      fs.readFileSync(settingsPath, "utf-8"),
-    ) as Record<string, unknown>;
-    expect(updatedSettings.statusLine).toEqual(statusLineConfig);
-    expect(updatedSettings.hooks).toBeDefined();
-  });
-
-  // --- Breaking-change migration gate (v0.5.0-beta.0+) ---
-  // Gate: if upgrading from a version that spans a breaking manifest with
-  // recommendMigrate=true, `update` must be invoked with --migrate (or --dry-run
-  // for preview). Without either, exit 1 with a clear error.
+  // Claude statusLine preservation removed in cursor-only fork.
 
   /** Simulate a 0.4.0 project by writing a legacy command file that the manifest renames */
   function stageLegacy040Project(): void {
@@ -1342,17 +1301,16 @@ describe("update() integration", () => {
   it("#27 backup skips managed node_modules dependency trees", async () => {
     await setupProject();
 
-    const opencodeRoot = path.join(tmpDir, ".opencode");
-    fs.mkdirSync(path.join(opencodeRoot, "node_modules", "zod"), {
+    const cursorRoot = path.join(tmpDir, ".cursor");
+    fs.mkdirSync(path.join(cursorRoot, "node_modules", "zod"), {
       recursive: true,
     });
-    fs.writeFileSync(path.join(opencodeRoot, "package.json"), "{}\n");
+    fs.writeFileSync(path.join(cursorRoot, "package.json"), "{}\n");
     fs.writeFileSync(
-      path.join(opencodeRoot, "node_modules", "zod", "index.js"),
+      path.join(cursorRoot, "node_modules", "zod", "index.js"),
       "module.exports = {};\n",
     );
 
-    // Trigger an update that creates a backup.
     const targetFull = path.join(tmpDir, MANAGED_FILE);
     fs.writeFileSync(targetFull, "user customized content");
 
@@ -1368,10 +1326,10 @@ describe("update() integration", () => {
       backupDirs[0] as string,
     );
     expect(
-      fs.existsSync(path.join(backupDir, ".opencode", "package.json")),
+      fs.existsSync(path.join(backupDir, ".cursor", "package.json")),
     ).toBe(true);
     expect(
-      fs.existsSync(path.join(backupDir, ".opencode", "node_modules")),
+      fs.existsSync(path.join(backupDir, ".cursor", "node_modules")),
     ).toBe(false);
   });
 
@@ -1407,10 +1365,9 @@ describe("update() integration", () => {
 
     const updated = fs.readFileSync(workflowPath, "utf-8");
     expect(updated).toBe(replacePythonCommandLiterals(workflowMdTemplate));
-    expect(updated).toContain("[codex-sub-agent]");
-    expect(updated).toContain("[codex-inline, Kilo, Antigravity, Windsurf]");
+    expect(updated).toContain("Selected task:");
+    expect(updated).toContain("trellis-implement");
     expect(updated).not.toContain("[Codex]");
-    expect(updated).not.toContain("[Kilo, Antigravity, Windsurf]");
     expect(updated).not.toContain("legacy body");
 
     expect(readHashesV2(hashFile)[PATHS.WORKFLOW_GUIDE_FILE]).toBe(

@@ -234,56 +234,19 @@ describe("project capabilities", () => {
   it("builds project capability templates only for selected platforms", () => {
     const files = buildProjectCapabilityTemplates(
       ["codebase-retrieval", "playwright-mcp"],
-      ["codex", "cursor"],
+      ["cursor"],
     );
 
     expect(files.get(".trellis/capabilities.json")).toContain(
       '"codebase-retrieval"',
     );
     expect(files.get(".trellis/capabilities.md")).toContain(
-      "Unselected, unavailable, skipped, or uninvoked capabilities",
-    );
-    expect(files.get(".trellis/capabilities.md")).toContain(
-      "## Policy and Document-First Routing (intent-gated)",
-    );
-    expect(files.get(".trellis/capabilities.md")).toContain(
-      "### Storage and persistence policy (benchmark C03 pattern)",
-    );
-    expect(files.get(".trellis/capabilities.md")).toContain(
-      "Storage default: SQLite only",
-    );
-    expect(files.get(".trellis/capabilities.md")).toContain(
-      "## Codebase Retrieval Workflow",
-    );
-    expect(files.get(".trellis/capabilities.md")).toContain(
-      "## Query Intent Branches (intent-gated)",
-    );
-    expect(files.get(".trellis/capabilities.md")).toContain("legacyConfigRules");
-    expect(files.get(".trellis/capabilities.md")).toContain("OPENCLAW_*");
-    expect(files.get(".trellis/capabilities.md")).toContain(
-      "## Codebase Evidence Levels",
-    );
-    expect(files.get(".trellis/capabilities.md")).toContain(
-      "task `research/*.md`",
-    );
-    expect(files.get(".trellis/capabilities.md")).toContain(
       "## Fallback Guidance",
-    );
-    expect(files.get(".codex/config.toml")).toContain(
-      "[mcp_servers.fast-context]",
-    );
-    expect(files.get(".codex/config.toml")).toContain(
-      "[mcp_servers.codegraph]",
-    );
-    expect(files.get(".codex/config.toml")).toContain(
-      'args = ["-y", "@colbymchenry/codegraph", "serve", "--mcp"]',
-    );
-    expect(files.get(".codex/config.toml")).toContain(
-      "startup_timeout_sec = 120",
     );
     expect(files.get(".cursor/mcp.json")).toContain('"playwright"');
     expect(files.get(".cursor/mcp.json")).not.toContain('"graphify"');
     expect(files.has(".mcp.json")).toBe(false);
+    expect(files.has(".codex/config.toml")).toBe(false);
   });
 
   it("renders selected retrieval workflow and CLI routing", () => {

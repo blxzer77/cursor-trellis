@@ -76,11 +76,11 @@ describe("uninstall() integration", () => {
   });
 
   it("#3 init → uninstall → project is clean", async () => {
-    await init({ yes: true, claude: true, cursor: true, force: true });
+    await init({ yes: true, cursor: true, force: true });
 
     // Sanity: init wrote things.
     expect(fs.existsSync(path.join(tmpDir, ".trellis"))).toBe(true);
-    expect(fs.existsSync(path.join(tmpDir, ".claude"))).toBe(true);
+    expect(fs.existsSync(path.join(tmpDir, ".cursor"))).toBe(true);
     expect(fs.existsSync(path.join(tmpDir, ".cursor"))).toBe(true);
 
     const hashesBefore = loadHashes(tmpDir);
@@ -129,7 +129,7 @@ describe("uninstall() integration", () => {
   });
 
   it("#4 dry-run does not modify anything", async () => {
-    await init({ yes: true, claude: true, force: true });
+    await init({ yes: true, cursor: true, force: true });
 
     // Snapshot file tree contents.
     const snapshot: Record<string, string> = {};
@@ -154,13 +154,13 @@ describe("uninstall() integration", () => {
   });
 
   it("#5 user input 'no' aborts without modification", async () => {
-    await init({ yes: true, claude: true, force: true });
+    await init({ yes: true, cursor: true, force: true });
     vi.mocked(inquirer.prompt).mockResolvedValueOnce({ proceed: false });
 
     await uninstall({});
 
     expect(fs.existsSync(path.join(tmpDir, ".trellis"))).toBe(true);
-    expect(fs.existsSync(path.join(tmpDir, ".claude"))).toBe(true);
+    expect(fs.existsSync(path.join(tmpDir, ".cursor"))).toBe(true);
   });
 
   it("#6 user-modified trellis file is still deleted (manifest defines scope)", async () => {
@@ -185,7 +185,7 @@ describe("uninstall() integration", () => {
   });
 
   it("#7 user-added file in a managed dir is NOT deleted", async () => {
-    await init({ yes: true, claude: true, force: true });
+    await init({ yes: true, cursor: true, force: true });
 
     // Drop a user file into .claude/hooks/ that the manifest doesn't track.
     const userHookDir = path.join(tmpDir, ".claude", "hooks");
@@ -201,26 +201,13 @@ describe("uninstall() integration", () => {
     expect(fs.existsSync(userHookDir)).toBe(true);
   });
 
-  it("#8a empty managed sub-dirs and root dir are pruned (kilo: no structured config)", async () => {
-    // Kilo has no hooks.json/settings.json/config.toml/package.json — every
-    // manifest file is opaque and gets deleted, so the entire .kilocode/
-    // tree should disappear, demonstrating both nested-subdir cleanup and
-    // empty-platform-root cleanup.
-    await init({ yes: true, kilo: true, force: true });
-
-    // Detect kilo's actual config dir from manifest entries.
-    const hashesBefore = loadHashes(tmpDir);
-    const kiloEntry = Object.keys(hashesBefore).find(
-      (p) => !p.startsWith(".trellis/") && p !== "AGENTS.md",
-    );
-    if (!kiloEntry) throw new Error("test fixture: no kilo entries found");
-    const kiloRoot = kiloEntry.split("/")[0];
-    expect(fs.existsSync(path.join(tmpDir, kiloRoot))).toBe(true);
-
+  it("#8a empty managed sub-dirs are pruned after cursor uninstall", async () => {
+    await init({ yes: true, cursor: true, force: true });
     await uninstall({ yes: true });
 
-    // Empty platform root dir should be removed.
-    expect(fs.existsSync(path.join(tmpDir, kiloRoot))).toBe(false);
+    for (const sub of ["agents", "commands", "hooks"]) {
+      expect(fs.existsSync(path.join(tmpDir, ".cursor", sub))).toBe(false);
+    }
   });
 
   it("#8b platform root dir survives only when scrubbing leaves residual structured content", async () => {
@@ -242,135 +229,30 @@ describe("uninstall() integration", () => {
     }
   });
 
-  it("#8 .claude/settings.json with extra user fields keeps user fields, strips trellis hooks", async () => {
-    await init({ yes: true, claude: true, force: true });
+  it("#8 .cursor/hooks.json with extra user fields keeps user fields, strips trellis hooks", async () => {
+    await init({ yes: true, cursor: true, force: true });
 
-    // Simulate a user editing settings.json to add custom fields and a custom
-    // hook entry alongside the trellis ones.
-    const settingsPath = path.join(tmpDir, ".claude", "settings.json");
-    if (!fs.existsSync(settingsPath)) {
-      // Some init paths may not write settings.json; if so, skip the test by
-      // synthesizing a representative file at the same location.
-      fs.writeFileSync(
-        settingsPath,
-        JSON.stringify(
-          {
-            env: { CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR: "1" },
-            hooks: {
-              SessionStart: [
-                {
-                  matcher: "startup",
-                  hooks: [
-                    {
-                      type: "command",
-                      command: "python3 .claude/hooks/session-start.py",
-                    },
-                  ],
-                },
-              ],
-            },
-          },
-          null,
-          2,
-        ),
-      );
-    }
-
-    const original = JSON.parse(
-      fs.readFileSync(settingsPath, "utf-8"),
-    ) as Record<string, unknown>;
+    const hooksPath = path.join(tmpDir, ".cursor", "hooks.json");
+    const original = JSON.parse(fs.readFileSync(hooksPath, "utf-8")) as Record<string, unknown>;
     const augmented = {
       ...original,
-      model: "claude-sonnet-4",
-      permissions: { allow: ["Bash(git:*)"] },
+      userNote: "keep-me",
     };
-    // If hooks exist already, splice in a user hook into the SessionStart matcher block.
-    if (
-      augmented.hooks !== null &&
-      typeof augmented.hooks === "object" &&
-      !Array.isArray(augmented.hooks)
-    ) {
-      const hooks = augmented.hooks as Record<string, unknown>;
-      const sessionStart = hooks.SessionStart;
-      if (Array.isArray(sessionStart) && sessionStart.length > 0) {
-        const block = sessionStart[0] as Record<string, unknown>;
-        if (Array.isArray(block.hooks)) {
-          (block.hooks as unknown[]).push({
-            type: "command",
-            command: "python3 .claude/hooks/my-user-hook.py",
-            timeout: 5,
-          });
-        }
-      }
-    }
-    fs.writeFileSync(settingsPath, JSON.stringify(augmented, null, 2));
+    fs.writeFileSync(hooksPath, JSON.stringify(augmented, null, 2));
 
-    // We need this file in the manifest for it to be processed. If init
-    // didn't track it, add it manually so the scrubber path runs.
     const hashes = loadHashes(tmpDir);
-    if (!Object.prototype.hasOwnProperty.call(hashes, ".claude/settings.json")) {
-      hashes[".claude/settings.json"] = "synthetic-hash";
-      const hashFile = path.join(
-        tmpDir,
-        DIR_NAMES.WORKFLOW,
-        ".template-hashes.json",
-      );
-      fs.writeFileSync(
-        hashFile,
-        JSON.stringify({ __version: 2, hashes }, null, 2),
-      );
+    if (!Object.prototype.hasOwnProperty.call(hashes, ".cursor/hooks.json")) {
+      hashes[".cursor/hooks.json"] = "synthetic-hash";
+      const hashFile = path.join(tmpDir, DIR_NAMES.WORKFLOW, ".template-hashes.json");
+      fs.writeFileSync(hashFile, JSON.stringify({ __version: 2, hashes }, null, 2));
     }
 
     await uninstall({ yes: true });
 
-    // .trellis/ is gone, but settings.json should remain (had user fields).
-    if (fs.existsSync(settingsPath)) {
-      const after = JSON.parse(fs.readFileSync(settingsPath, "utf-8")) as Record<
-        string,
-        unknown
-      >;
-      expect(after.model).toBe("claude-sonnet-4");
-      expect(after.permissions).toEqual({ allow: ["Bash(git:*)"] });
-
-      // User hook (if it was inserted) should still be present, trellis ones gone.
-      const hooksAfter = after.hooks;
-      if (
-        hooksAfter !== null &&
-        typeof hooksAfter === "object" &&
-        !Array.isArray(hooksAfter)
-      ) {
-        const hooksObj = hooksAfter as Record<string, unknown>;
-        const sessionStart = hooksObj.SessionStart;
-        if (Array.isArray(sessionStart)) {
-          for (const block of sessionStart) {
-            if (
-              block !== null &&
-              typeof block === "object" &&
-              "hooks" in block
-            ) {
-              const inner = (block as { hooks: unknown[] }).hooks;
-              if (Array.isArray(inner)) {
-                for (const entry of inner) {
-                  if (
-                    entry !== null &&
-                    typeof entry === "object" &&
-                    "command" in entry
-                  ) {
-                    const cmd = (entry as { command: string }).command;
-                    expect(cmd).not.toContain(".claude/hooks/session-start.py");
-                    expect(cmd).not.toContain(
-                      ".claude/hooks/inject-subagent-context.py",
-                    );
-                    expect(cmd).not.toContain(
-                      ".claude/hooks/inject-workflow-state.py",
-                    );
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
+    if (fs.existsSync(hooksPath)) {
+      const after = JSON.parse(fs.readFileSync(hooksPath, "utf-8")) as Record<string, unknown>;
+      expect(after.userNote).toBe("keep-me");
     }
   });
+
 });

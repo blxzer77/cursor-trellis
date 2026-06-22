@@ -16,10 +16,7 @@ from typing import Any
 ROUTER_VERSION = 2
 
 PLATFORM_CURSOR = "cursor"
-PLATFORM_CLAUDE_CODE = "claude-code"
-PLATFORM_CODEX = "codex"
-PLATFORM_GENERIC = "generic"
-KNOWN_PLATFORMS = {PLATFORM_CURSOR, PLATFORM_CLAUDE_CODE, PLATFORM_CODEX, PLATFORM_GENERIC}
+KNOWN_PLATFORMS = {PLATFORM_CURSOR}
 
 MODALITY_LEXICAL = "lexical"
 MODALITY_STRUCTURAL = "structural"
@@ -191,6 +188,11 @@ def _intent(
         "signals": unique_signals,
         "preserveExactPrimary": preserve_exact_primary,
     }
+
+
+def classify_codebase_retrieval_intents(query: str) -> list[dict[str, object]]:
+    """Public intent classifier for hooks and dogfood scripts."""
+    return _classify_intents(query)
 
 
 def _classify_intents(query: str) -> list[dict[str, object]]:
@@ -429,9 +431,6 @@ def _token_economy_for_route(route_id: str, platform: str) -> str:
     }
     if route_id in high_economy:
         return TOKEN_ECONOMY_HIGH
-    low_economy = {"exact-rg-primary"}
-    if route_id in low_economy and platform != PLATFORM_CURSOR:
-        return TOKEN_ECONOMY_LOW
     return TOKEN_ECONOMY_MEDIUM
 
 
@@ -445,7 +444,7 @@ def _ordered_routes(
     intents: list[dict[str, object]],
     include_optional_adapters: bool,
     *,
-    platform: str = PLATFORM_GENERIC,
+    platform: str = PLATFORM_CURSOR,
     project_file_count: int | None = None,
 ) -> list[dict[str, object]]:
     ids = {str(item["id"]) for item in intents}
@@ -710,7 +709,7 @@ def _fallback_hints(
     include_optional_adapters: bool,
     routes: list[dict[str, object]],
     *,
-    platform: str = PLATFORM_GENERIC,
+    platform: str = PLATFORM_CURSOR,
 ) -> list[dict[str, object]]:
     hints: list[dict[str, object]] = [
         {
@@ -775,7 +774,7 @@ def _fallback_hints(
 def _warnings(
     intents: list[dict[str, object]],
     *,
-    platform: str = PLATFORM_GENERIC,
+    platform: str = PLATFORM_CURSOR,
 ) -> list[str]:
     warnings: list[str] = []
     low = [str(item["id"]) for item in intents if item.get("confidence") == "low"]
@@ -805,13 +804,13 @@ def route_codebase_retrieval(
     query: str,
     *,
     codebase_retrieval_selected: bool = True,
-    platform: str = PLATFORM_GENERIC,
+    platform: str = PLATFORM_CURSOR,
     project_file_count: int | None = None,
 ) -> dict[str, object]:
     """Return the shared evidence envelope with router-owned fields populated."""
     normalized = _normalize_query(query)
     include_optional = codebase_retrieval_selected
-    normalized_platform = platform if platform in KNOWN_PLATFORMS else PLATFORM_GENERIC
+    normalized_platform = platform if platform in KNOWN_PLATFORMS else PLATFORM_CURSOR
 
     if not normalized:
         intents = [
@@ -896,7 +895,7 @@ def resolve_router_envelope(
         return None
     caps = load_capabilities_json(repo_root)
     selected = codebase_retrieval_selected_from_capabilities(caps)
-    resolved_platform = platform if platform in KNOWN_PLATFORMS else PLATFORM_GENERIC
+    resolved_platform = platform if platform in KNOWN_PLATFORMS else PLATFORM_CURSOR
     return route_codebase_retrieval(
         normalized,
         codebase_retrieval_selected=selected,

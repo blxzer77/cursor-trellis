@@ -33,20 +33,20 @@ describe("cleanupEmptyDirs", () => {
   });
 
   it("removes empty subdirectory under managed path", () => {
-    // Create .claude/commands/ (empty)
-    fs.mkdirSync(path.join(tmpDir, ".claude", "commands"), { recursive: true });
-    cleanupEmptyDirs(tmpDir, ".claude/commands");
-    expect(fs.existsSync(path.join(tmpDir, ".claude", "commands"))).toBe(false);
+    // Create .cursor/commands/ (empty)
+    fs.mkdirSync(path.join(tmpDir, ".cursor", "commands"), { recursive: true });
+    cleanupEmptyDirs(tmpDir, ".cursor/commands");
+    expect(fs.existsSync(path.join(tmpDir, ".cursor", "commands"))).toBe(false);
   });
 
   it("does not remove non-empty directory", () => {
-    fs.mkdirSync(path.join(tmpDir, ".claude", "commands"), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, ".cursor", "commands"), { recursive: true });
     fs.writeFileSync(
-      path.join(tmpDir, ".claude", "commands", "file.md"),
+      path.join(tmpDir, ".cursor", "commands", "file.md"),
       "content",
     );
-    cleanupEmptyDirs(tmpDir, ".claude/commands");
-    expect(fs.existsSync(path.join(tmpDir, ".claude", "commands"))).toBe(true);
+    cleanupEmptyDirs(tmpDir, ".cursor/commands");
+    expect(fs.existsSync(path.join(tmpDir, ".cursor", "commands"))).toBe(true);
   });
 
   it("does not remove directories outside managed paths", () => {
@@ -57,10 +57,10 @@ describe("cleanupEmptyDirs", () => {
   });
 
   it("[CR#1] does not delete managed root directories even if empty", () => {
-    // This is the bug that CR#1 identified: .claude itself should never be deleted
-    fs.mkdirSync(path.join(tmpDir, ".claude"), { recursive: true });
-    cleanupEmptyDirs(tmpDir, ".claude");
-    expect(fs.existsSync(path.join(tmpDir, ".claude"))).toBe(true);
+    // This is the bug that CR#1 identified: .cursor itself should never be deleted
+    fs.mkdirSync(path.join(tmpDir, ".cursor"), { recursive: true });
+    cleanupEmptyDirs(tmpDir, ".cursor");
+    expect(fs.existsSync(path.join(tmpDir, ".cursor"))).toBe(true);
   });
 
   it("[CR#1] does not delete .trellis root even if empty", () => {
@@ -91,7 +91,7 @@ describe("cleanupEmptyDirs", () => {
 
   it("handles non-existent directory gracefully", () => {
     // Should not throw
-    expect(() => cleanupEmptyDirs(tmpDir, ".claude/nonexistent")).not.toThrow();
+    expect(() => cleanupEmptyDirs(tmpDir, ".cursor/nonexistent")).not.toThrow();
   });
 });
 
@@ -114,28 +114,28 @@ describe("loadUpdateSkipPaths", () => {
   it("strips double quotes from skip paths", () => {
     fs.writeFileSync(
       path.join(tmpDir, ".trellis", "config.yaml"),
-      'update:\n  skip:\n    - ".claude/commands/"\n',
+      'update:\n  skip:\n    - ".cursor/commands/"\n',
     );
     const paths = loadUpdateSkipPaths(tmpDir);
-    expect(paths).toEqual([".claude/commands/"]);
+    expect(paths).toEqual([".cursor/commands/"]);
   });
 
   it("strips single quotes from skip paths", () => {
     fs.writeFileSync(
       path.join(tmpDir, ".trellis", "config.yaml"),
-      "update:\n  skip:\n    - '.claude/commands/'\n",
+      "update:\n  skip:\n    - '.cursor/commands/'\n",
     );
     const paths = loadUpdateSkipPaths(tmpDir);
-    expect(paths).toEqual([".claude/commands/"]);
+    expect(paths).toEqual([".cursor/commands/"]);
   });
 
   it("handles unquoted skip paths", () => {
     fs.writeFileSync(
       path.join(tmpDir, ".trellis", "config.yaml"),
-      "update:\n  skip:\n    - .claude/commands/\n",
+      "update:\n  skip:\n    - .cursor/commands/\n",
     );
     const paths = loadUpdateSkipPaths(tmpDir);
-    expect(paths).toEqual([".claude/commands/"]);
+    expect(paths).toEqual([".cursor/commands/"]);
   });
 
   it("returns empty array when no config exists", () => {
@@ -155,9 +155,9 @@ describe("sortMigrationsForExecution", () => {
 
   it("puts rename-dir before rename and delete", () => {
     const items = [
-      { type: "rename" as const, from: ".claude/a.md", to: ".claude/b.md" },
+      { type: "rename" as const, from: ".cursor/a.md", to: ".cursor/b.md" },
       { type: "rename-dir" as const, from: ".trellis/old", to: ".trellis/new" },
-      { type: "delete" as const, from: ".claude/c.md" },
+      { type: "delete" as const, from: ".cursor/c.md" },
     ];
     const sorted = sortMigrationsForExecution(items);
     expect(sorted[0].type).toBe("rename-dir");
@@ -181,15 +181,15 @@ describe("sortMigrationsForExecution", () => {
 
   it("preserves relative order of rename and delete items", () => {
     const items = [
-      { type: "rename" as const, from: ".claude/a.md", to: ".claude/b.md" },
-      { type: "delete" as const, from: ".claude/c.md" },
-      { type: "rename" as const, from: ".claude/d.md", to: ".claude/e.md" },
+      { type: "rename" as const, from: ".cursor/a.md", to: ".cursor/b.md" },
+      { type: "delete" as const, from: ".cursor/c.md" },
+      { type: "rename" as const, from: ".cursor/d.md", to: ".cursor/e.md" },
     ];
     const sorted = sortMigrationsForExecution(items);
     // No rename-dir items, so original order is preserved
-    expect(sorted[0].from).toBe(".claude/a.md");
-    expect(sorted[1].from).toBe(".claude/c.md");
-    expect(sorted[2].from).toBe(".claude/d.md");
+    expect(sorted[0].from).toBe(".cursor/a.md");
+    expect(sorted[1].from).toBe(".cursor/c.md");
+    expect(sorted[2].from).toBe(".cursor/d.md");
   });
 
   it("does not mutate original array", () => {
@@ -212,7 +212,7 @@ describe("shouldExcludeFromBackup", () => {
   // Snapshotting them on every update would duplicate gigabytes; they must
   // be excluded regardless of which platform put them there.
   it.each([
-    ".claude/worktrees/feature-x/src/main.ts",
+    ".cursor/worktrees/feature-x/src/main.ts",
     ".cursor/worktrees/bugfix-1/README.md",
     ".gemini/worktrees/exp/file.txt",
     ".factory/worktrees/any/file.md",
@@ -250,8 +250,8 @@ describe("shouldExcludeFromBackup", () => {
   });
 
   it.each([
-    ".claude/commands/trellis/continue.md",
-    ".claude/skills/trellis-check/SKILL.md",
+    ".cursor/commands/trellis/continue.md",
+    ".cursor/skills/trellis-check/SKILL.md",
     ".trellis/workflow.md",
     ".trellis/scripts/get_context.py",
     ".agents/skills/trellis-check/SKILL.md",
@@ -262,7 +262,7 @@ describe("shouldExcludeFromBackup", () => {
   it("does not treat 'worktrees' as a substring match outside path segments", () => {
     // Files that happen to have "worktree" in their name but aren't inside a
     // worktree dir should still be backed up.
-    expect(shouldExcludeFromBackup(".claude/worktree-notes.md")).toBe(false);
+    expect(shouldExcludeFromBackup(".cursor/worktree-notes.md")).toBe(false);
   });
 
   // Windows `path.relative` returns backslash paths. The slash-prefixed
@@ -272,7 +272,7 @@ describe("shouldExcludeFromBackup", () => {
   // full project copies (observed in the field: stack-overflow crash on
   // `trellis update --migrate`, late April 2026).
   it.each([
-    ".claude\\worktrees\\feat-x\\src\\main.ts",
+    ".cursor\\worktrees\\feat-x\\src\\main.ts",
     ".trellis\\tasks\\04-17-foo\\prd.md",
     ".trellis\\workspace\\dev\\journal-1.md",
     ".opencode\\node_modules\\zod\\index.js",

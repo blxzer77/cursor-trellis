@@ -87,9 +87,16 @@ describe("retrieval execution telemetry", () => {
     expect(score).toBeGreaterThan(0.5);
   });
   it("derives plan and execution rates from per-query rows", () => {
+    const cursorSemanticSuccess = {
+      ...RETRIEVAL_TELEMETRY_EXAMPLES.semanticSliceExecutedSuccess,
+      platform: "cursor",
+      tools_called: ["Grep", "SemanticSearch", "Read"],
+      semantic_executed: true,
+      semantic_attempted: true,
+    };
     const metrics = deriveRetrievalTelemetryMetrics([
       RETRIEVAL_TELEMETRY_EXAMPLES.main50RgSufficientSkip,
-      RETRIEVAL_TELEMETRY_EXAMPLES.semanticSliceExecutedSuccess,
+      cursorSemanticSuccess,
     ]);
 
     expect(metrics.total_queries).toBe(2);
@@ -104,11 +111,16 @@ describe("retrieval execution telemetry", () => {
   });
 
   it("counts resource_exhausted as attempted execution but not success", () => {
-    const metrics = deriveRetrievalTelemetryMetrics([
-      RETRIEVAL_TELEMETRY_EXAMPLES.semanticSliceResourceExhausted,
-    ]);
+    const cursorSemanticAttempt = {
+      ...RETRIEVAL_TELEMETRY_EXAMPLES.semanticSliceResourceExhausted,
+      platform: "cursor",
+      tools_called: ["Grep", "fast_context_search", "Read"],
+      semantic_executed: false,
+      semantic_attempted: true,
+    };
+    const metrics = deriveRetrievalTelemetryMetrics([cursorSemanticAttempt]);
 
-    expect(metrics.semantic_exec_count).toBe(1);
+    expect(metrics.semantic_exec_count).toBe(0);
     expect(metrics.semantic_attempt_count).toBe(1);
     expect(metrics.semantic_exec_success_count).toBe(0);
     expect(metrics.semantic_exec_success_rate).toBe(0);
