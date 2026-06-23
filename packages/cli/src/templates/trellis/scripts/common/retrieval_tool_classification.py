@@ -88,7 +88,13 @@ class ClassifiedToolCalls:
     cursor_fast_context_misuse: bool = False
 
 
-def classify_tool_calls(raw: list[str], *, platform: str = "cursor") -> ClassifiedToolCalls:
+def classify_tool_calls(
+    raw: list[str],
+    *,
+    platform: str = "cursor",
+    cursor_env: str | None = None,
+    route_ids: list[str] | None = None,
+) -> ClassifiedToolCalls:
     tools_called = list(raw)
     grep_count = 0
     read_count = 0
@@ -115,13 +121,22 @@ def classify_tool_calls(raw: list[str], *, platform: str = "cursor") -> Classifi
         if is_platform_semantic_tool_name(trimmed):
             platform_semantic_executed = True
 
+    env = (cursor_env or "").strip().lower()
     if plat == "cursor":
-        semantic_executed = platform_semantic_executed
+        if env == "byok":
+            semantic_executed = platform_semantic_executed or fast_context_count > 0
+        else:
+            semantic_executed = platform_semantic_executed
     else:
         semantic_executed = platform_semantic_executed or fast_context_count > 0
 
     semantic_attempted = semantic_executed or fast_context_count > 0
-    misuse = plat == "cursor" and fast_context_count > 0
+
+    misuse = (
+        plat == "cursor"
+        and fast_context_count > 0
+        and env != "byok"
+    )
 
     return ClassifiedToolCalls(
         tools_called=tools_called,

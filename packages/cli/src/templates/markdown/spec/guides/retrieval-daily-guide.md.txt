@@ -12,7 +12,7 @@ For **external / current / web facts**, **smart-search** (`run_smart_search.py`)
 | --- | --- | --- |
 | Exact string / path / log line | **rg** (Grep) | Fast literal match in repo |
 | Symbol, callers, edit blast radius | **codegraph** MCP | Structure-first for caller/trap/extension intents |
-| Unknown keywords, semantic discovery | **@codebase** (Cursor) | Cursor's platform-native semantic search |
+| Unknown keywords, semantic discovery | **@codebase** (Cursor Native) / **fast-context** (Cursor++ BYOK) | Native: built-in semantic; BYOK: `fast_context_search` MCP (see `cursorEnv` in plans) |
 | External / current facts | **smart-search-cli** | **Mandatory first** — built-in web tools are downgrade-only (see rule above) |
 | Trellis durable docs | **artifact-search** | `search_artifacts.py` |
 | Past sessions | **session-memory** | Historical; verify against tasks/spec |
@@ -22,7 +22,12 @@ For **external / current / web facts**, **smart-search** (`run_smart_search.py`)
 
 ## Semantic routing (Cursor)
 
-The retrieval planner routes semantic intents to **built-in `@codebase` and agent semantic search**. Do **not** use the third-party `fast-context` MCP on Cursor.
+The planner emits **`platform-semantic`** with backend chosen by **`cursorEnv`** (`native` | `byok` from `~/.ccursor/routes.json` or `TRELLIS_CURSOR_BYOK`):
+
+- **native:** built-in `@codebase` / agent semantic search — **do not** use fast-context as Primary.
+- **byok:** **fast-context MCP** (`fast_context_search`) — built-in semantic is not in the agent tool list.
+
+Definition / reference jumps: **codegraph** (not GO_TO_DEFINITION; Agent LSP unavailable).
 
 ## Token economy signals
 
@@ -99,9 +104,9 @@ Do **not** claim aggregate openclaw score gains from ranking alone without fresh
 
 For structural intents (caller-chain, trap-package-disambiguation, extension-shared-symbol), the router now suggests **codegraph before rg**. This reflects codegraph's superior token economy for structural queries (~80-150 tokens/answer vs rg's ~3557 for naive grep). The agent should still use rg to fill gaps codegraph misses (dynamic dispatch, string-based callsites).
 
-### Semantic routing on Cursor
+### Semantic routing on Cursor (plans)
 
-On Cursor, the router outputs `platform-semantic` routes (with `platformNative: true`). The agent should use `@codebase` or Cursor's built-in agent search — `fast_context_search` calls are tracked as **misuse** in eval telemetry.
+Envelopes include **`cursorEnv`**. `platform-semantic` uses **`platformNative: true`** on native and **`semanticBackend: fast-context-mcp`** on BYOK. Native: `@codebase` / built-in search; BYOK: `fast_context_search`.
 
 ### Semantic dual metrics (openclaw / eval)
 
@@ -110,7 +115,7 @@ On Cursor, the router outputs `platform-semantic` routes (with `platformNative: 
 | `semantic_plan_rate` | Share of queries whose routing envelope lists a semantic route |
 | `semantic_exec_rate` | Share of queries with ≥1 semantic search tool call |
 
-On **Cursor**, `semantic_exec_rate` uses **platform-native** tool names only (`classify_tool_calls(..., platform=cursor)`); `fast_context_search` is tracked as **misuse**, not semantic exec. See `cursor-semantic-compliance.md`.
+On **Cursor**, `semantic_exec_rate` uses `classify_tool_calls(..., platform=cursor, cursor_env=...)`: **native** counts built-in semantic only; **byok** counts `fast_context_search` as semantic exec. `cursor_fast_context_misuse` applies only when **native** (or non-byok) uses fast-context while the plan has `platform-semantic`. See `cursor-semantic-compliance.md`.
 
 Plan-level presence does not imply execution-level use (see parent research `06-19` OQ-1 双轨).
 
@@ -126,7 +131,7 @@ Store **one JSON object per query** in JSONL (`schema_version: 2`). Split scores
 Report **summary rates must not be hand-copied** from batch router envelopes. Aggregate from JSONL:
 
 ```powershell
-python .trellis/scripts/aggregate_retrieval_telemetry.py runs/<run>/telemetry.jsonl --markdown
+python ./.trellis/scripts/aggregate_retrieval_telemetry.py runs/<run>/telemetry.jsonl --markdown
 ```
 
 Key exec fields (fill from session tool log): `tools_called`, `grep_count`, `read_count`, `codegraph_executed`, `semantic_executed`, `router_cli_invoked`, `plan_block_in_prompt`, `read_verification_done`. TypeScript contract: `packages/cli/src/utils/retrieval-execution-telemetry.ts` (`RETRIEVAL_TELEMETRY_FIELD_OWNERSHIP`).

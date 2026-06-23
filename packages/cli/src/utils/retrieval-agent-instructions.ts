@@ -7,6 +7,11 @@ import {
   type CodebaseRetrievalPlanEnvelope,
   type CodebaseRetrievalRoute,
 } from "./codebase-retrieval-router.js";
+import {
+  ENV_BYOK,
+  detectCursorRetrievalEnv,
+} from "./cursor-retrieval-env.js";
+import { semanticComplianceGateHint } from "./semantic-plan-gate.js";
 
 const SYMBOL_CANDIDATE =
   /\b([A-Za-z_][\w$]{2,})\b|`([^`]+)`|「([^」]+)」/g;
@@ -96,6 +101,7 @@ function stepForRoute(
   route: CodebaseRetrievalRoute,
   symbol: string,
   query: string,
+  cursorEnv: string,
 ): string | null {
   const { role, id: routeId } = route;
 
@@ -114,15 +120,36 @@ function stepForRoute(
     return `使用 **codegraph_explore** 或 **codegraph_node**（\`includeCode=true\`），围绕 \`${symbol}\` 或问题：${query.slice(0, 120)}`;
   }
 
+  if (routeId === "lsp-navigation") {
+    return (
+      `使用 **codegraph_node**（\`includeCode=true\`）或 **codegraph_search** 定位 \`${symbol}\` ` +
+      "的定义/引用（Agent 无 GO_TO_DEFINITION）；再用 **Read** 验证行号与正文。"
+    );
+  }
+
   if (
     routeId === "platform-semantic" ||
     (role === "semantic" && route.sourceFamily === "platform-semantic")
   ) {
-    return "使用 Cursor **内置代码库语义搜索**（Agent 语义搜索能力，等同 @codebase 语义索引；**不要**使用 fast-context MCP）。";
+    const backend = route.semanticBackend ?? "";
+    if (cursorEnv === ENV_BYOK || backend === "fast-context-mcp") {
+      return (
+        "使用 **fast_context_search**（fast-context MCP）做概念/代码库语义检索；" +
+        "**不要**假设 @codebase 或内置 SemanticSearch 可用；**不要**用 WebSearch 答代码库问题。"
+      );
+    }
+    return (
+      "使用 Cursor **内置代码库语义搜索**（宿主工具常为 **SemanticSearch**；" +
+      "**`target_directories`** 为目录 glob 数组，省略会报错；**`[]`** = 不缩范围、搜全工作区索引；" +
+      "若计划或 Grep/codegraph 已指向子树可传如 `['Trellis/packages/cli']`；" +
+      "无路径线索的概念题优先 **`[]`**；Native 下 **不要**用 fast-context MCP 顶替）。"
+    );
   }
-
-  if (routeId === "lsp-navigation" || role === "lsp") {
-    return `对候选定义使用 **GO_TO_DEFINITION** / 查找引用，核对 \`${symbol}\` 的真实定义与引用。`;
+  if (role === "semantic") {
+    if (cursorEnv === ENV_BYOK) {
+      return "使用 **fast_context_search**（fast-context MCP）；勿用 WebSearch 答代码库问题。";
+    }
+    return "使用 Cursor **内置代码库语义搜索**（不要用 fast-context MCP）。";
   }
 
   if (routeId === "policy-docs-rg" || route.sourceFamily === "policy-docs") {
@@ -134,6 +161,9 @@ function stepForRoute(
   }
 
   if (routeId === "cross-cutting-discovery" || routeId.toLowerCase().includes("deep")) {
+    if (cursorEnv === ENV_BYOK) {
+      return "复杂跨模块探索：使用 **Task** 子代理（explore），再用 Grep/codegraph/Read 验证。";
+    }
     return "复杂跨模块探索：可选用 **DEEP_SEARCH** 或 Explore 子任务，再用 Grep/codegraph 验证。";
   }
 
@@ -151,6 +181,7 @@ export function renderAgentInstructions(
   const locale = options.locale ?? "zh";
   const query = plan.query ?? "";
   const symbol = guessSymbolFromQuery(query) ?? "<symbol>";
+  const cursorEnv = plan.cursorEnv ?? detectCursorRetrievalEnv();
 
   const header =
     locale === "zh"
@@ -161,13 +192,14 @@ export function renderAgentInstructions(
     header,
     `问题：${query || "（空）"}`,
     `意图：${intentSummary(plan.intents)}`,
+    `检索环境（cursorEnv）：${cursorEnv}`,
     "",
   ];
 
   let step = 0;
   const sortedRoutes = [...plan.routes].sort((a, b) => a.order - b.order);
   for (const route of sortedRoutes) {
-    const text = stepForRoute(route, symbol, query);
+    const text = stepForRoute(route, symbol, query, cursorEnv);
     if (!text) continue;
     step += 1;
     lines.push(`${step}. ${text}`);
@@ -196,16 +228,25 @@ export function renderAgentInstructions(
 
   lines.push(
     "",
-    "**codegraph 独用场景**：调用链、跨包 trap、extension 符号、影响面；纯字面搜索用 Grep，单点定义用 GO_TO_DEFINITION。",
+    "**codegraph 独用场景**：调用链、跨包 trap、extension 符号、影响面、定义/引用定位；" +
+      "纯字面搜索用 Grep（勿用 GO_TO_DEFINITION，Agent 未暴露）。",
   );
 
   if (plan.routes.some((r) => r.id === "platform-semantic")) {
-    lines.push(
-      "",
-      "**语义合规（Cursor）：**",
-      "- 本计划含 **platform-semantic** 时：定 Top-1 前至少执行 **1 次** Cursor **内置代码库语义搜索**（不要用 fast-context MCP）。",
-      "- 在 run 记录中写下宿主返回的**真实工具名**（如 codebase_search、@codebase），供 semantic_exec 统计。",
-    );
+    lines.push("");
+    if (cursorEnv === ENV_BYOK) {
+      lines.push(
+        "**语义合规（Cursor++ BYOK）：**",
+        "- 本计划含 **platform-semantic** 时：定 Top-1 前至少 **1 次** **fast_context_search**（fast-context MCP），并记录工具名。",
+      );
+    } else {
+      lines.push(
+        "**语义合规（Cursor Native）：**",
+        "- 本计划含 **platform-semantic** 时：定 Top-1 前至少执行 **1 次** Cursor **内置代码库语义搜索**（不要用 fast-context MCP）。",
+        "- 在 run 记录中写下宿主返回的**真实工具名**（如 SemanticSearch、codebase_search、@codebase），供 semantic_exec 统计。",
+        "- 若工具为 **SemanticSearch**：**必须提供** **`target_directories`**；**`[]`** = 全库；已知子目录时用 glob 收窄（勿省略该字段）。",
+      );
+    }
   }
 
   const gateHint = semanticComplianceGateHint(plan, locale);
@@ -222,26 +263,6 @@ export function renderAgentInstructions(
   }
 
   return `${lines.join("\n").trim()}\n`;
-}
-
-function semanticComplianceGateHint(
-  plan: CodebaseRetrievalPlanEnvelope,
-  locale: string,
-): string {
-  const semRoute = plan.routes.find((r) => r.id === "platform-semantic");
-  if (!semRoute || semRoute.order > 2) return "";
-  if (locale !== "zh") {
-    return (
-      `**Plan gate (REC-11):** \`platform-semantic\` is step #${semRoute.order}. ` +
-      "Before Top-1 you MUST run one Cursor built-in codebase semantic search and log the exact tool name. " +
-      "Do not use fast-context MCP. Corroborate semantic hits with Read (verified layer)."
-    );
-  }
-  return (
-    `**计划门控（REC-11）：** 本问 \`platform-semantic\` 为第 ${semRoute.order} 步。` +
-    "定 Top-1 前 **必须** 执行 1 次 Cursor **内置代码库语义搜索**并记录工具名；" +
-    "**禁止** fast-context MCP；语义结果须 **Read** 验证（verified 层）。"
-  );
 }
 
 function resultLayerRankingHint(

@@ -6,6 +6,13 @@
  * (router-owned fields only; adapterState/freshness are pass-through stubs).
  */
 
+import {
+  type CursorRetrievalEnv,
+  ENV_BYOK,
+  detectCursorRetrievalEnv,
+  semanticRouteSpec,
+} from "./cursor-retrieval-env.js";
+
 export const CODEBASE_RETRIEVAL_ROUTER_VERSION = 2 as const;
 
 export const MODALITY_LEXICAL = "lexical" as const;
@@ -52,6 +59,7 @@ export interface CodebaseRetrievalRoute {
   intentIds: CodebaseRetrievalIntentId[];
   tokenEconomy?: "high" | "medium" | "low";
   platformNative?: boolean;
+  semanticBackend?: "fast-context-mcp" | "cursor-builtin";
 }
 
 export interface CodebaseRetrievalFallbackHint {
@@ -78,6 +86,7 @@ export interface CodebaseRetrievalPlanEnvelope {
   warnings: string[];
   verification: CodebaseRetrievalVerificationStep[];
   projectFileCount: number | null;
+  cursorEnv?: CursorRetrievalEnv;
 }
 
 export interface RouteCodebaseRetrievalInput {
@@ -85,6 +94,8 @@ export interface RouteCodebaseRetrievalInput {
   /** When false, optional adapter routes are omitted from the ordered plan. */
   codebaseRetrievalSelected?: boolean;
   projectFileCount?: number | null;
+  /** `native` | `byok` | `unknown`; defaults to detectCursorRetrievalEnv(). */
+  cursorEnv?: CursorRetrievalEnv;
 }
 
 export function emptyCodebaseRetrievalPlan(
@@ -361,10 +372,30 @@ function largeProject(projectFileCount: number | null): boolean {
   return projectFileCount > 2000;
 }
 
+function platformSemanticRoute(
+  baseRationale: string,
+  cursorEnv: CursorRetrievalEnv,
+): Omit<
+  CodebaseRetrievalRoute,
+  "order" | "intentIds" | "tokenEconomy"
+> {
+  const spec = semanticRouteSpec(cursorEnv);
+  return {
+    id: "platform-semantic",
+    role: "semantic",
+    sourceFamily: "platform-semantic",
+    commands: spec.commands,
+    rationale: baseRationale + spec.rationaleSuffix,
+    platformNative: spec.platformNative,
+    semanticBackend: spec.semanticBackend,
+  };
+}
+
 function orderedRoutesForIntents(
   intents: CodebaseRetrievalIntent[],
   includeOptionalAdapters: boolean,
   projectFileCount: number | null = null,
+  cursorEnv: CursorRetrievalEnv = detectCursorRetrievalEnv(),
 ): CodebaseRetrievalRoute[] {
   const ids = new Set(intents.map((item) => item.id));
   const preserve = ids.has("protocol-platform-preserve");
@@ -463,14 +494,7 @@ function orderedRoutesForIntents(
     const semanticRationale = policy
       ? "Policy plus conceptual intent: semantic recall after policy docs, before exact rg follow-up."
       : "Conceptual query without exact signals; semantic recall before exact rg narrowing.";
-    append({
-      id: "platform-semantic",
-      role: "semantic",
-      sourceFamily: "platform-semantic",
-      commands: ["cursor @codebase or built-in semantic search"],
-      rationale: semanticRationale + " (Cursor built-in semantic search)",
-      platformNative: true,
-    });
+    append(platformSemanticRoute(semanticRationale, cursorEnv));
     semanticPromoted = true;
     append({
       id: "exact-rg-primary",
@@ -556,22 +580,24 @@ function orderedRoutesForIntents(
     }
     append({
       id: "lsp-navigation",
-      role: "lsp",
-      sourceFamily: "language-server",
-      commands: ["definition", "references", "hover"],
+      role: "ast",
+      sourceFamily: "codegraph",
+      commands: [
+        "codegraph_node <symbol> --includeCode",
+        "codegraph_search <symbol>",
+      ],
       rationale:
-        "Optional editor/LSP navigation when exposed; not guaranteed in Agent tool telemetry — prefer Read/Grep/codegraph after candidates exist.",
-      platformNative: true,
+        "Definition/reference via codegraph (Cursor Agent does not expose " +
+        "GO_TO_DEFINITION); corroborate with Read on returned line ranges.",
+      platformNative: false,
     });
     if (!semanticPromoted) {
-      append({
-        id: "platform-semantic",
-        role: "semantic",
-        sourceFamily: "platform-semantic",
-        commands: ["cursor @codebase or built-in semantic search"],
-        rationale: "Semantic recall via Cursor built-in codebase search.",
-        platformNative: true,
-      });
+      append(
+        platformSemanticRoute(
+          "Semantic recall for conceptual narrowing.",
+          cursorEnv,
+        ),
+      );
     }
   }
 
@@ -729,6 +755,7 @@ function buildFallbackHints(
   intents: CodebaseRetrievalIntent[],
   includeOptionalAdapters: boolean,
   routes: CodebaseRetrievalRoute[],
+  cursorEnv: CursorRetrievalEnv = detectCursorRetrievalEnv(),
 ): CodebaseRetrievalFallbackHint[] {
   const hints: CodebaseRetrievalFallbackHint[] = [
     {
@@ -742,6 +769,21 @@ function buildFallbackHints(
       when: "codebase-retrieval not selected",
       action:
         "Skip optional AST/LSP/semantic routes; continue with exact search and verification only.",
+      replacesRole: "semantic",
+    });
+  }
+  if (cursorEnv === ENV_BYOK) {
+    hints.push({
+      when: "built-in @codebase / SemanticSearch not in agent tool list",
+      action:
+        "Use fast_context_search (fast-context MCP) per platform-semantic route; " +
+        "do not use WebSearch for codebase questions.",
+      replacesRole: "semantic",
+    });
+    hints.push({
+      when: "DEEP_SEARCH not available for wide cross-cutting explore",
+      action:
+        "Use Task subagent (explore), then Grep/codegraph/Read to verify.",
       replacesRole: "semantic",
     });
   }
@@ -767,7 +809,8 @@ function buildFallbackHints(
       when:
         "exact rg returns no corroborated file/range candidates (or only trap hits) before final Top-1",
       action:
-        "Use Cursor @codebase or built-in semantic search per platform-semantic route, then narrow with rg on returned keywords and paths.",
+        "Use fast_context_search (BYOK) or Cursor built-in semantic search (Native) " +
+        "per platform-semantic route, then narrow with rg on returned keywords and paths.",
       replacesRole: "semantic",
     });
   }
@@ -833,6 +876,7 @@ export function routeCodebaseRetrieval(
   const query = normalizeQuery(input.query);
   const includeOptionalAdapters = input.codebaseRetrievalSelected !== false;
   const projectFileCount = input.projectFileCount ?? null;
+  const cursorEnv = input.cursorEnv ?? detectCursorRetrievalEnv();
 
   if (!query) {
     const emptyIntent = buildIntent(
@@ -846,10 +890,12 @@ export function routeCodebaseRetrieval(
       [emptyIntent],
       includeOptionalAdapters,
       projectFileCount,
+      cursorEnv,
     );
     return {
       version: CODEBASE_RETRIEVAL_ROUTER_VERSION,
       query,
+      cursorEnv,
       intents: [emptyIntent],
       routes: emptyRoutes,
       adapterState: [],
@@ -858,6 +904,7 @@ export function routeCodebaseRetrieval(
         [emptyIntent],
         includeOptionalAdapters,
         emptyRoutes,
+        cursorEnv,
       ),
       warnings: ["Empty query; only baseline exact route is emitted."],
       verification: baseVerification(),
@@ -870,15 +917,22 @@ export function routeCodebaseRetrieval(
     intents,
     includeOptionalAdapters,
     projectFileCount,
+    cursorEnv,
   );
   return {
     version: CODEBASE_RETRIEVAL_ROUTER_VERSION,
     query,
+    cursorEnv,
     intents,
     routes,
     adapterState: [],
     freshness: [],
-    fallback: buildFallbackHints(intents, includeOptionalAdapters, routes),
+    fallback: buildFallbackHints(
+      intents,
+      includeOptionalAdapters,
+      routes,
+      cursorEnv,
+    ),
     warnings: buildWarnings(intents),
     verification: verificationForIntents(intents),
     projectFileCount,
