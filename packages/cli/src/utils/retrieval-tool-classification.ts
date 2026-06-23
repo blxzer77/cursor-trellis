@@ -21,6 +21,8 @@ export interface ClassifiedToolCalls {
 export interface ClassifyToolCallsOptions {
   /** When `cursor`, semantic_exec counts platform-native tools only; fast-context is tracked separately. */
   platform?: string;
+  /** `native` | `byok` — BYOK counts fast-context as semantic exec, not misuse. */
+  cursor_env?: string;
 }
 
 const CODEGRAPH_PATTERNS = [
@@ -82,6 +84,7 @@ export function classifyToolCalls(
   options: ClassifyToolCallsOptions = {},
 ): ClassifiedToolCalls {
   const platform = (options.platform ?? "cursor").toLowerCase();
+  const cursorEnv = (options.cursor_env ?? "").trim().toLowerCase();
   const tools_called = [...raw];
   let grep_count = 0;
   let read_count = 0;
@@ -103,7 +106,12 @@ export function classifyToolCalls(
   }
 
   if (platform === "cursor") {
-    semantic_executed = platform_semantic_executed;
+    if (cursorEnv === "byok") {
+      semantic_executed =
+        platform_semantic_executed || fast_context_count > 0;
+    } else {
+      semantic_executed = platform_semantic_executed;
+    }
   } else {
     semantic_executed =
       platform_semantic_executed || fast_context_count > 0 ||
@@ -126,7 +134,8 @@ export function classifyToolCalls(
   };
 
   if (platform === "cursor") {
-    out.cursor_fast_context_misuse = fast_context_count > 0;
+    out.cursor_fast_context_misuse =
+      fast_context_count > 0 && cursorEnv !== "byok";
   }
 
   return out;

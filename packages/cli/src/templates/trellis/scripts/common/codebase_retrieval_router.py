@@ -13,6 +13,12 @@ import re
 from pathlib import Path
 from typing import Any
 
+from .cursor_retrieval_env import (
+    ENV_BYOK,
+    detect_cursor_retrieval_env,
+    semantic_route_spec,
+)
+
 ROUTER_VERSION = 2
 
 PLATFORM_CURSOR = "cursor"
@@ -439,11 +445,32 @@ def _large_project(project_file_count: int | None) -> bool:
     return project_file_count > 2000
 
 
+def _platform_semantic_route(
+    *,
+    base_rationale: str,
+    cursor_env: str,
+) -> dict[str, object]:
+    spec = semantic_route_spec(cursor_env)
+    suffix = str(spec.get("rationale_suffix", ""))
+    commands = spec.get("commands")
+    cmd_list = list(commands) if isinstance(commands, list) else []
+    return {
+        "id": "platform-semantic",
+        "role": "semantic",
+        "sourceFamily": "platform-semantic",
+        "commands": cmd_list,
+        "rationale": base_rationale + suffix,
+        "platformNative": bool(spec.get("platformNative", False)),
+        "semanticBackend": spec.get("semanticBackend"),
+    }
+
+
 def _ordered_routes(
     intents: list[dict[str, object]],
     include_optional_adapters: bool,
     *,
     project_file_count: int | None = None,
+    cursor_env: str | None = None,
 ) -> list[dict[str, object]]:
     ids = {str(item["id"]) for item in intents}
     active = list(ids)
@@ -459,6 +486,7 @@ def _ordered_routes(
     conceptual_primary = conceptual and not preserve and not exact_primary_first
     large = _large_project(project_file_count)
     semantic_promoted = False
+    cenv = cursor_env or detect_cursor_retrieval_env()
 
     routes: list[dict[str, object]] = []
 
@@ -542,14 +570,7 @@ def _ordered_routes(
             if policy
             else "Conceptual query without exact signals; semantic recall before exact rg narrowing."
         )
-        append({
-            "id": "platform-semantic",
-            "role": "semantic",
-            "sourceFamily": "platform-semantic",
-            "commands": ["cursor @codebase or built-in semantic search"],
-            "rationale": semantic_rationale + " (Cursor built-in semantic search)",
-            "platformNative": True,
-        })
+        append(_platform_semantic_route(base_rationale=semantic_rationale, cursor_env=cenv))
         semantic_promoted = True
         append({
             "id": "exact-rg-primary",
@@ -638,24 +659,25 @@ def _ordered_routes(
             })
         append({
             "id": "lsp-navigation",
-            "role": "lsp",
-            "sourceFamily": "language-server",
-            "commands": ["definition", "references", "hover"],
+            "role": "ast",
+            "sourceFamily": "codegraph",
+            "commands": [
+                "codegraph_node <symbol> --includeCode",
+                "codegraph_search <symbol>",
+            ],
             "rationale": (
-                "Optional editor/LSP navigation when exposed; "
-                "not guaranteed in Agent tool telemetry — prefer Read/Grep/codegraph after candidates exist."
+                "Definition/reference via codegraph (Cursor Agent does not expose "
+                "GO_TO_DEFINITION); corroborate with Read on returned line ranges."
             ),
-            "platformNative": True,
+            "platformNative": False,
         })
         if not semantic_promoted:
-            append({
-                "id": "platform-semantic",
-                "role": "semantic",
-                "sourceFamily": "platform-semantic",
-                "commands": ["cursor @codebase or built-in semantic search"],
-                "rationale": "Semantic recall via Cursor built-in codebase search.",
-                "platformNative": True,
-            })
+            append(
+                _platform_semantic_route(
+                    base_rationale="Semantic recall for conceptual narrowing.",
+                    cursor_env=cenv,
+                )
+            )
 
     append({
         "id": "verification-source-git-tests",
@@ -678,6 +700,8 @@ def _fallback_hints(
     intents: list[dict[str, object]],
     include_optional_adapters: bool,
     routes: list[dict[str, object]],
+    *,
+    cursor_env: str | None = None,
 ) -> list[dict[str, object]]:
     hints: list[dict[str, object]] = [
         {
@@ -688,7 +712,22 @@ def _fallback_hints(
     if not include_optional_adapters:
         hints.append({
             "when": "codebase-retrieval not selected",
-            "action": "Skip optional AST/LSP/semantic routes; use exact search and verification.",
+            "action": "Skip optional AST/semantic routes; use exact search and verification.",
+            "replacesRole": "semantic",
+        })
+    cenv = cursor_env or detect_cursor_retrieval_env()
+    if cenv == ENV_BYOK:
+        hints.append({
+            "when": "built-in @codebase / SemanticSearch not in agent tool list",
+            "action": (
+                "Use fast_context_search (fast-context MCP) per platform-semantic route; "
+                "do not use WebSearch for codebase questions."
+            ),
+            "replacesRole": "semantic",
+        })
+        hints.append({
+            "when": "DEEP_SEARCH not available for wide cross-cutting explore",
+            "action": "Use Task subagent (explore), then Grep/codegraph/Read to verify.",
             "replacesRole": "semantic",
         })
     if any(str(item["id"]) == INTENT_POLICY for item in intents):
@@ -716,8 +755,8 @@ def _fallback_hints(
                 "(or only trap hits) before final Top-1"
             ),
             "action": (
-                "Use Cursor @codebase or built-in semantic search per platform-semantic route, "
-                "then narrow with rg on returned keywords and paths."
+                "Use fast_context_search (BYOK) or Cursor built-in semantic search (Native) "
+                "per platform-semantic route, then narrow with rg on returned keywords and paths."
             ),
             "replacesRole": "semantic",
         })
@@ -754,26 +793,33 @@ def route_codebase_retrieval(
     *,
     codebase_retrieval_selected: bool = True,
     project_file_count: int | None = None,
+    cursor_env: str | None = None,
 ) -> dict[str, object]:
     """Return the shared evidence envelope with router-owned fields populated."""
     normalized = _normalize_query(query)
     include_optional = codebase_retrieval_selected
+    cenv = cursor_env or detect_cursor_retrieval_env()
     if not normalized:
         intents = [
             _intent(INTENT_EXACT, "General codebase (exact baseline)", ["empty-query"], "low", True)
         ]
         empty_routes = _ordered_routes(
-            intents, include_optional,
+            intents,
+            include_optional,
             project_file_count=project_file_count,
+            cursor_env=cenv,
         )
         return {
             "version": ROUTER_VERSION,
             "query": normalized,
+            "cursorEnv": cenv,
             "intents": intents,
             "routes": empty_routes,
             "adapterState": [],
             "freshness": [],
-            "fallback": _fallback_hints(intents, include_optional, empty_routes),
+            "fallback": _fallback_hints(
+                intents, include_optional, empty_routes, cursor_env=cenv
+            ),
             "warnings": ["Empty query; only baseline exact route is emitted."],
             "verification": _base_verification(),
             "projectFileCount": project_file_count,
@@ -781,17 +827,20 @@ def route_codebase_retrieval(
 
     intents = _classify_intents(normalized)
     routes = _ordered_routes(
-        intents, include_optional,
+        intents,
+        include_optional,
         project_file_count=project_file_count,
+        cursor_env=cenv,
     )
     return {
         "version": ROUTER_VERSION,
         "query": normalized,
+        "cursorEnv": cenv,
         "intents": intents,
         "routes": routes,
         "adapterState": [],
         "freshness": [],
-        "fallback": _fallback_hints(intents, include_optional, routes),
+        "fallback": _fallback_hints(intents, include_optional, routes, cursor_env=cenv),
         "warnings": _warnings(intents),
         "verification": _verification_for_intents(intents),
         "projectFileCount": project_file_count,

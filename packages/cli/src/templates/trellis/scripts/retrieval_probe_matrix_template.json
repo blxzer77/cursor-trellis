@@ -1,0 +1,116 @@
+{
+  "matrix_version": 1,
+  "description": "Cursor retrieval capability matrix — Native vs Cursor++ BYOK. Fill in results from cursor_retrieval_probe.py (auto) and cursor_retrieval_probe_prompt.md (manual). One object per probe ID.",
+  "instructions": "Run the auto probe script in BOTH environments: (1) Cursor Native (ccursor off / byokMode=0), (2) Cursor++ BYOK (ccursor on / byokMode=1). Paste the auto_results entries into the matching native/byok slots. For manual probes, feed cursor_retrieval_probe_prompt.md to a live agent in each environment, then record results below.",
+  "probes": [
+    {
+      "id": "P-01",
+      "label": "Grep (rg) — local IDE literal search",
+      "nature": "local",
+      "expected_byok": "pass",
+      "native": { "status": null, "evidence": "", "actual_tool": "", "probed_at": "" },
+      "byok":   { "status": null, "evidence": "", "actual_tool": "", "probed_at": "" }
+    },
+    {
+      "id": "P-02",
+      "label": "Read — local IDE file read + JSON parse",
+      "nature": "local",
+      "expected_byok": "pass",
+      "native": { "status": null, "evidence": "", "actual_tool": "", "probed_at": "" },
+      "byok":   { "status": null, "evidence": "", "actual_tool": "", "probed_at": "" }
+    },
+    {
+      "id": "P-03",
+      "label": "codegraph MCP — codegraph_search (symbol lookup)",
+      "nature": "local-mcp",
+      "expected_byok": "pass",
+      "native": { "status": null, "evidence": "", "actual_tool": "", "probed_at": "" },
+      "byok":   { "status": null, "evidence": "", "actual_tool": "", "probed_at": "" }
+    },
+    {
+      "id": "P-04",
+      "label": "codegraph MCP — codegraph_callers (caller chain)",
+      "nature": "local-mcp",
+      "expected_byok": "pass",
+      "native": { "status": null, "evidence": "", "actual_tool": "", "probed_at": "" },
+      "byok":   { "status": null, "evidence": "", "actual_tool": "", "probed_at": "" }
+    },
+    {
+      "id": "P-05",
+      "label": "codegraph index — on-disk .codegraph/ presence",
+      "nature": "local",
+      "expected_byok": "pass",
+      "native": { "status": null, "evidence": "", "actual_tool": "", "probed_at": "" },
+      "byok":   { "status": null, "evidence": "", "actual_tool": "", "probed_at": "" }
+    },
+    {
+      "id": "P-06",
+      "label": "fast-context MCP — semantic search",
+      "nature": "local-mcp",
+      "expected_byok": "pass",
+      "native": { "status": null, "evidence": "", "actual_tool": "", "probed_at": "" },
+      "byok":   { "status": null, "evidence": "", "actual_tool": "", "probed_at": "" }
+    },
+    {
+      "id": "P-07",
+      "label": "smart-search CLI — resolve + doctor",
+      "nature": "local",
+      "expected_byok": "pass",
+      "native": { "status": null, "evidence": "", "actual_tool": "", "probed_at": "" },
+      "byok":   { "status": null, "evidence": "", "actual_tool": "", "probed_at": "" }
+    },
+    {
+      "id": "P-08",
+      "label": "@codebase semantic search (Cursor built-in)",
+      "nature": "cloud",
+      "expected_byok": "fail",
+      "native": { "status": "pass", "evidence": "SemanticSearch; patch_wpelc8.py + cursor-subagent-policy.md; matched_expected yes", "actual_tool": "SemanticSearch", "probed_at": "2026-06-23" },
+      "byok":   { "status": "fail", "evidence": "tool_invoked: none; built-in SemanticSearch absent from agent tool table", "actual_tool": "none", "probed_at": "2026-06-23" }
+    },
+    {
+      "id": "P-09",
+      "label": "DEEP_SEARCH / wide cross-cutting semantic explore",
+      "nature": "cloud",
+      "expected_byok": "degraded",
+      "native": { "status": null, "evidence": "", "actual_tool": "", "probed_at": "" },
+      "byok":   { "status": "degraded", "evidence": "Task explore subagent acceptable; not DEEP_SEARCH", "actual_tool": "Task", "probed_at": "2026-06-23" }
+    },
+    {
+      "id": "P-10",
+      "label": "Definition / reference via codegraph (LSP not in Agent tool table)",
+      "nature": "local-mcp",
+      "expected_byok": "pass",
+      "native": { "status": "pass", "evidence": "codegraph_search + node; def route_codebase_retrieval L791; GO_TO_DEFINITION none", "actual_tool": "codegraph_search", "probed_at": "2026-06-23" },
+      "byok":   { "status": "pass", "evidence": "codegraph_node at def route_codebase_retrieval; GO_TO_DEFINITION none", "actual_tool": "codegraph_node", "probed_at": "2026-06-23" }
+    },
+    {
+      "id": "P-08-SA",
+      "label": "Concept probe — fast-context only",
+      "nature": "local-mcp",
+      "expected_byok": "pass",
+      "native": { "status": null, "evidence": "", "actual_tool": "", "probed_at": "" },
+      "byok":   { "status": "pass", "evidence": "Top-1 patch_wpelc8.py via fast_context_search", "actual_tool": "fast_context_search", "probed_at": "2026-06-23" }
+    },
+    {
+      "id": "P-08-SB",
+      "label": "Concept probe — codegraph_explore only",
+      "nature": "local-mcp",
+      "expected_byok": "degraded",
+      "native": { "status": null, "evidence": "", "actual_tool": "", "probed_at": "" },
+      "byok":   { "status": "degraded", "evidence": "Wrong semantic hits; not Primary for concept on BYOK", "actual_tool": "codegraph_explore", "probed_at": "2026-06-23" }
+    }
+  ],
+  "env_detection": {
+    "native": { "byokMode": 0, "ccursor_running": false, "notes": "" },
+    "byok":   { "byokMode": 1, "ccursor_running": true, "notes": "" }
+  },
+  "verdict": {
+    "summary": "Native P-08 pass (SemanticSearch, target_directories=[]). BYOK P-08 fail → fast-context Primary (P-08-SA). P-09 degraded → Task explore. Definition: codegraph (P-10); Agent LSP N/A both envs.",
+    "degraded_capabilities": ["P-08", "P-09"],
+    "probed_at": "2026-06-23",
+    "probe_evidence_files": [
+      ".trellis/tasks/06-23-06-23-cursor-retrieval-byok-lsp-fastcontext/research/01-byok-retrieval-role-matrix.md",
+      ".trellis/tasks/06-23-06-23-cursor-retrieval-byok-lsp-fastcontext/research/02-lsp-via-codegraph-decision.md"
+    ]
+  }
+}

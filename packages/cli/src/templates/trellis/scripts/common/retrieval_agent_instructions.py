@@ -12,6 +12,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from .cursor_retrieval_env import ENV_BYOK, detect_cursor_retrieval_env
+
 _SYMBOL_CANDIDATE = re.compile(
     r"\b([A-Za-z_][\w$]{2,})\b|"
     r"`([^`]+)`|"
@@ -104,7 +106,13 @@ def _intent_summary(intents: list[dict[str, object]]) -> str:
     return "、".join(parts)
 
 
-def _cursor_step_for_route(route: dict[str, object], *, symbol: str, query: str) -> str | None:
+def _cursor_step_for_route(
+    route: dict[str, object],
+    *,
+    symbol: str,
+    query: str,
+    cursor_env: str,
+) -> str | None:
     role = str(route.get("role", ""))
     route_id = str(route.get("id", ""))
 
@@ -126,6 +134,11 @@ def _cursor_step_for_route(route: dict[str, object], *, symbol: str, query: str)
         return (
             f"使用 **codegraph_search**，路径侧重 `extensions/`，符号 `{symbol}`。"
         )
+    if route_id == "lsp-navigation":
+        return (
+            f"使用 **codegraph_node**（`includeCode=true`）或 **codegraph_search** 定位 `{symbol}` "
+            "的定义/引用（Agent 无 GO_TO_DEFINITION）；再用 **Read** 验证行号与正文。"
+        )
     if role == "ast" or route_id in ("ast-codegraph",):
         return (
             f"使用 **codegraph_explore** 或 **codegraph_node**（`includeCode=true`），"
@@ -135,19 +148,25 @@ def _cursor_step_for_route(route: dict[str, object], *, symbol: str, query: str)
     if route_id == "platform-semantic" or (
         role == "semantic" and str(route.get("sourceFamily")) == "platform-semantic"
     ):
+        backend = str(route.get("semanticBackend", ""))
+        if cursor_env == ENV_BYOK or backend == "fast-context-mcp":
+            return (
+                "使用 **fast_context_search**（fast-context MCP）做概念/代码库语义检索；"
+                "**不要**假设 @codebase 或内置 SemanticSearch 可用；**不要**用 WebSearch 答代码库问题。"
+            )
         return (
-            "使用 Cursor **内置代码库语义搜索**（Agent 语义搜索能力，等同 @codebase 语义索引；"
-            "**不要**使用 fast-context MCP）。"
+            "使用 Cursor **内置代码库语义搜索**（宿主工具常为 **SemanticSearch**；"
+            "**`target_directories`** 为目录 glob 数组，省略会报错；**`[]`** = 不缩范围、搜全工作区索引；"
+            "若计划或 Grep/codegraph 已指向子树可传如 `['Trellis/packages/cli']`；"
+            "无路径线索的概念题优先 **`[]`**；Native 下 **不要**用 fast-context MCP 顶替）。"
         )
     if role == "semantic":
+        if cursor_env == ENV_BYOK:
+            return (
+                "使用 **fast_context_search**（fast-context MCP）；勿用 WebSearch 答代码库问题。"
+            )
         return (
             "使用 Cursor **内置代码库语义搜索**（不要用 fast-context MCP）。"
-        )
-
-    if route_id == "lsp-navigation" or role == "lsp":
-        return (
-            f"可选：若宿主暴露 **GO_TO_DEFINITION** / 查找引用，在已有候选上核对 `{symbol}`；"
-            "非 Agent 默认保证，未调用时用 **Read** + **Grep** 验证。"
         )
 
     if route_id == "policy-docs-rg" or str(route.get("sourceFamily")) == "policy-docs":
@@ -162,6 +181,10 @@ def _cursor_step_for_route(route: dict[str, object], *, symbol: str, query: str)
         )
 
     if route_id == "cross-cutting-discovery" or "deep" in route_id.lower():
+        if cursor_env == ENV_BYOK:
+            return (
+                "复杂跨模块探索：使用 **Task** 子代理（explore），再用 Grep/codegraph/Read 验证。"
+            )
         return (
             "复杂跨模块探索：可选用 **DEEP_SEARCH** 或 Explore 子任务，再用 Grep/codegraph 验证。"
         )
@@ -201,6 +224,7 @@ def render_agent_instructions(
     verification_list = verification if isinstance(verification, list) else []
 
     symbol = guess_symbol_from_query(query) or "<symbol>"
+    cursor_env = str(envelope.get("cursorEnv") or detect_cursor_retrieval_env())
 
     if locale != "zh":
         header = "## Codebase retrieval plan\n"
@@ -211,6 +235,7 @@ def render_agent_instructions(
         header.rstrip(),
         f"问题：{query or '（空）'}",
         f"意图：{_intent_summary(intent_list)}",
+        f"检索环境（cursorEnv）：{cursor_env}",
         "",
     ]
 
@@ -222,7 +247,9 @@ def render_agent_instructions(
     for route in sorted_routes:
         if not isinstance(route, dict):
             continue
-        text = _cursor_step_for_route(route, symbol=symbol, query=query)
+        text = _cursor_step_for_route(
+            route, symbol=symbol, query=query, cursor_env=cursor_env
+        )
         if not text:
             continue
         step += 1
@@ -257,34 +284,52 @@ def render_agent_instructions(
 
     lines.append("")
     lines.append(
-        "**codegraph 独用场景**：调用链、跨包 trap、extension 符号、影响面；"
-        "纯字面搜索用 Grep，单点定义用 GO_TO_DEFINITION。"
+        "**codegraph 独用场景**：调用链、跨包 trap、extension 符号、影响面、定义/引用定位；"
+        "纯字面搜索用 Grep（勿用 GO_TO_DEFINITION，Agent 未暴露）。"
     )
 
     if any(
         isinstance(r, dict) and r.get("id") == "platform-semantic" for r in route_list
     ):
         lines.append("")
-        if locale != "zh":
-            lines.append("**Semantic compliance (Cursor):**")
-            lines.append(
-                "- When this plan lists **platform-semantic**, run **one** Cursor built-in "
-                "codebase / semantic search before final Top-1 (not fast-context MCP)."
-            )
-            lines.append(
-                "- Log the **exact tool name** from the host (e.g. codebase_search, @codebase) "
-                "in your run notes for semantic_exec_rate."
-            )
+        if cursor_env == ENV_BYOK:
+            if locale != "zh":
+                lines.append("**Semantic compliance (Cursor++ BYOK):**")
+                lines.append(
+                    "- Run **one** `fast_context_search` before final Top-1 when "
+                    "**platform-semantic** is listed; log the MCP tool name."
+                )
+            else:
+                lines.append("**语义合规（Cursor++ BYOK）：**")
+                lines.append(
+                    "- 本计划含 **platform-semantic** 时：定 Top-1 前至少 **1 次** "
+                    "**fast_context_search**（fast-context MCP），并记录工具名。"
+                )
         else:
-            lines.append("**语义合规（Cursor）：**")
-            lines.append(
-                "- 本计划含 **platform-semantic** 时：定 Top-1 前至少执行 **1 次** "
-                "Cursor **内置代码库语义搜索**（不要用 fast-context MCP）。"
-            )
-            lines.append(
-                "- 在 run 记录中写下宿主返回的**真实工具名**（如 codebase_search、@codebase），"
-                "供 semantic_exec 统计。"
-            )
+            if locale != "zh":
+                lines.append("**Semantic compliance (Cursor Native):**")
+                lines.append(
+                    "- When this plan lists **platform-semantic**, run **one** Cursor built-in "
+                    "codebase / semantic search before final Top-1 (not fast-context MCP)."
+                )
+                lines.append(
+                    "- Log the **exact tool name** from the host (e.g. codebase_search, @codebase) "
+                    "in your run notes for semantic_exec_rate."
+                )
+            else:
+                lines.append("**语义合规（Cursor Native）：**")
+                lines.append(
+                    "- 本计划含 **platform-semantic** 时：定 Top-1 前至少执行 **1 次** "
+                    "Cursor **内置代码库语义搜索**（不要用 fast-context MCP）。"
+                )
+                lines.append(
+                    "- 在 run 记录中写下宿主返回的**真实工具名**（如 SemanticSearch、codebase_search、@codebase），"
+                    "供 semantic_exec 统计。"
+                )
+                lines.append(
+                    "- 若工具为 **SemanticSearch**：**必须提供** **`target_directories`**；"
+                    "**`[]`** = 全库；已知子目录时用 glob 收窄（勿省略该字段）。"
+                )
 
     try:
         from .semantic_plan_gate import semantic_compliance_gate_hint  # noqa: PLC0415

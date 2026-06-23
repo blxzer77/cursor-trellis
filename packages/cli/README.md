@@ -1,170 +1,128 @@
-# @blxzer/cursor-trellis
+# cursor-trellis
 
 English | [简体中文](README.zh-CN.md)
 
-npm package for the Trellis CLI. Project overview: [../../README.md](../../README.md). Cursor workflow: [../../docs/workflow.md](../../docs/workflow.md).
+**Trellis** is a team harness for AI coding agents: it replaces one giant `AGENTS.md` / `.cursorrules` with a progressive `.trellis/` wiki—workflow, specs, tasks, and journals—plus generated **Cursor** integration (rules, commands, agents, hooks).
 
-## Install
+This repository is a **public fork** focused on **Cursor-first** workflow. Upstream inspiration: [mindfold-ai/Trellis](https://github.com/mindfold-ai/Trellis).
+
+| | |
+| --- | --- |
+| **npm CLI** | `@blxzer/cursor-trellis` (`trellis`, `tl`, `smart-search`) |
+| **Core SDK** | `@blxzer/cursor-trellis-core` |
+| **This repo** | https://github.com/blxzer77/cursor-trellis |
+
+## What problem it solves
+
+- **Context rot**: agents miss rules buried in a single markdown file.
+- **No task continuity**: PRDs, design, and verification scatter across chats.
+- **Platform drift**: Cursor rules, commands, hooks, and agents each need the right shape.
+
+Trellis generates the **Cursor adapter** (`.cursor/`) for your stack. This fork is **Cursor-only** for init and public docs (see [docs/cursor.md](docs/cursor.md)).
+
+## Quick start (Cursor)
+
+**1. Install the CLI** (global or project-local):
 
 ```bash
 npm install -g @blxzer/cursor-trellis
-```
-
-Requires **Node.js ≥ 18.17**. Generated project hooks expect **Python ≥ 3.9** on the machine where Cursor runs hooks.
-
-## Binaries
-
-| Bin | Alias | Role |
-| --- | --- | --- |
-| `trellis` | `tl` | Initialize, update, and manage Trellis in a project |
-| `smart-search` | — | Vendored web-research CLI (see [smart-search](#smart-search)) |
-
-```bash
 trellis --version
-smart-search --version
 ```
 
-## Command reference (summary)
-
-| Command | Purpose |
-| --- | --- |
-| `init` | Create `.trellis/` and selected platform trees |
-| `update` | Sync templates to the installed CLI version |
-| `uninstall` | Remove Trellis-managed files from the project |
-| `upgrade` | Upgrade the global CLI npm package |
-| `rollout` | Run `update` across multiple project paths |
-| `workflow` | Workflow template utilities (advanced) |
-
-Commands related to **channel** exist for advanced multi-agent workflows; they are not part of the Cursor-first public docs. Use `trellis --help` for the full list.
-
-The sections below detail **`init`**, **`update`**, and **`uninstall`**.
-
----
-
-## `trellis init`
-
-Run from the **target project root**.
+**2. Initialize your application repo** (not the Trellis source tree):
 
 ```bash
+cd /path/to/your-app
 trellis init --cursor
 ```
 
-### Platform flags
+**3. Open the project in Cursor** and use Agent mode. User-facing slash commands include `/trellis-continue` and `/trellis-finish-work`. Request Triage is enforced via `.cursor/rules/trellis-triage.mdc`.
 
-| Flag | Platform |
-| --- | --- |
-| `--cursor` | Cursor (`.cursor/`) — default documented path |
-| `--cursor2plus` | Cursor++ BYOK local bundle (requires `--cursor`) |
+Optional: `trellis init --cursor --cursor2plus` for Cursor++ BYOK local bundle; see [docs/cursor.md](docs/cursor.md#cursor-optional-appendix).
 
-This fork is **Cursor-only** for init and public docs: [../../docs/cursor.md](../../docs/cursor.md).
+## After init: what appears
 
-### Frequently used flags
-
-| Flag | Description |
-| --- | --- |
-| `-y, --yes` | Non-interactive defaults |
-| `-f, --force` | Overwrite existing managed files |
-| `-s, --skip-existing` | Skip files that already exist |
-| `--cursor2plus` | Materialize Cursor++ BYOK bundle (requires `--cursor`) |
-| `-u, --user <name>` | Set developer identity |
-| `--skip-readiness` | Skip smart-search / capability readiness checks |
-| `--capability <id>` | Enable optional project capability (repeatable; `all` for all) |
-| `--workflow <id>` | Workflow template for `.trellis/workflow.md` |
-| `-t, --template <name>` | Remote spec template |
-| `-r, --registry <source>` | Custom template registry |
-| `--monorepo` / `--no-monorepo` | Monorepo detection override |
-
-### What gets generated
-
-- `.trellis/` — workflow, spec, tasks, workspace, scripts, template hashes
-- `AGENTS.md` — managed instructions block
-- Platform dirs — for Cursor: `.cursor/commands`, `rules`, `agents`, `hooks`, `hooks.json`, `worktrees.json`
-
----
-
-## `trellis update`
-
-Run from a project that already has `.trellis/`.
-
-```bash
-trellis update
-trellis update --dry-run
+```text
+your-app/
+  .trellis/          workflow, spec, tasks, workspace, scripts
+  AGENTS.md          Trellis-managed agent entry
+  .cursor/           commands, rules, agents, hooks (Cursor)
 ```
 
-### Flags
+Details: [Cursor integration](docs/cursor.md).
 
-| Flag | Description |
+## Core concepts
+
+| Path | Role |
 | --- | --- |
-| `--dry-run` | Preview changes without writing |
-| `-f, --force` | Overwrite all changed managed files |
-| `-s, --skip-all` | Skip all changed files |
-| `-n, --create-new` | Write `.new` copies for changed files |
-| `--migrate` | Apply pending path migrations (renames/deletes) |
-| `--allow-downgrade` | Allow template version older than recorded |
-| `--skip-readiness` | Skip readiness re-check |
-| `--json` | One-line JSON rollout evidence |
-| `--skip-post-update-smoke` | Skip post-apply Python smoke scripts |
+| `.trellis/workflow.md` | Lifecycle: triage, plan, execute, finish, learning |
+| `.trellis/spec/` | Layer/package coding guidelines |
+| `.trellis/tasks/` | PRD, design, implement, verify artifacts |
+| `.trellis/workspace/` | Developer journals and session traces |
 
-Typical flow: upgrade global CLI (`npm update -g @blxzer/cursor-trellis`), `cd` to project, `trellis update`, review diff especially if you customized `.trellis/workflow.md` or `.cursor/rules`.
+## Workflow (summary)
 
----
+1. **Triage** every request (`No Task` → `Parent Task`).
+2. **Plan** with task artifacts for durable work (especially Full Tasks).
+3. **Gate**: `task.py validate` + `start-execution --check`.
+4. **Approve** execution explicitly, then `start-execution --approved`.
+5. **Verify** and finish (`/trellis-finish-work`).
 
-## `trellis uninstall`
+Walkthrough: [docs/workflow.md](docs/workflow.md).
+
+## Cursor support
+
+- **Rules** — reliable always-on policy (including Triage).
+- **Commands** — small `/` palette (`commands-only` policy; skills not copied to `.cursor/skills/` by default).
+- **Agents** — `trellis-research`, `trellis-implement`, `trellis-check`.
+- **Hooks** — Python scripts for session, shell, and subagent context.
+
+Deep dive: [docs/cursor.md](docs/cursor.md).
+
+## Common commands
+
+| Command | Purpose |
+| --- | --- |
+| `trellis init --cursor` | Create `.trellis/` + `.cursor/` in the current project |
+| `trellis update` | Refresh templates from the installed CLI version |
+| `trellis uninstall` | Remove Trellis-managed files from the project |
+
+Flags and behavior: [packages/cli/README.md](packages/cli/README.md).
+
+Other CLI commands (`rollout`, `upgrade`, …) are listed briefly in the CLI README only.
+
+## Architecture (summary)
+
+Monorepo: `packages/core` (SDK) + `packages/cli` (templates, configurators, bins). Init flows through `configureCursor()` into your `.cursor/` tree. **smart-search** ships as a vendored CLI for web research.
+
+Diagram and data flow: [docs/architecture.md](docs/architecture.md).
+
+## Development and verification
+
+Contributors working on **this** repository:
 
 ```bash
-trellis uninstall
-trellis uninstall --dry-run
-trellis uninstall -y
+pnpm install
+pnpm build
+pnpm test
 ```
 
-### Flags
+Package-level detail: [packages/cli/README.md](packages/cli/README.md). Agent-oriented codebase guide: [AGENTS.md](AGENTS.md).
 
-| Flag | Description |
+## Maintainer note
+
+Local harness layout (`D:\MyHarness`), Git remote policy, release/publish, and deep implementation notes are **internal**—see [docs/maintainers.md](docs/maintainers.md). Public docs intentionally omit npm publish and private remote procedures.
+
+## Read more
+
+| Doc | Topic |
 | --- | --- |
-| `-y, --yes` | Skip confirmation |
-| `--dry-run` | List planned deletions and structured scrubs only |
+| [docs/workflow.md](docs/workflow.md) | Task lifecycle in Cursor |
+| [docs/cursor.md](docs/cursor.md) | Generated Cursor files |
+| [docs/architecture.md](docs/architecture.md) | High-level structure + smart-search |
+| [packages/cli/README.md](packages/cli/README.md) | CLI / npm reference |
+| [CHANGELOG](packages/cli/CHANGELOG.md) | Package history |
 
-Removes Trellis-managed platform files and `.trellis/` per hash manifest and scrubbers. **Back up** customized workflow or rules before uninstalling.
+## License
 
----
-
-## smart-search
-
-Shipped inside this package (`vendor/smart-search/`, bin `smart-search`).
-
-| Topic | Detail |
-| --- | --- |
-| What it is | CLI for search, fetch, doctor, and research—not an MCP server |
-| When agents use it | Project `.trellis/workflow.md` routes external facts to smart-search first when healthy |
-| Setup | `smart-search setup` and `smart-search doctor` (see [vendor README](vendor/smart-search/README.md)) |
-| Readiness | `init` / `update` check unless `--skip-readiness` |
-
-```bash
-smart-search search "query" --format json
-smart-search doctor --format markdown
-```
-
-Updating the vendored snapshot is a maintainer task (`pnpm run sync:smart-search` in this package). See [../../docs/maintainers.md](../../docs/maintainers.md).
-
----
-
-## Maintainer scripts (this package)
-
-For contributors editing **this repo**—not required for end users:
-
-| Script | Purpose |
-| --- | --- |
-| `pnpm build` | `tsc` + copy templates |
-| `pnpm test` | Vitest |
-| `pnpm run sync:smart-search` | Refresh vendor tree |
-
-Release and npm publish procedures are **not** documented in public READMEs; see internal maintainer docs.
-
----
-
-## See also
-
-- [Project README](../../README.md)
-- [Cursor integration](../../docs/cursor.md)
-- [Architecture](../../docs/architecture.md)
-- [CHANGELOG](./CHANGELOG.md)
+AGPL-3.0-only — see package metadata in `packages/cli/package.json`.

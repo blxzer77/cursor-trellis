@@ -28,13 +28,23 @@ describe("retrieval tool classification", () => {
     expect(result.fast_context_count).toBe(0);
   });
 
-  it("REC-06: on cursor, fast-context does not count as semantic_exec", () => {
+  it("REC-06: on cursor native, fast-context does not count as semantic_exec", () => {
     const result = classifyToolCalls(["Grep", "fast_context_search", "Read"], {
       platform: "cursor",
+      cursor_env: "native",
     });
     expect(result.semantic_executed).toBe(false);
     expect(result.fast_context_count).toBe(1);
     expect(result.cursor_fast_context_misuse).toBe(true);
+  });
+
+  it("BYOK: fast-context counts as semantic_exec, not misuse", () => {
+    const result = classifyToolCalls(["fast_context_search"], {
+      platform: "cursor",
+      cursor_env: "byok",
+    });
+    expect(result.semantic_executed).toBe(true);
+    expect(result.cursor_fast_context_misuse).toBe(false);
   });
 
   it("flags structural routes in plan", () => {

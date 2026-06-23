@@ -4,6 +4,7 @@ import {
   CODEBASE_RETRIEVAL_ROUTER_VERSION,
   routeCodebaseRetrieval,
 } from "../../src/utils/codebase-retrieval-router.js";
+import { ENV_BYOK, ENV_NATIVE } from "../../src/utils/cursor-retrieval-env.js";
 
 describe("codebase retrieval router", () => {
   it("returns version 2 envelope with empty adapterState and freshness", () => {
@@ -161,6 +162,7 @@ describe("codebase retrieval router", () => {
   it("O2: adds rg-empty semantic fallback when semantic is late in plan", () => {
     const plan = routeCodebaseRetrieval({
       query: "routeCodebaseRetrieval storage policy sidecar forbidden in AGENTS.md",
+      cursorEnv: ENV_NATIVE,
     });
     const rgEmptyHint = plan.fallback.find((f) =>
       f.when.includes("no corroborated file/range candidates"),
@@ -246,5 +248,43 @@ describe("codebase retrieval router", () => {
     expect(rgIndex(large.routes)).toBeGreaterThanOrEqual(0);
     expect(astIndex(large.routes)).toBeLessThan(rgIndex(large.routes));
     expect(astIndex(small.routes)).toBeGreaterThan(rgIndex(small.routes));
+  });
+
+  it("BYOK: platform-semantic uses fast-context backend and envelope cursorEnv", () => {
+    const plan = routeCodebaseRetrieval({
+      query: "WPeLc8 子代理路由如何工作",
+      cursorEnv: ENV_BYOK,
+    });
+    expect(plan.cursorEnv).toBe(ENV_BYOK);
+    const semantic = plan.routes.find((r) => r.id === "platform-semantic");
+    expect(semantic?.semanticBackend).toBe("fast-context-mcp");
+    expect(semantic?.commands.join(" ")).toMatch(/fast_context_search/);
+    expect(
+      plan.fallback.some((f) =>
+        f.when.includes("built-in @codebase / SemanticSearch"),
+      ),
+    ).toBe(true);
+  });
+
+  it("Native: platform-semantic uses cursor-builtin backend", () => {
+    const plan = routeCodebaseRetrieval({
+      query: "how does gateway protocol differ from plugin sdk",
+      cursorEnv: ENV_NATIVE,
+    });
+    expect(plan.cursorEnv).toBe(ENV_NATIVE);
+    const semantic = plan.routes.find((r) => r.id === "platform-semantic");
+    expect(semantic?.semanticBackend).toBe("cursor-builtin");
+    expect(semantic?.platformNative).toBe(true);
+  });
+
+  it("lsp-navigation route is codegraph ast, not language-server lsp", () => {
+    const plan = routeCodebaseRetrieval({
+      query: "routeCodebaseRetrieval",
+      cursorEnv: ENV_NATIVE,
+    });
+    const lsp = plan.routes.find((r) => r.id === "lsp-navigation");
+    expect(lsp?.role).toBe("ast");
+    expect(lsp?.sourceFamily).toBe("codegraph");
+    expect(lsp?.commands.join(" ")).toMatch(/codegraph_node/);
   });
 });

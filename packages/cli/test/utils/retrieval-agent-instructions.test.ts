@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { routeCodebaseRetrieval } from "../../src/utils/codebase-retrieval-router.js";
+import { ENV_BYOK, ENV_NATIVE } from "../../src/utils/cursor-retrieval-env.js";
 import {
   guessSymbolFromQuery,
   renderAgentInstructions,
@@ -18,25 +19,42 @@ describe("retrieval agent instructions", () => {
   it("renders caller-chain steps with codegraph_callers first on cursor", () => {
     const plan = routeCodebaseRetrieval({
       query: "Which modules invoke buildToolPlan and list call sites?",
+      cursorEnv: ENV_NATIVE,
     });
     const text = renderAgentInstructions(plan);
     expect(text).toContain("## 代码库检索计划");
     expect(text).toContain("codegraph_callers");
     expect(text).toContain("Grep");
     expect(text.indexOf("codegraph_callers")).toBeLessThan(text.indexOf("Grep"));
-    expect(text).not.toContain("fast_context_search");
+    const stepsOnly = text.split("**降级**")[0] ?? text;
+    expect(stepsOnly).not.toContain("fast_context_search");
   });
 
   it("renders platform-semantic without fast-context on cursor conceptual query", () => {
     const plan = routeCodebaseRetrieval({
       query: "how does gateway protocol differ from plugin sdk responsibilities",
+      cursorEnv: ENV_NATIVE,
     });
     const text = renderAgentInstructions(plan);
     expect(plan.routes.some((r) => r.id === "platform-semantic")).toBe(true);
     expect(text).toContain("内置代码库语义搜索");
-    expect(text).not.toContain("fast_context_search");
+    expect(text).toContain("target_directories");
+    const stepsOnly = text.split("**降级**")[0] ?? text;
+    expect(stepsOnly).not.toContain("fast_context_search");
     expect(text).toContain("语义合规");
     expect(text).toContain("计划门控");
+  });
+
+  it("renders BYOK platform-semantic with fast_context_search", () => {
+    const plan = routeCodebaseRetrieval({
+      query: "WPeLc8 子代理路由如何工作",
+      cursorEnv: ENV_BYOK,
+    });
+    const text = renderAgentInstructions(plan);
+    expect(text).toContain("cursorEnv）：byok");
+    expect(text).toContain("fast_context_search");
+    expect(text).not.toContain("内置代码库语义搜索");
+    expect(text).toContain("语义合规（Cursor++ BYOK）");
   });
 
   it("renders trap intent with codegraph disambiguation", () => {

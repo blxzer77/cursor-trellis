@@ -13,7 +13,7 @@ If the user message or Trellis context contains a block starting with `## 代码
 
 1. Execute steps **in order** before stating file paths or behavior claims.
 2. Treat each step as mandatory tooling (not suggestions).
-3. Finish with **Read** (or GO_TO_DEFINITION) verification on cited sources.
+3. Finish with **Read** verification on cited sources (definition jumps use **codegraph_node**, not LSP).
 
 Generate a fresh plan when needed:
 
@@ -35,14 +35,16 @@ python ./.trellis/scripts/route_codebase_retrieval.py "<question>" --json
 | Who calls / blast radius | **codegraph_callers** → Grep for imports/callbacks |
 | Same name across packages (trap) | **codegraph_search** / **codegraph_explore** → Grep |
 | Extension symbols | **codegraph_search** under `extensions/` |
-| Conceptual / how does X work | Cursor **built-in codebase semantic search** (@codebase-class; **not** fast-context MCP) |
+| Conceptual / how does X work | **Native:** built-in `@codebase` / semantic search. **BYOK:** **fast_context_search** (fast-context MCP). Plans show `cursorEnv`. |
 | Policy / architecture / boundaries / storage rules | **Grep** on `AGENTS.md`, `**/AGENTS.md`, `.trellis/spec/**`, `README.md` (router `policy-docs-rg`) before implementation modules |
-| Definition jump | **GO_TO_DEFINITION** / find references **when the host exposes them**; otherwise **Read** + **Grep** on known candidates (LSP is optional, not a guaranteed Agent default) |
-| Wide cross-cutting explore | **DEEP_SEARCH** or Explore subagent, then verify with Grep/codegraph |
+| Definition jump | **codegraph_node** / **codegraph_search**, then **Read** (Agent does not expose GO_TO_DEFINITION / LSP) |
+| Wide cross-cutting explore | **Native:** DEEP_SEARCH or Explore subagent. **BYOK:** **Task explore** subagent, then Grep/codegraph/Read |
 
-## Semantic on Cursor
+## Semantic on Cursor (`platform-semantic`)
 
-Router id: `platform-semantic` (`platformNative: true`). Use Cursor **built-in semantic / codebase search**. Do **not** call `fast_context_search` on Cursor.
+- **cursorEnv native:** built-in codebase semantic search (`platformNative`). Do **not** use fast-context MCP for semantic Primary.
+- **cursorEnv byok:** **fast-context MCP** is **required** for concept retrieval; built-in `@codebase` is not available in the agent tool list.
+- Override detection: `TRELLIS_CURSOR_BYOK=0|1` or `~/.ccursor/routes.json` `byokMode`.
 
 ## Result-layer ranking (B / E / D)
 
@@ -50,7 +52,7 @@ When the plan block includes **结果层排序**, apply it **after** collecting 
 
 ## codegraph-only value
 
-Use codegraph for **call chains**, **cross-package trap disambiguation**, **extension symbol resolution**, and **impact** — not for pure literal search (Grep) or single-hop definition (LSP).
+Use codegraph for **call chains**, **cross-package trap disambiguation**, **extension symbol resolution**, **impact**, and **definition/reference** (replaces unavailable Agent LSP) — not for pure literal search (Grep) or BYOK concept Primary (use fast-context).
 
 ## External facts
 
