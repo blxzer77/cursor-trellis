@@ -79,6 +79,9 @@ export const commonRetrievalEvidence = readTemplate(
 export const commonCodebaseRetrievalRouter = readTemplate(
   "scripts/common/codebase_retrieval_router.py",
 );
+export const commonCursorRetrievalEnv = readTemplate(
+  "scripts/common/cursor_retrieval_env.py",
+);
 export const commonProjectFileStats = readTemplate(
   "scripts/common/project_file_stats.py",
 );
@@ -233,6 +236,7 @@ export function getAllScripts(): Map<string, string> {
   scripts.set("common/smart_search_resolve.py", commonSmartSearchResolve);
   scripts.set("common/retrieval_evidence.py", commonRetrievalEvidence);
   scripts.set("common/codebase_retrieval_router.py", commonCodebaseRetrievalRouter);
+  scripts.set("common/cursor_retrieval_env.py", commonCursorRetrievalEnv);
   scripts.set("common/project_file_stats.py", commonProjectFileStats);
   scripts.set(
     "common/retrieval_tool_classification.py",

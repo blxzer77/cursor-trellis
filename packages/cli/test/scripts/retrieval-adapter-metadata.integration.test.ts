@@ -189,6 +189,32 @@ describe.skipIf(pythonCmd === null)("retrieval_adapter_metadata.py", () => {
     expect(envelope.warnings).toContain("router confidence is low");
   });
 
+  it("adapter reasons follow cursorEnv on router envelope (BYOK fast-context Primary)", () => {
+    const envelope = runAdapterMetadataDirect(tmpDir, {
+      bundle: {},
+      scored_evidence: { version: 1, total: 0, items: [] },
+      collection: {
+        recommendations: 0,
+        artifactSearchResults: 0,
+        sessionMemoryResults: 0,
+        smartSearchManifests: 0,
+        codebaseCandidates: 0,
+      },
+      orchestrator_warnings: [],
+      router_envelope: { cursorEnv: "byok", version: 1 },
+    });
+
+    const platform = envelope.adapterState.find(
+      (item) => item.adapter === "platform-semantic",
+    );
+    const fastCtx = envelope.adapterState.find(
+      (item) => item.adapter === "fast-context-mcp",
+    );
+    expect(platform?.reason).toContain("Experiment D");
+    expect(fastCtx?.reason).toContain("compliant Primary");
+    expect(platform?.reason).not.toContain("supersedes fast-context");
+  });
+
   it("exposes evidenceEnvelope on retrieval pack orchestrator output", () => {
     const bundle = buildMixedSourceBundle();
     const envelope = runBuildEnvelope(tmpDir, {

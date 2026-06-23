@@ -40,6 +40,8 @@ trellis init --cursor
 
 Optional: `trellis init --cursor --cursor2plus` for Cursor++ BYOK local bundle; see [docs/cursor.md](docs/cursor.md#cursor-optional-appendix).
 
+**Codebase retrieval (optional):** add `--capability codebase-retrieval` (or select it in the init prompt) to generate `.cursor/mcp.json` entries for **fast-context** and **codegraph**. Recommended for **Cursor++ BYOK** local concept search (`fast_context_search`); not required if you only need other capabilities (e.g. playwright).
+
 ## After init: what appears
 
 ```text

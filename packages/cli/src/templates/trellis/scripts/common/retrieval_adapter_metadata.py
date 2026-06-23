@@ -11,6 +11,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
+from common.cursor_retrieval_env import ENV_BYOK, detect_cursor_retrieval_env
 from common.retrieval_evidence import (
     SOURCE_ARTIFACT_SEARCH,
     SOURCE_CODEBASE_EVIDENCE,
@@ -71,7 +72,6 @@ REQUIRED_ADAPTERS = frozenset({ADAPTER_RG, ADAPTER_VERIFICATION})
 OPTIONAL_INTEGRATION_ADAPTERS = (
     ADAPTER_CODEGRAPH,
     ADAPTER_LSP,
-    ADAPTER_FAST_CONTEXT,
     ADAPTER_MCP,
     ADAPTER_BROWSER,
     ADAPTER_NETWORK,
@@ -236,15 +236,11 @@ def build_adapter_states(
             optional_integration_adapter_state(adapter=adapter, hints=hints)
         )
 
-    # Platform-semantic: Cursor built-in semantic search (replaces fast-context)
     states.append(
-        adapter_state_entry(
-            adapter=ADAPTER_PLATFORM_SEMANTIC,
-            state=STATE_AVAILABLE,
-            required=False,
-            invoked=False,
-            reason="Platform-native semantic search on Cursor (e.g. @codebase); supersedes fast-context",
-        )
+        platform_semantic_adapter_state(router=router, hints=hints)
+    )
+    states.append(
+        fast_context_adapter_state(router=router, hints=hints)
     )
 
     states.append(
@@ -438,6 +434,101 @@ def codebase_adapter_state(
         invoked=False,
         reason="codebase-evidence was not collected for this retrieval pack",
         source=SOURCE_CODEBASE_EVIDENCE,
+    )
+
+
+def resolve_cursor_env_for_adapter_metadata(
+    router: dict[str, Any] | None,
+) -> str:
+    """native | byok | unknown for retrieval-pack adapter reasons."""
+    router = router or {}
+    env = string_value(router.get("cursorEnv"))
+    if env in ("native", "byok", "unknown"):
+        return env
+    return detect_cursor_retrieval_env()
+
+
+def platform_semantic_adapter_state(
+    *,
+    router: dict[str, Any] | None,
+    hints: dict[str, dict[str, Any]],
+) -> dict[str, object]:
+    hint = hints.get(ADAPTER_PLATFORM_SEMANTIC, {})
+    if hint:
+        return adapter_state_entry(
+            adapter=ADAPTER_PLATFORM_SEMANTIC,
+            state=resolve_hint_state(hints, ADAPTER_PLATFORM_SEMANTIC, default=STATE_SKIPPED),
+            required=False,
+            invoked=bool(hint.get("invoked")),
+            reason=string_value(hint.get("reason")) or "platform-semantic adapter hint",
+        )
+    env = resolve_cursor_env_for_adapter_metadata(router)
+    if env == ENV_BYOK:
+        reason = (
+            "Cursor++ BYOK: built-in codebase semantic often absent (Experiment D); "
+            "concept recall Primary is fast-context MCP per router cursorEnv"
+        )
+        state = STATE_UNAVAILABLE
+    elif env == "native":
+        reason = (
+            "Cursor Native: built-in codebase semantic (e.g. SemanticSearch / @codebase) "
+            "is Primary for concept recall"
+        )
+        state = STATE_AVAILABLE
+    else:
+        reason = (
+            "Cursor platform-semantic: Native uses built-in search; BYOK uses fast-context "
+            "when cursorEnv is byok (see cursor_retrieval_env)"
+        )
+        state = STATE_UNVERIFIED
+    return adapter_state_entry(
+        adapter=ADAPTER_PLATFORM_SEMANTIC,
+        state=state,
+        required=False,
+        invoked=False,
+        reason=reason,
+    )
+
+
+def fast_context_adapter_state(
+    *,
+    router: dict[str, Any] | None,
+    hints: dict[str, dict[str, Any]],
+) -> dict[str, object]:
+    hint = hints.get(ADAPTER_FAST_CONTEXT, {})
+    if hint:
+        return adapter_state_entry(
+            adapter=ADAPTER_FAST_CONTEXT,
+            state=resolve_hint_state(hints, ADAPTER_FAST_CONTEXT, default=STATE_SKIPPED),
+            required=False,
+            invoked=bool(hint.get("invoked")),
+            reason=string_value(hint.get("reason")) or "fast-context-mcp adapter hint",
+        )
+    env = resolve_cursor_env_for_adapter_metadata(router)
+    if env == ENV_BYOK:
+        reason = (
+            "Cursor++ BYOK: fast_context_search is compliant Primary for concept recall "
+            "(select codebase-retrieval at init for .cursor/mcp.json fast-context entry)"
+        )
+        state = STATE_AVAILABLE
+    elif env == "native":
+        reason = (
+            "Cursor Native: prefer built-in platform-semantic; fast-context is optional "
+            "and misuse when plan requires native semantic"
+        )
+        state = STATE_SKIPPED
+    else:
+        reason = (
+            "fast-context MCP: required for BYOK concept recall on Cursor when "
+            "codebase-retrieval capability is selected"
+        )
+        state = STATE_UNVERIFIED
+    return adapter_state_entry(
+        adapter=ADAPTER_FAST_CONTEXT,
+        state=state,
+        required=False,
+        invoked=False,
+        reason=reason,
     )
 
 
