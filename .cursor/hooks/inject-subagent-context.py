@@ -66,14 +66,19 @@ AGENTS_ALL = (AGENT_IMPLEMENT, AGENT_CHECK, AGENT_RESEARCH)
 
 def find_repo_root(start_path: str) -> str | None:
     """
-    Find git repo root from start_path upwards
+    Find repo root from start_path upwards.
+
+    Recognizes a repo root by either ``.git`` or a ``.trellis`` workflow
+    directory. The ``.trellis`` fallback lets the hook resolve when the
+    subagent cwd is a workspace root that is not itself a git repo (common
+    in multi-project workspaces where Trellis lives at workspace level).
 
     Returns:
         Repo root path, or None if not found
     """
     current = Path(start_path).resolve()
     while current != current.parent:
-        if (current / ".git").exists():
+        if (current / ".git").exists() or (current / ".trellis").is_dir():
             return str(current)
         current = current.parent
     return None

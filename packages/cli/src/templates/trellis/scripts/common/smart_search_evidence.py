@@ -125,7 +125,7 @@ def main(argv: list[str] | None = None) -> int:
             print_manifest(manifest, args.json)
             return 4
         doctor_data = parse_json_output(doctor_result.stdout)
-        if doctor_result.returncode != 0 or doctor_data.get("ok") is False:
+        if doctor_result.returncode != 0 or not doctor_data.get("ok"):
             manifest = build_manifest(
                 repo_root=repo_root,
                 query=args.query,
@@ -188,7 +188,7 @@ class CommandResult:
         self.not_found = not_found
 
 
-def run_command(command: list[str], cwd: Path) -> CommandResult:
+def run_command(command: list[str], cwd: Path, timeout: int = 120) -> CommandResult:
     try:
         completed = subprocess.run(
             command,
@@ -198,8 +198,11 @@ def run_command(command: list[str], cwd: Path) -> CommandResult:
             errors="replace",
             capture_output=True,
             check=False,
+            timeout=timeout,
         )
         return CommandResult(completed.returncode, completed.stdout or "", completed.stderr or "")
+    except subprocess.TimeoutExpired:
+        return CommandResult(124, "", f"Command timed out after {timeout}s")
     except FileNotFoundError as error:
         return CommandResult(127, "", str(error), not_found=True)
 
