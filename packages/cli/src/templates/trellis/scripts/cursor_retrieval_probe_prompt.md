@@ -101,6 +101,42 @@ notes: <anything notable>
 
 ---
 
+--- PROBE D-01: Experiment D — codebase semantic tool inventory (manual)
+
+**Experiment D** documents why **Cursor++ BYOK** often lacks built-in **SemanticSearch**
+(P-08 `tool_invoked: none`) and why **fast_context_search** is the designed Primary.
+
+Before running P-08, inventory what **this Agent session** can use for **codebase-wide
+concept recall** (not Grep on a known string). Do **not** invoke tools yet — list from
+your **available tool table / MCP list** only.
+
+Also run locally (or ask the user to confirm):
+`python .\.trellis\scripts\cursor_retrieval_probe.py --json` and note `env.env`,
+`mcp_config.fast_context_configured`, and auto `D-01` status.
+
+Reply in this exact format:
+
+```
+D-01 RESULT
+cursor_env: native|byok|unknown  # from probe JSON env.env or your knowledge of ccursor/BYOK
+builtin_semantic_tools: <comma-separated names, or "none">  # e.g. SemanticSearch, @codebase
+fast_context_mcp_listed: yes|no
+fast_context_search_listed: yes|no
+auto_d01_status: pass|fail|degraded|not_run  # from probe auto_results D-01 if you ran it
+verdict: pass|fail|degraded
+notes: <BYOK expects builtin none + fast-context; Native expects SemanticSearch or equivalent>
+```
+
+verdict rules:
+- **Native:** pass if `builtin_semantic_tools` includes SemanticSearch or equivalent built-in codebase semantic.
+- **BYOK:** pass if `builtin_semantic_tools` is `none` (or empty) **and** `fast_context_search_listed` is yes **and** auto D-01 is pass when mcp.json has fast-context+codegraph.
+- **degraded:** BYOK with fast-context MCP missing from config/list, or Native without built-in semantic but fast-context present.
+- **fail:** cannot determine tool table, or BYOK with neither builtin nor fast-context path.
+
+Pair with **P-08** (actual concept question) and **P-08-SA** (fast-context only).
+
+---
+
 --- PROBE P-08: @codebase semantic search (Cursor built-in)
 
 You are a retrieval capability probe. Do NOT use Grep, Read, or any MCP tool.
@@ -137,6 +173,47 @@ verdict rules:
 - pass: built-in semantic tool executed AND answer references the expected files.
 - degraded: tool executed but answer wrong, OR you had to fall back to Grep/codegraph.
 - fail: built-in semantic tool did not execute / not available / errored out.
+
+---
+
+--- PROBE P-08-SA: Concept probe — fast-context only (BYOK Primary path)
+
+You are a retrieval capability probe. Answer the semantic question below using
+**only** the fast-context MCP tool **`fast_context_search`** (CallMcpTool on the
+fast-context server). Do NOT use Grep, Read, SemanticSearch, @codebase,
+codegraph_*, Task subagent, or WebSearch.
+
+Use a natural-language query in English (add Chinese business terms only if helpful).
+Set `project_path` to the workspace root (e.g. D:\MyHarness).
+
+Semantic question (same as P-08 — no literal file/symbol/path clues in your query):
+> "Where does the system decide which model a background sub-agent will run on
+> when the user is routing their own API keys through a local proxy instead of
+> the official cloud?"
+
+Expected (for verification only — do not paste paths into fast_context_search query):
+Top hits should include `.trellis/local/cursor2plus/patch_wpelc8.py` and/or
+`.trellis/spec/guides/cursor-subagent-policy.md`.
+
+Reply in this exact format:
+
+```
+P-08-SA RESULT
+tool_invoked: fast_context_search|none|other
+top_paths: <comma-separated paths from fast_context_search results, or "none">
+matched_expected: yes|no  # yes if top_paths includes patch_wpelc8.py or cursor-subagent-policy.md
+verdict: pass|fail|degraded
+notes: <errors, empty results, or if you had to use another tool>
+```
+
+verdict rules:
+- pass: fast_context_search executed AND matched_expected yes.
+- degraded: executed but wrong/empty top paths.
+- fail: did not invoke fast_context_search, or tool missing in this session.
+
+**Native:** optional control — pass confirms MCP works; Primary for concept recall
+remains built-in SemanticSearch (P-08). **BYOK:** required — this is the designed
+Primary when P-08 reports `tool_invoked: none`. Pair with D-01 inventory and P-08.
 
 ---
 

@@ -60,12 +60,20 @@
       "byok":   { "status": null, "evidence": "", "actual_tool": "", "probed_at": "" }
     },
     {
+      "id": "D-01",
+      "label": "Experiment D — SemanticSearch drop (tool inventory + MCP readiness)",
+      "nature": "hybrid",
+      "expected_byok": "pass",
+      "native": { "status": "pass", "evidence": "manual 2026-06-23: builtin SemanticSearch; fast-context MCP optional (configured); auto D-01 pass; env native byokMode=0", "actual_tool": "SemanticSearch", "probed_at": "2026-06-23T12:38:33Z" },
+      "byok":   { "status": "pass", "evidence": "manual 2026-06-23: builtin none; fast_context_search listed; auto D-01 pass; routes byokMode=1; codegraph+fast-context in mcp.json", "actual_tool": "fast_context_search", "probed_at": "2026-06-23T12:37:39Z" }
+    },
+    {
       "id": "P-08",
       "label": "@codebase semantic search (Cursor built-in)",
       "nature": "cloud",
       "expected_byok": "fail",
-      "native": { "status": "pass", "evidence": "SemanticSearch; patch_wpelc8.py + cursor-subagent-policy.md; matched_expected yes", "actual_tool": "SemanticSearch", "probed_at": "2026-06-23" },
-      "byok":   { "status": "fail", "evidence": "tool_invoked: none; built-in SemanticSearch absent from agent tool table", "actual_tool": "none", "probed_at": "2026-06-23" }
+      "native": { "status": "pass", "evidence": "manual session A 2026-06-23: SemanticSearch 25 hits; patch_wpelc8.py + policy/reverse-engineering guides; matched_expected yes; no Grep/MCP fallback", "actual_tool": "SemanticSearch", "probed_at": "2026-06-23" },
+      "byok":   { "status": "fail", "evidence": "manual session C 2026-06-23: tool_invoked none; no @codebase/SemanticSearch in tool table; matched_expected no (by design); aligns D-01 builtin none", "actual_tool": "none", "probed_at": "2026-06-23" }
     },
     {
       "id": "P-09",
@@ -88,8 +96,8 @@
       "label": "Concept probe — fast-context only",
       "nature": "local-mcp",
       "expected_byok": "pass",
-      "native": { "status": null, "evidence": "", "actual_tool": "", "probed_at": "" },
-      "byok":   { "status": "pass", "evidence": "Top-1 patch_wpelc8.py via fast_context_search", "actual_tool": "fast_context_search", "probed_at": "2026-06-23" }
+      "native": { "status": "pass", "evidence": "manual session B 2026-06-23: Top patch_wpelc8.py + cursor-subagent-policy.md; 10 paths; optional control (Native Primary remains SemanticSearch)", "actual_tool": "fast_context_search", "probed_at": "2026-06-23" },
+      "byok":   { "status": "pass", "evidence": "manual session D 2026-06-23: #1 patch_wpelc8.py #3 cursor-subagent-policy.md; 10 paths; BYOK Primary path", "actual_tool": "fast_context_search", "probed_at": "2026-06-23" }
     },
     {
       "id": "P-08-SB",
@@ -105,12 +113,14 @@
     "byok":   { "byokMode": 1, "ccursor_running": true, "notes": "" }
   },
   "verdict": {
-    "summary": "Native P-08 pass (SemanticSearch, target_directories=[]). BYOK P-08 fail → fast-context Primary (P-08-SA). P-09 degraded → Task explore. Definition: codegraph (P-10); Agent LSP N/A both envs.",
+    "summary": "D-01: BYOK inventory + MCP readiness; Native builtin semantic. Native P-08 pass (SemanticSearch). BYOK P-08 fail → fast-context Primary (P-08-SA). P-09 degraded → Task explore. Definition: codegraph (P-10).",
     "degraded_capabilities": ["P-08", "P-09"],
     "probed_at": "2026-06-23",
     "probe_evidence_files": [
       ".trellis/tasks/06-23-06-23-cursor-retrieval-byok-lsp-fastcontext/research/01-byok-retrieval-role-matrix.md",
-      ".trellis/tasks/06-23-06-23-cursor-retrieval-byok-lsp-fastcontext/research/02-lsp-via-codegraph-decision.md"
+      ".trellis/tasks/06-23-06-23-cursor-retrieval-byok-lsp-fastcontext/research/02-lsp-via-codegraph-decision.md",
+      ".trellis/tasks/06-23-06-23-cursor-retrieval-byok-lsp-fastcontext/research/04-semantic-search-target-directories.md",
+      ".trellis/tasks/06-23-experiment-d-byok-semanticsearch-drop/research/01-semanticsearch-drop-byok.md"
     ]
   }
 }

@@ -121,11 +121,13 @@ describe("project capabilities", () => {
     );
     expect(retrieval?.adapters?.semantic).toEqual(
       expect.objectContaining({
-        provider: "fast-context-mcp",
+        provider: "platform-semantic",
         required: false,
-        evidence_status: expect.stringContaining("Semantic recall candidate"),
+        evidence_status: expect.stringContaining("BYOK fast-context"),
       }),
     );
+    expect(retrieval?.adapters?.lsp?.provider).toBe("codegraph");
+    expect(retrieval?.routing).toContain("cursorEnv");
     expect(retrieval?.fallback).toContain(
       "Install or expose `rg` on PATH before claiming codebase retrieval readiness.",
     );
@@ -244,6 +246,8 @@ describe("project capabilities", () => {
       "## Fallback Guidance",
     );
     expect(files.get(".cursor/mcp.json")).toContain('"playwright"');
+    expect(files.get(".cursor/mcp.json")).toContain('"fast-context"');
+    expect(files.get(".cursor/mcp.json")).toContain('"codegraph"');
     expect(files.get(".cursor/mcp.json")).not.toContain('"graphify"');
     expect(files.has(".mcp.json")).toBe(false);
     expect(files.has(".codex/config.toml")).toBe(false);
@@ -265,6 +269,9 @@ describe("project capabilities", () => {
     expect(capabilitiesMd).toContain("## Codebase Retrieval Workflow");
     expect(capabilitiesMd).toContain("## Query Intent Branches (intent-gated)");
     expect(capabilitiesMd).toContain("Semantic recall (Cursor)");
+    expect(capabilitiesMd).toContain("cursorEnv");
+    expect(capabilitiesMd).toContain("fast_context_search");
+    expect(capabilitiesMd).not.toContain("do not substitute fast-context MCP");
     expect(capabilitiesMd).toContain("platform-semantic");
     expect(capabilitiesMd).toContain("### Cross-cutting / conceptual discovery");
     expect(capabilitiesMd).toContain("retrieval-routing.mdc");

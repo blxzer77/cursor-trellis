@@ -9,8 +9,9 @@ probes that are CLI-reachable with deterministic known answers:
   P-02  Read                 — local IDE file read
   P-05  codegraph index      — on-disk .codegraph/ presence
   P-07  smart-search CLI     — doctor / status reachability
+  D-01  Experiment D         — cursorEnv + BYOK fast-context install readiness
 
-Probes P-03/04/06/08/09/10 require a live agent session and are documented in
+Probes P-03/04/06/08/09/10/D-01(manual inventory) require a live agent session and are documented in
 cursor_retrieval_probe_prompt.md; their results are filled into
 retrieval_probe_matrix_template.json manually.
 
@@ -219,6 +220,59 @@ def _probe_smart_search(repo_root: Path) -> dict[str, object]:
     }
 
 
+def _probe_d01_semanticsearch_drop(
+    env_info: dict[str, object],
+    mcp_config: dict[str, object],
+) -> dict[str, object]:
+    """D-01 (auto): Experiment D readiness — BYOK needs fast-context in mcp.json.
+
+    Does not prove SemanticSearch absence (that is manual D-01 + P-08). Pass when:
+    - Native: env is native (built-in semantic path expected in manual probes).
+    - BYOK: fast-context configured in .cursor/mcp.json.
+    """
+    env = str(env_info.get("env") or ENV_UNKNOWN)
+    byok_mode = env_info.get("byokMode")
+    fc = bool(mcp_config.get("fast_context_configured"))
+    cg = bool(mcp_config.get("codegraph_configured"))
+    if env == ENV_BYOK:
+        ok = fc and cg
+        status = "pass" if ok else "fail"
+        note = (
+            "BYOK: fast-context + codegraph in mcp.json — ready for P-08-SA / REC-11."
+            if ok
+            else "BYOK: missing fast-context and/or codegraph in mcp.json; "
+            "select codebase-retrieval at init or add servers manually."
+        )
+    elif env == ENV_NATIVE:
+        ok = True
+        status = "pass"
+        note = (
+            "Native: use manual D-01 / P-08 for built-in SemanticSearch inventory; "
+            f"fast-context configured={fc} (optional on Native)."
+        )
+    else:
+        ok = fc
+        status = "degraded" if fc else "fail"
+        note = (
+            "cursorEnv unknown; fast-context in mcp.json supports BYOK concept recall if env is byok."
+            if fc
+            else "cursorEnv unknown and fast-context not in mcp.json."
+        )
+    return {
+        "id": "D-01",
+        "label": "Experiment D — SemanticSearch drop readiness (env + MCP)",
+        "status": status,
+        "expected": "BYOK → fast-context+codegraph in mcp.json; Native → env native",
+        "cursor_env": env,
+        "byokMode": byok_mode,
+        "fast_context_configured": fc,
+        "codegraph_configured": cg,
+        "manual_followup": "cursor_retrieval_probe_prompt.md PROBE D-01 (tool inventory)",
+        "related_probes": ["P-08", "P-08-SA"],
+        "note": note,
+    }
+
+
 def _probe_mcp_config(repo_root: Path) -> dict[str, object]:
     """Supplemental: read .cursor/mcp.json to report configured MCP servers.
 
@@ -244,6 +298,7 @@ def _probe_mcp_config(repo_root: Path) -> dict[str, object]:
 
 def run_auto_probes(repo_root: Path) -> dict[str, object]:
     env_info = detect_environment()
+    mcp_config = _probe_mcp_config(repo_root)
     return {
         "probe_version": PROBE_VERSION,
         "env": env_info,
@@ -254,9 +309,10 @@ def run_auto_probes(repo_root: Path) -> dict[str, object]:
             _probe_read(repo_root),
             _probe_codegraph_index(repo_root),
             _probe_smart_search(repo_root),
+            _probe_d01_semanticsearch_drop(env_info, mcp_config),
         ],
-        "mcp_config": _probe_mcp_config(repo_root),
-        "manual_probe_ids": ["P-03", "P-04", "P-06", "P-08", "P-09", "P-10"],
+        "mcp_config": mcp_config,
+        "manual_probe_ids": ["P-03", "P-04", "P-06", "D-01", "P-08", "P-09", "P-10"],
         "manual_probe_doc": "cursor_retrieval_probe_prompt.md",
         "matrix_template": "retrieval_probe_matrix_template.json",
     }
@@ -281,7 +337,7 @@ def _format_human(report: dict[str, object]) -> str:
             lines.append(f"        {r['note']}")
     mcp = report.get("mcp_config", {})
     lines.append("")
-    lines.append("MCP config (for manual probes P-03/04/06):")
+    lines.append("MCP config (for manual probes P-03/04/06 and D-01 BYOK readiness):")
     lines.append(f"  codegraph     : {'configured' if mcp.get('codegraph_configured') else 'MISSING'}")
     lines.append(f"  fast-context  : {'configured' if mcp.get('fast_context_configured') else 'MISSING'}")
     lines.append(f"  all servers   : {', '.join(mcp.get('all_servers', [])) or '(none)'}")
