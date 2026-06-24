@@ -170,9 +170,9 @@ def main() -> int:
     )
     
     # TELEMETRY-ONLY: log routing decision but do not inject
-    cursor_env = selected if selected else "unknown"
-    intents = [step.get("intent", "unknown") for step in plan.get("steps", [])]
-    _write_telemetry_log(root, query, cursor_env, intents)
+    cursor_env = plan.get("cursorEnv", "unknown")
+    intent_ids = [i.get("id", "unknown") for i in plan.get("intents", [])]
+    _write_telemetry_log(root, query, cursor_env, intent_ids)
     
     # Exit 0 with no stdout (no injection to model context)
     return 0
