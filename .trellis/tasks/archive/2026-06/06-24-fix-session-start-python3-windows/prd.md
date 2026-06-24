@@ -10,7 +10,8 @@ H-2 fix: Template source packages/cli/src/templates/shared-hooks/session-start.p
 
 ## Acceptance Criteria
 
-- [ ] TBD
+- [x] Template `session-start.py` uses cross-platform `_PYTHON_CMD` for all five user-visible command hints
+- [x] Dogfood `.cursor/hooks/session-start.py` matches template source
 
 ## Notes
 
