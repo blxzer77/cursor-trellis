@@ -2,23 +2,35 @@
 
 [English](README.md) | 简体中文
 
-**Trellis** 是面向 AI 编程 Agent 的团队工作流 harness：用可渐进加载的 `.trellis/` 知识库（workflow、spec、tasks、workspace）替代单文件巨型 `AGENTS.md` / `.cursorrules`，并生成 **Cursor** 集成（rules、commands、agents、hooks）。
+**Trellis** 是面向 AI 编程 Agent 的渐进式上下文管理系统。它将 Agent 指令结构化为 `.trellis/`（workflow、spec、tasks、workspace）而非单一大文件，并生成平台特定的集成文件（Cursor 为 `.cursor/`）。
 
-本仓库是强调 **Cursor-first** 的公开 fork。上游参考：[mindfold-ai/Trellis](https://github.com/mindfold-ai/Trellis)。
+基于 [mindfold-ai 的 Trellis 框架](https://github.com/mindfold-ai/Trellis)，本版本针对 Cursor 适配，包含 rules、commands、agents、hooks。
+
+## 功能
+
+- 任务工件（PRD、设计、实现计划）持久化在 `.trellis/tasks/`
+- 通过 `/trellis-continue` 跨会话恢复工作
+- 根据正在编辑的文件渐进式加载规范
+- 结构化工作流路由请求：triage → plan → gate → execute → verify
+
+## 常用命令
+
+| 命令 | 用途 |
+| --- | --- |
+| `trellis init --cursor` | 在当前项目创建 `.trellis/` + `.cursor/` |
+| `trellis update` | 按已安装 CLI 版本刷新模板 |
+| `trellis uninstall` | 从项目中移除 Trellis 管理文件 |
+
+完整 CLI 参考：[packages/cli/README.zh-CN.md](packages/cli/README.zh-CN.md)。
+
+## 包信息
 
 | | |
 | --- | --- |
 | **npm CLI** | `@blxzer/cursor-trellis`（`trellis`、`tl`、`smart-search`） |
 | **Core SDK** | `@blxzer/cursor-trellis-core` |
 | **本仓库** | https://github.com/blxzer77/cursor-trellis |
-
-## 解决什么问题
-
-- **上下文腐烂**：规则堆在一个文件里，Agent 容易漏读。
-- **任务不连续**：PRD、设计、验证散落在对话中。
-- **平台形态不一**：Cursor 的 rules、commands、hooks、agents 需要正确生成。
-
-Trellis 为你的栈生成 **Cursor 适配层**（`.cursor/`）。本 fork 的 init 与公开文档为 **Cursor-only**（见 [docs/cursor.zh-CN.md](docs/cursor.zh-CN.md)）。
+| **原版 Trellis** | [mindfold-ai/Trellis](https://github.com/mindfold-ai/Trellis) |
 
 ## 快速开始（Cursor）
 
@@ -79,23 +91,20 @@ your-app/
 
 深入说明：[docs/cursor.zh-CN.md](docs/cursor.zh-CN.md)。
 
-## 常用命令
+## 适用场景
 
-| 命令 | 用途 |
-| --- | --- |
-| `trellis init --cursor` | 在当前项目创建 `.trellis/` + `.cursor/` |
-| `trellis update` | 按已安装 CLI 版本刷新模板 |
-| `trellis uninstall` | 从项目中移除 Trellis 管理文件 |
+- 需要架构一致性的多文件重构
+- 跨多个会话的长周期功能开发
+- 有自定义编码规范需要 Agent 遵守的项目
+- 需要 研究 → 设计 → 实现 → 验证 工作流的任务
 
-参数与行为：[packages/cli/README.zh-CN.md](packages/cli/README.zh-CN.md)。
+快速单文件编辑或探索性编码不需要使用。
 
-其他 CLI 命令（`rollout`、`upgrade` 等）仅在 CLI README 简表中列出。
+## smart-search 集成
 
-## 架构（摘要）
+Trellis 包含 [smart-search](https://github.com/blxzer77/smart-search)，供 Agent 从网络获取实时信息的 CLI 工具（搜索引擎、抓取网页、深度研究模式、JSON 输出）。工作流在可用时将外部事实查询路由到 smart-search。
 
-Monorepo：`packages/core`（SDK）+ `packages/cli`（模板、configurator、可执行文件）。`init` 经 `configureCursor()` 写入 `.cursor/`。**smart-search** 以 vendored CLI 形式随包分发，用于网页检索。
-
-图示与数据流：[docs/architecture.zh-CN.md](docs/architecture.zh-CN.md)。
+详见 [smart-search 仓库](https://github.com/blxzer77/smart-search)了解安装和配置。
 
 ## 开发与验证
 
