@@ -106,3 +106,5 @@ export const guidesCursorSemanticComplianceContent: string = readLocalTemplate(
 export const guidesCursorSubagentPolicyContent: string = readLocalTemplate(
   "spec/guides/cursor-subagent-policy.md.txt",
 );
+export const guidesCursorContextInjectionGuideContent: string =
+  readLocalTemplate("spec/guides/cursor-context-injection-guide.md.txt");

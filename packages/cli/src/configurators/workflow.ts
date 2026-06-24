@@ -1,10 +1,8 @@
 import path from "node:path";
 
 import { DIR_NAMES, PATHS } from "../constants/paths.js";
-import { copyTrellisDir } from "../templates/extract.js";
-
-// Import trellis templates (generic, not project-specific)
 import {
+  getAllScripts,
   workflowMdTemplate,
   configYamlTemplate,
   gitignoreTemplate,
@@ -36,6 +34,7 @@ import {
   guidesRetrievalDailyGuideContent,
   guidesCursorSemanticComplianceContent,
   guidesCursorSubagentPolicyContent,
+  guidesCursorContextInjectionGuideContent,
 } from "../templates/markdown/index.js";
 
 import { writeFile, ensureDir } from "../utils/file-writer.js";
@@ -87,7 +86,7 @@ export interface WorkflowOptions {
  * Create workflow structure based on project type
  *
  * This function creates the .trellis/ directory structure by:
- * 1. Copying scripts/ directory directly (dogfooding)
+ * 1. Writing scripts/ from getAllScripts() (user-shipped subset only)
  * 2. Copying workflow.md and .gitignore (dogfooding)
  * 3. Creating workspace/ with index.md
  * 4. Creating tasks/ directory
@@ -109,10 +108,8 @@ export async function createWorkflowStructure(
   // Create base .trellis directory
   ensureDir(path.join(cwd, DIR_NAMES.WORKFLOW));
 
-  // Copy scripts/ directory from templates
-  await copyTrellisDir("scripts", path.join(cwd, PATHS.SCRIPTS), {
-    executable: true,
-  });
+  // Write user-shipped Python scripts (same source of truth as trellis update)
+  await writeScriptTemplates(path.join(cwd, PATHS.SCRIPTS));
 
   // Copy workflow.md (native bundled template or selected marketplace variant)
   await writeFile(
@@ -154,6 +151,18 @@ export async function createWorkflowStructure(
   } else if (!skipSpecTemplates) {
     // Single-repo mode: create global spec (skip if using remote template)
     await createSpecTemplates(cwd, projectType);
+  }
+}
+
+async function writeScriptTemplates(scriptsRoot: string): Promise<void> {
+  ensureDir(scriptsRoot);
+  for (const [scriptPath, content] of getAllScripts()) {
+    const destPath = path.join(scriptsRoot, scriptPath);
+    ensureDir(path.dirname(destPath));
+    const isExecutable = scriptPath.endsWith(".py");
+    await writeFile(destPath, replacePythonCommandLiterals(content), {
+      executable: isExecutable,
+    });
   }
 }
 
@@ -263,6 +272,10 @@ async function createSpecTemplates(
     {
       name: "cursor-subagent-policy.md",
       content: guidesCursorSubagentPolicyContent,
+    },
+    {
+      name: "cursor-context-injection-guide.md",
+      content: guidesCursorContextInjectionGuideContent,
     },
   ];
   for (const doc of guidesDocs) {

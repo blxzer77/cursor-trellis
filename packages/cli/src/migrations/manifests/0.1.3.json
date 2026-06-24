@@ -1,0 +1,9 @@
+{
+  "version": "0.1.3",
+  "description": "v0.1.3 — Retrieval BYOK/native semantic routing, Experiment D probes, smart-search resolver fixes, hook health for Native/BYOK.",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Retrieval and hook reliability (unpublished aligned pair; core stayed 0.1.2 on disk — fixed in 0.1.4).**\n\n- feat(retrieval): Cursor BYOK/native semantic routing, codegraph LSP guidance, Experiment D probes, adapter metadata.\n- fix(smart-search): wrapper status detection, timeout handling, clearer npm CLI entrypoint paths.\n- fix(hooks): hook health repairs for Native and Cursor++ BYOK; session-start and subagent hook sync.\n- fix(templates): register `cursor_retrieval_probe` in template index.\n\nRun `trellis update` in each project to sync `.trellis/scripts`, hooks, and rules.",
+  "migrations": [],
+  "notes": "Backfilled manifest — v0.1.3 was bumped in-repo but never published as an aligned core/cli pair. Users on 0.1.2 should jump to 0.1.4."
+}

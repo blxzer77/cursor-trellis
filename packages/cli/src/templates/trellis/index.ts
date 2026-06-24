@@ -88,9 +88,6 @@ export const commonProjectFileStats = readTemplate(
 export const commonRetrievalToolClassification = readTemplate(
   "scripts/common/retrieval_tool_classification.py",
 );
-export const aggregateRetrievalTelemetryScript = readTemplate(
-  "scripts/aggregate_retrieval_telemetry.py",
-);
 export const commonRetrievalAgentInstructions = readTemplate(
   "scripts/common/retrieval_agent_instructions.py",
 );
@@ -106,9 +103,6 @@ export const commonRetrievalResultRanking = readTemplate(
 export const rankRetrievalCandidatesScript = readTemplate(
   "scripts/rank_retrieval_candidates.py",
 );
-export const batchPlanEnvelopeScript = readTemplate(
-  "scripts/batch_plan_envelope.py",
-);
 export const scoreEvidenceScript = readTemplate("scripts/score_evidence.py");
 export const commonRetrievalAdapterMetadata = readTemplate(
   "scripts/common/retrieval_adapter_metadata.py",
@@ -117,9 +111,6 @@ export const commonContextPack = readTemplate("scripts/common/context_pack.py");
 export const commonRetrievalPack = readTemplate("scripts/common/retrieval_pack.py");
 export const commonRetrievalPackContext = readTemplate(
   "scripts/common/retrieval_pack_context.py",
-);
-export const commonTestRetrievalArbitration = readTemplate(
-  "scripts/common/test_retrieval_arbitration.py",
 );
 export const commonSessionContext = readTemplate(
   "scripts/common/session_context.py",
@@ -152,10 +143,6 @@ export const routeCodebaseRetrievalScript = readTemplate(
 export const codegraphSessionSmokeScript = readTemplate(
   "scripts/codegraph_session_smoke.py",
 );
-export const cursorRetrievalProbeScript = readTemplate(
-  "scripts/cursor_retrieval_probe.py",
-);
-
 // Configuration files
 export const workflowMdTemplate = readTemplate("workflow.md");
 export const configYamlTemplate = readTemplate("config.yaml");
@@ -202,7 +189,18 @@ export function getAllTaskTemplates(): Map<string, string> {
 }
 
 /**
- * Get all script templates as a map of relative path to content
+ * Python scripts kept in the template tree for Trellis maintainers only.
+ * Present under `templates/trellis/scripts/` but not shipped via init/update.
+ */
+export const MAINTAINER_ONLY_SCRIPT_PATHS = new Set([
+  "cursor_retrieval_probe.py",
+  "common/test_retrieval_arbitration.py",
+  "hooks/linear_sync.py",
+]);
+
+/**
+ * Get all user-shipped script templates as a map of relative path to content.
+ * Init and update both use this as the single source of truth (no full-dir copy).
  */
 export function getAllScripts(): Map<string, string> {
   const scripts = new Map<string, string>();
@@ -256,7 +254,6 @@ export function getAllScripts(): Map<string, string> {
   scripts.set("common/context_pack.py", commonContextPack);
   scripts.set("common/retrieval_pack.py", commonRetrievalPack);
   scripts.set("common/retrieval_pack_context.py", commonRetrievalPackContext);
-  scripts.set("common/test_retrieval_arbitration.py", commonTestRetrievalArbitration);
   scripts.set("common/session_context.py", commonSessionContext);
   scripts.set("common/packages_context.py", commonPackagesContext);
   scripts.set("common/workflow_phase.py", commonWorkflowPhase);
@@ -276,13 +273,7 @@ export function getAllScripts(): Map<string, string> {
   scripts.set("build_retrieval_pack.py", buildRetrievalPackScript);
   scripts.set("route_codebase_retrieval.py", routeCodebaseRetrievalScript);
   scripts.set("codegraph_session_smoke.py", codegraphSessionSmokeScript);
-  scripts.set("cursor_retrieval_probe.py", cursorRetrievalProbeScript);
-  scripts.set(
-    "aggregate_retrieval_telemetry.py",
-    aggregateRetrievalTelemetryScript,
-  );
   scripts.set("rank_retrieval_candidates.py", rankRetrievalCandidatesScript);
-  scripts.set("batch_plan_envelope.py", batchPlanEnvelopeScript);
   scripts.set("score_evidence.py", scoreEvidenceScript);
 
   return scripts;

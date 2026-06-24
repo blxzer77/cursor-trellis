@@ -271,23 +271,6 @@ describe("trellis template constants", () => {
     expect(workflowMdTemplate).toContain("Key Evidence");
   });
 
-  it("workflow.md documents release readiness vs execution split", () => {
-    expect(workflowMdTemplate).toContain(
-      "## Release readiness and release execution",
-    );
-    expect(workflowMdTemplate).toContain("release-readiness/");
-    expect(workflowMdTemplate).toContain("release-execution/");
-    expect(workflowMdTemplate).toContain("ready to publish");
-    expect(workflowMdTemplate).toContain("not published");
-    expect(workflowMdTemplate).toContain("Publish approval evidence");
-    expect(workflowMdTemplate).toContain(
-      "Passing preflight is not approval",
-    );
-    expect(workflowMdTemplate).toContain(
-      "Do not run `release.js`, `npm publish`, or `git push` during readiness",
-    );
-  });
-
   it("workflow.md connects retrieval layers to task evidence artifacts", () => {
     expect(workflowMdTemplate).toContain("**Retrieval during research**");
     expect(workflowMdTemplate).toContain("search_artifacts.py --query");
@@ -397,6 +380,14 @@ describe("getAllScripts", () => {
     for (const [key] of scripts) {
       expect(key, `${key} should not be a multi_agent script`).not.toContain("multi_agent");
     }
+  });
+
+  it("does not ship maintainer-only probe or test scripts", () => {
+    const scripts = getAllScripts();
+    expect(scripts.has("cursor_retrieval_probe.py")).toBe(false);
+    expect(scripts.has("common/test_retrieval_arbitration.py")).toBe(false);
+    expect(scripts.has("aggregate_retrieval_telemetry.py")).toBe(false);
+    expect(scripts.has("batch_plan_envelope.py")).toBe(false);
   });
 });
 

@@ -20,29 +20,15 @@ python -c "from common.retrieval_tool_classification import classify_tool_calls;
 
 On **cursor**, `semantic_executed` = `platform_semantic_executed`. Track `fast_context_count` and `cursor_fast_context_misuse` separately.
 
-## Plan-only metrics (eval)
+## Per-query checklist
 
-```powershell
-python .trellis/scripts/batch_plan_envelope.py --queries queries-semantic-slice.jsonl --pretty
-```
+When `platform-semantic` is in the route list, verify in the session tool log:
 
-Do **not** use legacy `scripts/batch-plan-envelope.py` (looks for `semantic-fast-context` on all platforms).
+- `plan_block_in_prompt` — visible `## 代码库检索计划` (or equivalent) before code search
+- `tools_called` — verbatim tool names from Cursor
+- `platform_semantic_executed` / `fast_context_count` — from `classify_tool_calls(..., platform=cursor, cursor_env=...)`
 
-## 12-query slice experiment
-
-Prompt: `prompts/run-semantic-slice-12.md` in openclaw-retrieval-eval (or Trellis template copy).
-
-Record per query:
-
-- `plan_block_in_prompt` (visible `## 代码库检索计划` + 语义合规 block)
-- `tools_called` verbatim from Cursor
-- `platform_semantic_executed` / `fast_context_count` from classifier
-
-Aggregate:
-
-```powershell
-python .trellis/scripts/aggregate_retrieval_telemetry.py runs/<run>/telemetry.jsonl --markdown
-```
+Plan-level presence does not imply execution-level use.
 
 ## Agent instructions
 
