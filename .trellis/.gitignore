@@ -33,3 +33,7 @@ worktrees/
 # Python cache
 **/__pycache__/
 **/*.pyc
+
+# Cursor++ BYOK local routing (operator machine; not team-shared)
+local/cursor2plus/config.local.json
+local/subagent-models.json

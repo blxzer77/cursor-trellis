@@ -19,6 +19,7 @@ Usage:
     python task.py set-scope <dir> <scope>     # Set scope for PR title
     python task.py archive <task-dir> [--check] [--archive-integrated-children] # Check or archive completed task
     python task.py prepare-archive-evidence <task-dir> [--dry-run]  # Draft missing verify.md archive evidence
+    python task.py prepare-learning-scaffold <task-dir> [--trigger <text>]  # Print spec-capture checklist (stdout only)
     python task.py list                        # List active tasks
     python task.py list-archive [month]        # List archived tasks
     python task.py add-subtask <parent-dir> <child-dir>     # Link child to parent
@@ -27,6 +28,7 @@ Usage:
     python task.py set-child-state <parent-dir> <child-dir> <state> --evidence <ref>
     python task.py integrate-child <parent-dir> <child-dir> <state> --evidence <ref>
     python task.py generate-child-prompt <parent-dir> <child-dir> [--mode inline|subagent]
+    python task.py generate-dispatch-prompt <task-dir> <role> [--scope TEXT] [--finish] [--max-chars N]
     python task.py parent-status <parent-dir>
     python task.py review-child <parent-dir> <child-dir> [--check] [--decision accept|changes|cancel|integrate-through]
 """
@@ -55,9 +57,12 @@ from common.active_task import (
 )
 from common.io import read_json, write_json
 from common.task_dashboard import render_task_dashboard
+from common.cli_environment import optional_capability_note
 from common.task_gates import (
     BASELINE_GATE,
     build_reviewer_gate_record,
+    read_strategy_contract,
+    start_execution_repair_hints,
     validate_start_execution,
     validate_start_execution_check,
     write_gate_record,
@@ -76,6 +81,7 @@ from common.task_store import (
     cmd_create,
     cmd_archive,
     cmd_prepare_archive_evidence,
+    cmd_prepare_learning_scaffold,
     cmd_set_branch,
     cmd_set_base_branch,
     cmd_set_scope,
@@ -85,6 +91,7 @@ from common.task_store import (
     cmd_set_child_state,
     cmd_integrate_child,
     cmd_generate_child_prompt,
+    cmd_generate_dispatch_prompt,
     cmd_parent_status,
     cmd_review_child,
 )
@@ -152,6 +159,28 @@ def cmd_select(args: argparse.Namespace) -> int:
     return 0
 
 
+def _print_no_selected_task_guidance() -> None:
+    """Explain why no task is selected and what to run next."""
+    print(colored("No task selected for this live session.", Colors.YELLOW), file=sys.stderr)
+    print("Next actions:", file=sys.stderr)
+    print(
+        "  - Route work: python ./.trellis/scripts/task.py dashboard",
+        file=sys.stderr,
+    )
+    print(
+        "  - Select a task: python ./.trellis/scripts/task.py select <task-dir>",
+        file=sys.stderr,
+    )
+    print(
+        "  - List active tasks: python ./.trellis/scripts/task.py list",
+        file=sys.stderr,
+    )
+    print(
+        "  - Persist selection in shells: set TRELLIS_CONTEXT_ID (or use your platform session hook)",
+        file=sys.stderr,
+    )
+
+
 def cmd_selected(args: argparse.Namespace) -> int:
     """Show selected task."""
     repo_root = get_repo_root()
@@ -162,12 +191,15 @@ def cmd_selected(args: argparse.Namespace) -> int:
         print(f"Source: {selected.source}")
         if selected.stale:
             print("State: stale")
+        if not selected.task_path:
+            _print_no_selected_task_guidance()
         return 0 if selected.task_path else 1
 
     if selected.task_path:
         print(selected.task_path)
         return 0
 
+    _print_no_selected_task_guidance()
     return 1
 
 
@@ -208,6 +240,8 @@ def cmd_start_execution(args: argparse.Namespace) -> int:
         if not guard.ok:
             print(colored("Start-execution check: FAIL", Colors.RED))
             _print_guard_errors(guard.errors)
+            for hint in start_execution_repair_hints(guard.errors, task_dir):
+                print(f"  Hint: {hint}")
             return 1
         print(colored("Start-execution check: PASS", Colors.GREEN))
         print(f"Contract fingerprint: {guard.contract_fingerprint}")
@@ -216,6 +250,11 @@ def cmd_start_execution(args: argparse.Namespace) -> int:
             print(f"Artifact fingerprint: {baseline_fingerprint}")
         if guard.required_gates:
             print(f"Required reviewer gates: {', '.join(guard.required_gates)}")
+        if task_dir is not None:
+            contract, _ = read_strategy_contract(task_dir)
+            cap_note = optional_capability_note(contract.get("optional_capabilities"))
+            if cap_note:
+                print(colored(f"Note: {cap_note}", Colors.YELLOW))
         print("Artifact gates are ready. Ask the user for explicit execution approval before running `task.py start-execution <task> --approved`.")
         return 0
 
@@ -233,6 +272,8 @@ def cmd_start_execution(args: argparse.Namespace) -> int:
     assert task_data is not None
     if guard.baseline_record:
         write_gate_record(task_data, "start-execution", BASELINE_GATE, guard.baseline_record)
+    for gate, record in guard.auto_gate_records.items():
+        write_gate_record(task_data, "start-execution", gate, record)
     task_data["execution_approval"] = {
         "schema_version": 1,
         "transition": "start-execution",
@@ -657,6 +698,17 @@ def main() -> int:
         help="Show what would be appended without writing verify.md",
     )
 
+    # prepare-learning-scaffold
+    p_learning_scaffold = subparsers.add_parser(
+        "prepare-learning-scaffold",
+        help="Print durable-learning / spec-update checklist (does not edit specs)",
+    )
+    p_learning_scaffold.add_argument("name", help="Task directory or name")
+    p_learning_scaffold.add_argument(
+        "--trigger",
+        help="Optional reason (e.g. parent review changes, repeated workflow bug)",
+    )
+
     # list
     p_list = subparsers.add_parser("list", help="List tasks")
     p_list.add_argument("--mine", "-m", action="store_true", help="My tasks only")
@@ -699,6 +751,29 @@ def main() -> int:
     p_integrate_child.add_argument("--reason", help="Optional short reason")
     p_integrate_child.add_argument("--execute-merge", action="store_true", help="Execute git merge --no-ff --no-commit for an integrated Child")
     p_integrate_child.add_argument("--check", action="store_true", help="Run non-mutating integration readiness check")
+
+    # generate-dispatch-prompt
+    p_dispatch_prompt = subparsers.add_parser(
+        "generate-dispatch-prompt",
+        help="Build full Task dispatch prompt (Agent-facing)",
+    )
+    p_dispatch_prompt.add_argument("task_dir", help="Task directory")
+    p_dispatch_prompt.add_argument(
+        "role",
+        choices=["implement", "check", "research"],
+        help="Subagent role",
+    )
+    p_dispatch_prompt.add_argument("--scope", help="One-line task instruction for subagent")
+    p_dispatch_prompt.add_argument(
+        "--finish",
+        action="store_true",
+        help="Use finish check context (role=check only)",
+    )
+    p_dispatch_prompt.add_argument(
+        "--max-chars",
+        type=int,
+        help="Hard truncate embedded context block",
+    )
 
     # generate-child-prompt
     p_gen_prompt = subparsers.add_parser(
@@ -777,12 +852,14 @@ def main() -> int:
         "set-scope": cmd_set_scope,
         "archive": cmd_archive,
         "prepare-archive-evidence": cmd_prepare_archive_evidence,
+        "prepare-learning-scaffold": cmd_prepare_learning_scaffold,
         "add-subtask": cmd_add_subtask,
         "remove-subtask": cmd_remove_subtask,
         "prepare-child-worktree": cmd_prepare_child_worktree,
         "set-child-state": cmd_set_child_state,
         "integrate-child": cmd_integrate_child,
         "generate-child-prompt": cmd_generate_child_prompt,
+        "generate-dispatch-prompt": cmd_generate_dispatch_prompt,
         "parent-status": cmd_parent_status,
         "review-child": cmd_review_child,
         "list": cmd_list,

@@ -1,0 +1,145 @@
+# Retrieval daily guide (Cursor-first)
+
+> **Purpose:** Choose the right tool; do not confuse **search** with **retrieval-pack scoring**.
+
+## Web research rule (smart-search is mandatory first)
+
+For **external / current / web facts**, **smart-search** (`run_smart_search.py`) is the **mandatory first choice**. Platform built-in web tools (Cursor `WebSearch` / `WebFetch`) are **downgrade-only**: use them solely when smart-search is unavailable (`doctor` not ok, `not_configured` / `failed`, or timeout). Never reach for built-in web search while smart-search is healthy. This rule overrides any general "use available tools" instinct — web retrieval strength is routed inside Trellis, not left to the platform default.
+
+## Quick matrix
+
+| Need | Tool | Notes |
+| --- | --- | --- |
+| Exact string / path / log line | **rg** (Grep) | Fast literal match in repo |
+| Symbol, callers, edit blast radius | **codegraph** MCP | Structure-first for caller/trap/extension intents |
+| Unknown keywords, semantic discovery | **@codebase** (Cursor Native) / **fast-context** (Cursor++ BYOK) | Native: built-in semantic; BYOK: `fast_context_search` MCP (see `cursorEnv` in plans) |
+| External / current facts | **smart-search-cli** | **Mandatory first** — built-in web tools are downgrade-only (see rule above) |
+| Trellis durable docs | **artifact-search** | `search_artifacts.py` |
+| Past sessions | **session-memory** | Historical; verify against tasks/spec |
+| Intent hint for code questions | **router** | `route_codebase_retrieval.py` — plan JSON + `agentInstructions`; `--instructions` for steps only |
+| Agent follows plan on Cursor | **`beforeSubmitPrompt` → `inject-retrieval-plan.py`** + **`.cursor/rules/retrieval-routing.mdc`** | Per-turn plan block from router `--instructions`; Rules enforce execution; not `sessionStart` (#158452) |
+| Score collected evidence | **retrieval-pack** | `get_context.py --mode retrieval-pack` — does **not** search |
+
+## Semantic routing (Cursor)
+
+The planner emits **`platform-semantic`** with backend chosen by **`cursorEnv`** (`native` | `byok` from `~/.ccursor/routes.json` or `TRELLIS_CURSOR_BYOK`):
+
+- **native:** built-in `@codebase` / agent semantic search — **do not** use fast-context as Primary.
+- **byok:** **fast-context MCP** (`fast_context_search`) — built-in semantic is not in the agent tool list.
+
+Definition / reference jumps: **codegraph** (not GO_TO_DEFINITION; Agent LSP unavailable).
+
+## Token economy signals
+
+Each route in the router output includes a `tokenEconomy` label:
+
+| Label | Meaning | Typical tools |
+| --- | --- | --- |
+| `high` | Low token cost per correct answer (~80-200 tokens) | codegraph callers/search, platform-semantic |
+| `medium` | Moderate token cost (~200-700 tokens) | codegraph explore, smart rg, fast-context |
+| `low` | High token cost per answer (~3000+ tokens) | naive rg (unconstrained output) |
+
+When `projectFileCount > 2000`, the router promotes structural (codegraph) routes ahead of rg routes for better token efficiency on large codebases.
+
+**Dogfood default (REC-10):** `route_codebase_retrieval.py` and `get_context.py --mode retrieval-pack` default `--project-file-count` to **`auto`** — they count files under the Trellis repo root (`git ls-files` when `.git` exists, else a bounded walk). Override with an integer (e.g. `5000`) for eval fixtures or non-git trees. **Harness note:** `D:\MyHarness` is not a git repo; dogfood from `Trellis/` or pass `--project-file-count` explicitly when routing from the workspace root.
+
+## Commands
+
+```powershell
+python ./.trellis/scripts/search_artifacts.py --query "<topic>" --json
+python ./.trellis/scripts/search_memory.py --query "<topic>" --json
+python ./.trellis/scripts/run_smart_search.py "<question>" --intent deep-research --json
+python ./.trellis/scripts/route_codebase_retrieval.py "<question>" --json
+python ./.trellis/scripts/route_codebase_retrieval.py "<question>" --instructions
+python ./.trellis/scripts/get_context.py --mode retrieval-pack --json --input evidence.json
+python ./.trellis/scripts/codegraph_session_smoke.py --json
+```
+
+## Codegraph session readiness (eval / dogfood)
+
+Before a **cold benchmark** or structural-heavy run:
+
+1. **MCP**: In Cursor project MCP settings, enable the **codegraph** server for the workspace (or eval checkout).
+2. **Index on disk**: Run `python ./.trellis/scripts/codegraph_session_smoke.py` (exit 0 = at least one `.codegraph/` under workspace root or a top-level subproject). Use `--root <eval-checkout>` when the agent root is not the harness.
+3. **Live MCP smoke** (manual): one `codegraph_search` with a known symbol in that repo; stale-index banner → re-read affected files.
+
+Paste into the **run report header** (markdown):
+
+| Field | Example |
+| --- | --- |
+| `codegraph_mcp` | `configured` / `off` / `unknown` |
+| `codegraph_index_path` | from smoke JSON `codegraph_index_paths[0]` |
+| `codegraph_smoke_at` | ISO8601 UTC |
+| `codegraph_smoke_ok` | `true` / `false` |
+
+## smart-search fallback
+
+When `smart-search doctor` is not ok or `run_smart_search.py` status is `not_configured` / `failed` (including **search timeout**), use **Cursor WebSearch/WebFetch**, then persist to `{TASK}/research/` with `source: cursor-web-fallback` in frontmatter. See `smart-search-cli` skill §4b.
+
+**CLI discovery (Cursor):** optional env/config override → PATH → `node_modules/.bin` / package script → optional harness wrappers (`Trellis/packages/cli/bin/smart-search.js`). No `.trellis/.runtime/` cache.
+
+## Router vs execution
+
+`route_codebase_retrieval.py` returns **intent + route suggestions** and **`agentInstructions`** (numbered steps with Cursor-native tool names). **codebase-evidence** is **candidate** until confirmed by Read/Git/tests.
+
+On **Cursor**, per-query plans come from **`beforeSubmitPrompt` → `inject-retrieval-plan.py`**; durable execution policy lives in **`.cursor/rules/retrieval-routing.mdc`** (`alwaysApply`). Do **not** rely on `sessionStart` hook injection (#158452) or end-of-turn **retrieval-pack** for plans — retrieval-pack **scores** collected evidence; it does not search.
+
+### Result-layer ranking (B / E / D — REC-05)
+
+After Grep/codegraph/semantic produce **path candidates**, reorder before choosing Top-1 / Top-5:
+
+| Intent | Rule |
+| --- | --- |
+| `caller-chain` | Expanded pool first; boost concrete call sites; demote facade/barrel/runtime/registry **assembly-only** files. |
+| `trap-package-disambiguation` | Demote snapshot/registry/`src/agents/` trap paths unless Read confirms the asked layer. |
+| `env-config-literal` | Prefer `scripts/`, `e2e/`, `bench/`, `test/` over generic `src/auth` / `src/paths`. |
+
+- **Agent plans**: `render_agent_instructions` / `inject-retrieval-plan.py` append a **结果层排序** block when these intents appear.
+- **Eval / offline**: `python ./.trellis/scripts/rank_retrieval_candidates.py --candidates fixtures.json --intents caller-chain --top-k 5 --pretty`
+- **Library**: TS `packages/cli/src/utils/retrieval-result-ranking.ts` (Vitest fixtures B03/B05/D03); Python mirror `common/retrieval_result_ranking.py`.
+
+Do **not** claim aggregate openclaw score gains from ranking alone without fresh telemetry (`candidate_pool_recall` vs final Top-K).
+
+### Structural-first routing (v2)
+
+For structural intents (caller-chain, trap-package-disambiguation, extension-shared-symbol), the router now suggests **codegraph before rg**. This reflects codegraph's superior token economy for structural queries (~80-150 tokens/answer vs rg's ~3557 for naive grep). The agent should still use rg to fill gaps codegraph misses (dynamic dispatch, string-based callsites).
+
+### Semantic routing on Cursor (plans)
+
+Envelopes include **`cursorEnv`**. `platform-semantic` uses **`platformNative: true`** on native and **`semanticBackend: fast-context-mcp`** on BYOK. Native: `@codebase` / built-in search; BYOK: `fast_context_search`.
+
+### Semantic dual metrics (openclaw / eval)
+
+| Metric | Meaning |
+| --- | --- |
+| `semantic_plan_rate` | Share of queries whose routing envelope lists a semantic route |
+| `semantic_exec_rate` | Share of queries with ≥1 semantic search tool call |
+
+On **Cursor**, `semantic_exec_rate` uses `classify_tool_calls(..., platform=cursor, cursor_env=...)`: **native** counts built-in semantic only; **byok** counts `fast_context_search` as semantic exec. `cursor_fast_context_misuse` applies only when **native** (or non-byok) uses fast-context while the plan has `platform-semantic`. See `cursor-semantic-compliance.md`.
+
+Plan-level presence does not imply execution-level use (see parent research `06-19` OQ-1 双轨).
+
+### Execution telemetry (schema v2, eval / openclaw)
+
+Store **one JSON object per query** in JSONL (`schema_version: 2`). Split scores:
+
+| Field | Owner | Meaning |
+| --- | --- | --- |
+| `answer_score` | Human rubric | Top-1 / Recall@5 / answer quality (0–6 per query in main-50) |
+| `compliance_score` | Derived | Plan vs exec layer compliance (0–1); structural/codegraph, semantic, read verify |
+
+Report **summary rates must not be hand-copied** from batch router envelopes. Aggregate from JSONL:
+
+```powershell
+python ./.trellis/scripts/aggregate_retrieval_telemetry.py runs/<run>/telemetry.jsonl --markdown
+```
+
+Key exec fields (fill from session tool log): `tools_called`, `grep_count`, `read_count`, `codegraph_executed`, `semantic_executed`, `router_cli_invoked`, `plan_block_in_prompt`, `read_verification_done`. TypeScript contract: `packages/cli/src/utils/retrieval-execution-telemetry.ts` (`RETRIEVAL_TELEMETRY_FIELD_OWNERSHIP`).
+
+## retrieval-pack
+
+Default `get_context.py --json` returns **retrievalGuide** only. Run `--mode retrieval-pack` after you have collected evidence JSON / smart-search manifests under `{TASK}/research/smart-search/`.
+
+## Adapters (optimization #9)
+
+Core: rg, task-artifacts, artifact-search, source-git-tests. Enhance: codegraph (structural-first), platform-semantic (Cursor `@codebase`), smart-search, session-memory. Placeholders: mcp/browser/network envelope only.

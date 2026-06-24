@@ -1,8 +1,0 @@
-{
-  "ok": false,
-  "query": "Cursor 自定义 subagent Task 工具 enum 不识别 .cursor/agents 重启 plugin",
-  "provider": "zhipu",
-  "error_type": "rate_limited",
-  "error": "HTTP 429: Too Many Requests",
-  "elapsed_ms": 1666.18
-}

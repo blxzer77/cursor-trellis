@@ -1,0 +1,133 @@
+{
+  "probe_version": 1,
+  "env": {
+    "env": "byok",
+    "source": "routes.json",
+    "byokMode": 1,
+    "routes_path": "C:\\Users\\blaze\\.ccursor\\routes.json",
+    "redirect_endpoints": [
+      "REST:/auth/full_stripe_profile",
+      "REST:/auth/stripe_profile",
+      "aiserver.v1.AiService/AvailableModels",
+      "agent.v1.AgentService/RunSSE",
+      "agent.v1.AgentService/UploadConversationBlobs",
+      "aiserver.v1.BidiService/BidiAppend",
+      "aiserver.v1.ChatService/GetConversationSummary",
+      "aiserver.v1.ChatService/StreamSpeculativeSummaries",
+      "aiserver.v1.AiService/KnowledgeBaseList",
+      "aiserver.v1.AiService/KnowledgeBaseAdd",
+      "aiserver.v1.AiService/KnowledgeBaseUpdate",
+      "aiserver.v1.AiService/KnowledgeBaseRemove",
+      "aiserver.v1.AiService/ServerTime",
+      "aiserver.v1.AiService/GetDefaultModel",
+      "aiserver.v1.AiService/GetDefaultModelNudgeData",
+      "aiserver.v1.AuthService",
+      "aiserver.v1.AnalyticsService/Batch",
+      "aiserver.v1.DashboardService/GetPlanInfo",
+      "aiserver.v1.DashboardService/GetCurrentPeriodUsage",
+      "aiserver.v1.DashboardService/GetTeams",
+      "aiserver.v1.DashboardService/GetUserPrivacyMode",
+      "aiserver.v1.DashboardService/GetUsageLimitStatusAndActiveGrants",
+      "aiserver.v1.DashboardService/GetEffectiveUserPlugins",
+      "aiserver.v1.DashboardService/IsOnNewPricing",
+      "aiserver.v1.DashboardService/GetManagedSkills",
+      "aiserver.v1.DashboardService/GetTeamAdminSettingsOrEmptyIfNotInTeam",
+      "aiserver.v1.DashboardService/GetTeamReposOrEmptyIfNotInTeam",
+      "aiserver.v1.DashboardService/GetTeamAdminSettings",
+      "aiserver.v1.DashboardService/GetTeamBackgroundAgentSettings",
+      "aiserver.v1.DashboardService/GetTeamRepos",
+      "aiserver.v1.DashboardService/GetMe",
+      "aiserver.v1.DashboardService/GetGlobalCommands",
+      "aiserver.v1.DashboardService/GetTeamCommands",
+      "aiserver.v1.DashboardService/GetSlackInstallUrl",
+      "aiserver.v1.DashboardService/ShareCanvas",
+      "aiserver.v1.DashboardService/LookupSharedCanvasByKey",
+      "aiserver.v1.ServerConfigService",
+      "aiserver.v1.NetworkService",
+      "aiserver.v1.HealthService",
+      "aiserver.v1.InAppAdService",
+      "aiserver.v1.BackgroundComposerService/ListBackgroundComposers",
+      "aiserver.v1.BackgroundComposerService/GetBackgroundComposerUserSettings",
+      "aiserver.v1.BackgroundComposerService/ListTeamEnvironments",
+      "aiserver.v1.BackgroundComposerService/ListPersonalEnvironments",
+      "REST:/auth/has_valid_payment_method",
+      "REST:/auth/poll",
+      "REST:/auth/logout"
+    ]
+  },
+  "probed_at": "2026-06-22T19:27:18.743544Z",
+  "repo_root": "D:\\MyHarness",
+  "auto_results": [
+    {
+      "id": "P-01",
+      "label": "Grep (rg) — local IDE literal search",
+      "status": "pass",
+      "expected": "TRELLIS_B2_WPeLc8",
+      "target_file": "D:\\MyHarness\\.trellis\\local\\cursor2plus\\patch_wpelc8.py",
+      "matches": [
+        "19:MARKER = \"/*TRELLIS_B2_WPeLc8*/\""
+      ],
+      "note": "Local IDE operation; not routed through BYOK proxy."
+    },
+    {
+      "id": "P-02",
+      "label": "Read — local IDE file read + JSON parse",
+      "status": "pass",
+      "expected": "mcpServers.codegraph present",
+      "target_file": "D:\\MyHarness\\.cursor\\mcp.json",
+      "configured_servers": [
+        "codegraph",
+        "fast-context",
+        "github",
+        "playwright"
+      ],
+      "has_codegraph": true,
+      "has_fast_context": true,
+      "note": "Local IDE operation; verifies MCP config on disk."
+    },
+    {
+      "id": "P-05",
+      "label": "codegraph index — on-disk .codegraph/ presence",
+      "status": "pass",
+      "expected": "at least one .codegraph/ dir under workspace root or top-level subproject",
+      "index_paths": [
+        "D:\\MyHarness\\.codegraph"
+      ],
+      "note": "Local disk; MCP must also be enabled in Cursor for live calls."
+    },
+    {
+      "id": "P-07",
+      "label": "smart-search CLI — resolve + doctor",
+      "status": "pass",
+      "expected": "smart-search argv resolved",
+      "resolved_argv": [
+        "C:\\nvm4w\\nodejs\\smart-search.cmd"
+      ],
+      "resolve_error": "",
+      "doctor_status": "error: TimeoutExpired",
+      "doctor_output_excerpt": "Command '['C:\\\\nvm4w\\\\nodejs\\\\smart-search.cmd', 'doctor']' timed out after 12 seconds",
+      "note": "Local CLI; not routed through BYOK proxy."
+    }
+  ],
+  "mcp_config": {
+    "codegraph_configured": true,
+    "fast_context_configured": true,
+    "all_servers": [
+      "codegraph",
+      "fast-context",
+      "github",
+      "playwright"
+    ],
+    "mcp_json_path": "D:\\MyHarness\\.cursor\\mcp.json"
+  },
+  "manual_probe_ids": [
+    "P-03",
+    "P-04",
+    "P-06",
+    "P-08",
+    "P-09",
+    "P-10"
+  ],
+  "manual_probe_doc": "cursor_retrieval_probe_prompt.md",
+  "matrix_template": "retrieval_probe_matrix_template.json"
+}

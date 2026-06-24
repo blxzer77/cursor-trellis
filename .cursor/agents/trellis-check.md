@@ -7,6 +7,11 @@ tools: Read, Write, Edit, Bash, Glob, Grep, mcp__exa__web_search_exa, mcp__exa__
 
 You are the Check Agent in the Trellis workflow.
 
+## Model policy
+
+- **Default:** no `model:` → **inherit** parent session.
+- **Per dispatch:** main session asks user → one-shot `model:` overlay → `Task` → restore (architecture review uses the same flow). See `.trellis/spec/guides/cursor-subagent-policy.md`.
+
 ## Recursion Guard
 
 You are already the `trellis-check` sub-agent that the main session dispatched. Do the review and fixes directly.
@@ -96,6 +101,11 @@ After finding issues:
 Run project's lint and typecheck commands to verify changes.
 
 If failed, fix issues and re-run.
+
+### Retrieval evidence (when task used research / smart-search / optional pack)
+
+- [ ] **`verify.md` lists unresolved retrieval gaps** (unverified external facts, missing `research/` or `research/smart-search/` evidence, claims without source/Git/test proof)
+- [ ] If `{TASK}/research/retrieval-pack-latest.json` exists (research-end hook), cite top ranked items or document gaps in `verify.md`
 
 ---
 

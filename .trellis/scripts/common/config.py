@@ -243,6 +243,19 @@ def get_session_auto_commit(repo_root: Path | None = None) -> bool:
     return DEFAULT_SESSION_AUTO_COMMIT
 
 
+def get_smart_search_command_config(repo_root: Path | None = None) -> str | None:
+    """Optional executable name or path from ``smart_search.command`` in config."""
+    config = _load_config(repo_root)
+    block = config.get("smart_search")
+    if not isinstance(block, dict):
+        return None
+    raw = block.get("command")
+    if raw is None:
+        return None
+    text = str(raw).strip()
+    return text or None
+
+
 def get_hooks(event: str, repo_root: Path | None = None) -> list[str]:
     """Get hook commands for a lifecycle event.
 

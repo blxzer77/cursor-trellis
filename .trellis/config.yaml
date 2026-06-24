@@ -77,6 +77,28 @@ max_journal_lines: 2000
 # default_package: frontend
 
 #-------------------------------------------------------------------------------
+# Smart Search CLI (optional per-machine override)
+#-------------------------------------------------------------------------------
+# run_smart_search.py resolves: env TRELLIS_SMART_SEARCH_COMMAND, then this
+# setting, then PATH, then node_modules/.bin and repo wrappers. No .runtime cache.
+#
+# smart_search:
+#   command: smart-search
+
+#-------------------------------------------------------------------------------
+# Cursor subagent dispatch (documentation only — not Cursor product settings)
+#-------------------------------------------------------------------------------
+# See .trellis/spec/guides/cursor-subagent-policy.md
+#
+# cursor:
+#   subagent_dispatch:
+#     mode: agent
+#     model_policy: cursor-configured
+#   child_worker:
+#     mode: separate_writable_agent_session
+#     reuse_policy: true
+
+#-------------------------------------------------------------------------------
 # Channel worker OOM guard
 #-------------------------------------------------------------------------------
 # Default safeguards for `trellis channel spawn` workers. The guard runs
@@ -108,11 +130,3 @@ channel:
 #
 # codex:
 #   dispatch_mode: inline  # or "sub-agent" to dispatch trellis-* sub-agents
-
-# Auto-detected monorepo packages
-packages:
-  cursor-trellis:
-    path: packages/cli
-  cursor-trellis-core:
-    path: packages/core
-default_package: @blxzer/cursor-trellis
