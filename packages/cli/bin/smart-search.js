@@ -8,14 +8,14 @@ import { fileURLToPath } from "node:url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// smart-search is installed alongside cursor-trellis in node_modules
-// Navigate from bin/ -> ../ -> node_modules/@blxzer/smart-search/bin/smart-search.js
+// smart-search npm wrapper is at: node_modules/@blxzer/smart-search/npm/bin/smart-search.js
 const smartSearchBin = join(
   __dirname,
   "..",
   "node_modules",
   "@blxzer",
   "smart-search",
+  "npm",
   "bin",
   "smart-search.js"
 );
