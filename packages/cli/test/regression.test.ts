@@ -50,6 +50,7 @@ import {
   commonGitContext,
   commonSessionContext,
   getAllScripts,
+  MAINTAINER_ONLY_SCRIPT_PATHS,
 } from "../src/templates/trellis/index.js";
 import {
   collectPlatformTemplates,
@@ -710,8 +711,8 @@ describe("regression: shell to Python migration (beta.0)", () => {
     const scripts = getAllScripts();
     const registeredKeys = new Set(scripts.keys());
 
-    // Known exclusions: files intentionally not in getAllScripts()
-    const excluded = new Set(["hooks/linear_sync.py"]);
+    // Maintainer-only scripts exist on disk but are not shipped via getAllScripts()
+    const excluded = new Set(MAINTAINER_ONLY_SCRIPT_PATHS);
 
     for (const file of fsFiles) {
       if (excluded.has(file)) continue;

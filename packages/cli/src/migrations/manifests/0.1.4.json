@@ -1,0 +1,9 @@
+{
+  "version": "0.1.4",
+  "description": "v0.1.4 — Aligned core/cli release, gate verify transition contract, init template boundary cleanup.",
+  "breaking": false,
+  "recommendMigrate": true,
+  "changelog": "**Aligned @blxzer/cursor-trellis + @blxzer/cursor-trellis-core at 0.1.4.**\n\n### Added\n- feat(cli): gate verify transition contract — Parent archive, Full Child accept, `record-gate` placeholder rejection, integrate-through guards (7 integration tests).\n- feat(guides): `cursor-context-injection-guide.md` shipped on `trellis init` (fixes index dead link).\n\n### Changed\n- fix(init): scripts written from `getAllScripts()` only (same as `trellis update`) — no longer copies maintainer probe/eval files into user projects.\n- refactor(templates): user-facing guides stripped of MyHarness / `packages/cli` / rsync maintainer prose; `workflow.md` release-execution section removed from default init.\n- chore(scripts): removed `aggregate_retrieval_telemetry.py` and `batch_plan_envelope.py` from shipped templates (maintainer eval tools).\n\n### Upgrade notes\n- Run `trellis update` in each project. If `.trellis/scripts/` still contains probe or telemetry scripts from an older init, update removes stale paths not in `getAllScripts()`.\n- **Behavior change:** `task.py archive --check` and Parent/Child gate flows are stricter — see gate integration tests and release notes.",
+  "migrations": [],
+  "notes": "First npm release with core and cli on the same version since 0.1.2."
+}

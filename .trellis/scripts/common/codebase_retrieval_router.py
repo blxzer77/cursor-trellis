@@ -2,8 +2,8 @@
 """
 Deterministic codebase retrieval intent router (Python template).
 
-Mirrors packages/cli/src/utils/codebase-retrieval-router.ts for dogfood and
-get_context retrieval-pack flows. Does not invoke rg, MCP, or network tools.
+Shared contract with the Trellis CLI router; used by hooks, route_codebase_retrieval.py,
+and get_context retrieval-pack flows. Does not invoke rg, MCP, or network tools.
 """
 
 from __future__ import annotations

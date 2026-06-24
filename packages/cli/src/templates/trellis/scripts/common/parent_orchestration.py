@@ -32,7 +32,6 @@ _GLOBAL_CHILD_CONSTRAINTS = """General constraints:
 - Stay inside your child scope and declared touch areas.
 - Do not publish packages, push remotes, create tags, edit credentials, or change global/MCP configuration.
 - Preserve explicit user approval for destructive, remote, credential-bearing, publish, push, tag, and global configuration actions.
-- Keep template and dogfood copies synchronized when touching `.trellis/scripts` or Trellis CLI templates.
 - Write `verify.md` and `handoff.md` in your child task directory.
 - Handoff must include changed files, validation commands/results, residual risks, and parent integration notes.
 - If you find a needed contract change, stop and report it to the parent instead of silently redefining shared state/gate semantics.

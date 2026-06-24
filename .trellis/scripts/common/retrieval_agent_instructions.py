@@ -157,7 +157,7 @@ def _cursor_step_for_route(
         return (
             "使用 Cursor **内置代码库语义搜索**（宿主工具常为 **SemanticSearch**；"
             "**`target_directories`** 为目录 glob 数组，省略会报错；**`[]`** = 不缩范围、搜全工作区索引；"
-            "若计划或 Grep/codegraph 已指向子树可传如 `['Trellis/packages/cli']`；"
+            "若计划或 Grep/codegraph 已指向子树可传如 `['src/components']`；"
             "无路径线索的概念题优先 **`[]`**；Native 下 **不要**用 fast-context MCP 顶替）。"
         )
     if role == "semantic":

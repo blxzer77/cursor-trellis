@@ -47,7 +47,7 @@ If unsure: Task dispatch is the path Trellis workflow routes through; Agent sess
 
 ## Model dispatch strategy (BYOK-aware)
 
-> **Full technical analysis:** .trellis/spec/guides/cursor-subagent-reverse-engineering-report.md
+> **Model routing details:** See Method 2.5 / 2.6 below and Cursor++ provider settings (`~/.ccursor/providers.json`).
 
 ### Environment detection
 
@@ -56,7 +56,7 @@ If unsure: Task dispatch is the path Trellis workflow routes through; Agent sess
 | **Native Cursor API** | Frontmatter `model:` works (server-side routing)                                                   | Native model picker                                |
 | **Cursor++ BYOK**     | ❌ Frontmatter / Cursor Settings per-agent: not wired for `trellis-*`; **✅ Method 2.5** if applied | ✅ Independent model via Cursor++ panel (v0.0.11+) |
 
-Under Cursor++ BYOK, **committed** agent frontmatter `model:` and **Cursor Settings** UI for `trellis-research` / `trellis-implement` / `trellis-check` do **not** populate `subagentModelOverrides` for those types (verified). Without **Method 2.5**, custom Task subagents **inherit** the parent session BYOK model. See `.trellis/spec/guides/cursor-subagent-reverse-engineering-report.md`.
+Under Cursor++ BYOK, **committed** agent frontmatter `model:` and **Cursor Settings** UI for `trellis-research` / `trellis-implement` / `trellis-check` do **not** populate `subagentModelOverrides` for those types (verified). Without **Method 2.5**, custom Task subagents **inherit** the parent session BYOK model.
 
 ### Dispatch strategy matrix
 
@@ -332,15 +332,12 @@ When `preToolUse` cannot resolve a selected task, the subagent should read **`Se
 
 ### Confirmed compatibility (v0.0.11+, Cursor 3.7.27)
 
-Verified by local testing on `D:\MyHarness` workspace:
-
-| Trellis component     | Status under Cursor++ | Evidence                                                                            |
+| Trellis component     | Status under Cursor++ | Notes                                                                               |
 | --------------------- | --------------------- | ----------------------------------------------------------------------------------- |
 | `.cursor/agents/`     | Normal                | Agent files not intercepted; `model:` frontmatter read by Cursor at spawn           |
-| `.cursor/hooks/`      | Normal                | Agent log `requestContextKeys` contains `hooksConfig`                               |
-| `.cursor/skills/`     | Normal                | Agent log `requestContextKeys` contains `agentSkills`                               |
-| `.cursor/mcp.json`    | Normal                | 4+ MCP servers, 300+ tools load normally                                            |
-| SubAgent write access | **Fixed in v0.0.11**  | Prior versions defaulted SubAgent to readonly; `ttrellis-implement` now writes files |
+| `.cursor/hooks/`      | Normal                | Hook config loads; verify `hooksConfig` in agent logs when debugging                  |
+| `.cursor/mcp.json`    | Normal                | MCP servers and tools load normally                                                 |
+| SubAgent write access | **Fixed in v0.0.11**  | Prior versions defaulted SubAgent to readonly; `trellis-implement` now writes files |
 
 **Minimum version: v0.0.11.** Earlier versions break `ttrellis-implement` due to SubAgent readonly bug.
 
@@ -351,7 +348,6 @@ Verified by local testing on `D:\MyHarness` workspace:
 - The `model:` ID **must match** a model configured in Cursor++ provider settings (`~/.ccursor/providers.json`). If it doesn't match, the request will fail with a provider error.
 - Cursor++ intercepts `AvailableModels`/`GetDefaultModel` - the model picker and model list are determined by BYOK provider config, not Cursor's official model catalog.
 - Under Cursor++, "inherit" means the parent session's BYOK-routed model, which may differ from what the Cursor UI label suggests.
-- **Full technical analysis:** `.trellis/spec/guides/cursor-subagent-reverse-engineering-report.md`
 
 ### Safety boundary
 

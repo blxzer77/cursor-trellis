@@ -41,7 +41,7 @@ Each route in the router output includes a `tokenEconomy` label:
 
 When `projectFileCount > 2000`, the router promotes structural (codegraph) routes ahead of rg routes for better token efficiency on large codebases.
 
-**Dogfood default (REC-10):** `route_codebase_retrieval.py` and `get_context.py --mode retrieval-pack` default `--project-file-count` to **`auto`** — they count files under the Trellis repo root (`git ls-files` when `.git` exists, else a bounded walk). Override with an integer (e.g. `5000`) for eval fixtures or non-git trees. **Harness note:** `D:\MyHarness` is not a git repo; dogfood from `Trellis/` or pass `--project-file-count` explicitly when routing from the workspace root.
+**Project file count default:** `route_codebase_retrieval.py` and `get_context.py --mode retrieval-pack` default `--project-file-count` to **`auto`** — they count files under the repo root (`git ls-files` when `.git` exists, else a bounded walk). Override with an integer (e.g. `5000`) for large non-git trees or eval fixtures.
 
 ## Commands
 
@@ -76,7 +76,7 @@ Paste into the **run report header** (markdown):
 
 When `smart-search doctor` is not ok or `run_smart_search.py` status is `not_configured` / `failed` (including **search timeout**), use **Cursor WebSearch/WebFetch**, then persist to `{TASK}/research/` with `source: cursor-web-fallback` in frontmatter. See `smart-search-cli` skill §4b.
 
-**CLI discovery (Cursor):** `TRELLIS_SMART_SEARCH_COMMAND` / `smart_search.command` → PATH `smart-search` → project `node_modules/.bin/smart-search` (incl. `@blxzer/cursor-trellis`) → optional repo-local siblings (`cursor-trellis/`, `Trellis/`, `smartsearch-private/` npm wrapper). Agent entrypoint is always `./.trellis/scripts/run_smart_search.py`. No `.trellis/.runtime/` cache.
+**CLI discovery (Cursor):** `TRELLIS_SMART_SEARCH_COMMAND` / `smart_search.command` → PATH `smart-search` → project `node_modules/.bin/smart-search` (when installed as a dependency). Agent entrypoint is always `./.trellis/scripts/run_smart_search.py`.
 
 ## Router vs execution
 
@@ -95,8 +95,8 @@ After Grep/codegraph/semantic produce **path candidates**, reorder before choosi
 | `env-config-literal` | Prefer `scripts/`, `e2e/`, `bench/`, `test/` over generic `src/auth` / `src/paths`. |
 
 - **Agent plans**: `render_agent_instructions` / `inject-retrieval-plan.py` append a **结果层排序** block when these intents appear.
-- **Eval / offline**: `python ./.trellis/scripts/rank_retrieval_candidates.py --candidates fixtures.json --intents caller-chain --top-k 5 --pretty`
-- **Library**: TS `packages/cli/src/utils/retrieval-result-ranking.ts` (Vitest fixtures B03/B05/D03); Python mirror `common/retrieval_result_ranking.py`.
+- **Offline reorder**: `python ./.trellis/scripts/rank_retrieval_candidates.py --candidates fixtures.json --intents caller-chain --top-k 5 --pretty`
+- **Library**: `common/retrieval_result_ranking.py` (Python mirror used by router and rank script).
 
 Do **not** claim aggregate openclaw score gains from ranking alone without fresh telemetry (`candidate_pool_recall` vs final Top-K).
 
@@ -119,22 +119,16 @@ On **Cursor**, `semantic_exec_rate` uses `classify_tool_calls(..., platform=curs
 
 Plan-level presence does not imply execution-level use (see parent research `06-19` OQ-1 双轨).
 
-### Execution telemetry (schema v2, eval / openclaw)
+### Execution telemetry (schema v2)
 
-Store **one JSON object per query** in JSONL (`schema_version: 2`). Split scores:
+When recording eval or audit runs, store **one JSON object per query** in JSONL (`schema_version: 2`). Split scores:
 
 | Field | Owner | Meaning |
 | --- | --- | --- |
 | `answer_score` | Human rubric | Top-1 / Recall@5 / answer quality (0–6 per query in main-50) |
 | `compliance_score` | Derived | Plan vs exec layer compliance (0–1); structural/codegraph, semantic, read verify |
 
-Report **summary rates must not be hand-copied** from batch router envelopes. Aggregate from JSONL:
-
-```powershell
-python ./.trellis/scripts/aggregate_retrieval_telemetry.py runs/<run>/telemetry.jsonl --markdown
-```
-
-Key exec fields (fill from session tool log): `tools_called`, `grep_count`, `read_count`, `codegraph_executed`, `semantic_executed`, `router_cli_invoked`, `plan_block_in_prompt`, `read_verification_done`. TypeScript contract: `packages/cli/src/utils/retrieval-execution-telemetry.ts` (`RETRIEVAL_TELEMETRY_FIELD_OWNERSHIP`).
+Key exec fields (fill from session tool log): `tools_called`, `grep_count`, `read_count`, `codegraph_executed`, `semantic_executed`, `router_cli_invoked`, `plan_block_in_prompt`, `read_verification_done`. Classify tool names with `common/retrieval_tool_classification.py` (see `cursor-semantic-compliance.md`).
 
 ## retrieval-pack
 

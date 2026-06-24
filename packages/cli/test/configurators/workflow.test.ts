@@ -60,6 +60,27 @@ describe("createWorkflowStructure — cursor2plus opt-in (1.1.0)", () => {
     ).toBe(true);
   });
 
+  it("does NOT write maintainer-only scripts (probe, eval tools)", async () => {
+    await createWorkflowStructure(tmpDir, { projectType: "fullstack" });
+    const scriptsDir = path.join(tmpDir, ".trellis", "scripts");
+    expect(
+      fs.existsSync(path.join(scriptsDir, "cursor_retrieval_probe.py")),
+    ).toBe(false);
+    expect(
+      fs.existsSync(path.join(scriptsDir, "cursor_retrieval_probe_prompt.md")),
+    ).toBe(false);
+    expect(
+      fs.existsSync(path.join(scriptsDir, "aggregate_retrieval_telemetry.py")),
+    ).toBe(false);
+    expect(
+      fs.existsSync(path.join(scriptsDir, "batch_plan_envelope.py")),
+    ).toBe(false);
+    expect(
+      fs.existsSync(path.join(scriptsDir, "common", "test_retrieval_arbitration.py")),
+    ).toBe(false);
+    expect(fs.existsSync(path.join(scriptsDir, "task.py"))).toBe(true);
+  });
+
   it("still creates .trellis base structure regardless of cursor2plus flag", async () => {
     await createWorkflowStructure(tmpDir, {
       projectType: "fullstack",
