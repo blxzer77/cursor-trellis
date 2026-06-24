@@ -108,12 +108,33 @@ Prefer named Trellis agents over ad-hoc prompts when a step needs a clean contex
 
 Local overrides may live in `.trellis/hooks.local.json` (gitignored in Trellis source policy). Requires **Python ≥ 3.9** on the machine where hooks run.
 
-## Cursor++ (optional appendix)
+## Cursor++ (BYOK) configuration
 
-If you pass **`--cursor2plus`** together with **`--cursor`**, init can materialize a local BYOK bundle under `.trellis/local/cursor2plus/`. The slash command **`/trellis-cursor2plus-setup`** walks through mapping models to Trellis subagent roles.
+If you use Cursor++ (Bring Your Own Key), you can map custom models to Trellis subagent roles.
 
-- Only relevant when you use **Cursor++** (BYOK), not the native Cursor API-only setup.
-- Details stay in the generated command markdown; public docs do not duplicate provider install steps.
+### Setup
+
+```bash
+trellis init --cursor --cursor2plus
+```
+
+This creates `.trellis/local/cursor2plus/` and adds `/trellis-cursor2plus-setup` command.
+
+### Usage
+
+Run `/trellis-cursor2plus-setup` in Cursor to map your configured models to:
+- `trellis-research` — context gathering, codebase exploration
+- `trellis-implement` — code generation and editing
+- `trellis-check` — review and verification
+
+Configuration is stored in `.trellis/local/cursor2plus/model-mapping.json` (gitignored).
+
+### Notes
+
+- Optional: default Cursor routing works without this
+- Requires Cursor++ subscription and configured custom models
+- Per-developer configuration (not shared in git)
+- See the generated command documentation for provider-specific setup
 
 ## Keeping Cursor files current
 

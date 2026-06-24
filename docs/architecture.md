@@ -4,9 +4,11 @@ English | [简体中文](architecture.zh-CN.md)
 
 This document is a **public, high-level** map of the `cursor-trellis` monorepo and how Trellis reaches a **Cursor** project. Deep implementation notes for maintainers live in [maintainers.md](maintainers.md) (internal, Chinese).
 
-## Problem Trellis solves
+## What Trellis does
 
-Single giant `AGENTS.md` / `CLAUDE.md` / `.cursorrules` files do not scale: agents either miss rules or burn context loading everything. Trellis splits **workflow**, **spec**, **tasks**, and **workspace memory** into files under `.trellis/` and generates **platform adapters** (on Cursor: `.cursor/`).
+Single giant `AGENTS.md` or `.cursorrules` files do not scale: agents either miss rules or burn context loading everything. Trellis provides a **progressive context management system** that splits workflow, specs, tasks, and workspace memory into structured files under `.trellis/`, then generates **platform adapters** (on Cursor: `.cursor/`) for deep integration.
+
+This is a **Cursor-optimized adaptation** of the original [Trellis framework by mindfold-ai](https://github.com/mindfold-ai/Trellis), focused on individual developers working with AI agents in Cursor.
 
 ## Monorepo layout
 
@@ -83,20 +85,37 @@ flowchart LR
 
 Public docs intentionally go deep only on **init / update / uninstall**; other commands are summarized in the [CLI README](../packages/cli/README.md).
 
-## smart-search integration
+## smart-search: Web research for AI agents
 
-The CLI package ships a third binary:
+Trellis includes [**smart-search**](https://github.com/blxzer77/smart-search), a standalone CLI tool that enables AI agents to retrieve current information from the web. When agents need external facts (recent events, latest package versions, current API documentation), the Trellis workflow automatically routes them to smart-search.
+
+### Key capabilities
+
+- **Multi-engine search**: Query across Google, Bing, Brave Search
+- **Content extraction**: Fetch and parse web pages with clean text output
+- **Deep research mode**: Iterative refinement for complex questions
+- **Agent-friendly output**: JSON format optimized for LLM consumption
+- **Readiness checks**: Built-in `doctor` command validates configuration
+
+### Integration in Trellis
+
+The CLI package ships smart-search as a vendored binary:
 
 ```bash
 smart-search --version
 ```
 
-- **Source layout**: vendored tree at `packages/cli/vendor/smart-search/`, wired through `packages/cli/bin/smart-search.js`.
-- **Purpose**: CLI-first web research (search, fetch, doctor, research mode) for agents—see vendor [README](../packages/cli/vendor/smart-search/README.md).
-- **Trellis workflow**: `.trellis/workflow.md` and generated agent guidance route **external facts** to smart-search first when healthy; project readiness checks run on `init`/`update` unless `--skip-readiness`.
-- **Not** an MCP server: agents invoke the shell command (often via project rules/skills on other platforms; on Cursor, via workflow + maintainer/project policy).
+**Technical details:**
+- **Source layout**: Vendored tree at `packages/cli/vendor/smart-search/`, wired through `packages/cli/bin/smart-search.js`
+- **Workflow routing**: `.trellis/workflow.md` and generated agent rules route external fact queries to smart-search first when healthy
+- **Readiness validation**: Project readiness checks run on `init`/`update` (skip with `--skip-readiness`)
+- **Not an MCP server**: Agents invoke the shell command directly (via workflow + project policy on Cursor)
 
-Updating the vendor snapshot is a **maintainer** concern (`pnpm run sync:smart-search` in `packages/cli`); see [maintainers.md](maintainers.md).
+### Standalone use
+
+smart-search is also available as an independent project. For detailed documentation, configuration options, and contribution guidelines, see the [smart-search repository](https://github.com/blxzer77/smart-search).
+
+**Vendor snapshot maintenance** is a maintainer concern (`pnpm run sync:smart-search` in `packages/cli`); see [maintainers.md](maintainers.md).
 
 ## Fork relationship
 
