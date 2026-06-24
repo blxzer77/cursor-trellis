@@ -18,14 +18,13 @@ Trellis/                          # This git repository
   pnpm-workspace.yaml
   packages/
     core/                         # @blxzer/cursor-trellis-core
-    cli/                          # @blxzer/cursor-trellis (bins: trellis, tl, smart-search)
+    cli/                          # @blxzer/cursor-trellis (bins: trellis, tl)
       src/
         cli/                      # Commander entry
         commands/                 # init, update, uninstall, …
         configurators/            # per-platform writers (cursor.ts, …)
         templates/                # embedded templates (cursor/, common/, trellis/, …)
         types/ai-tools.ts        # platform registry
-      vendor/smart-search/        # vendored smart-search payload for the smart-search bin
   docs/                           # Public documentation (this tree)
 ```
 
@@ -87,12 +86,16 @@ Public docs intentionally go deep only on **init / update / uninstall**; other c
 
 ## smart-search: Web research for AI agents
 
-Trellis includes [**smart-search**](https://github.com/blxzer77/smart-search), a standalone CLI tool that enables AI agents to retrieve current information from the web. When agents need external facts (recent events, latest package versions, current API documentation), the Trellis workflow automatically routes them to smart-search.
+Trellis integrates with [**smart-search**](https://github.com/blxzer77/smart-search), a standalone CLI tool that enables AI agents to retrieve current information from the web. smart-search is automatically installed as a dependency of `@blxzer/cursor-trellis`.
 
 ### Installation
 
+smart-search is installed automatically when you install cursor-trellis:
+
 ```bash
-npm install -g @blxzer/smart-search
+npm install -g @blxzer/cursor-trellis
+# smart-search is now available
+smart-search --version
 ```
 
 ### Key capabilities
@@ -105,9 +108,8 @@ npm install -g @blxzer/smart-search
 
 ### Integration in Trellis
 
-The CLI package can ship smart-search as a vendored binary (deprecated), but the recommended approach is to install it separately as shown above.
-
 **Technical details:**
+- **Dependency**: `@blxzer/cursor-trellis` depends on `@blxzer/smart-search@^0.1.0`
 - **Workflow routing**: `.trellis/workflow.md` and generated agent rules route external fact queries to smart-search first when healthy
 - **Readiness validation**: Project readiness checks run on `init`/`update` (skip with `--skip-readiness`)
 - **Not an MCP server**: Agents invoke the shell command directly (via workflow + project policy on Cursor)
