@@ -148,6 +148,10 @@ pnpm test
 | [packages/cli/README.zh-CN.md](packages/cli/README.zh-CN.md) | CLI / npm 参考 |
 | [CHANGELOG](packages/cli/CHANGELOG.md) | 包变更历史 |
 
+## 社区
+
+[LINUX DO](https://linux.do)
+
 ## 许可证
 
 AGPL-3.0-only — 见 `packages/cli/package.json`。

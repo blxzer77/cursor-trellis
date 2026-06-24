@@ -148,6 +148,10 @@ Local harness layout (`D:\MyHarness`), Git remote policy, release/publish, and d
 | [packages/cli/README.md](packages/cli/README.md) | CLI / npm reference |
 | [CHANGELOG](packages/cli/CHANGELOG.md) | Package history |
 
+## Community
+
+[LINUX DO](https://linux.do)
+
 ## License
 
 AGPL-3.0-only — see package metadata in `packages/cli/package.json`.
