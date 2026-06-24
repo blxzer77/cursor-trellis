@@ -840,10 +840,16 @@ Trellis compact SessionStart context. Use it to orient the session; load details
     )
     if _detect_platform(hook_input) == "cursor":
         output.write(
-            "\n**External web research (Cursor):** `smart-search-cli` + Bash first "
-            "(resolves PATH, optional `smart_search.command`, or "
-            "`Trellis/packages/cli/bin/smart-search.js`). "
-            "If `run_smart_search.py` returns `not_configured` or `failed` (incl. timeout), "
+            "\n**External web research (Cursor):** run "
+            f"`{_PYTHON_CMD} ./.trellis/scripts/run_smart_search.py \"<question>\" "
+            "--intent deep-research --json` first (Trellis evidence wrapper → "
+            "`smart-search` CLI). CLI discovery: `TRELLIS_SMART_SEARCH_COMMAND` / "
+            "`smart_search.command`, then PATH `smart-search`, then project "
+            "`node_modules/.bin/smart-search`, then optional repo-local layouts "
+            "(see `.trellis/spec/guides/retrieval-daily-guide.md`). "
+            "`smart-search-cli` is an internal workflow skill name — not a file under "
+            "`.cursor/skills/` on Cursor. "
+            "If `run_smart_search.py` status is `not_configured` or `failed` (incl. timeout), "
             "use **WebSearch/WebFetch**, persist `{TASK}/research/*.md` with "
             "`source: cursor-web-fallback`.\n"
         )
