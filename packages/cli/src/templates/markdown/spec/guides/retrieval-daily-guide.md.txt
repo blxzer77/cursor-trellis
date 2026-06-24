@@ -76,7 +76,7 @@ Paste into the **run report header** (markdown):
 
 When `smart-search doctor` is not ok or `run_smart_search.py` status is `not_configured` / `failed` (including **search timeout**), use **Cursor WebSearch/WebFetch**, then persist to `{TASK}/research/` with `source: cursor-web-fallback` in frontmatter. See `smart-search-cli` skill §4b.
 
-**CLI discovery (Cursor):** optional env/config override → PATH → `node_modules/.bin` / package script → optional harness wrappers (`Trellis/packages/cli/bin/smart-search.js`). No `.trellis/.runtime/` cache.
+**CLI discovery (Cursor):** `TRELLIS_SMART_SEARCH_COMMAND` / `smart_search.command` → PATH `smart-search` → project `node_modules/.bin/smart-search` (incl. `@blxzer/cursor-trellis`) → optional repo-local siblings (`cursor-trellis/`, `Trellis/`, `smartsearch-private/` npm wrapper). Agent entrypoint is always `./.trellis/scripts/run_smart_search.py`. No `.trellis/.runtime/` cache.
 
 ## Router vs execution
 

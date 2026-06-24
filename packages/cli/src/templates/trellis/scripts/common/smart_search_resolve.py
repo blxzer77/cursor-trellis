@@ -65,6 +65,12 @@ def _npm_local_wrappers(repo_root: Path) -> list[list[str]]:
         repo_root / "node_modules" / ".bin" / "smart-search.js",
         repo_root
         / "node_modules"
+        / "@blxzer"
+        / "cursor-trellis"
+        / "bin"
+        / "smart-search.js",
+        repo_root
+        / "node_modules"
         / "@konbakuyomu"
         / "smart-search"
         / "npm"
@@ -83,9 +89,28 @@ def _npm_local_wrappers(repo_root: Path) -> list[list[str]]:
     return out
 
 
-def _harness_wrappers(repo_root: Path) -> list[list[str]]:
-    """Optional polyrepo harness layouts (e.g. MyHarness)."""
+def _optional_repo_wrappers(repo_root: Path) -> list[list[str]]:
+    """
+    Optional repo-local layouts when PATH and node_modules resolution fail.
+
+    Order is intentional: published npm co-install, standalone smart-search package,
+    then maintainer polyrepo sibling checkouts (names vary by fork/upstream).
+    """
     candidates: list[Path] = [
+        repo_root
+        / "node_modules"
+        / "@blxzer"
+        / "cursor-trellis"
+        / "bin"
+        / "smart-search.js",
+        repo_root
+        / "node_modules"
+        / "@konbakuyomu"
+        / "smart-search"
+        / "npm"
+        / "bin"
+        / "smart-search.js",
+        repo_root / "cursor-trellis" / "packages" / "cli" / "bin" / "smart-search.js",
         repo_root / "Trellis" / "packages" / "cli" / "bin" / "smart-search.js",
         repo_root / "smartsearch-private" / "npm" / "bin" / "smart-search.js",
     ]
@@ -115,7 +140,7 @@ def resolve_smart_search_argv(repo_root: Path | None = None) -> list[str] | None
     for argv in _npm_local_wrappers(root):
         return argv
 
-    for argv in _harness_wrappers(root):
+    for argv in _optional_repo_wrappers(root):
         return argv
 
     return None

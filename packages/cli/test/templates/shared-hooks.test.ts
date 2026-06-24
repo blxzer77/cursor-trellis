@@ -156,6 +156,10 @@ describe("shared-hooks capability table", () => {
     expect(content).not.toContain("<workflow>");
     expect(content).toContain('if _detect_platform(hook_input) == "cursor"');
     expect(content).toContain("External web research (Cursor)");
+    expect(content).toContain("./.trellis/scripts/run_smart_search.py");
+    expect(content).toContain("retrieval-daily-guide.md");
+    expect(content).toContain("not a file under `.cursor/skills/`");
+    expect(content).not.toContain("Trellis/packages/cli/bin/smart-search.js");
     expect(content).toContain("cursor-web-fallback");
   });
 });
