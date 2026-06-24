@@ -27,8 +27,9 @@
 
 | | |
 | --- | --- |
-| **npm CLI** | `@blxzer/cursor-trellis`（`trellis`、`tl`、`smart-search`） |
+| **npm CLI** | `@blxzer/cursor-trellis`（`trellis`、`tl`） |
 | **Core SDK** | `@blxzer/cursor-trellis-core` |
+| **smart-search** | `@blxzer/smart-search`（自动安装的依赖） |
 | **本仓库** | https://github.com/blxzer77/cursor-trellis |
 | **原版 Trellis** | [mindfold-ai/Trellis](https://github.com/mindfold-ai/Trellis) |
 
@@ -102,18 +103,23 @@ your-app/
 
 ## smart-search 集成
 
-Trellis 包含 [smart-search](https://github.com/blxzer77/smart-search)，供 Agent 从网络获取实时信息的 CLI 工具（搜索引擎、抓取网页、深度研究模式、JSON 输出）。工作流在可用时将外部事实查询路由到 smart-search。
+Trellis 集成了 [smart-search](https://github.com/blxzer77/smart-search)，这是一个供 Agent 从网络获取实时信息的 CLI 工具。安装 cursor-trellis 时，smart-search 会作为依赖自动安装。
 
 **安装：**
+
+安装 cursor-trellis 时，smart-search 自动安装：
+
 ```bash
-npm install -g @blxzer/smart-search
+npm install -g @blxzer/cursor-trellis
+# smart-search 现已可用
+smart-search --version
 ```
 
 **链接：**
 - npm 包：https://www.npmjs.com/package/@blxzer/smart-search
 - GitHub 仓库：https://github.com/blxzer77/smart-search
 
-详见仓库了解配置和使用。
+工作流在可用时将外部事实查询路由到 smart-search。详见仓库了解配置和使用。
 
 ## 开发与验证
 

@@ -83,18 +83,23 @@ Not needed for quick one-file edits or exploratory coding.
 
 ## smart-search integration
 
-Trellis includes [smart-search](https://github.com/blxzer77/smart-search), a CLI tool for agents to retrieve current information from the web (search engines, fetch pages, deep research mode, JSON output). The workflow routes external fact queries to smart-search when available.
+Trellis integrates with [smart-search](https://github.com/blxzer77/smart-search), a CLI tool for agents to retrieve current information from the web. smart-search is automatically installed as a dependency when you install cursor-trellis.
 
 **Installation:**
+
+When you install cursor-trellis, smart-search is installed automatically:
+
 ```bash
-npm install -g @blxzer/smart-search
+npm install -g @blxzer/cursor-trellis
+# smart-search is now available
+smart-search --version
 ```
 
 **Links:**
 - npm package: https://www.npmjs.com/package/@blxzer/smart-search
 - GitHub repository: https://github.com/blxzer77/smart-search
 
-See the repository for configuration and usage details.
+The workflow routes external fact queries to smart-search when available. See the repository for configuration and usage details.
 
 ## Common commands
 
@@ -110,8 +115,9 @@ Full CLI reference: [packages/cli/README.md](packages/cli/README.md).
 
 | | |
 | --- | --- |
-| **npm CLI** | `@blxzer/cursor-trellis` (`trellis`, `tl`, `smart-search`) |
+| **npm CLI** | `@blxzer/cursor-trellis` (`trellis`, `tl`) |
 | **Core SDK** | `@blxzer/cursor-trellis-core` |
+| **smart-search** | `@blxzer/smart-search` (auto-installed dependency) |
 | **Repository** | https://github.com/blxzer77/cursor-trellis |
 | **Original Trellis** | [mindfold-ai/Trellis](https://github.com/mindfold-ai/Trellis) |
 
