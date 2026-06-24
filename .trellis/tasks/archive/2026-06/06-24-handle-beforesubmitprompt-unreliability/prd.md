@@ -66,10 +66,10 @@
 ## Acceptance Criteria
 
 - [x] Step 1: 双环境 marker probe 完成，C-2 确凿成立（L1+L2 双层失效）
-- [ ] Step 2: inject-retrieval-plan.py 降级为 telemetry-only 或从 hooks.json 注销
-- [ ] Step 3: retrieval-routing.mdc + AGENTS.md 覆盖关键路由指令，`alwaysApply: true` 确认
-- [ ] Step 4: cursor-context-injection-guide.md channel matrix 更新 beforeSubmitPrompt 行
-- [ ] hook 生产脚本已回滚与模板源一致（probe 改动清理完毕）
+- [x] Step 2: inject-retrieval-plan.py 降级为 telemetry-only 或从 hooks.json 注销
+- [x] Step 3: retrieval-routing.mdc + AGENTS.md 覆盖关键路由指令，`alwaysApply: true` 确认
+- [x] Step 4: cursor-context-injection-guide.md channel matrix 更新 beforeSubmitPrompt 行
+- [x] hook 生产脚本已回滚与模板源一致（probe 改动清理完毕）
 
 ## Notes
 
