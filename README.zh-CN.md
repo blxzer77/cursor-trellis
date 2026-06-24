@@ -81,16 +81,16 @@ your-app/
 4. 用户 **明确批准** 后 `start-execution --approved`。
 5. **验证** 并收尾（`/trellis-finish-work`）。
 
-实操指南：[docs/workflow.zh-CN.md](docs/workflow.zh-CN.md)。
+实操指南：[workflow.zh-CN.md](docs/workflow.zh-CN.md) — Triage 决策树、Task Ladder、升降级规则、Parent/Child 任务树、Phase 1–3 生命周期。
 
 ## Cursor 支持
 
-- **Rules** — 常驻策略（含 Triage）。
+- **Rules** — 常驻策略（含 Triage 与检索路由）。
 - **Commands** — 精简 `/` 面板（commands-only；默认不向 `.cursor/skills/` 写入内部 skills）。
 - **Agents** — `trellis-research`、`trellis-implement`、`trellis-check`。
 - **Hooks** — Python 脚本：会话、终端、子 Agent 上下文。
 
-深入说明：[docs/cursor.zh-CN.md](docs/cursor.zh-CN.md)。
+深入说明：[docs/cursor.zh-CN.md](docs/cursor.zh-CN.md) — Native vs Cursor++ BYOK 双环境、子 Agent 派发 Method 1–4、环境探测。检索层设计：[docs/retrieval.zh-CN.md](docs/retrieval.zh-CN.md)。
 
 ## 适用场景
 
@@ -143,6 +143,7 @@ pnpm test
 | --- | --- |
 | [docs/workflow.zh-CN.md](docs/workflow.zh-CN.md) | Cursor 中的任务生命周期 |
 | [docs/cursor.zh-CN.md](docs/cursor.zh-CN.md) | Cursor 生成文件 |
+| [docs/retrieval.zh-CN.md](docs/retrieval.zh-CN.md) | 检索层设计 |
 | [docs/architecture.zh-CN.md](docs/architecture.zh-CN.md) | 高层架构与 smart-search |
 | [packages/cli/README.zh-CN.md](packages/cli/README.zh-CN.md) | CLI / npm 参考 |
 | [CHANGELOG](packages/cli/CHANGELOG.md) | 包变更历史 |

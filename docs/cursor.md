@@ -2,7 +2,7 @@
 
 English | [简体中文](cursor.zh-CN.md)
 
-Trellis treats **Cursor** as a first-class platform. After you run `trellis init --cursor` in your project, the CLI writes a managed `.cursor/` tree plus the shared `.trellis/` workspace. This document explains what gets generated, how context reaches the agent, and how Cursor differs from other platforms in this fork.
+Trellis treats **Cursor** as a first-class platform. After you run `trellis init --cursor`, the CLI writes a managed `.cursor/` tree plus the shared `.trellis/` workspace. This document explains what gets generated, how context reaches the agent, how retrieval plans are injected, and how the two Cursor environments (Native API vs Cursor++ BYOK) differ for subagent dispatch.
 
 ## What `trellis init --cursor` does
 
@@ -29,15 +29,13 @@ On Cursor, Trellis uses a **commands-only** default:
 | Surface | On Cursor after init |
 | --- | --- |
 | `.cursor/commands/` | User-facing slash commands (`/trellis-continue`, `/trellis-finish-work`, optional Cursor++ setup) |
-| `.cursor/rules/*.mdc` | Always-on or glob-scoped rules (e.g. Request Triage hard gate) |
+| `.cursor/rules/*.mdc` | Always-on or glob-scoped rules (e.g. Request Triage hard gate, retrieval routing) |
 | `.cursor/agents/` | Sub-agent definitions (`trellis-research`, `trellis-implement`, `trellis-check`, …) |
 | `.cursor/hooks/` + `hooks.json` | Python hook scripts and wiring |
 | `.cursor/worktrees.json` | Cursor native worktree helper config |
 | `.cursor/skills/` | **Not** populated by default — internal workflow skills stay off the palette |
 
-Rationale: keep the `/` palette small and reliable. Workflow semantics still reach the agent through **rules** and **AGENTS.md** / `.trellis/workflow.md`, not through a large skills tree on Cursor.
-
-Other platforms (Claude Code, Codex, …) may ship skills under their own config dirs; that is intentional and documented only in the appendix below.
+**Rationale.** Keep the `/` palette small and reliable. Workflow semantics reach the agent through **rules** and **AGENTS.md** / `.trellis/workflow.md`, not through a large skills tree on Cursor. Other platforms (Claude Code, Codex, …) may ship skills under their own config dirs; that is intentional and documented only in the appendix below.
 
 ## Generated layout
 
@@ -48,7 +46,7 @@ your-project/
     spec/                # Coding guidelines by layer
     tasks/               # PRDs, design, implement, verify
     workspace/           # Journals and session traces
-    scripts/             # task.py, get_context.py, hooks helpers
+    scripts/             # task.py, get_context.py, hooks helpers, retrieval router
   AGENTS.md              # Entry instructions for agents
   .cursor/
     commands/
@@ -57,12 +55,13 @@ your-project/
       trellis-cursor2plus-setup.md   # Cursor-only (BYOK routing)
     rules/
       trellis-triage.mdc             # alwaysApply: true
+      retrieval-routing.mdc          # alwaysApply: true
     agents/
       trellis-research.md
       trellis-implement.md
       trellis-check.md
     hooks/
-      *.py                           # sessionStart, preToolUse, shell, stop, …
+      *.py                           # sessionStart, preToolUse, beforeSubmitPrompt, shell, stop, …
     hooks.json
     worktrees.json
 ```
@@ -71,29 +70,30 @@ Implementation reference: `packages/cli/src/configurators/cursor.ts` and `packag
 
 ## Rules
 
-Cursor **User Rules** and project **`.cursor/rules`** are the reliable channel for always-on policy on Cursor.
+Cursor **User Rules** and project **`.cursor/rules`** are the reliable channel for always-on policy on Cursor. Trellis ships two always-on rules:
 
-Trellis ships `trellis-triage.mdc` with `alwaysApply: true` so **Request Triage** runs before durable work. This compensates for a known Cursor limitation: `sessionStart` hook `additional_context` may not reach the agent (#158452). Triage therefore must not depend only on hook-injected workflow text.
+- `trellis-triage.mdc` (`alwaysApply: true`) — enforces **Request Triage** before durable work.
+- `retrieval-routing.mdc` (`alwaysApply: true`) — enforces [retrieval layer](retrieval.md) routing for codebase questions.
+
+This compensates for a known Cursor limitation: `sessionStart` hook `additional_context` may not reach the agent (#158452). Triage and retrieval policy therefore must not depend only on hook-injected workflow text.
 
 For day-to-day edits, treat `.trellis/workflow.md` as the canonical workflow spec; rules summarize the hard gates agents must follow in chat.
 
 ## Slash commands
 
-Cursor exposes Trellis through **slash commands** under `.cursor/commands/`:
-
 | Command file | Typical invocation | Purpose |
 | --- | --- | --- |
 | `trellis-continue.md` | `/trellis-continue` | Resume the active task with Trellis context |
 | `trellis-finish-work.md` | `/trellis-finish-work` | Close out verification, learning, and task status |
-| `trellis-cursor2plus-setup.md` | `/trellis-cursor2plus-setup` | Map subagent roles to Cursor++ BYOK models (optional) |
+| `trellis-cursor2plus-setup.md` | `/trellis-cursor2plus-setup` | Map subagent roles to Cursor++ BYOK models (optional, BYOK only) |
 
 Placeholder prefix on Cursor is `/trellis-` (see `AI_TOOLS.cursor.templateContext` in `packages/cli/src/types/ai-tools.ts`).
 
 ## Agents (subagents)
 
-Files in `.cursor/agents/` define **Task** subagents with isolated context—for example research, implementation, and check/review passes. Hooks can inject extra context when the agent spawns a subagent (`preToolUse` matcher `Task|Subagent` in `hooks.json`).
+Files in `.cursor/agents/` define **Task** subagents with isolated context — for example research, implementation, and check/review passes. Hooks can inject extra context when the agent spawns a subagent (`preToolUse` matcher `Task|Subagent` in `hooks.json`).
 
-Prefer named Trellis agents over ad-hoc prompts when a step needs a clean context window.
+Prefer named Trellis agents over ad-hoc prompts when a step needs a clean context window. See [Subagent dispatch strategy](#subagent-dispatch-strategy) below for environment-specific model routing.
 
 ## Hooks
 
@@ -101,40 +101,95 @@ Prefer named Trellis agents over ad-hoc prompts when a step needs a clean contex
 
 | Hook | Role |
 | --- | --- |
-| `sessionStart` | Session bootstrap (workflow context; subject to Cursor injection limits) |
-| `preToolUse` | Subagent context injection |
+| `sessionStart` | Session bootstrap (workflow context; subject to Cursor injection limits — #158452) |
+| `preToolUse` | Subagent context injection (best-effort on Cursor) |
+| `beforeSubmitPrompt` | Per-query retrieval plan injection (`inject-retrieval-plan.py` → `## 代码库检索计划` block) |
 | `beforeShellExecution` | Shell/session context for terminal tools |
 | `stop` | End-of-turn retrieval pack (research workflow) |
 
 Local overrides may live in `.trellis/hooks.local.json` (gitignored in Trellis source policy). Requires **Python ≥ 3.9** on the machine where hooks run.
 
-## Cursor++ (BYOK) configuration
+For the retrieval injection channel, see [Retrieval layer design](retrieval.md#cursor-dual-injection-channel).
 
-If you use Cursor++ (Bring Your Own Key), you can map custom models to Trellis subagent roles.
+## Cursor environments (Native vs BYOK)
 
-### Setup
+Trellis supports two Cursor environments. The **same** `trellis-*` subagent names are reached via three entry points (Agent session, Task dispatch, Skill form) with **different** model routing. Identify your entry point before touching model config.
 
-```bash
-trellis init --cursor --cursor2plus
+### Environment comparison
+
+| Capability | Native Cursor API | Cursor++ BYOK |
+| --- | --- | --- |
+| Agent frontmatter `model:` | ✅ Works (server-side routing) | ❌ Not wired for `trellis-*`; frontmatter ignored |
+| Cursor Settings per-agent model UI | ✅ Works | ❌ Does not populate `subagentModelOverrides` for `trellis-*` |
+| Explore subagent model | ✅ Native model picker | ✅ Independent model via Cursor++ panel (v0.0.11+) |
+| Task subagent (`trellis-*`) model | ✅ Frontmatter / Settings | ❌ Without Method 2.5, **inherits** parent session BYOK model |
+| Built-in `@codebase` semantic search | ✅ `platformNative: true` | ❌ Not in agent tool list |
+| `fast_context_search` MCP | Not Primary | ✅ Required for concept retrieval |
+
+### Environment detection
+
+`cursorEnv` is resolved from (first match wins):
+
+1. `TRELLIS_CURSOR_BYOK=0|1` environment variable
+2. `~/.ccursor/routes.json` `byokMode` field
+3. Presence of `~/.ccursor/providers.json` (Cursor++ data dir)
+
+The router envelope (`route_codebase_retrieval.py`) always includes `cursorEnv` so the agent knows which semantic backend to call. See [Semantic routing](retrieval.md#semantic-routing-cursor).
+
+## Subagent dispatch strategy
+
+When a subagent dispatch is imminent, the dispatch method depends on environment and user choice. The abstract policy is `model_policy: cursor-configured` — Trellis workflow, agents, skills, and hooks **must not** hardcode vendor model IDs in committed defaults.
+
+### Dispatch methods
+
+| Method | Environment | Mechanism | Use when |
+| --- | --- | --- | --- |
+| **1. Inherit** (default) | Both | Custom Task subagents inherit parent session model. No frontmatter edit. | Parent model is appropriate; user says "inherit" / "用当前模型派发" |
+| **2. Explore + custom model** | BYOK | Dispatch built-in **Explore** subagent (read-only) with independent model via Cursor++ panel | Pure codebase exploration; no file writing, no external search |
+| **2.5. BYOK proxy map** | BYOK only | Reversible patch to Cursor++ `extension.js` resolver `WPeLc8`; maps `subagentType` → BYOK slug from `~/.ccursor/trellis-task-models.json5`; evaluated **before** inherit branch | Need fixed per-role models for `trellis-research` / `trellis-implement` / `trellis-check` under BYOK |
+| **2.6. Temporary Task types** | BYOK | Add `.cursor/agents/trellis-worker-<id>.md` + project `subagent-models.json` key; re-run patch; dispatch; remove when done | Rare per-dispatch model without changing global slots |
+| **3. Manual dispatch** | Both | Main session prepares full dispatch prompt; user opens new chat, selects model, pastes prompt, returns results | Subagent work benefits significantly from a different model, Method 2.5 unavailable |
+| **4. Ephemeral overlay** | Native only | Before dispatch: edit frontmatter `model: <id>`; after dispatch: restore frontmatter | Native API, need temporary per-dispatch model. **Does NOT work under BYOK** |
+
+### Method 2.5 detail (BYOK json5 patch)
+
+**What it is:** a reversible patch to Cursor++ `extension.js` resolver `WPeLc8` that maps `subagentType` → BYOK catalog slug (`model-xxxxx`), evaluated before the inherit-parent branch. Verified against Cursor++ v0.0.11+.
+
+**Trellis ships** (every `trellis init` / `trellis update`, when `--cursor2plus` is passed): `.trellis/local/cursor2plus/` containing `patch_wpelc8.py`, `README.md`, `config.local.json.example`. Native Cursor API users can ignore this directory.
+
+**Operator workflow (BYOK only):**
+
+1. Fill `~/.ccursor/trellis-task-models.json5` with `subagent_type` → slug from `~/.ccursor/providers.json` `id` fields.
+2. Optionally override per repo: `.trellis/local/subagent-models.json` (project wins on same key).
+3. From `.trellis/local/cursor2plus/`: `python patch_wpelc8.py --print-map` → `python patch_wpelc8.py` → **Developer: Reload Window**.
+4. Verify: `taskToolCall dispatching` → `resolvedModelId` matches slug.
+5. **Revert:** `python patch_wpelc8.py --revert`; Reload Window. Re-run patch after Cursor / Cursor++ upgrades.
+
+Native Cursor API: **stop** — frontmatter `model:` works; Method 2.5 does not apply.
+
+### `--cursor2plus` initialization
+
+Pass both `--cursor` and `--cursor2plus` to `trellis init` to materialize the BYOK local bundle at `.trellis/local/cursor2plus/`. This adds the `/trellis-cursor2plus-setup` slash command, which launches an agent-led workflow to write the json5 model map. Without `--cursor2plus`, this directory is absent and BYOK users must manage the patch manually if they want Method 2.5.
+
+### When to ask the user for model choice
+
+**Ask** when a subagent dispatch is imminent **AND** the dispatch method depends on user choice (e.g. Method 2 vs 2.5 vs 3).
+
+**Do not ask** for: planning-only turns, PRD Grill / micro-grill, inline edits in the main session, `trellis-check` skill without spawning the check agent, or any turn where no Trellis subagent will run this round.
+
+Task mode (Lite / Full / Parent) does **not** by itself trigger the question — only **impending subagent dispatch** does.
+
+### Dispatch decision flow
+
+```text
+Subagent dispatch needed
+├─ Cursor++ BYOK + trellis-* needs fixed per-role models?
+│  └─ Method 2.5 applied on this machine? → dispatch Task normally (map handles routing)
+├─ Parent model appropriate for trellis-*? → Method 1 (inherit)
+├─ Read-only codebase exploration only? → Method 2 (Explore + Cursor++ panel)
+├─ Native Cursor API (non-BYOK)? → Method 1 (inherit) or Method 4 (ephemeral frontmatter)
+└─ Need a different model, Method 2.5 unavailable? → Method 3 (manual dispatch)
 ```
-
-This creates `.trellis/local/cursor2plus/` and adds `/trellis-cursor2plus-setup` command.
-
-### Usage
-
-Run `/trellis-cursor2plus-setup` in Cursor to map your configured models to:
-- `trellis-research` — context gathering, codebase exploration
-- `trellis-implement` — code generation and editing
-- `trellis-check` — review and verification
-
-Configuration is stored in `.trellis/local/cursor2plus/model-mapping.json` (gitignored).
-
-### Notes
-
-- Optional: default Cursor routing works without this
-- Requires Cursor++ subscription and configured custom models
-- Per-developer configuration (not shared in git)
-- See the generated command documentation for provider-specific setup
 
 ## Keeping Cursor files current
 
@@ -153,6 +208,7 @@ trellis uninstall
 ## See also
 
 - [Workflow in Cursor](workflow.md)
+- [Retrieval layer design](retrieval.md)
 - [Architecture](architecture.md)
 - [CLI package reference](../packages/cli/README.md)
 - [Project README](../README.md)
