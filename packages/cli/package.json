@@ -7,7 +7,8 @@
   "types": "./dist/index.d.ts",
   "bin": {
     "trellis": "./bin/trellis.js",
-    "tl": "./bin/trellis.js"
+    "tl": "./bin/trellis.js",
+    "smart-search": "./bin/smart-search.js"
   },
   "publishConfig": {
     "access": "public"
