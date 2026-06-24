@@ -1,4 +1,0 @@
-{
-  "_comment": "Optional project overrides. Keys are Task subagent_type strings. Values are slug id from ~/.ccursor/providers.json. Project file wins over ~/.ccursor/trellis-task-models.json for the same key.",
-  "trellis-implement": "model-REPLACE_ME"
-}
