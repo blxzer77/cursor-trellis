@@ -10,7 +10,8 @@ M-2 fix: Workspace-root .cursor/hooks/inject-subagent-context.py has a UTF-8 BOM
 
 ## Acceptance Criteria
 
-- [ ] TBD
+- [x] Template `inject-subagent-context.py` strips UTF-8 BOM before JSON parse
+- [x] Dogfood copy matches template thin-wrapper
 
 ## Notes
 
