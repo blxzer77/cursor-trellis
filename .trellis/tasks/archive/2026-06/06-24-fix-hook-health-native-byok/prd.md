@@ -36,15 +36,15 @@
 
 ## Acceptance Criteria
 
-- [ ] 在标准 Windows（无 python3 shim）上，sessionStart 注入的 Next-Action 提示中的命令可执行
-- [ ] 模板源 `inject-subagent-context.py` 对 BOM 前缀 stdin 不再静默退出
-- [ ] `cursor-trellis` 作为工作区根独立打开时，5 个注册的 hook 文件全部存在且为最新模板源版本
-- [ ] C-2 经 marker probe 获得决定性证据；`inject-retrieval-plan.py` 降级为 telemetry-only（若 probe 确认）
-- [ ] `.cursor/rules/retrieval-routing.mdc` 或 `AGENTS.md` 覆盖了原 `beforeSubmitPrompt` 注入的关键路由指令
-- [ ] `cursor-context-injection-guide.md` channel matrix 新增 `beforeSubmitPrompt` 行并标注可靠性
-- [ ] debug 脚手架与 stale log 清理完毕
-- [ ] `pnpm test` / `pnpm lint` / `pnpm typecheck` 全绿（涉及 TS 模板的子任务）
-- [ ] Hook 脚本在 BYOK 环境（`~/.ccursor/routes.json` byokMode=1）下路由正确
+- [x] 在标准 Windows（无 python3 shim）上，sessionStart 注入的 Next-Action 提示中的命令可执行
+- [x] 模板源 `inject-subagent-context.py` 对 BOM 前缀 stdin 不再静默退出
+- [x] `cursor-trellis` 作为工作区根独立打开时，5 个注册的 hook 文件全部存在且为最新模板源版本
+- [x] C-2 经 marker probe 获得决定性证据；`inject-retrieval-plan.py` 降级为 telemetry-only（若 probe 确认）
+- [x] `.cursor/rules/retrieval-routing.mdc` 或 `AGENTS.md` 覆盖了原 `beforeSubmitPrompt` 注入的关键路由指令
+- [x] `cursor-context-injection-guide.md` channel matrix 新增 `beforeSubmitPrompt` 行并标注可靠性
+- [x] debug 脚手架与 stale log 清理完毕（cursor-trellis 范围）
+- [ ] `pnpm test` / `pnpm lint` / `pnpm typecheck` 全绿（涉及 TS 模板的子任务）— hook 变更以 Python 为主，未改 TS 模板
+- [x] Hook 脚本在 BYOK 环境（`~/.ccursor/routes.json` byokMode=1）下路由正确（检索路由由 rules 承载）
 
 ## Out of Scope
 
