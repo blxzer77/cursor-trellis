@@ -1,0 +1,9 @@
+{
+  "version": "0.2.3",
+  "description": "v0.2.3 — 修复 smart-search bin wrapper。",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**@blxzer/cursor-trellis 0.2.3 和 @blxzer/cursor-trellis-core 0.2.3**\n\n### Fixed\n- fix(bin): 添加 smart-search bin wrapper，将命令转发到 @blxzer/smart-search 依赖包\n- fix(scripts): 更新 check-release-pack-contents.js，移除 vendor/ 路径检查\n- docs(readme): 更新中文 README，移除 vendor 相关说明\n\n### Upgrade notes\n- 运行 `npm install -g @blxzer/cursor-trellis@latest` 升级\n- smart-search 命令现在可以全局使用",
+  "migrations": [],
+  "notes": "修复 smart-search 命令不可用的问题。"
+}
