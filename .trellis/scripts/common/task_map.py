@@ -177,6 +177,7 @@ def validate_parent_child_integration(
     evidence: str,
     ref: str | None = None,
     reason: str | None = None,
+    current_state_override: str | None = None,
 ) -> list[str]:
     """Validate a Parent-controlled Child integration state transition."""
     errors: list[str] = []
@@ -209,7 +210,11 @@ def validate_parent_child_integration(
         errors.append(f"child missing from task-map.md: {child_name}")
         return errors
 
-    current_state = child.get("state")
+    current_state = (
+        current_state_override
+        if current_state_override is not None
+        else child.get("state")
+    )
     if state in {"accepted", "changes"} and current_state != "review":
         errors.append(f"{state} requires current Child state 'review', got {current_state!r}")
     if state == "integrating" and current_state != "accepted":
@@ -236,6 +241,29 @@ def validate_parent_child_integration(
                 errors.append(
                     f"merge_limit {merge_limit} blocks integrating {child_name}; already integrating: {', '.join(str(item) for item in integrating)}"
                 )
+
+    if state == "accepted":
+        from .task_gates import task_closeout_profile, validate_transition_readiness
+
+        profile = task_closeout_profile(child_dir, child_data)
+        if profile == "full":
+            errors.extend(
+                validate_transition_readiness(
+                    child_dir,
+                    child_data,
+                    "child-review",
+                    mode="complete",
+                )
+            )
+        elif profile == "parent":
+            errors.extend(
+                validate_transition_readiness(
+                    child_dir,
+                    child_data,
+                    "parent-integrated",
+                    mode="complete",
+                )
+            )
 
     return errors
 

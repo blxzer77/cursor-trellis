@@ -78,29 +78,36 @@ MAX_REASON = 500
 REVIEWER_RE = re.compile(r"^[A-Za-z0-9_.:@/-]+$")
 VALIDATION_EVIDENCE_RE = re.compile(
     r"(?im)^\s*(?:[-*]\s*)?validation"
-    r"(?:\s+(?:commands?|results?|evidence))?\s*:\s*\S"
+    r"(?:\s+(?:commands?|results?|evidence))?\s*:\s*(\S[^\r\n]*)$"
 )
 ACCEPTANCE_EVIDENCE_RE = re.compile(
     r"(?im)^\s*(?:[-*]\s*)?(?:final\s+|user\s+)?acceptance"
-    r"(?:\s+evidence)?\s*:\s*\S"
+    r"(?:\s+evidence)?\s*:\s*(\S[^\r\n]*)$"
 )
 ACCEPTED_BY_USER_RE = re.compile(
-    r"(?im)^\s*(?:[-*]\s*)?accepted\s+by\s+user\s*:\s*\S"
+    r"(?im)^\s*(?:[-*]\s*)?accepted\s+by\s+user\s*:\s*(\S[^\r\n]*)$"
 )
 NO_DURABLE_LEARNING_RE = re.compile(r"(?i)\bno\s+durable\s+learning\b")
 DURABLE_LEARNING_EVIDENCE_RE = re.compile(
-    r"(?im)^\s*(?:[-*]\s*)?(?:durable\s+learning|learning\s+decision|"
+    r"(?im)^\s*(?:[-*]\s*)?(?:durable\s+learning(?:\s+decision)?|learning\s+decision|"
     r"spec\s+updates?|spec\s+update\s+(?:needed|evidence)|updated\s+spec|"
-    r"retrospective(?:\.md)?|learning\s+artifact)\s*:\s*\S"
+    r"retrospective(?:\.md)?|learning\s+artifact)\s*:\s*(\S[^\r\n]*)$"
 )
 INTEGRATION_EVIDENCE_RE = re.compile(
     r"(?im)^\s*(?:[-*]\s*)?(?:final\s+)?integration"
-    r"(?:\s+evidence)?\s*:\s*\S"
+    r"(?:\s+evidence)?\s*:\s*(\S[^\r\n]*)$"
 )
 REVIEWED_CHANGE_SET_RE = re.compile(
     r"(?im)^\s*(?:[-*]\s*)?(?:reviewed\s+)?"
     r"(?:change[- ]set|changeset|diff|git\s+diff|ref|git\s+ref)"
     r"(?:\s+(?:identity|evidence|summary|ref))?\s*:\s*(\S[^\r\n]*)$"
+)
+CHECK_EVIDENCE_RE = re.compile(
+    r"(?im)^\s*(?:[-*]\s*)?(?:check\s+evidence|trellis-check(?:\s+evidence)?)"
+    r"\s*:\s*(\S[^\r\n]*)$"
+)
+PLACEHOLDER_VALUES_RE = re.compile(
+    r"(?i)^(TBD|TODO|待定|待补充|N/?A|NA|NONE|-|\.\.\.)$"
 )
 PRD_ACCEPTANCE_CRITERIA_HEADING_RE = re.compile(
     r"(?im)^\s*#{1,6}\s*acceptance\s+criteria\s*$"
@@ -152,6 +159,7 @@ class GateGuardResult:
     required_gates: list[str] = field(default_factory=list)
     baseline_record: dict | None = None
     is_full_task: bool = False
+    closeout_profile: str = "lite"
     auto_gate_records: dict[str, dict] = field(default_factory=dict)
 
 
@@ -167,9 +175,13 @@ def normalize_result(result: str) -> str:
     return result.strip().upper()
 
 
-def is_full_task(task_dir: Path, task_data: dict | None = None) -> bool:
-    """Return True when a task should satisfy Full Task gates."""
+def task_closeout_profile(task_dir: Path, task_data: dict | None = None) -> str:
+    """Return lite, full, or parent closeout profile."""
     data = task_data or {}
+    child_names = data.get("children")
+    if isinstance(child_names, list) and any(isinstance(name, str) for name in child_names):
+        return "parent"
+
     meta = data.get("meta") if isinstance(data.get("meta"), dict) else {}
     candidates = [
         data.get("task_kind"),
@@ -182,16 +194,29 @@ def is_full_task(task_dir: Path, task_data: dict | None = None) -> bool:
         meta.get("mode"),
     ]
 
+    explicit_lite = False
     for value in candidates:
         if not isinstance(value, str):
             continue
         normalized = value.lower().replace("_", "-")
+        if "parent" in normalized:
+            return "parent"
         if "full" in normalized:
-            return True
+            return "full"
         if "lite" in normalized:
-            return False
+            explicit_lite = True
 
-    return (task_dir / "design.md").is_file() and (task_dir / "implement.md").is_file()
+    if explicit_lite:
+        return "lite"
+
+    if (task_dir / "design.md").is_file() and (task_dir / "implement.md").is_file():
+        return "full"
+    return "lite"
+
+
+def is_full_task(task_dir: Path, task_data: dict | None = None) -> bool:
+    """Return True when a task should satisfy Full Task gates."""
+    return task_closeout_profile(task_dir, task_data) == "full"
 
 
 def read_strategy_contract(task_dir: Path) -> tuple[dict, list[str]]:
@@ -486,6 +511,19 @@ def build_reviewer_gate_record(
     if errors:
         return None, errors, warnings
 
+    if normalized_result in ("PASS", "SKIPPED"):
+        errors.extend(
+            validate_transition_readiness(
+                task_dir,
+                task_data,
+                transition,
+                gate=gate,
+                mode="record",
+            )
+        )
+        if errors:
+            return None, errors, warnings
+
     contract, contract_errors = read_strategy_contract(task_dir) if is_full_task(task_dir, task_data) else ({}, [])
     if contract_errors:
         errors.extend(contract_errors)
@@ -689,6 +727,197 @@ def validate_start_execution_check(
     return result
 
 
+def validate_transition_readiness(
+    task_dir: Path,
+    task_data: dict | None,
+    transition: str,
+    *,
+    gate: str | None = None,
+    mode: str = "record",
+) -> list[str]:
+    """Validate transition evidence and, in complete mode, required gate records."""
+    if task_data is None:
+        return ["task.json"]
+
+    errors: list[str] = []
+    if transition not in KNOWN_TRANSITIONS:
+        errors.append(f"unknown transition: {transition}")
+        return errors
+
+    profile = task_closeout_profile(task_dir, task_data)
+
+    if mode == "record":
+        if not gate:
+            errors.append("gate is required for record readiness checks")
+            return errors
+        required_signals = _evidence_requirements_for_gate(transition, gate)
+        errors.extend(_evidence_errors_for_signals(task_dir, task_data, required_signals))
+        return errors
+
+    if transition == "child-review":
+        if profile != "full":
+            return errors
+        contract, contract_errors = read_strategy_contract(task_dir)
+        errors.extend(contract_errors)
+        if contract_errors:
+            return errors
+        return errors + _complete_transition_gate_errors(
+            task_dir,
+            task_data,
+            transition,
+            contract,
+            required_gates_for_transition(transition, contract),
+        )
+
+    if transition == "full-task-complete":
+        if profile != "full":
+            return errors
+        contract, contract_errors = read_strategy_contract(task_dir)
+        errors.extend(contract_errors)
+        if contract_errors:
+            return errors
+        return errors + _complete_transition_gate_errors(
+            task_dir,
+            task_data,
+            transition,
+            contract,
+            required_gates_for_transition(transition, contract),
+        )
+
+    if transition == "parent-integrated":
+        if profile != "parent":
+            return errors
+        child_names = task_data.get("children")
+        if isinstance(child_names, list):
+            errors.extend(
+                validate_parent_children_complete(
+                    task_dir,
+                    [name for name in child_names if isinstance(name, str)],
+                )
+            )
+        errors.extend(
+            _evidence_errors_for_signals(task_dir, task_data, ["integration"])
+        )
+        contract: dict = {}
+        if (task_dir / "implement.md").is_file():
+            contract, contract_errors = read_strategy_contract(task_dir)
+            errors.extend(contract_errors)
+            if contract_errors:
+                return errors
+        return errors + _complete_transition_gate_errors(
+            task_dir,
+            task_data,
+            transition,
+            contract,
+            required_gates_for_transition(transition, contract),
+        )
+
+    return errors
+
+
+def _complete_transition_gate_errors(
+    task_dir: Path,
+    task_data: dict,
+    transition: str,
+    contract: dict,
+    required_gates: list[str],
+) -> list[str]:
+    errors: list[str] = []
+    contract_fingerprint = compute_contract_fingerprint(task_dir, task_data, contract)
+    for gate_name in required_gates:
+        artifact_fingerprint = compute_artifact_fingerprint(
+            task_dir, task_data, transition, gate_name
+        )
+        errors.extend(
+            _validate_gate_record_for_transition(
+                task_data=task_data,
+                transition=transition,
+                gate=gate_name,
+                contract_fingerprint=contract_fingerprint,
+                artifact_fingerprint=artifact_fingerprint,
+            )
+        )
+        errors.extend(
+            _evidence_errors_for_signals(
+                task_dir,
+                task_data,
+                _evidence_requirements_for_gate(transition, gate_name),
+            )
+        )
+    return errors
+
+
+def _evidence_requirements_for_gate(transition: str, gate: str) -> list[str]:
+    if gate == "code-review" and transition in ("full-task-complete", "child-review"):
+        return ["validation", "check_evidence", "reviewed_change_set"]
+    if gate == "integration-review" and transition == "parent-integrated":
+        return ["integration"]
+    if gate in ("architecture-review", "architecture-deep-review") and transition in (
+        "full-task-complete",
+        "child-review",
+    ):
+        return ["validation", "check_evidence"]
+    return []
+
+
+def _evidence_errors_for_signals(
+    task_dir: Path,
+    task_data: dict,
+    required_signals: list[str],
+) -> list[str]:
+    status = verify_evidence_status(task_dir, task_data)
+    label_map = {
+        "validation": "verify.md missing substantive validation evidence",
+        "check_evidence": "verify.md missing check evidence",
+        "acceptance": "verify.md missing final acceptance evidence",
+        "durable_learning": "verify.md missing durable-learning decision evidence",
+        "integration": "verify.md missing final integration evidence",
+        "reviewed_change_set": (
+            "verify.md or handoff.md missing reviewed change-set evidence"
+        ),
+    }
+    errors: list[str] = []
+    for signal in required_signals:
+        if not status.get(signal):
+            errors.append(label_map.get(signal, f"missing evidence signal: {signal}"))
+    return errors
+
+
+def verify_evidence_status(task_dir: Path, task_data: dict) -> dict[str, bool]:
+    """Return substantive evidence signals from verify.md and handoff.md."""
+    verify_path = task_dir / "verify.md"
+    content = ""
+    if verify_path.is_file():
+        try:
+            content = verify_path.read_text(encoding="utf-8")
+        except OSError:
+            content = ""
+
+    handoff_path = task_dir / "handoff.md"
+    handoff_content = ""
+    if handoff_path.is_file():
+        try:
+            handoff_content = handoff_path.read_text(encoding="utf-8")
+        except OSError:
+            handoff_content = ""
+
+    child_names = task_data.get("children")
+    has_children = isinstance(child_names, list) and bool(child_names)
+    return {
+        "validation": _has_substantive_validation_evidence(content),
+        "check_evidence": _has_substantive_check_evidence(content),
+        "acceptance": _has_substantive_acceptance_evidence(content),
+        "durable_learning": _has_durable_learning_evidence(content),
+        "integration": (
+            _has_substantive_integration_evidence(content) if has_children else True
+        ),
+        "reviewed_change_set": (
+            _has_substantive_reviewed_change_set(content)
+            or _has_substantive_reviewed_change_set(handoff_content)
+        ),
+    }
+
+
 def validate_archive(
     task_dir: Path,
     task_data: dict | None,
@@ -720,23 +949,41 @@ def validate_archive(
             )
         )
 
-    full_task = is_full_task(task_dir, task_data)
+    profile = task_closeout_profile(task_dir, task_data)
     contract: dict = {}
     required_gates: list[str] = []
     artifact_fingerprints: dict[str, str] = {}
     baseline_record = None
 
-    if full_task:
+    if profile == "full":
         contract, contract_errors = read_strategy_contract(task_dir)
         errors.extend(contract_errors)
         if not contract_errors:
             required_gates = required_gates_for_transition(
                 "full-task-complete", contract
             )
+            errors.extend(
+                validate_transition_readiness(
+                    task_dir,
+                    task_data,
+                    "full-task-complete",
+                    mode="complete",
+                )
+            )
+    elif profile == "parent":
+        errors.extend(
+            validate_transition_readiness(
+                task_dir,
+                task_data,
+                "parent-integrated",
+                mode="complete",
+            )
+        )
+        required_gates = required_gates_for_transition("parent-integrated", contract)
 
     contract_fingerprint = compute_contract_fingerprint(task_dir, task_data, contract)
 
-    if full_task:
+    if profile == "full" and not errors:
         artifact_fingerprints[BASELINE_GATE] = compute_artifact_fingerprint(
             task_dir, task_data, "full-task-complete", BASELINE_GATE
         )
@@ -744,19 +991,9 @@ def validate_archive(
             artifact_fingerprints[gate] = compute_artifact_fingerprint(
                 task_dir, task_data, "full-task-complete", gate
             )
-            errors.extend(
-                _validate_gate_record_for_transition(
-                    task_data=task_data,
-                    transition="full-task-complete",
-                    gate=gate,
-                    contract_fingerprint=contract_fingerprint,
-                    artifact_fingerprint=artifact_fingerprints[gate],
-                )
-            )
-        if not errors:
-            baseline_record = make_baseline_record(
-                task_dir, task_data, "full-task-complete", contract
-            )
+        baseline_record = make_baseline_record(
+            task_dir, task_data, "full-task-complete", contract
+        )
 
     return GateGuardResult(
         ok=not errors,
@@ -765,7 +1002,8 @@ def validate_archive(
         artifact_fingerprints=artifact_fingerprints,
         required_gates=required_gates,
         baseline_record=baseline_record,
-        is_full_task=full_task,
+        is_full_task=profile == "full",
+        closeout_profile=profile,
     )
 
 
@@ -776,41 +1014,89 @@ def _verify_evidence_errors(task_dir: Path, task_data: dict) -> list[str]:
         return []
 
     try:
-        content = verify_path.read_text(encoding="utf-8")
+        verify_path.read_text(encoding="utf-8")
     except OSError:
         return ["verify.md could not be read for archive evidence"]
 
     errors: list[str] = []
-    if not _has_validation_evidence(content):
+    status = verify_evidence_status(task_dir, task_data)
+    if not status["validation"]:
         errors.append("verify.md missing validation evidence")
-    if not _has_final_acceptance_evidence(content):
+    if not status["acceptance"]:
         errors.append("verify.md missing final acceptance evidence")
-    if not _has_durable_learning_evidence(content):
+    if not status["durable_learning"]:
         errors.append("verify.md missing durable-learning decision evidence")
-
-    child_names = task_data.get("children")
-    if isinstance(child_names, list) and child_names:
-        if not INTEGRATION_EVIDENCE_RE.search(content):
-            errors.append("verify.md missing final integration evidence")
+    if not status["integration"]:
+        errors.append("verify.md missing final integration evidence")
 
     return errors
 
 
+def _is_substantive_evidence(value: str | None) -> bool:
+    if not value or not isinstance(value, str):
+        return False
+    stripped = value.strip()
+    if len(stripped) < 3:
+        return False
+    return not PLACEHOLDER_VALUES_RE.match(stripped)
+
+
+def _has_substantive_line_match(content: str, pattern: re.Pattern[str]) -> bool:
+    if not content:
+        return False
+    for match in pattern.finditer(content):
+        if match.lastindex and match.lastindex >= 1:
+            if _is_substantive_evidence(match.group(1)):
+                return True
+            continue
+        line = match.group(0)
+        if ":" in line:
+            value = line.split(":", 1)[1].strip()
+            if _is_substantive_evidence(value):
+                return True
+    return False
+
+
+def _has_substantive_validation_evidence(content: str) -> bool:
+    return _has_substantive_line_match(content, VALIDATION_EVIDENCE_RE)
+
+
+def _has_substantive_check_evidence(content: str) -> bool:
+    return _has_substantive_line_match(content, CHECK_EVIDENCE_RE)
+
+
+def _has_substantive_acceptance_evidence(content: str) -> bool:
+    return (
+        _has_substantive_line_match(content, ACCEPTANCE_EVIDENCE_RE)
+        or _has_substantive_line_match(content, ACCEPTED_BY_USER_RE)
+    )
+
+
+def _has_substantive_integration_evidence(content: str) -> bool:
+    return _has_substantive_line_match(content, INTEGRATION_EVIDENCE_RE)
+
+
+def _has_substantive_reviewed_change_set(content: str) -> bool:
+    if not content:
+        return False
+    for match in REVIEWED_CHANGE_SET_RE.finditer(content):
+        if _is_substantive_evidence(match.group(1)):
+            return True
+    return False
+
+
 def _has_validation_evidence(content: str) -> bool:
-    return bool(VALIDATION_EVIDENCE_RE.search(content))
+    return _has_substantive_validation_evidence(content)
 
 
 def _has_final_acceptance_evidence(content: str) -> bool:
-    return bool(
-        ACCEPTANCE_EVIDENCE_RE.search(content)
-        or ACCEPTED_BY_USER_RE.search(content)
-    )
+    return _has_substantive_acceptance_evidence(content)
 
 
 def _has_durable_learning_evidence(content: str) -> bool:
     return bool(
         NO_DURABLE_LEARNING_RE.search(content)
-        or DURABLE_LEARNING_EVIDENCE_RE.search(content)
+        or _has_substantive_line_match(content, DURABLE_LEARNING_EVIDENCE_RE)
     )
 
 
@@ -942,33 +1228,12 @@ ARCHIVE_EVIDENCE_DRAFT_MARKER = "<!-- trellis:archive-evidence-draft -->"
 
 def _verify_evidence_status(task_dir: Path, task_data: dict) -> dict[str, bool]:
     """Return which archive evidence sections are present in verify.md."""
-    verify_path = task_dir / "verify.md"
-    if not verify_path.is_file():
-        return {
-            "validation": False,
-            "acceptance": False,
-            "durable_learning": False,
-            "integration": False,
-        }
-    try:
-        content = verify_path.read_text(encoding="utf-8")
-    except OSError:
-        return {
-            "validation": False,
-            "acceptance": False,
-            "durable_learning": False,
-            "integration": False,
-        }
-
-    child_names = task_data.get("children")
-    has_children = isinstance(child_names, list) and bool(child_names)
+    status = verify_evidence_status(task_dir, task_data)
     return {
-        "validation": _has_validation_evidence(content),
-        "acceptance": _has_final_acceptance_evidence(content),
-        "durable_learning": _has_durable_learning_evidence(content),
-        "integration": (
-            bool(INTEGRATION_EVIDENCE_RE.search(content)) if has_children else True
-        ),
+        "validation": status["validation"],
+        "acceptance": status["acceptance"],
+        "durable_learning": status["durable_learning"],
+        "integration": status["integration"],
     }
 
 
@@ -1022,11 +1287,45 @@ def archive_repair_hints(
         if error.startswith("missing gate record:"):
             _rest = error.split(":", 1)[1].strip()
             _transition, gate = _rest.split("/", 1)
+            transition = _transition.strip()
+            if transition == "parent-integrated":
+                hints.append(
+                    f"Parent archive needs record-gate for parent-integrated/{gate}: "
+                    f"python ./.trellis/scripts/task.py record-gate {rel_task} "
+                    f"--transition parent-integrated --gate {gate} --result PASS "
+                    f"--reviewer parent --evidence task-map.md"
+                )
+            elif transition == "child-review":
+                hints.append(
+                    f"Full Child acceptance needs record-gate for child-review/{gate}: "
+                    f"python ./.trellis/scripts/task.py record-gate {rel_task} "
+                    f"--transition child-review --gate {gate} --result PASS "
+                    f"--reviewer parent --evidence verify.md"
+                )
+            else:
+                hints.append(
+                    f"Record reviewer gate after explicit review (never auto-PASS): "
+                    f"python ./.trellis/scripts/task.py record-gate {rel_task} "
+                    f"--transition {transition} --gate {gate} --result PASS "
+                    f"--reviewer <reviewer-id> --evidence verify.md"
+                )
+            continue
+        if error == "verify.md missing check evidence":
             hints.append(
-                f"Record reviewer gate after explicit review (never auto-PASS): "
-                f"python ./.trellis/scripts/task.py record-gate {rel_task} "
-                f"--transition full-task-complete --gate {gate} --result PASS "
-                f"--reviewer <reviewer-id> --evidence verify.md"
+                "Add a grep-friendly line such as "
+                "'Check evidence: <trellis-check summary or manual review notes>' to verify.md"
+            )
+            continue
+        if error == (
+            "verify.md or handoff.md missing reviewed change-set evidence"
+        ):
+            hints.append(
+                "Add 'Reviewed change-set: <git ref or diff summary>' to verify.md or handoff.md"
+            )
+            continue
+        if error == "verify.md missing substantive validation evidence":
+            hints.append(
+                "Replace placeholder validation lines with substantive command/outcome text in verify.md"
             )
             continue
         if error.startswith("gate failed:"):
