@@ -10,7 +10,8 @@ M-3 fix: D:\MyHarness\.cursor\hooks/ contains 5 *-debug.py scaffolding files (in
 
 ## Acceptance Criteria
 
-- [ ] TBD
+- [x] Removed probe JSON scaffolding from `.trellis/scripts/`
+- [x] No unregistered `*-debug.py` under cursor-trellis `.cursor/hooks/`
 
 ## Notes
 
