@@ -2,23 +2,16 @@
 
 English | [简体中文](README.zh-CN.md)
 
-**Trellis** is a team harness for AI coding agents: it replaces one giant `AGENTS.md` / `.cursorrules` with a progressive `.trellis/` wiki—workflow, specs, tasks, and journals—plus generated **Cursor** integration (rules, commands, agents, hooks).
+**Trellis** is a progressive context management system for AI coding agents. It structures agent instructions as `.trellis/` (workflow, specs, tasks, workspace) instead of a single large file, and generates platform-specific integration files (`.cursor/` for Cursor).
 
-This repository is a **public fork** focused on **Cursor-first** workflow. Upstream inspiration: [mindfold-ai/Trellis](https://github.com/mindfold-ai/Trellis).
+Based on the [Trellis framework by mindfold-ai](https://github.com/mindfold-ai/Trellis), this version is adapted for Cursor with rules, commands, agents, and hooks.
 
-| | |
-| --- | --- |
-| **npm CLI** | `@blxzer/cursor-trellis` (`trellis`, `tl`, `smart-search`) |
-| **Core SDK** | `@blxzer/cursor-trellis-core` |
-| **This repo** | https://github.com/blxzer77/cursor-trellis |
+## What it does
 
-## What problem it solves
-
-- **Context rot**: agents miss rules buried in a single markdown file.
-- **No task continuity**: PRDs, design, and verification scatter across chats.
-- **Platform drift**: Cursor rules, commands, hooks, and agents each need the right shape.
-
-Trellis generates the **Cursor adapter** (`.cursor/`) for your stack. This fork is **Cursor-only** for init and public docs (see [docs/cursor.md](docs/cursor.md)).
+- Task artifacts (PRD, design, implementation plan) persist in `.trellis/tasks/`
+- Resume work across chat sessions with `/trellis-continue`
+- Load specs progressively based on files being edited
+- Route requests through structured workflow: triage → plan → gate → execute → verify
 
 ## Quick start (Cursor)
 
@@ -79,6 +72,35 @@ Walkthrough: [docs/workflow.md](docs/workflow.md).
 
 Deep dive: [docs/cursor.md](docs/cursor.md).
 
+## When to use
+
+- Multi-file refactoring that needs architecture consistency
+- Long-running feature development spanning multiple sessions
+- Projects with custom coding standards agents must follow
+- Tasks requiring research → design → implement → verify workflow
+
+Not needed for quick one-file edits or exploratory coding.
+
+## smart-search integration
+
+Trellis integrates with [smart-search](https://github.com/blxzer77/smart-search), a CLI tool for agents to retrieve current information from the web. smart-search is automatically installed as a dependency when you install cursor-trellis.
+
+**Installation:**
+
+When you install cursor-trellis, smart-search is installed automatically:
+
+```bash
+npm install -g @blxzer/cursor-trellis
+# smart-search is now available
+smart-search --version
+```
+
+**Links:**
+- npm package: https://www.npmjs.com/package/@blxzer/smart-search
+- GitHub repository: https://github.com/blxzer77/smart-search
+
+The workflow routes external fact queries to smart-search when available. See the repository for configuration and usage details.
+
 ## Common commands
 
 | Command | Purpose |
@@ -87,15 +109,17 @@ Deep dive: [docs/cursor.md](docs/cursor.md).
 | `trellis update` | Refresh templates from the installed CLI version |
 | `trellis uninstall` | Remove Trellis-managed files from the project |
 
-Flags and behavior: [packages/cli/README.md](packages/cli/README.md).
+Full CLI reference: [packages/cli/README.md](packages/cli/README.md).
 
-Other CLI commands (`rollout`, `upgrade`, …) are listed briefly in the CLI README only.
+## Package information
 
-## Architecture (summary)
-
-Monorepo: `packages/core` (SDK) + `packages/cli` (templates, configurators, bins). Init flows through `configureCursor()` into your `.cursor/` tree. **smart-search** ships as a vendored CLI for web research.
-
-Diagram and data flow: [docs/architecture.md](docs/architecture.md).
+| | |
+| --- | --- |
+| **npm CLI** | `@blxzer/cursor-trellis` (`trellis`, `tl`) |
+| **Core SDK** | `@blxzer/cursor-trellis-core` |
+| **smart-search** | `@blxzer/smart-search` (auto-installed dependency) |
+| **Repository** | https://github.com/blxzer77/cursor-trellis |
+| **Original Trellis** | [mindfold-ai/Trellis](https://github.com/mindfold-ai/Trellis) |
 
 ## Development and verification
 
