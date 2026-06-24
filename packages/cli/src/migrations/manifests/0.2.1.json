@@ -1,0 +1,11 @@
+{
+  "version": "0.2.1",
+  "breaking": false,
+  "deprecatedPaths": [],
+  "notes": [
+    "移除 vendored smart-search，改用 npm 依赖 @blxzer/smart-search",
+    "从版本控制移除 .trellis/ 和 .cursor/ 目录",
+    "更新文档，去除营销化语言",
+    "删除 smart-search vendor 相关测试和脚本"
+  ]
+}
