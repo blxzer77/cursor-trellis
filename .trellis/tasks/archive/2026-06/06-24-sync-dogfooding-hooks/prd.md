@@ -10,7 +10,8 @@ C-1 + H-1 fix: cursor-trellis/.cursor/hooks/ is out of sync with template source
 
 ## Acceptance Criteria
 
-- [ ] TBD
+- [x] All five hooks registered in hooks.json exist under `.cursor/hooks/`
+- [x] Dogfood hook files normalized-match template source in `packages/cli/src/templates/shared-hooks/`
 
 ## Notes
 
