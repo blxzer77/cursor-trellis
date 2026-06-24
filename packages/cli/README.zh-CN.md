@@ -128,23 +128,25 @@ trellis uninstall -y
 
 ---
 
-## smart-search
+## smart-search 集成
 
-内置于本包（`vendor/smart-search/`，bin 名 `smart-search`）。
+Trellis 集成了 [smart-search](https://github.com/blxzer77/smart-search)，这是一个用于 Agent 从网络检索当前信息的 CLI 工具。当你安装 cursor-trellis 时，smart-search 会自动作为依赖安装。
 
-| 主题 | 说明 |
-| --- | --- |
-| 是什么 | 用于 search、fetch、doctor、research 的 CLI，**不是** MCP 服务 |
-| Agent 何时用 | 项目 `.trellis/workflow.md` 约定外部事实在健康时**优先**走 smart-search |
-| 配置 | `smart-search setup`、`smart-search doctor`（见 [vendor README](vendor/smart-search/README.zh-CN.md)） |
-| Readiness | `init`/`update` 默认检查，可用 `--skip-readiness` 跳过 |
+**安装：**
+
+当你安装 cursor-trellis 时，smart-search 会自动安装：
 
 ```bash
-smart-search search "查询" --format json
-smart-search doctor --format markdown
+npm install -g @blxzer/cursor-trellis
+# smart-search 现已可用
+smart-search --version
 ```
 
-更新 vendor 快照为维护者操作（本包内 `pnpm run sync:smart-search`）。见 [../../docs/maintainers.md](../../docs/maintainers.md)。
+**链接：**
+- npm 包：https://www.npmjs.com/package/@blxzer/smart-search
+- GitHub 仓库：https://github.com/blxzer77/smart-search
+
+工作流会在 smart-search 可用时，将外部事实查询路由到它。详见仓库了解配置和使用详情。
 
 ---
 

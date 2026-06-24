@@ -15,22 +15,11 @@ const required = [
   "scripts/postinstall.js",
   "README.md",
   "LICENSE",
-  "vendor/smart-search/pyproject.toml",
-  "vendor/smart-search/package.json",
-  "vendor/smart-search/npm/bin/smart-search.js",
-  "vendor/smart-search/npm/scripts/postinstall.js",
-  "vendor/smart-search/src/smart_search/cli.py",
-  "vendor/smart-search/src/smart_search/service.py",
-  "vendor/smart-search/src/smart_search/providers/base.py",
-  "vendor/smart-search/skills/smart-search-cli/SKILL.md",
-  "vendor/smart-search/src/smart_search/assets/skills/smart-search-cli/SKILL.md",
 ];
 
 const forbiddenFragments = [
   ".smart-search-python",
-  "vendor/smart-search/build",
-  "vendor/smart-search/dist",
-  "vendor/smart-search/node_modules",
+  "vendor/",
   "__pycache__",
   ".egg-info",
 ];
