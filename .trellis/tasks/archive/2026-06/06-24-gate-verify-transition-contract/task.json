@@ -3,7 +3,7 @@
   "name": "gate-verify-transition-contract",
   "title": "Harden gate verify transition contract",
   "description": "Full Task: harden Trellis quality gates by binding record-gate to substantive verify evidence, requiring Full Child code-review before Parent acceptance, requiring Parent integrated + integration-review before archive, fixing integrate-through validation, and making Lite closeout an explicit no-gate profile.",
-  "status": "in_progress",
+  "status": "completed",
   "dev_type": null,
   "scope": "packages/cli/src/templates/trellis/scripts",
   "package": "cli",
@@ -11,7 +11,7 @@
   "creator": "blxzer77",
   "assignee": "blxzer77",
   "createdAt": "2026-06-24",
-  "completedAt": null,
+  "completedAt": "2026-06-24",
   "branch": null,
   "base_branch": "main",
   "worktree_path": null,
@@ -36,7 +36,7 @@
   "quality_gate_results": {
     "schema_version": 1,
     "contract_fingerprint": "sha256:ec2a31b298e58ae8065578e35bc5b4985170b4283e976205db50f7c8a3063e54",
-    "artifact_fingerprint": "sha256:6061cfb5a5cb1c5696a124f8439125e34fea0fee2ee8b2a16044f75b5edcdc96",
+    "artifact_fingerprint": "sha256:d72cd99e3d2fb9733b2d98b1f8515f2b94090e691475dfabec5dc07d1a9b4e93",
     "transitions": {
       "start-execution": {
         "baseline-check": {
@@ -125,6 +125,20 @@
           "route": null,
           "consecutive_failures": 0,
           "required_user_choice": null,
+          "approved_skip": null
+        },
+        "baseline-check": {
+          "schema_version": 1,
+          "transition": "full-task-complete",
+          "gate": "baseline-check",
+          "result": "PASS",
+          "reviewer": "trellis-cli",
+          "evidence": "task.json",
+          "checked_at": "2026-06-24T13:58:22Z",
+          "contract_fingerprint": "sha256:ec2a31b298e58ae8065578e35bc5b4985170b4283e976205db50f7c8a3063e54",
+          "artifact_fingerprint": "sha256:d72cd99e3d2fb9733b2d98b1f8515f2b94090e691475dfabec5dc07d1a9b4e93",
+          "issue_fingerprint": null,
+          "consecutive_failures": 0,
           "approved_skip": null
         }
       }
