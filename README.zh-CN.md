@@ -104,7 +104,16 @@ your-app/
 
 Trellis 包含 [smart-search](https://github.com/blxzer77/smart-search)，供 Agent 从网络获取实时信息的 CLI 工具（搜索引擎、抓取网页、深度研究模式、JSON 输出）。工作流在可用时将外部事实查询路由到 smart-search。
 
-详见 [smart-search 仓库](https://github.com/blxzer77/smart-search)了解安装和配置。
+**安装：**
+```bash
+npm install -g @blxzer/smart-search
+```
+
+**链接：**
+- npm 包：https://www.npmjs.com/package/@blxzer/smart-search
+- GitHub 仓库：https://github.com/blxzer77/smart-search
+
+详见仓库了解配置和使用。
 
 ## 开发与验证
 

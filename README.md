@@ -85,7 +85,16 @@ Not needed for quick one-file edits or exploratory coding.
 
 Trellis includes [smart-search](https://github.com/blxzer77/smart-search), a CLI tool for agents to retrieve current information from the web (search engines, fetch pages, deep research mode, JSON output). The workflow routes external fact queries to smart-search when available.
 
-See the [smart-search repository](https://github.com/blxzer77/smart-search) for installation and configuration.
+**Installation:**
+```bash
+npm install -g @blxzer/smart-search
+```
+
+**Links:**
+- npm package: https://www.npmjs.com/package/@blxzer/smart-search
+- GitHub repository: https://github.com/blxzer77/smart-search
+
+See the repository for configuration and usage details.
 
 ## Common commands
 

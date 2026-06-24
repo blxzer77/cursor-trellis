@@ -89,6 +89,12 @@ Public docs intentionally go deep only on **init / update / uninstall**; other c
 
 Trellis includes [**smart-search**](https://github.com/blxzer77/smart-search), a standalone CLI tool that enables AI agents to retrieve current information from the web. When agents need external facts (recent events, latest package versions, current API documentation), the Trellis workflow automatically routes them to smart-search.
 
+### Installation
+
+```bash
+npm install -g @blxzer/smart-search
+```
+
 ### Key capabilities
 
 - **Multi-engine search**: Query across Google, Bing, Brave Search
@@ -99,23 +105,19 @@ Trellis includes [**smart-search**](https://github.com/blxzer77/smart-search), a
 
 ### Integration in Trellis
 
-The CLI package ships smart-search as a vendored binary:
-
-```bash
-smart-search --version
-```
+The CLI package can ship smart-search as a vendored binary (deprecated), but the recommended approach is to install it separately as shown above.
 
 **Technical details:**
-- **Source layout**: Vendored tree at `packages/cli/vendor/smart-search/`, wired through `packages/cli/bin/smart-search.js`
 - **Workflow routing**: `.trellis/workflow.md` and generated agent rules route external fact queries to smart-search first when healthy
 - **Readiness validation**: Project readiness checks run on `init`/`update` (skip with `--skip-readiness`)
 - **Not an MCP server**: Agents invoke the shell command directly (via workflow + project policy on Cursor)
 
-### Standalone use
+### Links
 
-smart-search is also available as an independent project. For detailed documentation, configuration options, and contribution guidelines, see the [smart-search repository](https://github.com/blxzer77/smart-search).
+- **npm package**: https://www.npmjs.com/package/@blxzer/smart-search
+- **GitHub repository**: https://github.com/blxzer77/smart-search
 
-**Vendor snapshot maintenance** is a maintainer concern (`pnpm run sync:smart-search` in `packages/cli`); see [maintainers.md](maintainers.md).
+For detailed documentation, configuration options, and contribution guidelines, see the repository.
 
 ## Fork relationship
 
