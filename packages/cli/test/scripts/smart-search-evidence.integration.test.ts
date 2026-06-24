@@ -255,4 +255,44 @@ describe.skipIf(pythonCmd === null)("run_smart_search.py", () => {
     );
     expect(manifest.citations).toEqual([]);
   });
+
+  it("optional repo wrappers include polyrepo sibling layouts", () => {
+    const repoRoot = path.join(tmpDir, "polyrepo");
+    const wrapper = path.join(
+      repoRoot,
+      "cursor-trellis",
+      "packages",
+      "cli",
+      "bin",
+      "smart-search.js",
+    );
+    fs.mkdirSync(path.dirname(wrapper), { recursive: true });
+    fs.writeFileSync(wrapper, "#!/usr/bin/env node\n", "utf-8");
+    writeTrellisScripts(repoRoot);
+
+    const result = spawnSync(
+      pythonCmd!,
+      [
+        "-c",
+        [
+          "import json",
+          "from common.smart_search_resolve import _optional_repo_wrappers",
+          "from pathlib import Path",
+          `root = Path(${JSON.stringify(repoRoot)})`,
+          "wrappers = _optional_repo_wrappers(root)",
+          "print(json.dumps(wrappers[0] if wrappers else None))",
+        ].join("\n"),
+      ],
+      {
+        cwd: path.join(repoRoot, ".trellis", "scripts"),
+        encoding: "utf-8",
+      },
+    );
+
+    expect(result.status).toBe(0);
+    const argv = JSON.parse(result.stdout.trim()) as string[] | null;
+    expect(argv).not.toBeNull();
+    expect(argv!.join(" ")).toContain("cursor-trellis");
+    expect(argv!.join(" ")).toContain("smart-search.js");
+  });
 });
