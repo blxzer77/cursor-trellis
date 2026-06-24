@@ -101,16 +101,17 @@ def _run_retrieval_pack(repo_root: Path) -> dict[str, Any] | None:
         return None
     env = os.environ.copy()
     env["PYTHONIOENCODING"] = "utf-8"
+    cmd = [
+        sys.executable,
+        "-W",
+        "ignore",
+        str(script),
+        "--mode",
+        "retrieval-pack",
+        "--json",
+    ]
     proc = subprocess.run(
-        [
-            sys.executable,
-            "-W",
-            "ignore",
-            str(script),
-            "--mode",
-            "retrieval-pack",
-            "--json",
-        ],
+        cmd,
         cwd=str(repo_root),
         capture_output=True,
         text=True,

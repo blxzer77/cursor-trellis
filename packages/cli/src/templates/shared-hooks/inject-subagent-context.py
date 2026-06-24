@@ -166,8 +166,12 @@ def main() -> None:
         sys.exit(0)
 
     try:
-        input_data = json.load(sys.stdin)
-    except json.JSONDecodeError:
+        input_text = sys.stdin.read()
+        # Remove UTF-8 BOM if present
+        if input_text.startswith('\ufeff'):
+            input_text = input_text[1:]
+        input_data = json.loads(input_text)
+    except (json.JSONDecodeError, ValueError):
         sys.exit(0)
 
     subagent_type, original_prompt, tool_input = _parse_hook_input(input_data)

@@ -14,10 +14,22 @@
         "timeout": 30
       }
     ],
+    "beforeSubmitPrompt": [
+      {
+        "command": "python .cursor/hooks/inject-retrieval-plan.py",
+        "timeout": 15
+      }
+    ],
     "beforeShellExecution": [
       {
         "command": "python .cursor/hooks/inject-shell-session-context.py",
         "timeout": 5
+      }
+    ],
+    "stop": [
+      {
+        "command": "python .cursor/hooks/research-end-retrieval-pack.py",
+        "timeout": 60
       }
     ]
   }
