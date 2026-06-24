@@ -19,7 +19,7 @@
 On first use, initialize your identity:
 
 ```bash
-python ./.trellis/scripts/init_developer.py <your-name>
+python3 ./.trellis/scripts/init_developer.py <your-name>
 ```
 
 Creates `.trellis/.developer` (gitignored) + `.trellis/workspace/<your-name>/`.
@@ -32,7 +32,7 @@ Creates `.trellis/.developer` (gitignored) + `.trellis/workspace/<your-name>/`.
 - `.trellis/spec/guides/index.md` — cross-package thinking guides.
 
 ```bash
-python ./.trellis/scripts/get_context.py --mode packages   # list packages / layers
+python3 ./.trellis/scripts/get_context.py --mode packages   # list packages / layers
 ```
 
 **When to update spec**: new pattern/convention found · bug-fix prevention to codify · new technical decision.
@@ -45,42 +45,42 @@ Optional copied templates live under `.trellis/tasks/templates/` (for example `r
 
 ```bash
 # Task lifecycle
-python ./.trellis/scripts/task.py create "<title>" [--slug <name>] [--parent <dir>]
-python ./.trellis/scripts/task.py dashboard             # show Task Dashboard without mutating state
-python ./.trellis/scripts/task.py select <name>         # select task for this live session
-python ./.trellis/scripts/task.py selected --source     # show selected task and source
-python ./.trellis/scripts/task.py start-execution <name> --check
-python ./.trellis/scripts/task.py start-execution <name> --approved
-python ./.trellis/scripts/task.py exit                  # clear selected task without changing status
-python ./.trellis/scripts/task.py archive <name>        # move to archive/{year-month}/
-python ./.trellis/scripts/task.py list [--mine] [--status <s>]
-python ./.trellis/scripts/task.py list-archive
-python ./.trellis/scripts/task.py add-subtask <parent> <child>
-python ./.trellis/scripts/task.py set-child-state <parent> <child> review --evidence verify.md
-python ./.trellis/scripts/task.py prepare-child-worktree <parent> <child> --branch <child-branch>
-python ./.trellis/scripts/task.py integrate-child <parent> <child> accepted --evidence handoff.md --ref <child-ref>
+python3 ./.trellis/scripts/task.py create "<title>" [--slug <name>] [--parent <dir>]
+python3 ./.trellis/scripts/task.py dashboard             # show Task Dashboard without mutating state
+python3 ./.trellis/scripts/task.py select <name>         # select task for this live session
+python3 ./.trellis/scripts/task.py selected --source     # show selected task and source
+python3 ./.trellis/scripts/task.py start-execution <name> --check
+python3 ./.trellis/scripts/task.py start-execution <name> --approved
+python3 ./.trellis/scripts/task.py exit                  # clear selected task without changing status
+python3 ./.trellis/scripts/task.py archive <name>        # move to archive/{year-month}/
+python3 ./.trellis/scripts/task.py list [--mine] [--status <s>]
+python3 ./.trellis/scripts/task.py list-archive
+python3 ./.trellis/scripts/task.py add-subtask <parent> <child>
+python3 ./.trellis/scripts/task.py set-child-state <parent> <child> review --evidence verify.md
+python3 ./.trellis/scripts/task.py prepare-child-worktree <parent> <child> --branch <child-branch>
+python3 ./.trellis/scripts/task.py integrate-child <parent> <child> accepted --evidence handoff.md --ref <child-ref>
 
 # Code-spec context (injected into implement/check agents via JSONL).
 # `implement.jsonl` / `check.jsonl` are seeded on `task create` for sub-agent-capable
 # platforms; the AI curates real spec + research entries during planning when needed.
-python ./.trellis/scripts/task.py add-context <name> <action> <file> <reason>
-python ./.trellis/scripts/task.py list-context <name> [action]
-python ./.trellis/scripts/task.py validate <name>
+python3 ./.trellis/scripts/task.py add-context <name> <action> <file> <reason>
+python3 ./.trellis/scripts/task.py list-context <name> [action]
+python3 ./.trellis/scripts/task.py validate <name>
 
 # Task metadata
-python ./.trellis/scripts/task.py set-branch <name> <branch>
-python ./.trellis/scripts/task.py set-base-branch <name> <branch>    # PR target
-python ./.trellis/scripts/task.py set-scope <name> <scope>
+python3 ./.trellis/scripts/task.py set-branch <name> <branch>
+python3 ./.trellis/scripts/task.py set-base-branch <name> <branch>    # PR target
+python3 ./.trellis/scripts/task.py set-scope <name> <scope>
 
 # Hierarchy (parent/child)
-python ./.trellis/scripts/task.py add-subtask <parent> <child>
-python ./.trellis/scripts/task.py remove-subtask <parent> <child>
+python3 ./.trellis/scripts/task.py add-subtask <parent> <child>
+python3 ./.trellis/scripts/task.py remove-subtask <parent> <child>
 
 # PR creation
-python ./.trellis/scripts/task.py create-pr [name] [--dry-run]
+python3 ./.trellis/scripts/task.py create-pr [name] [--dry-run]
 ```
 
-> Run `python ./.trellis/scripts/task.py --help` to see the authoritative, up-to-date list.
+> Run `python3 ./.trellis/scripts/task.py --help` to see the authoritative, up-to-date list.
 
 **Selected-task mechanism**: entering a Trellis project activates framework context, but every new live session starts with `Selected task: none`. `task.py create` creates artifacts only. `task.py select <task>` writes a per-session `selected_task` pointer without changing `task.json.status`. `task.py selected --source` reports that pointer. `task.py exit` clears it without changing status. `task.py start-execution <task> --check` verifies execution readiness without mutation; `task.py start-execution <task> --approved` is the explicit execution boundary and may flip `planning` to `in_progress`. `task.py archive <task>` writes `status=completed`, moves the directory to `archive/`, and deletes runtime session files that still point at the archived task.
 
@@ -92,16 +92,16 @@ Records every AI session for cross-session tracking under `.trellis/workspace/<d
 - `index.md` — personal index (total sessions, last active).
 
 ```bash
-python ./.trellis/scripts/add_session.py --title "Title" --commit "hash" --summary "Summary"
+python3 ./.trellis/scripts/add_session.py --title "Title" --commit "hash" --summary "Summary"
 ```
 
 ### Context Script
 
 ```bash
-python ./.trellis/scripts/get_context.py                            # full session runtime
-python ./.trellis/scripts/get_context.py --mode packages            # available packages + spec layers
-python ./.trellis/scripts/get_context.py --mode phase --step <X.Y>  # detailed guide for a workflow step
-python ./.trellis/scripts/get_context.py --mode retrieval-pack --json --input <evidence.json>  # score collected evidence (not default --json)
+python3 ./.trellis/scripts/get_context.py                            # full session runtime
+python3 ./.trellis/scripts/get_context.py --mode packages            # available packages + spec layers
+python3 ./.trellis/scripts/get_context.py --mode phase --step <X.Y>  # detailed guide for a workflow step
+python3 ./.trellis/scripts/get_context.py --mode retrieval-pack --json --input <evidence.json>  # score collected evidence (not default --json)
 ```
 
 **Evidence scoring:** default `--json` returns `retrievalGuide` only. After collecting artifact search, session memory, smart-search manifests under `{TASK}/research/smart-search/`, or codebase candidates, run **`--mode retrieval-pack`** with `--input` or stdin JSON. See `research/evidence-scoring-integration.md` in the active task or archived `06-15-child-phase2-evidence-scoring`.
@@ -256,16 +256,20 @@ Integration is Parent/Child-only. Ordinary Lite and Full Tasks skip Integration 
 Parent sessions can productize child dispatch and review without a new agent runtime:
 
 ```bash
-python ./.trellis/scripts/task.py parent-status <parent-task>
-python ./.trellis/scripts/task.py generate-child-prompt <parent-task> <child-task> --mode inline
-python ./.trellis/scripts/task.py review-child <parent-task> <child-task> --check --decision accept --ref <child-ref>
-python ./.trellis/scripts/task.py review-child <parent-task> <child-task> --decision accept --ref <child-ref>
-python ./.trellis/scripts/task.py review-child <parent-task> <child-task> --decision integrate-through --ref <child-ref>
+python3 ./.trellis/scripts/task.py parent-status <parent-task>
+python3 ./.trellis/scripts/task.py generate-child-prompt <parent-task> <child-task> --mode inline
+python3 ./.trellis/scripts/task.py review-child <parent-task> <child-task> --check --decision accept --ref <child-ref>
+python3 ./.trellis/scripts/task.py review-child <parent-task> <child-task> --decision accept --ref <child-ref>
+python3 ./.trellis/scripts/task.py review-child <parent-task> <child-task> --decision integrate-through --ref <child-ref>
 ```
 
 - `generate-child-prompt` reads parent `task-map.md` for `depends_on` and `touches`, child artifacts, and optional parent `child-prompts.md`. Use `--mode subagent` only as a delivery hint when the platform can spawn subagents; inline mode remains the portable default.
 - `review-child` summarizes child `verify.md` / `handoff.md`, appends notes to parent `verify.md`, and can advance `accepted` / `integrating` / `integrated` in one flow (`--decision integrate-through`) while still using the same Stage 0 integration guards as `integrate-child`.
-- Reviewer quality gates (`child-review`, `parent-accepted`, `parent-integrated`) are **not** auto-recorded; the command prints optional `record-gate` hints only.
+- Reviewer quality gates are **not** auto-recorded. CLI enforces them at transition boundaries:
+  - **Full Child accept / integrate-through**: requires substantive `verify.md` evidence and `child-review/code-review` (plus configured architecture gates) before Parent marks the Child `accepted`.
+  - **Parent archive**: requires every structural Child `integrated` or `cancelled`, substantive Parent integration evidence, and `parent-integrated/integration-review`.
+  - **Lite closeout**: explicit no-gate chain; archive still requires validation, acceptance, and durable-learning evidence in `verify.md`.
+  - **`record-gate`**: rejects PASS/SKIPPED when transition evidence is missing or placeholder-only.
 
 <!-- Per-turn breadcrumb: shown when no task is selected (before Phase 1) -->
 
@@ -374,8 +378,8 @@ Implementation defects inside the already approved contract route back to Execut
 At each step, run this to fetch detailed guidance:
 
 ```bash
-python ./.trellis/scripts/get_context.py --mode phase --step <step>
-# e.g. python ./.trellis/scripts/get_context.py --mode phase --step 1.1
+python3 ./.trellis/scripts/get_context.py --mode phase --step <step>
+# e.g. python3 ./.trellis/scripts/get_context.py --mode phase --step 1.1
 ```
 
 ---
@@ -389,7 +393,7 @@ Goal: classify the request, get task-creation consent when a task is needed, and
 Create the task directory only after task-creation consent. The command sets status to `planning`, writes `task.json`, and creates a default `prd.md`. It does not select the task, start execution, or approve execution:
 
 ```bash
-python ./.trellis/scripts/task.py create "<task title>" --slug <name>
+python3 ./.trellis/scripts/task.py create "<task title>" --slug <name>
 ```
 
 `--slug` is the human-readable name only. Do **not** include the `MM-DD-` date prefix; `task.py create` adds that prefix automatically.
@@ -399,14 +403,14 @@ For task trees, create the parent task first and then create each child with `--
 After creation, select the task only when the user has chosen it for this live session:
 
 ```bash
-python ./.trellis/scripts/task.py select <task-dir>
+python3 ./.trellis/scripts/task.py select <task-dir>
 ```
 
 After selection, the per-turn breadcrumb switches to `[workflow-state:planning]`, telling the AI to stay in planning.
 
 Run only `create` and, when appropriate, `select` here. Do not run `start-execution --approved` until step 1.4 passes its non-mutating `--check` and the user gives explicit execution approval.
 
-Skip when the user has already explicitly selected an appropriate task with `python ./.trellis/scripts/task.py select <task>`.
+Skip when the user has already explicitly selected an appropriate task with `python3 ./.trellis/scripts/task.py select <task>`.
 
 #### 1.1 Requirement exploration `[required · repeatable]`
 
@@ -444,7 +448,7 @@ Spawn the research sub-agent:
 
 
 **Retrieval during research**:
-- Use `python ./.trellis/scripts/search_artifacts.py --query "<topic>" --json` to find durable Trellis specs, prior tasks, research, verification notes, and workspace journals before re-discovering framework context.
+- Use `python3 ./.trellis/scripts/search_artifacts.py --query "<topic>" --json` to find durable Trellis specs, prior tasks, research, verification notes, and workspace journals before re-discovering framework context.
 - Use `codebase-retrieval` evidence levels for source-code questions: adapter output is candidate evidence until current source, Git, or validation confirms it.
 - Persist useful exploratory retrieval chains, adapter availability, and competing hypotheses under `{TASK_DIR}/research/`.
 
@@ -496,7 +500,7 @@ These manifests do not replace `implement.md`. `implement.md` is the human-reada
 **How to discover relevant specs**:
 
 ```bash
-python ./.trellis/scripts/get_context.py --mode packages
+python3 ./.trellis/scripts/get_context.py --mode packages
 ```
 
 Lists every package + its spec layers with paths. Pick the entries that match this task's domain.
@@ -504,7 +508,7 @@ Lists every package + its spec layers with paths. Pick the entries that match th
 Use artifact search when prior task/research evidence is likely relevant:
 
 ```bash
-python ./.trellis/scripts/search_artifacts.py --query "<topic>" --json
+python3 ./.trellis/scripts/search_artifacts.py --query "<topic>" --json
 ```
 
 Add any reusable `{TASK_DIR}/research/*.md` files you discovered when sub-agents need them.
@@ -514,8 +518,8 @@ Add any reusable `{TASK_DIR}/research/*.md` files you discovered when sub-agents
 Either edit the jsonl file directly in your editor, or use:
 
 ```bash
-python ./.trellis/scripts/task.py add-context "$TASK_DIR" implement "<path>" "<reason>"
-python ./.trellis/scripts/task.py add-context "$TASK_DIR" check "<path>" "<reason>"
+python3 ./.trellis/scripts/task.py add-context "$TASK_DIR" implement "<path>" "<reason>"
+python3 ./.trellis/scripts/task.py add-context "$TASK_DIR" check "<path>" "<reason>"
 ```
 
 Delete the seed `_example` line once real entries exist (optional — it's skipped automatically by consumers).
@@ -529,7 +533,7 @@ Skip when: `implement.jsonl` and `check.jsonl` have agent-curated entries (the s
 After artifact review, run the non-mutating execution preflight:
 
 ```bash
-python ./.trellis/scripts/task.py start-execution <task-dir> --check
+python3 ./.trellis/scripts/task.py start-execution <task-dir> --check
 ```
 
 For lightweight tasks, `prd.md` can be enough. For complex tasks, `prd.md`, `design.md`, and `implement.md` must exist and be reviewed before execution approval. On Cursor (sub-agent dispatch), curate jsonl manifests when extra spec or research context is needed; seed-only manifests are tolerated by consumers.
@@ -539,7 +543,7 @@ If `--check` passes, report that artifact gates are ready and include the task n
 Only after the user approves execution in that context, run:
 
 ```bash
-python ./.trellis/scripts/task.py start-execution <task-dir> --approved
+python3 ./.trellis/scripts/task.py start-execution <task-dir> --approved
 ```
 
 After this command succeeds, the breadcrumb switches to `[workflow-state:in_progress]`, and the rest of Phase 2 / 3 follows.
@@ -575,7 +579,7 @@ Implementation defects inside the approved contract remain Execution work: fix t
 #### 2.1 Implement `[required · repeatable]`
 
 Use retrieval layers before and during implementation when context is incomplete:
-- `python ./.trellis/scripts/search_artifacts.py --query "<topic>" --json` for durable Trellis specs, prior task artifacts, research, verification notes, and journals.
+- `python3 ./.trellis/scripts/search_artifacts.py --query "<topic>" --json` for durable Trellis specs, prior task artifacts, research, verification notes, and journals.
 - `codebase-retrieval` evidence levels for source claims: candidate -> corroborated candidate -> verified claim; unresolved or unavailable adapters must be reported instead of treated as proof.
 - Record exploratory chains in `{TASK_DIR}/research/` and final source/Git/test proof in `verify.md`.
 
@@ -622,7 +626,7 @@ Goal: ensure code quality, capture lessons, record the work.
 
 For **complex** tasks, optionally before 3.1 when you have collected retrieval evidence JSON (e.g. after Phase 1.2 smart-search manifests in `{TASK}/research/smart-search/`):
 
-`python ./.trellis/scripts/get_context.py --mode retrieval-pack --json --input <path-to-evidence.json>`
+`python3 ./.trellis/scripts/get_context.py --mode retrieval-pack --json --input <path-to-evidence.json>`
 
 Use `contextPack.selected` / `scoredEvidence` to order citations in `verify.md`. Do **not** expect scoring in default `get_context --json`.
 

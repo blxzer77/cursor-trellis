@@ -1,0 +1,142 @@
+{
+  "id": "gate-verify-transition-contract",
+  "name": "gate-verify-transition-contract",
+  "title": "Harden gate verify transition contract",
+  "description": "Full Task: harden Trellis quality gates by binding record-gate to substantive verify evidence, requiring Full Child code-review before Parent acceptance, requiring Parent integrated + integration-review before archive, fixing integrate-through validation, and making Lite closeout an explicit no-gate profile.",
+  "status": "in_progress",
+  "dev_type": null,
+  "scope": "packages/cli/src/templates/trellis/scripts",
+  "package": "cli",
+  "priority": "P1",
+  "creator": "blxzer77",
+  "assignee": "blxzer77",
+  "createdAt": "2026-06-24",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [
+    "packages/cli/src/templates/trellis/scripts/common/task_gates.py",
+    "packages/cli/src/templates/trellis/scripts/common/task_map.py",
+    "packages/cli/src/templates/trellis/scripts/common/parent_orchestration.py",
+    "packages/cli/src/templates/trellis/scripts/common/task_store.py",
+    "packages/cli/src/templates/trellis/workflow.md",
+    ".trellis/workflow.md"
+  ],
+  "notes": "",
+  "meta": {
+    "classification": "full",
+    "contract_epoch": 1
+  },
+  "quality_gate_results": {
+    "schema_version": 1,
+    "contract_fingerprint": "sha256:ec2a31b298e58ae8065578e35bc5b4985170b4283e976205db50f7c8a3063e54",
+    "artifact_fingerprint": "sha256:6061cfb5a5cb1c5696a124f8439125e34fea0fee2ee8b2a16044f75b5edcdc96",
+    "transitions": {
+      "start-execution": {
+        "baseline-check": {
+          "schema_version": 1,
+          "transition": "start-execution",
+          "gate": "baseline-check",
+          "result": "PASS",
+          "reviewer": "trellis-cli",
+          "evidence": "task.json",
+          "checked_at": "2026-06-24T13:40:02Z",
+          "contract_fingerprint": "sha256:99e9258004cd4eaed05b1ec7a35880325573e384a5b0d8ce778e2b24b9bae7c9",
+          "artifact_fingerprint": "sha256:6db387f3dccd8a27331064c2cf24058ccbfe37da42476465d3f9d045ab574ee1",
+          "issue_fingerprint": null,
+          "consecutive_failures": 0,
+          "approved_skip": null
+        },
+        "requirements-review": {
+          "schema_version": 1,
+          "transition": "start-execution",
+          "gate": "requirements-review",
+          "result": "PASS",
+          "reviewer": "trellis-cli",
+          "evidence": "prd.md",
+          "checked_at": "2026-06-24T13:40:02Z",
+          "contract_fingerprint": "sha256:99e9258004cd4eaed05b1ec7a35880325573e384a5b0d8ce778e2b24b9bae7c9",
+          "artifact_fingerprint": "sha256:f45c51b719b04e7b16aa2dc6d12ecd59bd2a1b245420b25193de69f80717af84",
+          "issue_fingerprint": null,
+          "root_cause": null,
+          "route": null,
+          "consecutive_failures": 0,
+          "required_user_choice": null,
+          "approved_skip": null,
+          "auto_recorded": true,
+          "auto_record_reason": "planning-artifacts"
+        },
+        "architecture-review": {
+          "schema_version": 1,
+          "transition": "start-execution",
+          "gate": "architecture-review",
+          "result": "PASS",
+          "reviewer": "trellis-cli",
+          "evidence": "design.md+implement.md",
+          "checked_at": "2026-06-24T13:40:02Z",
+          "contract_fingerprint": "sha256:99e9258004cd4eaed05b1ec7a35880325573e384a5b0d8ce778e2b24b9bae7c9",
+          "artifact_fingerprint": "sha256:36c05cb484a4284825c67200106f5fd2c7ae1508a674eb3a333495f332491b5e",
+          "issue_fingerprint": null,
+          "root_cause": null,
+          "route": null,
+          "consecutive_failures": 0,
+          "required_user_choice": null,
+          "approved_skip": null,
+          "auto_recorded": true,
+          "auto_record_reason": "planning-artifacts"
+        }
+      },
+      "full-task-complete": {
+        "code-review": {
+          "schema_version": 1,
+          "transition": "full-task-complete",
+          "gate": "code-review",
+          "result": "PASS",
+          "reviewer": "trellis-check",
+          "evidence": "verify.md",
+          "checked_at": "2026-06-24T13:57:19Z",
+          "contract_fingerprint": "sha256:ec2a31b298e58ae8065578e35bc5b4985170b4283e976205db50f7c8a3063e54",
+          "artifact_fingerprint": "sha256:b088484965b59dbfd8f9364403bf5f42f327740526bbfc4e79dec93230369400",
+          "issue_fingerprint": null,
+          "root_cause": null,
+          "route": null,
+          "consecutive_failures": 0,
+          "required_user_choice": null,
+          "approved_skip": null
+        },
+        "architecture-review": {
+          "schema_version": 1,
+          "transition": "full-task-complete",
+          "gate": "architecture-review",
+          "result": "PASS",
+          "reviewer": "trellis-check",
+          "evidence": "verify.md",
+          "checked_at": "2026-06-24T13:57:19Z",
+          "contract_fingerprint": "sha256:ec2a31b298e58ae8065578e35bc5b4985170b4283e976205db50f7c8a3063e54",
+          "artifact_fingerprint": "sha256:6061cfb5a5cb1c5696a124f8439125e34fea0fee2ee8b2a16044f75b5edcdc96",
+          "issue_fingerprint": null,
+          "root_cause": null,
+          "route": null,
+          "consecutive_failures": 0,
+          "required_user_choice": null,
+          "approved_skip": null
+        }
+      }
+    }
+  },
+  "execution_approval": {
+    "schema_version": 1,
+    "transition": "start-execution",
+    "approved_at": "2026-06-24T13:40:02Z",
+    "approved_by": "user",
+    "approval_source": "task.py start-execution --approved",
+    "contract_fingerprint": "sha256:99e9258004cd4eaed05b1ec7a35880325573e384a5b0d8ce778e2b24b9bae7c9",
+    "artifact_fingerprint": "sha256:6db387f3dccd8a27331064c2cf24058ccbfe37da42476465d3f9d045ab574ee1"
+  }
+}

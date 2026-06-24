@@ -16,6 +16,7 @@ from .paths import get_repo_root
 from .task_gates import (
     build_spec_update_scaffold,
     durable_learning_decision_status,
+    task_closeout_profile,
 )
 from .task_map import (
     PARENT_TERMINAL_STATES,
@@ -530,18 +531,29 @@ def build_review_report(
                     ),
                 }
             )
-            actions["gates"].append(
-                {
-                    "task": "child",
-                    "transition": "child-review",
-                    "optional": True,
-                    "hint": (
-                        f"python ./.trellis/scripts/task.py record-gate {child_name} "
-                        f"--transition child-review --gate code-review --result PASS "
-                        f"--reviewer parent --evidence verify.md"
-                    ),
-                }
-            )
+            child_profile = task_closeout_profile(child_dir, child_data)
+            if child_profile == "full":
+                actions["gates"].append(
+                    {
+                        "task": "child",
+                        "transition": "child-review",
+                        "optional": False,
+                        "hint": (
+                            f"Required before accept: python ./.trellis/scripts/task.py record-gate {child_name} "
+                            f"--transition child-review --gate code-review --result PASS "
+                            f"--reviewer parent --evidence verify.md"
+                        ),
+                    }
+                )
+            elif child_profile == "lite":
+                actions["gates"].append(
+                    {
+                        "task": "child",
+                        "transition": "child-review",
+                        "optional": True,
+                        "hint": "Lite child: no child-review gate chain required.",
+                    }
+                )
         elif decision == "changes":
             target = "changes"
             errors.extend(
@@ -611,6 +623,7 @@ def build_review_report(
                 evidence,
                 ref,
                 reason,
+                current_state_override=sim_state,
             )
             errors.extend(step_errors)
             if step_errors:
@@ -626,9 +639,9 @@ def build_review_report(
                 {
                     "task": "parent",
                     "transition": "parent-integrated",
-                    "optional": True,
+                    "optional": False,
                     "hint": (
-                        f"python ./.trellis/scripts/task.py record-gate {parent_dir.name} "
+                        f"Required before parent archive: python ./.trellis/scripts/task.py record-gate {parent_dir.name} "
                         f"--transition parent-integrated --gate integration-review --result PASS "
                         f"--reviewer parent --evidence task-map.md"
                     ),

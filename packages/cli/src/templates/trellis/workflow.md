@@ -265,7 +265,11 @@ python3 ./.trellis/scripts/task.py review-child <parent-task> <child-task> --dec
 
 - `generate-child-prompt` reads parent `task-map.md` for `depends_on` and `touches`, child artifacts, and optional parent `child-prompts.md`. Use `--mode subagent` only as a delivery hint when the platform can spawn subagents; inline mode remains the portable default.
 - `review-child` summarizes child `verify.md` / `handoff.md`, appends notes to parent `verify.md`, and can advance `accepted` / `integrating` / `integrated` in one flow (`--decision integrate-through`) while still using the same Stage 0 integration guards as `integrate-child`.
-- Reviewer quality gates (`child-review`, `parent-accepted`, `parent-integrated`) are **not** auto-recorded; the command prints optional `record-gate` hints only.
+- Reviewer quality gates are **not** auto-recorded. CLI enforces them at transition boundaries:
+  - **Full Child accept / integrate-through**: requires substantive `verify.md` evidence and `child-review/code-review` (plus configured architecture gates) before Parent marks the Child `accepted`.
+  - **Parent archive**: requires every structural Child `integrated` or `cancelled`, substantive Parent integration evidence, and `parent-integrated/integration-review`.
+  - **Lite closeout**: explicit no-gate chain; archive still requires validation, acceptance, and durable-learning evidence in `verify.md`.
+  - **`record-gate`**: rejects PASS/SKIPPED when transition evidence is missing or placeholder-only.
 
 <!-- Per-turn breadcrumb: shown when no task is selected (before Phase 1) -->
 
@@ -724,10 +728,10 @@ Archive readiness by mode:
 |---|---|
 | No Task | No archive; upgrade to a durable task mode before archive is possible. |
 | Micro-Grill | No archive unless upgraded into Lite, Full, or Parent/Child. |
-| Lite | `verify.md` has validation evidence, final acceptance evidence, and durable-learning decision evidence. |
-| Full | Lite evidence plus required completion gates, fresh fingerprints, and no unresolved required `FAIL` gates. |
-| Child | Lite/Full evidence plus Parent task-map marks the Child `integrated` or `cancelled`; integrated Children include `handoff.md`. |
-| Parent | Full evidence plus every Child is `integrated` or `cancelled`, with final integration evidence. |
+| Lite | Explicit no-gate chain. `verify.md` has substantive validation, final acceptance, and durable-learning decision evidence. |
+| Full | Lite evidence plus required completion gates (`full-task-complete/*`), substantive check/change-set evidence, fresh fingerprints, and no unresolved required `FAIL` gates. |
+| Child | Lite or Full evidence (by child profile). Full Children require `child-review` gates before Parent `accepted`. Parent task-map marks the Child `integrated` or `cancelled`; integrated Children include `handoff.md`. |
+| Parent | Archive evidence plus every Child `integrated` or `cancelled`, substantive final integration evidence, and `parent-integrated/integration-review`. |
 
 Archive / Learning is terminal. After archive, do not silently mutate archived task artifacts; follow-up work requires a new task unless the user explicitly approves an archive amendment.
 
