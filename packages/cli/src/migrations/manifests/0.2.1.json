@@ -1,11 +1,9 @@
 {
   "version": "0.2.1",
+  "description": "v0.2.1 — 移除 vendored smart-search，改用 npm 依赖。",
   "breaking": false,
-  "deprecatedPaths": [],
-  "notes": [
-    "移除 vendored smart-search，改用 npm 依赖 @blxzer/smart-search",
-    "从版本控制移除 .trellis/ 和 .cursor/ 目录",
-    "更新文档，去除营销化语言",
-    "删除 smart-search vendor 相关测试和脚本"
-  ]
+  "recommendMigrate": false,
+  "changelog": "**@blxzer/cursor-trellis 0.2.1 和 @blxzer/cursor-trellis-core 0.2.1**\n\n### Changed\n- refactor: 移除 vendored smart-search (37个源文件 + wrapper)，改用 npm 依赖 @blxzer/smart-search@^0.1.0\n- chore: 从版本控制移除 .trellis/ 和 .cursor/ 目录（这些是生成的工件）\n- docs: 简化用户文档，去除营销化语言\n- test: 删除 smart-search vendor 相关测试和脚本\n\n### Upgrade notes\n- smart-search 现在作为 npm 依赖自动安装\n- 运行 `npm install -g @blxzer/cursor-trellis` 会自动安装 smart-search",
+  "migrations": [],
+  "notes": "首次将 smart-search 从 vendor 迁移到 npm 依赖的版本。"
 }
