@@ -18,6 +18,9 @@ import sys
 from io import StringIO
 from pathlib import Path
 
+# Cross-platform Python command resolver: Windows standard install has 'python', not 'python3'
+_PYTHON_CMD = "python" if sys.platform == "win32" else "python3"
+
 
 def _normalize_windows_shell_path(path_str: str) -> str:
     """Normalize Unix-style shell paths to real Windows paths.
@@ -338,7 +341,7 @@ def _get_task_status(trellis_dir: Path, input_data: dict) -> str:
         return (
             f"Trellis framework: active\nSelected task: {task_ref}\n"
             "Status: STALE SELECTION\n"
-            f"Next-Action: Run `python ./.trellis/scripts/task.py exit` to clear the stale selection, "
+            f"Next-Action: Run `{_PYTHON_CMD} ./.trellis/scripts/task.py exit` to clear the stale selection, "
             "then ask the user what to work on next."
         )
 
@@ -638,7 +641,7 @@ def _build_compact_current_state(
         try:
             task_count = sum(1 for _ in iter_active_tasks(get_tasks_dir(repo_root)))
             lines.append(
-                f"Active tasks: {task_count} total. Use the Task Dashboard for routing; use `python ./.trellis/scripts/task.py list --mine` only for raw inspection."
+                f"Active tasks: {task_count} total. Use the Task Dashboard for routing; use `{_PYTHON_CMD} ./.trellis/scripts/task.py list --mine` only for raw inspection."
             )
         except Exception:
             pass
@@ -669,7 +672,7 @@ def _build_task_dashboard(trellis_dir: Path, input_data: dict) -> str:
             _detect_platform(input_data),
         )
     except Exception:
-        return "Task Dashboard unavailable. Run: python ./.trellis/scripts/task.py dashboard"
+        return f"Task Dashboard unavailable. Run: {_PYTHON_CMD} ./.trellis/scripts/task.py dashboard"
 
 
 def _extract_range(content: str, start_header: str, end_header: str) -> str:
@@ -714,7 +717,17 @@ def _strip_breadcrumb_tag_blocks(content: str) -> str:
     """
     stripped = _BREADCRUMB_TAG_RE.sub("", content)
     stripped = re.sub(r"<!--.*?-->", "", stripped, flags=re.DOTALL)
-    stripped = re.sub(r"^\[(?!/?workflow-state:)/?[^\]\n]+\]\s*\n?", "", stripped, flags=re.MULTILINE)
+    # Strip orphan bracket-tag lines (residual when a [workflow-state:STATUS]
+    # pair is split across an extraction boundary), but preserve legitimate
+    # documentation examples like `[Triage: <Mode>] <reason>` in the Request
+    # Triage section. The negative lookahead skips both workflow-state tags
+    # (handled by the pair regex above) and Triage classification marks.
+    stripped = re.sub(
+        r"^\[(?!/?workflow-state:|Triage:)/?[^\]\n]+\]\s*\n?",
+        "",
+        stripped,
+        flags=re.MULTILINE,
+    )
     return re.sub(r"\n{3,}", "\n\n", stripped).strip()
 
 
@@ -726,7 +739,7 @@ def _build_workflow_overview(workflow_path: Path) -> str:
 
     out_lines = [
         "# Development Workflow - Session Summary",
-        "Full guide: .trellis/workflow.md. Step detail: `python ./.trellis/scripts/get_context.py --mode phase --step <X.Y>`.",
+        f"Full guide: .trellis/workflow.md. Step detail: `{_PYTHON_CMD} ./.trellis/scripts/get_context.py --mode phase --step <X.Y>`.",
         "",
     ]
 
@@ -823,8 +836,17 @@ Trellis compact SessionStart context. Use it to orient the session; load details
 
     output.write(
         "Discover more via: "
-        "`python ./.trellis/scripts/get_context.py --mode packages`\n"
+        f"`{_PYTHON_CMD} ./.trellis/scripts/get_context.py --mode packages`\n"
     )
+    if _detect_platform(hook_input) == "cursor":
+        output.write(
+            "\n**External web research (Cursor):** `smart-search-cli` + Bash first "
+            "(resolves PATH, optional `smart_search.command`, or "
+            "`Trellis/packages/cli/bin/smart-search.js`). "
+            "If `run_smart_search.py` returns `not_configured` or `failed` (incl. timeout), "
+            "use **WebSearch/WebFetch**, persist `{TASK}/research/*.md` with "
+            "`source: cursor-web-fallback`.\n"
+        )
     output.write("</guidelines>\n\n")
 
     # Check task status and inject structured tag

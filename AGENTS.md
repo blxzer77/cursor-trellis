@@ -12,6 +12,14 @@ This project is managed by Trellis. The working knowledge you need lives under `
 
 If a Trellis command is available on your platform (e.g. `/trellis:finish-work`, `/trellis:continue`), prefer it over manual steps. Not every platform exposes every command.
 
+## Codebase retrieval fallback
+
+When you need a retrieval plan for a codebase question and no plan block was auto-injected, generate one manually:
+
+```powershell
+python ./.trellis/scripts/route_codebase_retrieval.py "<question>" --instructions
+```
+
 Managed by Trellis. Edits outside this block are preserved; edits inside may be overwritten by a future `trellis update`.
 
 <!-- TRELLIS:END -->
