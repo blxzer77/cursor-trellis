@@ -70,6 +70,15 @@ flowchart LR
 3. 用户项目中的 **哈希跟踪** 支持 **`trellis update`** 安全刷新模板与可选 **迁移**。
 4. 对话时 **rules** 与 **AGENTS.md** 承载策略；**hooks** 补充会话/终端/子 Agent 上下文（`sessionStart` 注入在 Cursor 上有限制，见 [cursor.zh-CN.md](cursor.zh-CN.md)）。
 
+## 检索层与上下文注入
+
+Trellis 将代码库与外部事实问题通过一个**检索层**路由，而非依赖单一工具。在 Cursor 上，检索计划通过两个互补通道到达 Agent，两者都**不**依赖不可靠的 `sessionStart` 注入（#158452）：
+
+1. **每查询计划**——`beforeSubmitPrompt` 钩子（`inject-retrieval-plan.py`）向用户提示预置 `## 代码库检索计划` 块，由 `route_codebase_retrieval.py` 生成。
+2. **常驻策略**——`.cursor/rules/retrieval-routing.mdc`（`alwaysApply: true`）定义默认工具顺序与计划块执行规则。
+
+该层涵盖七个适配器（Core / Enhance / Placeholder），基于意图路由，三档证据评分（candidate → corroborated → verified），以及结果层排序。语义后端取决于环境：native `@codebase` vs BYOK `fast_context_search`。完整设计见 [retrieval.zh-CN.md](retrieval.zh-CN.md)。
+
 ## CLI 分层（简化）
 
 | 层 | 职责 |
@@ -80,6 +89,7 @@ flowchart LR
 | `src/commands/uninstall.ts` | 计划性移除 Trellis 管理路径 |
 | `src/configurators/*.ts` | 各平台模板写入 |
 | `src/utils/*` | 写文件、哈希、项目检测、能力项等 |
+| `src/templates/trellis/scripts/route_codebase_retrieval.py` | 检索意图路由器（输出计划信封；见 [retrieval.zh-CN.md](retrieval.zh-CN.md)） |
 
 公开文档仅对 **init / update / uninstall** 深入；其余命令见 [CLI README](../packages/cli/README.zh-CN.md) 简表。
 
