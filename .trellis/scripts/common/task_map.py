@@ -427,7 +427,19 @@ def _default_child(child_name: str) -> dict:
 
 
 def _default_body() -> str:
-    return "# Task Map\n\n## Event Log\n\n"
+    return (
+        "# Task Map\n\n"
+        "## Orchestration notes\n\n"
+        "- `execution_topology: parallel` — children with empty `depends_on` may run concurrently; "
+        "Parent integrates serially up to `merge_limit`.\n"
+        "- Child-reported states: `open` → `working` → `blocked` | `review`.\n"
+        "- Parent-controlled states: `review` → `changes` | `accepted` → `integrating` → "
+        "`integrated` | `cancelled`.\n"
+        "- Declare `touches` per child before dispatch to reduce merge conflicts.\n"
+        "- `isolation: git-worktree` — run `prepare-child-worktree` from the **git package root** "
+        "(not a non-git harness root).\n\n"
+        "## Event Log\n\n"
+    )
 
 
 def _append_event(body: str, event: str) -> str:

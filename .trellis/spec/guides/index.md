@@ -21,8 +21,12 @@ These guides help you **ask the right questions before coding**.
 
 | Guide | Purpose | When to Use |
 |-------|---------|-------------|
+| [Durable Learning Decision Guide](./durable-learning-decision-guide.md) | Choose no-learning vs spec update vs learning artifact before archive | Finishing a task, parent review, or after `/trellis:break-loop` |
 | [Code Reuse Thinking Guide](./code-reuse-thinking-guide.md) | Identify patterns and reduce duplication | When you notice repeated patterns |
 | [Cross-Layer Thinking Guide](./cross-layer-thinking-guide.md) | Think through data flow across layers | Features spanning multiple layers |
+| [Retrieval daily guide](./retrieval-daily-guide.md) | rg / codegraph / fast-context / smart-search / pack / router | Planning, research, finish verification |
+| [Cursor subagent policy](./cursor-subagent-policy.md) | Task tool scenes, Agent mode, `model_policy: cursor-configured`, Cursor++ | Parent/Child dispatch, research/implement/check, parallel execution |
+| [Cursor context injection guide](./cursor-context-injection-guide.md) | Which Cursor channels reach the model (sessionStart bug, .cursor/rules, AGENTS.md) | "Agent ignored instructions" on Cursor, adding always-visible rules |
 
 ---
 

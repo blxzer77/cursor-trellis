@@ -30,8 +30,8 @@
           "startup_timeout_sec": 120
         }
       ],
-      "routing": "Use for codebase questions by retrieval role: extract exact identifiers, path hints, and policy phrases, run rg first, apply intent-gated policy/document-first routing for architecture, boundary, and storage-policy questions, apply other intent-gated branches (caller-chain, trap demotion, extension disambiguation, env/config literals) only when the question matches that class, expand structural candidates with CodeGraph when available and fresh enough, use LSP for navigation after candidate symbols/files exist, use fast-context for semantic recall last on policy/env-heavy queries, then promote only source/Git/test-backed findings to final claims.",
-      "readiness": "Required exact search (`rg`) is available. Optional CodeGraph, LSP, and fast-context adapters are reported as available, unavailable, or unverified without startup side effects.",
+      "routing": "Use for codebase questions by retrieval role: extract exact identifiers, path hints, and policy phrases, run rg first, apply intent-gated policy/document-first routing and other intent branches when matched, expand with CodeGraph for structure/callers/definitions (Cursor Agent does not expose GO_TO_DEFINITION — use codegraph_node/codegraph_search + Read). Semantic recall follows cursorEnv: Cursor Native → built-in platform-semantic; Cursor++ BYOK → fast-context MCP (fast_context_search) as platform-semantic Primary. Wide cross-cutting on BYOK may use Task explore when DEEP_SEARCH is absent. Do not use WebSearch for codebase questions. Promote only source/Git/test-backed findings to final claims.",
+      "readiness": "Required exact search (`rg`) is available. CodeGraph and fast-context MCP are required for full BYOK retrieval on Cursor when this capability is selected; Native relies on built-in semantic when available. LSP/GO_TO_DEFINITION is not a guaranteed Agent tool — definition/reference via codegraph.",
       "fallback": [
         "Install or expose `rg` on PATH before claiming codebase retrieval readiness.",
         "Ensure `npx -y fast-context-mcp` and `npx -y @colbymchenry/codegraph serve --mcp` can launch before generated MCP adapter entries are claimed as usable.",
@@ -56,19 +56,26 @@
           "mcp_server": "codegraph"
         },
         "lsp": {
-          "provider": "language-server",
+          "provider": "codegraph",
           "required": false,
-          "purpose": "Expand high-confidence candidates through definitions, references, implementations, hover, and workspace symbols.",
-          "readiness": "A project-appropriate language server is configured by the host; Trellis does not start it during init/update.",
-          "evidence_status": "Navigation candidate until exact file/range evidence is verified by source reads."
+          "purpose": "Definition/reference navigation on Cursor Agent via codegraph_node and codegraph_search (GO_TO_DEFINITION not exposed in Agent tool table).",
+          "readiness": "CodeGraph MCP/index available; corroborate with Read on returned line ranges.",
+          "evidence_status": "Structural navigation candidate until Read verifies file/range; do not claim LSP jump when only codegraph ran."
         },
         "semantic": {
-          "provider": "fast-context-mcp",
+          "provider": "platform-semantic",
           "required": false,
-          "purpose": "Recall conceptual or poorly named code areas and return candidate files, ranges, and follow-up grep terms.",
-          "readiness": "`npx -y fast-context-mcp` is available to the host and a project-scoped smoke search is confirmed outside ordinary init/update.",
-          "evidence_status": "Semantic recall candidate only; convert returned files/ranges/keywords into exact search and source reads before relying on it.",
+          "purpose": "Conceptual recall: Cursor Native uses built-in codebase semantic; Cursor++ BYOK uses fast-context MCP per router cursorEnv.",
+          "readiness": "Native: host exposes built-in semantic/@codebase. BYOK: `npx -y fast-context-mcp` enabled in MCP config when codebase-retrieval is selected.",
+          "evidence_status": "Semantic recall candidate only; convert hits into rg/Read before final claims. BYOK fast-context is compliant Primary, not misuse.",
           "mcp_server": "fast-context"
+        },
+        "platform-semantic-native": {
+          "provider": "cursor-builtin",
+          "required": false,
+          "purpose": "Cursor Native built-in semantic / @codebase when cursorEnv is native.",
+          "readiness": "Agent session tool table includes codebase semantic or equivalent.",
+          "evidence_status": "Log actual host tool name for semantic_exec telemetry."
         },
         "verification": {
           "provider": "source-git-tests",

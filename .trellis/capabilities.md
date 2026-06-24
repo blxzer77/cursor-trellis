@@ -4,7 +4,7 @@ This file records selected project capabilities for the Trellis workflow. It doe
 
 ## Selected
 
-- codebase-retrieval: Role-based local code retrieval through exact search, AST/structure, LSP expansion, semantic recall, and verification.
+- codebase-retrieval: Role-based local code retrieval through exact search, CodeGraph structure, definition/reference via codegraph on Cursor Agent, semantic recall by cursorEnv, and verification.
 - github-mcp: GitHub repository, issue, pull request, and review operations.
 - playwright-mcp: Browser automation, frontend behavior checks, screenshots, and UI smoke verification.
 
@@ -12,12 +12,14 @@ This file records selected project capabilities for the Trellis workflow. It doe
 
 - Unselected, unavailable, skipped, or uninvoked capabilities must not be reported as used.
 - Capability output that affects task decisions must be recorded in task research or verify evidence.
-- `codebase-retrieval` routes by retrieval role, not by tool brand: exact search, intent-gated policy/document-first routing for C-class questions, other intent-gated branches when the question class matches, AST/structure, LSP navigation, semantic recall, then verification.
+- `codebase-retrieval` routes by retrieval role, not by tool brand: exact search, intent-gated policy/document-first routing for C-class questions, other intent-gated branches when the question class matches, AST/structure, definition/reference via codegraph on Cursor Agent, semantic recall by cursorEnv, then verification.
 - Policy, architecture, boundary, and storage-policy questions must inspect `AGENTS.md`, `.trellis/spec/**`, and README/contributing/architecture docs before semantic implementation search.
 - Intent-gated branches (policy/document, caller-chain, trap demotion, extension disambiguation, env/config literals) must not override exact-symbol or F/G protocol routes.
 - Exact `rg` search and direct source reads are the baseline for current-code claims.
 - CodeGraph output is structural guidance until index freshness and current source/Git evidence are confirmed.
-- fast-context output is semantic recall only and must be converted into exact source checks before final claims.
+- fast-context output is semantic recall only and must be converted into exact source checks before final claims; on Cursor BYOK it is the compliant Primary for concept recall.
+- On **Cursor**, semantic recall follows **cursorEnv** (Native built-in vs BYOK fast-context). See **Semantic recall (Cursor)** under codebase-retrieval.
+- On Cursor, per-query tool order also lives in `.cursor/rules/retrieval-routing.mdc` (`alwaysApply`).
 - GitHub MCP uses the GitHub API server package; remote writes require explicit user intent and the host's credential/tool posture must be clear.
 - Playwright MCP should be used for rendered UI evidence only when browser verification is part of the task.
 
@@ -45,7 +47,7 @@ When the question asks how storage is chosen, why sidecar files for cache or que
 2. Run exact `rg` search first when exact signals exist and keep file/range candidates tied to source evidence.
 3. Classify intent (policy/document, caller-chain, trap/package, extension spread, env literal, protocol/platform) and apply **Policy and Document-First Routing** or the matching branch from **Query Intent Branches** when it fits; skip branches that do not match.
 4. Use AST/CodeGraph when available and fresh enough to resolve symbols, imports, callers, callees, impact, and affected files.
-5. Use LSP navigation only after candidate files or symbols exist; do not use it as the broad first-pass search.
+5. Use codegraph_node / codegraph_search for definition and reference on Cursor Agent; Read to verify line ranges (GO_TO_DEFINITION is not a guaranteed Agent tool).
 6. Use semantic recall for conceptual, poorly named, or cross-cutting areas, then turn returned files/ranges/keywords into exact follow-up checks; deprioritize semantic Top-1 for policy/storage-policy, env-literal, and extension-disambiguation questions until policy docs or `rg` narrow candidates.
 7. Fuse candidates by source proximity, tests, current Git state, and adapter freshness.
 8. Read files, inspect relevant Git evidence, and run task-appropriate validation before making final behavior, impact, or test-coverage claims.
@@ -89,19 +91,27 @@ When the question asks how storage is chosen, why sidecar files for cache or que
 
 ### lsp
 
-- Provider: language-server
+- Provider: codegraph
 - Required: no
-- Purpose: Expand high-confidence candidates through definitions, references, implementations, hover, and workspace symbols.
-- Readiness: A project-appropriate language server is configured by the host; Trellis does not start it during init/update.
-- Evidence status: Navigation candidate until exact file/range evidence is verified by source reads.
+- Purpose: Definition/reference navigation on Cursor Agent via codegraph_node and codegraph_search (GO_TO_DEFINITION not exposed in Agent tool table).
+- Readiness: CodeGraph MCP/index available; corroborate with Read on returned line ranges.
+- Evidence status: Structural navigation candidate until Read verifies file/range; do not claim LSP jump when only codegraph ran.
 
 ### semantic
 
-- Provider: fast-context-mcp
+- Provider: platform-semantic
 - Required: no
-- Purpose: Recall conceptual or poorly named code areas and return candidate files, ranges, and follow-up grep terms.
-- Readiness: `npx -y fast-context-mcp` is available to the host and a project-scoped smoke search is confirmed outside ordinary init/update.
-- Evidence status: Semantic recall candidate only; convert returned files/ranges/keywords into exact search and source reads before relying on it.
+- Purpose: Conceptual recall: Cursor Native uses built-in codebase semantic; Cursor++ BYOK uses fast-context MCP per router cursorEnv.
+- Readiness: Native: host exposes built-in semantic/@codebase. BYOK: `npx -y fast-context-mcp` enabled in MCP config when codebase-retrieval is selected.
+- Evidence status: Semantic recall candidate only; convert hits into rg/Read before final claims. BYOK fast-context is compliant Primary, not misuse.
+
+### platform-semantic-native
+
+- Provider: cursor-builtin
+- Required: no
+- Purpose: Cursor Native built-in semantic / @codebase when cursorEnv is native.
+- Readiness: Agent session tool table includes codebase semantic or equivalent.
+- Evidence status: Log actual host tool name for semantic_exec telemetry.
 
 ### verification
 
@@ -110,6 +120,12 @@ When the question asks how storage is chosen, why sidecar files for cache or que
 - Purpose: Prove final claims with direct source reads, exact search confirmation, Git evidence, and focused validation.
 - Readiness: Repository files are readable and task-appropriate validation commands are available or blockers are recorded.
 - Evidence status: Required proof layer for final technical claims and verification evidence.
+
+## Semantic recall (Cursor)
+
+Semantic routing is **split by `cursorEnv`** (see `cursor_retrieval_env` / `~/.ccursor/routes.json` `byokMode`): **Native** → built-in `platform-semantic`; **BYOK** → **fast-context MCP** (`fast_context_search`) as Primary. **codebase-retrieval** is an **optional** init capability — when selected, init/update writes **fast-context** and **codegraph** into `.cursor/mcp.json`; BYOK local concept retrieval should select it.
+
+Prefer `.cursor/rules/retrieval-routing.mdc` and `retrieval-daily-guide.md` for tool names.
 
 ## Query Intent Branches (intent-gated)
 
@@ -121,6 +137,15 @@ Apply these branches only when the question matches the intent class. Do not reo
 - Do not treat facade-runtime, loader, barrel, plugin-registry-snapshot, or a single deliver/helper file as sufficient Top-1 evidence when the rubric expects many concrete call sites.
 - After exact hits on the helper or symbol, run `codegraph callers` with a raised limit (or repeat with `rg` references/imports) until concrete callee modules appear; follow assembly nodes (`*-runtime`, `server-runtime-services`, registry entry vs snapshot) with `codegraph callees` or targeted `rg`.
 - Rank concrete call-site files above the file that only defines or loads the helper.
+
+### Cross-cutting / conceptual discovery
+
+- Use when the question has no named symbol, path, or protocol constant but asks how behavior works, spans modules/packages, or uses conceptual phrasing (for example English *how does* / *across packages*, or Chinese 如何 / 机制 / 跨).
+- The deterministic router emits intent `cross-cutting-discovery` and promotes semantic recall to plan order 1–2 (after `policy-docs-rg` when policy intent also matches); follow with exact `rg` on returned keywords and paths.
+- **On Cursor (Native, `cursorEnv: native`)**: router `platform-semantic` — built-in codebase / semantic search (e.g. SemanticSearch); see `.cursor/rules/retrieval-routing.mdc`.
+- **On Cursor++ BYOK (`cursorEnv: byok`)**: concept recall Primary is **fast_context_search** (fast-context MCP); built-in semantic is often absent (Experiment D). Select **codebase-retrieval** at init to generate `.cursor/mcp.json` entries for fast-context and codegraph.
+- **On Codex, Claude Code, and other non-Cursor hosts**: router `semantic-fast-context` — invoke `fast_context_search` when semantic recall is required after uncorroborated exact `rg`.
+- When exact-symbol or F/G preserve intents match, keep exact `rg` primary; do not apply this branch.
 
 ### Trap demotion and package boundary (E-class)
 
@@ -169,7 +194,7 @@ Apply these branches only when the question matches the intent class. Do not reo
 
 ## Readiness Expectations
 
-- codebase-retrieval: Required exact search (`rg`) is available. Optional CodeGraph, LSP, and fast-context adapters are reported as available, unavailable, or unverified without startup side effects.
+- codebase-retrieval: Required exact search (`rg`) is available. CodeGraph and fast-context MCP are required for full BYOK retrieval on Cursor when this capability is selected; Native relies on built-in semantic when available. LSP/GO_TO_DEFINITION is not a guaranteed Agent tool — definition/reference via codegraph.
 - github-mcp: Configured GitHub API MCP package is visible and `GITHUB_TOKEN` or `GITHUB_PERSONAL_ACCESS_TOKEN` is present in the agent host environment before remote actions are claimed.
 - playwright-mcp: Configured server and browser runtime are available without silently starting unrelated browsing sessions.
 

@@ -32,6 +32,7 @@ from .config import (
     resolve_package,
     validate_package,
 )
+from .cli_environment import format_git_repo_errors, print_environment_repair_hints
 from .git import run_git
 from .io import read_json, write_json
 from .log import Colors, colored
@@ -53,6 +54,7 @@ from .safe_commit import (
 from .task_gates import (
     BASELINE_GATE,
     archive_repair_hints,
+    build_spec_update_scaffold,
     prepare_archive_evidence,
     validate_archive,
     write_gate_record,
@@ -145,7 +147,7 @@ def _validate_git_repo(repo_root: Path) -> list[str]:
     rc, out, err = run_git(["rev-parse", "--is-inside-work-tree"], cwd=repo_root)
     if rc != 0 or out.strip() != "true":
         detail = err.strip() or out.strip() or "not a Git worktree"
-        return [f"Git repository required: {detail}"]
+        return format_git_repo_errors([f"Git repository required: {detail}"])
     return []
 
 
@@ -519,6 +521,30 @@ def cmd_prepare_archive_evidence(args: argparse.Namespace) -> int:
             for hint in hints:
                 print(f"  - {hint}")
     return 0 if changed else 1
+
+
+def cmd_prepare_learning_scaffold(args: argparse.Namespace) -> int:
+    """Print spec-update scaffolding for a task (stdout only; does not edit specs)."""
+    repo_root = get_repo_root()
+    task_name = args.name
+    if not task_name:
+        print(colored("Error: Task name is required", Colors.RED), file=sys.stderr)
+        return 1
+
+    task_dir = resolve_task_dir(task_name, repo_root)
+    if not task_dir or not task_dir.is_dir():
+        print(colored(f"Error: Task not found: {task_name}", Colors.RED), file=sys.stderr)
+        return 1
+
+    task_json_path = task_dir / FILE_TASK_JSON
+    task_data = read_json(task_json_path) if task_json_path.is_file() else None
+    if task_data is None:
+        print(colored("Error: task.json missing or invalid", Colors.RED), file=sys.stderr)
+        return 1
+
+    trigger = getattr(args, "trigger", None)
+    print(build_spec_update_scaffold(repo_root, task_dir, task_data, trigger=trigger))
+    return 0
 
 
 def _integrated_children_still_active(
@@ -1011,6 +1037,7 @@ def cmd_prepare_child_worktree(args: argparse.Namespace) -> int:
         print("Prepare-child-worktree check: FAIL" if getattr(args, "check", False) else colored("Error: cannot prepare child worktree.", Colors.RED), file=sys.stderr)
         for item in errors:
             print(f"  - {item}", file=sys.stderr)
+        print_environment_repair_hints(errors)
         return 1
 
     assert worktree_path is not None
@@ -1189,6 +1216,7 @@ def cmd_integrate_child(args: argparse.Namespace) -> int:
             print("Integrate-child check: FAIL")
             for item in errors:
                 print(f"  - {item}")
+            print_environment_repair_hints(errors, stream=sys.stdout)
             return 1
         print("Integrate-child check: PASS")
         if execute_merge:
@@ -1203,6 +1231,7 @@ def cmd_integrate_child(args: argparse.Namespace) -> int:
             print(colored("Error: cannot execute child merge.", Colors.RED), file=sys.stderr)
             for item in merge_errors:
                 print(f"  - {item}", file=sys.stderr)
+            print_environment_repair_hints(merge_errors)
             return 1
 
         rc, _, err = run_git(["merge", "--no-ff", "--no-commit", ref], cwd=repo_root)
@@ -1210,6 +1239,7 @@ def cmd_integrate_child(args: argparse.Namespace) -> int:
             print(colored("Error: git merge failed; Parent task-map was not advanced to integrated.", Colors.RED), file=sys.stderr)
             if err.strip():
                 print(err.strip(), file=sys.stderr)
+            print_environment_repair_hints([err.strip()])
             print("Resolve the merge manually, abort it with `git merge --abort`, or record a `changes` / `cancelled` Parent decision.", file=sys.stderr)
             return 1
         merge_ref = ref
@@ -1241,6 +1271,38 @@ def cmd_integrate_child(args: argparse.Namespace) -> int:
 # =============================================================================
 # Command: generate-child-prompt / parent-status / review-child
 # =============================================================================
+
+def cmd_generate_dispatch_prompt(args: argparse.Namespace) -> int:
+    """Build a full Task dispatch prompt (Agent-facing CLI Layer 2)."""
+    from .subagent_dispatch import build_dispatch_prompt
+
+    repo_root = get_repo_root()
+    task_dir = resolve_task_dir(args.task_dir, repo_root)
+    role = args.role
+    scope = getattr(args, "scope", None)
+    finish = bool(getattr(args, "finish", False))
+    max_chars = getattr(args, "max_chars", None)
+
+    prompt, warnings, errors = build_dispatch_prompt(
+        repo_root,
+        task_dir,
+        role,
+        scope=scope,
+        finish=finish,
+        max_chars=max_chars,
+    )
+    for item in warnings:
+        print(f"[generate-dispatch-prompt] WARN: {item}", file=sys.stderr)
+    if errors:
+        for item in errors:
+            print(f"[generate-dispatch-prompt] Error: {item}", file=sys.stderr)
+        return 1
+    if prompt is None:
+        print(colored("Error: could not build dispatch prompt", Colors.RED), file=sys.stderr)
+        return 1
+    print(prompt)
+    return 0
+
 
 def cmd_generate_child_prompt(args: argparse.Namespace) -> int:
     """Generate a child implementation prompt for parent orchestration."""

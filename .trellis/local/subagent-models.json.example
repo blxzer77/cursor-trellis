@@ -1,0 +1,4 @@
+{
+  "_comment": "Optional repo overrides (~/.ccursor/trellis-task-models.json is user-wide). Same value rules: apiModel, displayName, or model-xxxxx slug. Project wins on same key.",
+  "trellis-implement": "qwen3.6-plus"
+}
