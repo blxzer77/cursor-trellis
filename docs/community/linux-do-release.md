@@ -89,8 +89,13 @@ flowchart TD
   plan --> gate["start-execution --check"]
   gate --> ok{你批准执行?}
   ok -->|否| plan
-  ok -->|是| exec[Execute: 实现 + trellis-check]
+  ok -->|是| mode{"execution_mode?<br/>(合约字段)"}
+  mode -->|worker| exec["派 trellis-implement / check"]
+  mode -->|inline| inline["主会话自实现自检查"]
+  mode -->|child-task| child["Child / Parent 编排"]
   exec --> fin[Finish: verify.md · 学习决策 · 提交/归档]
+  inline --> fin
+  child --> fin
 ```
 
 **记住两点:**
@@ -122,7 +127,7 @@ your-app/
 
 ## 三个子 Agent 是干什么的?
 
-复杂任务时,主会话会把「调研 / 实现 / 审查」派到独立上下文(不默认当并行工厂,Parent/Child 才是多交付物并行):
+当任务合约 `execution_mode: worker` 时,主会话会把「调研 / 实现 / 审查」派到独立上下文(`inline` 模式则主会话自己干;Parent/Child 才是多交付物并行):
 
 ```mermaid
 flowchart LR
