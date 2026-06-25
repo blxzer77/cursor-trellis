@@ -7,7 +7,7 @@
  *   manifest guards -> tests -> pre-release commit -> synchronized bump
  *   -> version check -> version commit -> tag -> push
  */
-import { execSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -34,6 +34,15 @@ function run(command, options = {}) {
     env: process.env,
     stdio: options.capture ? ["pipe", "pipe", "pipe"] : "inherit",
     encoding: "utf-8",
+  });
+}
+
+/** Avoid shell quoting (Windows cmd/PowerShell do not treat '...' as one argument). */
+function gitCommit(message, options = {}) {
+  execFileSync("git", ["commit", "-m", message], {
+    cwd: options.cwd ?? CLI_DIR,
+    env: process.env,
+    stdio: "inherit",
   });
 }
 
@@ -77,13 +86,13 @@ function main() {
 
   run("git add -A");
   if (hasGitDiff()) {
-    run("git commit -m 'chore: pre-release updates'");
+    gitCommit("chore: pre-release updates");
   }
 
   const version = output(`node scripts/bump-versions.js ${type}`);
   run("node scripts/release-preflight.js check-versions");
   run("git add package.json ../core/package.json");
-  run(`git commit -m "${version}"`);
+  gitCommit(version);
   run(`git tag "v${version}"`);
   run(`git push private ${pushTarget(type)} --tags`);
 }
