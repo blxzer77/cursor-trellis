@@ -2,7 +2,7 @@
 
 [English](architecture.md) | 简体中文
 
-本文为 **公开、高层** 的 `cursor-trellis` monorepo 说明，以及 Trellis 如何进入 **Cursor** 项目。维护者用的实现细节见 [maintainers.md](maintainers.md)（内部中文）。
+本文为 **公开、高层** 的 `cursor-trellis` monorepo 说明，以及 Trellis 如何进入 **Cursor** 项目。维护者用的实现细节见内部维护者手册（未公开，已 gitignore）。
 
 ## Trellis 解决的问题
 
@@ -106,7 +106,7 @@ smart-search --version
 - **与 Trellis**：workflow 约定外部事实优先走 smart-search；`init`/`update` 默认做 readiness 检查（可用 `--skip-readiness` 跳过）。
 - **不是 MCP**：通过 Shell 调用；在 Cursor 上依赖 workflow 与项目规则指引。
 
-维护者同步 vendor 见 [maintainers.md](maintainers.md)。
+维护者同步 vendor 见内部维护者手册（未公开，已 gitignore）。
 
 ## Fork 关系
 
@@ -123,11 +123,16 @@ smart-search --version
 
 - 各平台深度说明（见 [cursor.zh-CN.md](cursor.zh-CN.md) 附录）。
 - 公开用户文档中不展开 `mem` / `channel` CLI。
-- Release/publish 与私有 remote 策略 → [maintainers.md](maintainers.md) 与 gitignore 内部文档。
+- Release/publish 与私有 remote 策略 —— 见内部维护者手册（未公开，已 gitignore）。
 
 ## 延伸阅读
 
 - [Cursor 集成](cursor.zh-CN.md)
 - [Cursor 工作流](workflow.zh-CN.md)
+- [内部技能](skills.zh-CN.md)
+- [子 Agent 派发](subagents.zh-CN.md)
+- [Spec 系统](spec-system.zh-CN.md)
+- [Task 系统](task-system.zh-CN.md)
+- [检索层](retrieval.zh-CN.md)
 - [CLI 参考](../packages/cli/README.zh-CN.md)
 - [README](../README.zh-CN.md)

@@ -199,3 +199,6 @@ tmp1/
 
 # Internal maintainer release/publish notes (local only)
 docs/release-publish-internal.md
+
+# Internal maintainer handbook (local only, not published)
+docs/maintainers.md
