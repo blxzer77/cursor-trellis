@@ -135,7 +135,7 @@ pnpm test
 
 ## 维护者说明
 
-`D:\MyHarness` harness 布局、Git remote 策略、release/publish 与深层实现见**内部**文档 [docs/maintainers.md](docs/maintainers.md)。公开文档故意不写 npm 发布与私有 remote 操作步骤。
+`D:\MyHarness` harness 布局、Git remote 策略、release/publish 与深层实现见**内部**维护者手册（未公开，已 gitignore）。公开文档故意不写 npm 发布与私有 remote 操作步骤。
 
 ## 延伸阅读
 
@@ -145,6 +145,10 @@ pnpm test
 | [docs/cursor.zh-CN.md](docs/cursor.zh-CN.md) | Cursor 生成文件 |
 | [docs/retrieval.zh-CN.md](docs/retrieval.zh-CN.md) | 检索层设计 |
 | [docs/architecture.zh-CN.md](docs/architecture.zh-CN.md) | 高层架构与 smart-search |
+| [docs/skills.zh-CN.md](docs/skills.zh-CN.md) | 内部技能参考手册 |
+| [docs/subagents.zh-CN.md](docs/subagents.zh-CN.md) | 子 Agent 派发设计 |
+| [docs/spec-system.zh-CN.md](docs/spec-system.zh-CN.md) | 渐进式 spec 系统 |
+| [docs/task-system.zh-CN.md](docs/task-system.zh-CN.md) | 任务工件、门禁、Parent/Child |
 | [packages/cli/README.zh-CN.md](packages/cli/README.zh-CN.md) | CLI / npm 参考 |
 | [CHANGELOG](packages/cli/CHANGELOG.md) | 包变更历史 |
 

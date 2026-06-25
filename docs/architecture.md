@@ -2,7 +2,7 @@
 
 English | [简体中文](architecture.zh-CN.md)
 
-This document is a **public, high-level** map of the `cursor-trellis` monorepo and how Trellis reaches a **Cursor** project. Deep implementation notes for maintainers live in [maintainers.md](maintainers.md) (internal, Chinese).
+This document is a **public, high-level** map of the `cursor-trellis` monorepo and how Trellis reaches a **Cursor** project. Deep implementation notes for maintainers live in an internal handbook (not in the public repo; gitignored).
 
 ## What Trellis does
 
@@ -146,11 +146,16 @@ Public docs describe behavior of **this** repository and package names. They do 
 
 - Per-platform deep dives (see [cursor.md](cursor.md) + appendix table).
 - `mem` / `channel` CLI subsystems (omitted from public user docs by product choice).
-- Release, publish, and private remote policy → [maintainers.md](maintainers.md) and gitignored internal release notes.
+- Release, publish, and private remote policy — covered by an internal maintainer handbook (not in the public repo; gitignored).
 
 ## See also
 
 - [Cursor integration](cursor.md)
 - [Workflow in Cursor](workflow.md)
+- [Internal skills](skills.md)
+- [Subagent dispatch](subagents.md)
+- [Spec system](spec-system.md)
+- [Task system](task-system.md)
+- [Retrieval layer](retrieval.md)
 - [CLI reference](../packages/cli/README.md)
 - [README](../README.md)
