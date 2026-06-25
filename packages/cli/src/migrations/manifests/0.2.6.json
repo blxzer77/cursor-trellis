@@ -1,0 +1,9 @@
+{
+  "version": "0.2.6",
+  "description": "v0.2.6 — public docs expansion (skills, subagents, task-system).",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**@blxzer/cursor-trellis 0.2.6 / @blxzer/cursor-trellis-core 0.2.6**\n\n### Changed\n- docs: GitHub docs — workflow, retrieval, skills, subagents, task-system, spec-system\n- docs(community): Linux.do release companion doc\n\n### Upgrade\n```bash\nnpm install -g @blxzer/cursor-trellis@0.2.6\ntrellis update\n```",
+  "migrations": [],
+  "notes": "Published at 0.2.6; manifest added in 0.2.7 release train."
+}

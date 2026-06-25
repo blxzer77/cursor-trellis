@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "doc_only_capabilities": [
+    "markdown-documentation"
+  ],
+  "code_capabilities": [
+    "cli-templates",
+    "python-task-scripts",
+    "vitest-integration",
+    "typescript",
+    "python"
+  ],
+  "code_path_segments": [
+    "src",
+    "packages",
+    "scripts",
+    "lib"
+  ],
+  "pair_warnings": [
+    {
+      "execution_mode": "worker",
+      "isolation": "git-worktree",
+      "message": "worker usually runs in main-worktree; git-worktree is rare for trellis-implement"
+    },
+    {
+      "execution_mode": "inline",
+      "isolation": "git-worktree",
+      "message": "inline + git-worktree is unusual; consider child-task if isolation is intentional"
+    }
+  ]
+}

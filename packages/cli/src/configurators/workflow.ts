@@ -6,6 +6,7 @@ import {
   workflowMdTemplate,
   configYamlTemplate,
   gitignoreTemplate,
+  executionStrategyRulesJson,
 } from "../templates/trellis/index.js";
 
 // Import markdown templates
@@ -34,6 +35,7 @@ import {
   guidesRetrievalDailyGuideContent,
   guidesCursorSemanticComplianceContent,
   guidesCursorSubagentPolicyContent,
+  guidesExecutionStrategyContent,
   guidesCursorContextInjectionGuideContent,
 } from "../templates/markdown/index.js";
 
@@ -127,6 +129,11 @@ export async function createWorkflowStructure(
   await writeFile(
     path.join(cwd, DIR_NAMES.WORKFLOW, "config.yaml"),
     configYamlTemplate,
+  );
+  ensureDir(path.join(cwd, DIR_NAMES.WORKFLOW, "config"));
+  await writeFile(
+    path.join(cwd, DIR_NAMES.WORKFLOW, "config", "execution-strategy-rules.json"),
+    executionStrategyRulesJson,
   );
 
   // Create workspace/ with index.md
@@ -272,6 +279,10 @@ async function createSpecTemplates(
     {
       name: "cursor-subagent-policy.md",
       content: guidesCursorSubagentPolicyContent,
+    },
+    {
+      name: "execution-strategy.md",
+      content: guidesExecutionStrategyContent,
     },
     {
       name: "cursor-context-injection-guide.md",

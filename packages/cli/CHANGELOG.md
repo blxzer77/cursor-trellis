@@ -9,6 +9,36 @@ SemVer: [semver.org](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.2.7] - 2026-06-25
+
+Aligned **@blxzer/cursor-trellis** and **@blxzer/cursor-trellis-core** at `0.2.7`.
+
+### Added
+
+- `task.py suggest-execution-strategy` — deterministic `execution_mode` / `isolation` suggestions from `.trellis/config/execution-strategy-rules.json`
+- `common/execution_strategy.py`, drift **WARN** on `start-execution --check` when contract differs from suggestion (advisory only)
+- Spec guide `execution-strategy.md`; `brainstorm.md` step before freezing Development Strategy Contract
+- Vitest: `execution-strategy.integration.test.ts`
+- Backfilled migration manifests `0.2.2`–`0.2.6` for npm / `trellis update` continuity
+
+### Changed
+
+- `workflow.md` Phase 2.1 / 2.2 and `[workflow-state:in_progress]`: dispatch `trellis-implement` / `trellis-check` only when contract `execution_mode: worker` (not unconditional spawn)
+- `trellis init` / `trellis update` ship `execution-strategy-rules.json` and `execution_strategy.py`
+- `docs/task-system.md` (+ zh-CN): planning suggest + drift WARN
+
+### Upgrade
+
+```bash
+npm install -g @blxzer/cursor-trellis@0.2.7
+# In each project:
+trellis update
+```
+
+**Behavior change:** Full tasks that touch code are **suggested** as `worker` + `main-worktree`; approved `implement.md` contract still authoritative. Run `task.py suggest-execution-strategy <task>` during planning.
+
+[0.2.7]: https://github.com/blxzer77/cursor-trellis/releases/tag/v0.2.7
+
 ## [0.1.4] - 2026-06-24
 
 Aligned **@blxzer/cursor-trellis** and **@blxzer/cursor-trellis-core** at `0.1.4` (fixes core/cli version drift since the in-repo `0.1.3` bump).

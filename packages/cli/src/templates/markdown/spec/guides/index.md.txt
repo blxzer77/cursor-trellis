@@ -26,6 +26,7 @@ These guides help you **ask the right questions before coding**.
 | [Cross-Layer Thinking Guide](./cross-layer-thinking-guide.md) | Think through data flow across layers | Features spanning multiple layers |
 | [Retrieval daily guide](./retrieval-daily-guide.md) | rg / codegraph / fast-context / smart-search / pack / router | Planning, research, finish verification |
 | [Cursor subagent policy](./cursor-subagent-policy.md) | Task tool scenes, Agent mode, `model_policy: cursor-configured`, Cursor++ | Parent/Child dispatch, research/implement/check, parallel execution |
+| [Execution strategy](./execution-strategy.md) | `suggest-execution-strategy`, rules JSON, inline vs worker vs child-task | Writing `implement.md` contract, Phase 2 dispatch |
 | [Cursor context injection guide](./cursor-context-injection-guide.md) | Which Cursor channels reach the model (sessionStart bug, .cursor/rules, AGENTS.md) | "Agent ignored instructions" on Cursor, adding always-visible rules |
 
 ---

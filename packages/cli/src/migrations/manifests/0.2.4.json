@@ -1,0 +1,9 @@
+{
+  "version": "0.2.4",
+  "description": "v0.2.4 — aligned core/cli publish (backfilled manifest).",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**@blxzer/cursor-trellis 0.2.4 / @blxzer/cursor-trellis-core 0.2.4**\n\n### Changed\n- chore: synchronized @blxzer/cursor-trellis-core with CLI release line\n\n### Upgrade\n```bash\nnpm install -g @blxzer/cursor-trellis@0.2.4\ntrellis update\n```",
+  "migrations": [],
+  "notes": "Manifest backfilled for npm continuity."
+}

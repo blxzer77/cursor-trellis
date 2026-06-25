@@ -1272,6 +1272,35 @@ def cmd_integrate_child(args: argparse.Namespace) -> int:
 # Command: generate-child-prompt / parent-status / review-child
 # =============================================================================
 
+def cmd_suggest_execution_strategy(args: argparse.Namespace) -> int:
+    """Suggest execution_mode and isolation for implement.md contract."""
+    import json
+
+    from .execution_strategy import (
+        format_contract_yaml_block,
+        suggest_execution_strategy,
+    )
+    from .task_utils import resolve_task_dir
+
+    repo_root = get_repo_root()
+    task_dir = resolve_task_dir(args.task_dir, repo_root)
+    task_json_path = task_dir / FILE_TASK_JSON
+    if not task_json_path.is_file():
+        print(colored("Error: task.json not found", Colors.RED), file=sys.stderr)
+        return 1
+    task_data = read_json(task_json_path)
+    if not isinstance(task_data, dict):
+        print(colored("Error: invalid task.json", Colors.RED), file=sys.stderr)
+        return 1
+
+    suggestion = suggest_execution_strategy(repo_root, task_dir, task_data)
+    if getattr(args, "json", False):
+        print(json.dumps(suggestion.to_dict(), indent=2, ensure_ascii=False))
+        return 0
+    print(format_contract_yaml_block(suggestion))
+    return 0
+
+
 def cmd_generate_dispatch_prompt(args: argparse.Namespace) -> int:
     """Build a full Task dispatch prompt (Agent-facing CLI Layer 2)."""
     from .subagent_dispatch import build_dispatch_prompt

@@ -57,6 +57,7 @@ import {
   configYamlTemplate,
   gitignoreTemplate,
   workflowMdTemplate,
+  executionStrategyRulesJson,
 } from "../templates/trellis/index.js";
 import { agentsMdContent } from "../templates/markdown/index.js";
 
@@ -628,6 +629,10 @@ function collectTemplateFiles(
 
   // Configuration
   files.set(`${DIR_NAMES.WORKFLOW}/config.yaml`, configYamlTemplate);
+  files.set(
+    `${DIR_NAMES.WORKFLOW}/config/execution-strategy-rules.json`,
+    executionStrategyRulesJson,
+  );
   files.set(`${DIR_NAMES.WORKFLOW}/.gitignore`, gitignoreTemplate);
   const localPrefix = `${DIR_NAMES.WORKFLOW}/local`;
   // Cursor++ BYOK bundle is opt-in from 1.1.0. On update, only refresh it

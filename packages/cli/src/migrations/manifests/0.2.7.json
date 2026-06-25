@@ -1,0 +1,9 @@
+{
+  "version": "0.2.7",
+  "description": "v0.2.7 — execution strategy suggest + contract-aware workflow dispatch.",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**@blxzer/cursor-trellis 0.2.7 / @blxzer/cursor-trellis-core 0.2.7**\n\n### Added\n- feat(task): `suggest-execution-strategy`, `execution-strategy-rules.json`, drift WARN on `start-execution --check`\n- docs: `execution-strategy.md` guide; backfilled manifests 0.2.2–0.2.6\n\n### Changed\n- workflow: Phase 2 dispatch follows `execution_mode` (`worker` vs `inline` vs `child-task`)\n\nRun `trellis update` in each project.",
+  "migrations": [],
+  "notes": "Full code-touching tasks default-suggest worker + main-worktree; contract in implement.md remains authoritative."
+}

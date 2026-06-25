@@ -92,6 +92,7 @@ from common.task_store import (
     cmd_integrate_child,
     cmd_generate_child_prompt,
     cmd_generate_dispatch_prompt,
+    cmd_suggest_execution_strategy,
     cmd_parent_status,
     cmd_review_child,
 )
@@ -255,6 +256,21 @@ def cmd_start_execution(args: argparse.Namespace) -> int:
             cap_note = optional_capability_note(contract.get("optional_capabilities"))
             if cap_note:
                 print(colored(f"Note: {cap_note}", Colors.YELLOW))
+            from common.execution_strategy import (
+                contract_drift_warnings,
+                validate_strategy_pair,
+            )
+
+            if contract:
+                for item in contract_drift_warnings(
+                    repo_root, task_dir, task_data or {}, contract
+                ):
+                    print(f"[execution-strategy] WARN: {item}", file=sys.stderr)
+                mode = contract.get("execution_mode")
+                iso = contract.get("isolation")
+                if isinstance(mode, str) and isinstance(iso, str):
+                    for item in validate_strategy_pair(mode, iso):
+                        print(f"[execution-strategy] WARN: {item}", file=sys.stderr)
         print("Artifact gates are ready. Ask the user for explicit execution approval before running `task.py start-execution <task> --approved`.")
         return 0
 
@@ -752,6 +768,18 @@ def main() -> int:
     p_integrate_child.add_argument("--execute-merge", action="store_true", help="Execute git merge --no-ff --no-commit for an integrated Child")
     p_integrate_child.add_argument("--check", action="store_true", help="Run non-mutating integration readiness check")
 
+    # suggest-execution-strategy
+    p_suggest_strategy = subparsers.add_parser(
+        "suggest-execution-strategy",
+        help="Suggest execution_mode and isolation for Development Strategy Contract",
+    )
+    p_suggest_strategy.add_argument("task_dir", help="Task directory")
+    p_suggest_strategy.add_argument(
+        "--json",
+        action="store_true",
+        help="Emit machine-readable JSON",
+    )
+
     # generate-dispatch-prompt
     p_dispatch_prompt = subparsers.add_parser(
         "generate-dispatch-prompt",
@@ -860,6 +888,7 @@ def main() -> int:
         "integrate-child": cmd_integrate_child,
         "generate-child-prompt": cmd_generate_child_prompt,
         "generate-dispatch-prompt": cmd_generate_dispatch_prompt,
+        "suggest-execution-strategy": cmd_suggest_execution_strategy,
         "parent-status": cmd_parent_status,
         "review-child": cmd_review_child,
         "list": cmd_list,
