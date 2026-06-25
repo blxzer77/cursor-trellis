@@ -58,6 +58,19 @@ quality_gates:
 
 All six top-level fields (`execution_mode`, `isolation`, `verification_profile`, `retrieval_profile`, `optional_capabilities`, `quality_gates`) are required. Missing any fails the gate.
 
+### Suggesting execution_mode / isolation (planning)
+
+Before you freeze the contract in `implement.md`, run:
+
+```bash
+python ./.trellis/scripts/task.py suggest-execution-strategy <task-dir>
+python ./.trellis/scripts/task.py suggest-execution-strategy <task-dir> --json
+```
+
+Heuristics are data-driven from `.trellis/config/execution-strategy-rules.json` (code capabilities, path segments, parent/child signals). **Full tasks that touch code** default to `worker` + `main-worktree`; **documentation-only** Full tasks default to `inline`. The YAML in `implement.md` remains authoritative after user approval.
+
+`start-execution --check` prints `[execution-strategy] WARN` when the approved contract drifts from a fresh suggestion (advisory; does not fail the gate). See `.trellis/spec/guides/execution-strategy.md` and `workflow.md` Phase 2.1 / 2.2 for dispatch alignment.
+
 ## Verification profiles and default gates
 
 | Profile | Default gates |

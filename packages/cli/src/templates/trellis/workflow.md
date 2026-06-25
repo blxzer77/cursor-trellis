@@ -308,10 +308,14 @@ Sub-agent mode: curate `implement.jsonl` and `check.jsonl` as spec/research mani
                                     commit, including Phase 3.3 learning decision and Phase 3.4 commit. -->
 
 [workflow-state:in_progress]
-Tools: `trellis-implement` / `trellis-research` are sub-agent types only (Task/Agent tool, NOT Skill; there is no skill by these names). `trellis-update-spec` is a skill for durable learning only. `trellis-check` exists as both; prefer the Agent form when verifying after code changes.
-Flow: `trellis-implement` -> `trellis-check` -> validation/evidence in `verify.md` -> learning decision -> commit (Phase 3.4) -> `task.py archive <task> --check` -> `/trellis:finish-work`.
+Tools: `trellis-implement` / `trellis-research` are sub-agent types only (Task/Agent tool, NOT Skill; there is no skill by these names). `trellis-update-spec` is a skill for durable learning only. `trellis-check` exists as both; prefer the Agent form when verifying after code changes when `execution_mode: worker`.
 Execution boundary: implement only inside approved `prd.md`, `design.md`, `implement.md`, and Development Strategy Contract; stop and Return-to-Planning for scope, contract, gate, capability/runtime, Parent `contract_epoch`, Child boundary, selected-task fit, or non-implementation reviewer-gate changes.
-Main-session default: dispatch implement/check sub-agents. Sub-agent self-exemption: if already running as `trellis-implement`, do NOT spawn another `trellis-implement` or `trellis-check`; if already running as `trellis-check`, do NOT spawn another `trellis-check` or `trellis-implement`. Dispatch is main session only.
+Follow the approved contract's `execution_mode` for Phase 2 (see Phase 2.1 / 2.2):
+- `inline` — main session implements and checks (use `trellis-check` skill or inline review); do NOT spawn `trellis-implement` / `trellis-check` agents unless you explicitly re-negotiate the contract.
+- `worker` — main session dispatches `trellis-implement` then `trellis-check` agents (CLI Layer 2 dispatch prompt + `Task`).
+- `child-task` — Child session or Parent orchestration per `task-map.md`; main session does not replace Child delivery.
+Flow after implementation path: validation/evidence in `verify.md` -> learning decision -> commit (Phase 3.4) -> `task.py archive <task> --check` -> `/trellis:finish-work`.
+Sub-agent self-exemption: if already running as `trellis-implement`, do NOT spawn another `trellis-implement` or `trellis-check`; if already running as `trellis-check`, do NOT spawn another `trellis-check` or `trellis-implement`. Dispatch is main session only.
 Dispatch prompt starts with `Selected task: <task path from task.py selected>`. Read context: jsonl entries -> `prd.md` -> `design.md if present` -> `implement.md if present`.
 [/workflow-state:in_progress]
 
@@ -349,7 +353,7 @@ When a user request matches one of these intents inside a selected task, route f
 
 
 - Planning or unclear requirements -> `trellis-brainstorm`.
-- `in_progress` implementation/check -> dispatch `trellis-implement` / `trellis-check`.
+- `in_progress` implementation/check -> if contract `execution_mode: worker`, dispatch `trellis-implement` / `trellis-check`; if `inline`, main session; if `child-task`, Child/Parent orchestration.
 - Repeated debugging -> `trellis-break-loop`; spec updates -> `trellis-update-spec`.
 
 
@@ -582,22 +586,23 @@ Use retrieval layers before and during implementation when context is incomplete
 - Record exploratory chains in `{TASK_DIR}/research/` and final source/Git/test proof in `verify.md`.
 
 
-Spawn the implement sub-agent (Full / Parent — Cursor):
+Read `execution_mode` from the approved Development Strategy Contract in `implement.md`:
 
-- **Agent type**: `trellis-implement`
-- **Orchestrator contract**: After `start-execution --approved`, the main session assembles the full dispatch prompt via Trellis scripts (CLI Layer 2), then calls `Task(subagent_type=trellis-implement, prompt=<assembled>)`. Do **not** rely on the preToolUse hook alone for context on Cursor — see `cursor-context-injection-guide.md`.
-- **Dispatch prompt guard**: Tell the spawned agent it is already the `trellis-implement` sub-agent and must implement directly, not spawn another `trellis-implement` / `trellis-check`.
+| `execution_mode` | Phase 2.1 implement |
+| --- | --- |
+| `inline` | Main session implements directly in the approved contract. |
+| `worker` | Spawn **`trellis-implement`** (Cursor): after `start-execution --approved`, assemble dispatch prompt via CLI Layer 2, then `Task(subagent_type=trellis-implement, prompt=<assembled>)`. Do **not** rely on preToolUse hook alone — see `cursor-context-injection-guide.md`. Tell the spawned agent it is already `trellis-implement` and must not spawn another `trellis-implement` / `trellis-check`. |
+| `child-task` | Child worker session (or Parent `generate-child-prompt`); isolation per contract (`git-worktree` → `prepare-child-worktree` when applicable). |
 
-Context embedded in the dispatch prompt includes `implement.jsonl` references, `prd.md`, `design.md` if present, and `implement.md` if present.
+Context for worker dispatch includes `implement.jsonl` references, `prd.md`, `design.md` if present, and `implement.md` if present.
 
 #### 2.2 Quality check `[required · repeatable]`
 
-
-Spawn the check sub-agent (Full / Parent — Cursor):
-
-- **Agent type**: `trellis-check`
-- **Orchestrator contract**: Assemble the full dispatch prompt via Trellis scripts (CLI Layer 2) before `Task(subagent_type=trellis-check, prompt=<assembled>)`. Hook-only injection is best-effort on Cursor.
-- **Dispatch prompt guard**: Tell the spawned agent it is already the `trellis-check` sub-agent and must review/fix only inside the approved contract, not spawn another `trellis-check` / `trellis-implement`.
+| `execution_mode` | Phase 2.2 check |
+| --- | --- |
+| `inline` | Main session: `trellis-check` **skill** or inline review; record evidence in `verify.md`. |
+| `worker` | Spawn **`trellis-check`** agent: CLI Layer 2 dispatch prompt, then `Task(subagent_type=trellis-check, prompt=<assembled>)`. Agent may fix defects inside the approved contract; must not spawn another check/implement agent. |
+| `child-task` | Child delivers `verify.md` / handoff; Parent reviews via `review-child` when applicable. |
 
 The check agent's job:
 - Review code changes against specs

@@ -58,6 +58,19 @@ quality_gates:
 
 六个顶层字段(`execution_mode`、`isolation`、`verification_profile`、`retrieval_profile`、`optional_capabilities`、`quality_gates`)全部必填。缺任一过不了门禁。
 
+### 规划阶段建议 execution_mode / isolation
+
+定稿 `implement.md` 里的合约前,先运行:
+
+```bash
+python ./.trellis/scripts/task.py suggest-execution-strategy <task-dir>
+python ./.trellis/scripts/task.py suggest-execution-strategy <task-dir> --json
+```
+
+规则来自 `.trellis/config/execution-strategy-rules.json`(能力、路径段、父子任务信号)。**触及代码的 Full 任务**默认建议 `worker` + `main-worktree`;**仅文档**的 Full 任务默认 `inline`。用户批准后仍以 `implement.md` 中的 YAML 为准。
+
+`start-execution --check` 会在合约与最新建议不一致时输出 `[execution-strategy] WARN`(仅提示,不导致门禁失败)。派发约定见 `.trellis/spec/guides/execution-strategy.md` 与 `workflow.md` Phase 2.1 / 2.2。
+
 ## verification_profile 与默认 gate
 
 | Profile | 默认 gate |

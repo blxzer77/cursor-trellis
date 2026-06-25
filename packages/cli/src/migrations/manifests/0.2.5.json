@@ -1,0 +1,9 @@
+{
+  "version": "0.2.5",
+  "description": "v0.2.5 — smart-search bin wrapper path fix.",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**@blxzer/cursor-trellis 0.2.5 / @blxzer/cursor-trellis-core 0.2.5**\n\n### Fixed\n- fix(bin): smart-search wrapper path under npm/bin/\n\n### Upgrade\n```bash\nnpm install -g @blxzer/cursor-trellis@0.2.5\ntrellis update\n```",
+  "migrations": [],
+  "notes": "Matches chore(release): 0.2.5 on main."
+}

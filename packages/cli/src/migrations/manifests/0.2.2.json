@@ -1,0 +1,9 @@
+{
+  "version": "0.2.2",
+  "description": "v0.2.2 — smart-search wrapper path fix (backfilled manifest).",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**@blxzer/cursor-trellis 0.2.2 / @blxzer/cursor-trellis-core 0.2.2**\n\n### Fixed\n- fix: smart-search wrapper path resolution\n\n### Upgrade\n```bash\nnpm install -g @blxzer/cursor-trellis@0.2.2\ntrellis update\n```",
+  "migrations": [],
+  "notes": "Manifest backfilled for npm continuity; shipped without repo manifest."
+}

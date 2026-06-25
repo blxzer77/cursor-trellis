@@ -204,7 +204,8 @@ describe("trellis template constants", () => {
 
   it("[issue-237] workflow.md in_progress breadcrumb self-exempts implement/check sub-agents", () => {
     const block = inProgressBreadcrumb();
-    expect(block).toContain("Main-session default");
+    expect(block).toContain("execution_mode");
+    expect(block).toContain("`worker`");
     expect(block).toContain("Sub-agent self-exemption");
     expect(block).toContain("already running as `trellis-implement`");
     expect(block).toContain("do NOT spawn another `trellis-implement`");
@@ -214,18 +215,14 @@ describe("trellis template constants", () => {
   });
 
   it("[issue-237] workflow.md Phase 2 dispatch steps require prompt recursion guards", () => {
-    expect(workflowMdTemplate).toContain("**Dispatch prompt guard**");
+    expect(workflowMdTemplate).toContain("execution_mode");
+    expect(workflowMdTemplate).toContain("trellis-implement");
     expect(workflowMdTemplate).toContain(
-      "already the `trellis-implement` sub-agent",
+      "must not spawn another `trellis-implement` / `trellis-check`",
     );
+    expect(workflowMdTemplate).toContain("trellis-check");
     expect(workflowMdTemplate).toContain(
-      "not spawn another `trellis-implement` / `trellis-check`",
-    );
-    expect(workflowMdTemplate).toContain(
-      "already the `trellis-check` sub-agent",
-    );
-    expect(workflowMdTemplate).toContain(
-      "not spawn another `trellis-check` / `trellis-implement`",
+      "must not spawn another check/implement agent",
     );
   });
 
@@ -318,6 +315,7 @@ describe("getAllScripts", () => {
     expect(scripts.has("search_artifacts.py")).toBe(true);
     expect(scripts.has("search_memory.py")).toBe(true);
     expect(scripts.has("run_smart_search.py")).toBe(true);
+    expect(scripts.has("common/execution_strategy.py")).toBe(true);
   });
 
   it("has at least one entry", () => {

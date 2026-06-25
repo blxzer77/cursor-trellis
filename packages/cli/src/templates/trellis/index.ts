@@ -54,6 +54,12 @@ export const commonTaskDashboard = readTemplate(
   "scripts/common/task_dashboard.py",
 );
 export const commonTaskGates = readTemplate("scripts/common/task_gates.py");
+export const commonExecutionStrategy = readTemplate(
+  "scripts/common/execution_strategy.py",
+);
+export const executionStrategyRulesJson = readTemplate(
+  "config/execution-strategy-rules.json",
+);
 export const commonTaskMap = readTemplate("scripts/common/task_map.py");
 export const commonParentOrchestration = readTemplate(
   "scripts/common/parent_orchestration.py",
@@ -228,6 +234,7 @@ export function getAllScripts(): Map<string, string> {
   scripts.set("common/task_store.py", commonTaskStore);
   scripts.set("common/task_dashboard.py", commonTaskDashboard);
   scripts.set("common/task_gates.py", commonTaskGates);
+  scripts.set("common/execution_strategy.py", commonExecutionStrategy);
   scripts.set("common/task_map.py", commonTaskMap);
   scripts.set("common/parent_orchestration.py", commonParentOrchestration);
   scripts.set("common/subagent_dispatch.py", commonSubagentDispatch);

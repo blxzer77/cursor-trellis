@@ -139,6 +139,7 @@ Each question must include:
 - ordered implementation checklist
 - validation commands
 - risky files or rollback points
+- **Development Strategy Contract** (`execution_mode`, `isolation`, …): before finalizing, run `python3 ./.trellis/scripts/task.py suggest-execution-strategy <task-dir>` (or `--json`); reconcile suggestion with scope, then paste the approved YAML block into `implement.md`
 - follow-up checks before `task.py start-execution --check`
 
 Lightweight tasks may have only `prd.md`. Complex tasks must have `prd.md`, `design.md`, and `implement.md` before `task.py start-execution --check`.
