@@ -58,6 +58,18 @@ quality_gates:
 
 All six top-level fields (`execution_mode`, `isolation`, `verification_profile`, `retrieval_profile`, `optional_capabilities`, `quality_gates`) are required. Missing any fails the gate.
 
+### `execution_mode` semantics
+
+`execution_mode` decides **who** implements and checks — it is the field most directly tied to subagent dispatch:
+
+| `execution_mode` | Who implements / checks | Typical `isolation` |
+| --- | --- | --- |
+| `inline` | Main session self-implements and self-checks (`trellis-check` skill form or inline review) | `main-worktree` |
+| `worker` | Spawns `trellis-implement` then `trellis-check` agents | `main-worktree` |
+| `child-task` | Child session does the work; Parent orchestrates | `git-worktree` (when a git package root resolves) |
+
+See [subagents.md](subagents.md) for the full dispatch contract. `task.py start-execution --check` prints `[execution-strategy] WARN` if the approved contract drifts from a fresh suggestion (advisory).
+
 ### Suggesting execution_mode / isolation (planning)
 
 Before you freeze the contract in `implement.md`, run:

@@ -24,8 +24,20 @@ Subagents are **not** a parallelism mechanism by default. They are spawned by th
 ### Dispatch contracts
 
 - **`trellis-research`** — spawned for dedicated `research/<topic>.md` files. External facts route to `smart-search-cli` + Bash first; Cursor web tools only on documented fallback (`doctor` not ok / timeout). Returns file paths + one-line summaries, not full content.
-- **`trellis-implement`** — spawned in Phase 2.1 to do implementation work. Reads `prd.md` / `design.md` / `implement.md` + `implement.jsonl` manifest. Cannot commit; the main session commits after check passes.
-- **`trellis-check`** — spawned for an independent quality review pass. Reads task artifacts + `check.jsonl`. May fix issues directly and record `record-gate` results. Does not redefine Parent `task-map` or gate semantics.
+- **`trellis-implement`** — spawned in Phase 2.1 to do implementation work **when the approved contract has `execution_mode: worker`**. Reads `prd.md` / `design.md` / `implement.md` + `implement.jsonl` manifest. Cannot commit; the main session commits after check passes.
+- **`trellis-check`** — spawned for an independent quality review pass **when the approved contract has `execution_mode: worker`**. Reads task artifacts + `check.jsonl`. May fix issues directly and record `record-gate` results. Does not redefine Parent `task-map` or gate semantics.
+
+### `execution_mode` and dispatch (since 0.2.7)
+
+The approved Development Strategy Contract in `implement.md` decides **who** implements and checks. Spawn `trellis-implement` / `trellis-check` agents only when `execution_mode: worker`.
+
+| `execution_mode` | Who implements | Who checks | Spawn `trellis-implement` / `trellis-check` agents? |
+| --- | --- | --- | --- |
+| `inline` | Main session | Main session (`trellis-check` skill form or inline review) | No (unless you explicitly re-negotiate the contract) |
+| `worker` | `trellis-implement` agent | `trellis-check` agent | Yes (CLI Layer 2 dispatch prompt + `Task`) |
+| `child-task` | Child session | Child/Parent orchestration | Main session does not replace Child delivery |
+
+Use `task.py suggest-execution-strategy <task-dir>` during planning to get a data-driven suggestion before freezing the YAML. See [task-system.md](task-system.md) and the `execution-strategy.md` spec guide.
 
 ### Context loading protocol
 
@@ -102,10 +114,10 @@ The table below maps common task situations to the recommended dispatch choice. 
 | Situation | Recommended | Why |
 | --- | --- | --- |
 | Single-file fix, Lite task | Inline (no subagent) | Small blast radius; subagent overhead not worth it |
-| Multi-file feature, Full task | `trellis-implement` Agent | Isolated context; recursion guard prevents runaway |
+| Multi-file feature, Full task | `trellis-implement` Agent | When contract `execution_mode: worker`: isolated context; recursion guard prevents runaway |
 | Need to research an unfamiliar module | `trellis-research` Agent | Persists findings to `research/<topic>.md`; main session reads summary |
 | Quality check after small change | `trellis-check` skill (inline) | Fresh context not needed; main session self-reviews |
-| Quality check after multi-file change | `trellis-check` Agent | Fresh context; self-fix capability; independent review |
+| Quality check after multi-file change | `trellis-check` Agent | When contract `execution_mode: worker`: fresh context; self-fix capability; independent review |
 | External fact lookup (API version, docs) | `smart-search-cli` skill | CLI-first; Cursor WebSearch only as fallback |
 | Stuck on same bug repeatedly | `trellis-break-loop` skill | Deep root-cause analysis; updates spec/guides |
 | Parent with 3 independent deliverables | Parent + 3 Child tasks | Each Child independently verifiable; Parent owns integration |

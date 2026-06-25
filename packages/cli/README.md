@@ -61,16 +61,16 @@ Details: [Cursor integration](docs/cursor.md).
 4. **Approve** execution explicitly, then `start-execution --approved`.
 5. **Verify** and finish (`/trellis-finish-work`).
 
-Walkthrough: [docs/workflow.md](docs/workflow.md).
+Walkthrough: [workflow.md](docs/workflow.md) — Triage decision tree, Task Ladder, upgrade/downgrade rules, Parent/Child task trees, Phase 1–3 lifecycle.
 
 ## Cursor support
 
-- **Rules** — reliable always-on policy (including Triage).
+- **Rules** — reliable always-on policy (including Triage and retrieval routing).
 - **Commands** — small `/` palette (`commands-only` policy; skills not copied to `.cursor/skills/` by default).
 - **Agents** — `trellis-research`, `trellis-implement`, `trellis-check`.
 - **Hooks** — Python scripts for session, shell, and subagent context.
 
-Deep dive: [docs/cursor.md](docs/cursor.md).
+Deep dive: [docs/cursor.md](docs/cursor.md) — Native vs Cursor++ BYOK environments, subagent dispatch Methods 1–4, environment detection. Retrieval layer design: [docs/retrieval.md](docs/retrieval.md).
 
 ## When to use
 
@@ -135,7 +135,7 @@ Package-level detail: [packages/cli/README.md](packages/cli/README.md). Agent-or
 
 ## Maintainer note
 
-Local harness layout (`D:\MyHarness`), Git remote policy, release/publish, and deep implementation notes are **internal**—see [docs/maintainers.md](docs/maintainers.md). Public docs intentionally omit npm publish and private remote procedures.
+Local harness layout (`D:\MyHarness`), Git remote policy, release/publish, and deep implementation notes are **internal** — see the internal maintainer handbook (not in the public repo; gitignored). Public docs intentionally omit npm publish and private remote procedures.
 
 ## Read more
 
@@ -143,9 +143,18 @@ Local harness layout (`D:\MyHarness`), Git remote policy, release/publish, and d
 | --- | --- |
 | [docs/workflow.md](docs/workflow.md) | Task lifecycle in Cursor |
 | [docs/cursor.md](docs/cursor.md) | Generated Cursor files |
+| [docs/retrieval.md](docs/retrieval.md) | Retrieval layer design |
 | [docs/architecture.md](docs/architecture.md) | High-level structure + smart-search |
+| [docs/skills.md](docs/skills.md) | Internal skills reference |
+| [docs/subagents.md](docs/subagents.md) | Subagent dispatch design |
+| [docs/spec-system.md](docs/spec-system.md) | Progressive spec system |
+| [docs/task-system.md](docs/task-system.md) | Task artifacts, gates, Parent/Child |
 | [packages/cli/README.md](packages/cli/README.md) | CLI / npm reference |
 | [CHANGELOG](packages/cli/CHANGELOG.md) | Package history |
+
+## Community
+
+[LINUX DO](https://linux.do)
 
 ## License
 

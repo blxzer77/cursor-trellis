@@ -24,8 +24,20 @@
 ### 派发契约
 
 - **`trellis-research`** —— 为独立 `research/<topic>.md` 文件生成。外部事实先走 `smart-search-cli` + Bash;Cursor web 工具仅在文档化 fallback 时用(`doctor` not ok / 超时)。返回文件路径 + 一行摘要,非全文。
-- **`trellis-implement`** —— Phase 2.1 生成做实现。读 `prd.md` / `design.md` / `implement.md` + `implement.jsonl` manifest。不能提交;主会话在 check 通过后提交。
-- **`trellis-check`** —— 为独立质量审查 pass 生成。读任务工件 + `check.jsonl`。可直接修问题并记录 `record-gate` 结果。不重定义 Parent `task-map` 或 gate 语义。
+- **`trellis-implement`** —— **合约 `execution_mode: worker` 时**,Phase 2.1 生成做实现。读 `prd.md` / `design.md` / `implement.md` + `implement.jsonl` manifest。不能提交;主会话在 check 通过后提交。
+- **`trellis-check`** —— **合约 `execution_mode: worker` 时**,为独立质量审查 pass 生成。读任务工件 + `check.jsonl`。可直接修问题并记录 `record-gate` 结果。不重定义 Parent `task-map` 或 gate 语义。
+
+### `execution_mode` 与派发(0.2.7 起)
+
+`implement.md` 里批准的 Development Strategy Contract 决定**谁**实现和检查。只有 `execution_mode: worker` 时才派 `trellis-implement` / `trellis-check` Agent。
+
+| `execution_mode` | 谁实现 | 谁检查 | 派 `trellis-implement` / `trellis-check` Agent? |
+| --- | --- | --- | --- |
+| `inline` | 主会话 | 主会话(`trellis-check` 技能形态或 inline review) | 否(除非显式重新协商合约) |
+| `worker` | `trellis-implement` Agent | `trellis-check` Agent | 是(CLI Layer 2 派发 prompt + `Task`) |
+| `child-task` | Child 会话 | Child/Parent 编排 | 主会话不替代 Child 交付 |
+
+规划时用 `task.py suggest-execution-strategy <task-dir>` 拿数据驱动的建议,再定稿 YAML。见 [task-system.zh-CN.md](task-system.zh-CN.md) 与 `execution-strategy.md` spec guide。
 
 ### 上下文加载协议
 
@@ -102,10 +114,10 @@ Parent 任务编排 Child 任务时,派发权限分裂:
 | 情境 | 推荐 | 原因 |
 | --- | --- | --- |
 | 单文件修复,Lite 任务 | Inline(不派子 Agent) | 影响范围小;子 Agent 开销不值 |
-| 多文件功能,Full 任务 | `trellis-implement` Agent | 隔离上下文;递归守卫防失控 |
+| 多文件功能,Full 任务 | `trellis-implement` Agent | 合约 `execution_mode: worker` 时:隔离上下文;递归守卫防失控 |
 | 需研究陌生模块 | `trellis-research` Agent | 发现持久化到 `research/<topic>.md`;主会话读摘要 |
 | 小变更后质量检查 | `trellis-check` 技能(inline) | 不需新鲜上下文;主会话自审 |
-| 多文件变更后质量检查 | `trellis-check` Agent | 新鲜上下文;可自修;独立审查 |
+| 多文件变更后质量检查 | `trellis-check` Agent | 合约 `execution_mode: worker` 时:新鲜上下文;可自修;独立审查 |
 | 外部事实查询(API 版本、文档) | `smart-search-cli` 技能 | CLI 优先;Cursor WebSearch 仅 fallback |
 | 同一 bug 反复卡住 | `trellis-break-loop` 技能 | 深度根因分析;更新 spec/guides |
 | Parent 含 3 个独立交付物 | Parent + 3 Child 任务 | 每 Child 独立可验证;Parent 拥有集成 |

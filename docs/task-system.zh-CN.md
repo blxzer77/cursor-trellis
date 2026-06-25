@@ -58,6 +58,18 @@ quality_gates:
 
 六个顶层字段(`execution_mode`、`isolation`、`verification_profile`、`retrieval_profile`、`optional_capabilities`、`quality_gates`)全部必填。缺任一过不了门禁。
 
+### `execution_mode` 语义
+
+`execution_mode` 决定**谁**实现和检查 —— 它是与子 Agent 派发最直接相关的字段:
+
+| `execution_mode` | 谁实现 / 检查 | 典型 `isolation` |
+| --- | --- | --- |
+| `inline` | 主会话自实现自检查(`trellis-check` 技能形态或 inline review) | `main-worktree` |
+| `worker` | 派 `trellis-implement` 再 `trellis-check` Agent | `main-worktree` |
+| `child-task` | Child 会话做工作;Parent 编排 | `git-worktree`(有 git package root 时) |
+
+派发合约详见 [subagents.zh-CN.md](subagents.zh-CN.md)。已批合约与最新建议不一致时,`task.py start-execution --check` 打 `[execution-strategy] WARN`(仅提示)。
+
 ### 规划阶段建议 execution_mode / isolation
 
 定稿 `implement.md` 里的合约前,先运行:
