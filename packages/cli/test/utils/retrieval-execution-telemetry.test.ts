@@ -6,12 +6,21 @@ import {
   deriveRetrievalTelemetryMetrics,
   evaluateO2SemanticFallback,
   migrateTelemetryRecord,
+  planFactsFromEnvelope,
+  plannedSemanticRouteFromEnvelope,
   RETRIEVAL_TELEMETRY_EXAMPLES,
   RETRIEVAL_TELEMETRY_FIELD_OWNERSHIP,
   RETRIEVAL_TELEMETRY_SCHEMA_VERSION,
 } from "../../src/utils/retrieval-execution-telemetry.js";
+import { ENV_BYOK, ENV_NATIVE } from "../../src/utils/cursor-retrieval-env.js";
 describe("retrieval execution telemetry", () => {
   it("defines plan-owned and execution-owned fields", () => {
+    expect(RETRIEVAL_TELEMETRY_FIELD_OWNERSHIP.router_plan).toContain(
+      "planned_semantic_route",
+    );
+    expect(RETRIEVAL_TELEMETRY_FIELD_OWNERSHIP.execution_harness).toContain(
+      "executed_semantic_tool",
+    );
     expect(RETRIEVAL_TELEMETRY_FIELD_OWNERSHIP.router_plan).toContain(
       "semantic_in_plan",
     );
@@ -166,15 +175,60 @@ describe("retrieval execution telemetry", () => {
     expect(metrics.recall_drop_rate).toBeCloseTo(0.5);
   });
 
-  it("returns 0 recall metrics when all values are null", () => {
+  it("derives planned vs executed semantic fields from envelope and tools", () => {
+    const nativePlan = routeCodebaseRetrieval({
+      query: "how does retry work across modules",
+      cursorEnv: ENV_NATIVE,
+    });
+    const byokPlan = routeCodebaseRetrieval({
+      query: "how does retry work across modules",
+      cursorEnv: ENV_BYOK,
+    });
+
+    expect(plannedSemanticRouteFromEnvelope(nativePlan)).toBe("cursor-builtin");
+    expect(plannedSemanticRouteFromEnvelope(byokPlan)).toBe("fast-context");
+
+    const nativeFacts = planFactsFromEnvelope(nativePlan);
+    expect(nativeFacts.planned_semantic_route).toBe("cursor-builtin");
+
+    const grepOnly = migrateTelemetryRecord({
+      query_id: "dev1",
+      routes: ["platform-semantic", "exact-rg-primary"],
+      tools_called: ["Grep"],
+      planned_semantic_route: "cursor-builtin",
+    });
+    expect(grepOnly.planned_semantic_route).toBe("cursor-builtin");
+    expect(grepOnly.executed_semantic_tool).toBeNull();
+    expect(grepOnly.semantic_executed).toBe(false);
+
+    const semanticRun = migrateTelemetryRecord({
+      query_id: "dev2",
+      routes: ["platform-semantic"],
+      tools_called: ["Grep", "SemanticSearch", "Read"],
+      planned_semantic_route: "cursor-builtin",
+    });
+    expect(semanticRun.executed_semantic_tool).toBe("SemanticSearch");
+    expect(semanticRun.semantic_executed).toBe(true);
+  });
+
+  it("metrics count planned semantic with Grep-only execution as deviation", () => {
     const metrics = deriveRetrievalTelemetryMetrics([
-      RETRIEVAL_TELEMETRY_EXAMPLES.main50RgSufficientSkip,
-      RETRIEVAL_TELEMETRY_EXAMPLES.semanticSliceExecutedSuccess,
+      {
+        ...RETRIEVAL_TELEMETRY_EXAMPLES.cursorColdBlindGrepOnly,
+        planned_semantic_route: "cursor-builtin",
+        executed_semantic_tool: null,
+        semantic_executed: false,
+      },
+      {
+        ...RETRIEVAL_TELEMETRY_EXAMPLES.semanticSliceExecutedSuccess,
+        planned_semantic_route: "cursor-builtin",
+        executed_semantic_tool: "SemanticSearch",
+        semantic_executed: true,
+      },
     ]);
 
-    expect(metrics.avg_candidate_pool_recall).toBe(0);
-    expect(metrics.avg_final_top_k_recall).toBe(0);
-    expect(metrics.recall_drop_rate).toBe(0);
+    expect(metrics.planned_semantic_exec_deviation_count).toBe(1);
+    expect(metrics.planned_semantic_exec_deviation_rate).toBe(0.5);
   });
 });
 

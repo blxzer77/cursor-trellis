@@ -75,12 +75,26 @@ def is_byok(env: CursorRetrievalEnv | None = None) -> bool:
     return (env or detect_cursor_retrieval_env()) == ENV_BYOK
 
 
+def is_byok_conservative(env: CursorRetrievalEnv | None = None) -> bool:
+    """Conservative semantic routing: BYOK plus unknown (no routes.json / ambiguous byokMode)."""
+    resolved = env or detect_cursor_retrieval_env()
+    return resolved == ENV_BYOK or resolved == ENV_UNKNOWN
+
+
 def semantic_route_spec(cursor_env: CursorRetrievalEnv) -> dict[str, object]:
     """platform-semantic route fields for conceptual / optional semantic slots."""
-    if cursor_env == ENV_BYOK:
+    if is_byok_conservative(cursor_env):
+        unknown_caveat = (
+            " Unknown cursorEnv: conservative fast-context primary (same as BYOK)."
+            if cursor_env == ENV_UNKNOWN
+            else ""
+        )
         return {
             "commands": ["fast_context_search (fast-context MCP)"],
-            "rationale_suffix": " Cursor++ BYOK: built-in semantic unavailable; fast-context MCP primary.",
+            "rationale_suffix": (
+                " Cursor++ BYOK: built-in semantic unavailable; fast-context MCP primary."
+                + unknown_caveat
+            ),
             "platformNative": False,
             "semanticBackend": "fast-context-mcp",
         }

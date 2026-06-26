@@ -12,7 +12,11 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from .cursor_retrieval_env import ENV_BYOK, detect_cursor_retrieval_env
+from .cursor_retrieval_env import (
+    ENV_UNKNOWN,
+    detect_cursor_retrieval_env,
+    is_byok_conservative,
+)
 
 _SYMBOL_CANDIDATE = re.compile(
     r"\b([A-Za-z_][\w$]{2,})\b|"
@@ -149,10 +153,16 @@ def _cursor_step_for_route(
         role == "semantic" and str(route.get("sourceFamily")) == "platform-semantic"
     ):
         backend = str(route.get("semanticBackend", ""))
-        if cursor_env == ENV_BYOK or backend == "fast-context-mcp":
+        if is_byok_conservative(cursor_env) or backend == "fast-context-mcp":
+            unknown_note = (
+                "（cursorEnv 未知，保守走 fast-context，同 BYOK）。"
+                if cursor_env == ENV_UNKNOWN
+                else ""
+            )
             return (
                 "使用 **fast_context_search**（fast-context MCP）做概念/代码库语义检索；"
                 "**不要**假设 @codebase 或内置 SemanticSearch 可用；**不要**用 WebSearch 答代码库问题。"
+                + unknown_note
             )
         return (
             "使用 Cursor **内置代码库语义搜索**（宿主工具常为 **SemanticSearch**；"
@@ -161,7 +171,7 @@ def _cursor_step_for_route(
             "无路径线索的概念题优先 **`[]`**；Native 下 **不要**用 fast-context MCP 顶替）。"
         )
     if role == "semantic":
-        if cursor_env == ENV_BYOK:
+        if is_byok_conservative(cursor_env):
             return (
                 "使用 **fast_context_search**（fast-context MCP）；勿用 WebSearch 答代码库问题。"
             )
@@ -181,7 +191,7 @@ def _cursor_step_for_route(
         )
 
     if route_id == "cross-cutting-discovery" or "deep" in route_id.lower():
-        if cursor_env == ENV_BYOK:
+        if is_byok_conservative(cursor_env):
             return (
                 "复杂跨模块探索：使用 **Task** 子代理（explore），再用 Grep/codegraph/Read 验证。"
             )
@@ -292,15 +302,24 @@ def render_agent_instructions(
         isinstance(r, dict) and r.get("id") == "platform-semantic" for r in route_list
     ):
         lines.append("")
-        if cursor_env == ENV_BYOK:
+        if is_byok_conservative(cursor_env):
+            label = (
+                "**语义合规（cursorEnv 未知，保守 BYOK）：**"
+                if cursor_env == ENV_UNKNOWN
+                else "**语义合规（Cursor++ BYOK）：**"
+            )
             if locale != "zh":
-                lines.append("**Semantic compliance (Cursor++ BYOK):**")
+                lines.append(
+                    "**Semantic compliance (Cursor++ BYOK):**"
+                    if cursor_env != ENV_UNKNOWN
+                    else "**Semantic compliance (cursorEnv unknown, conservative BYOK):**"
+                )
                 lines.append(
                     "- Run **one** `fast_context_search` before final Top-1 when "
                     "**platform-semantic** is listed; log the MCP tool name."
                 )
             else:
-                lines.append("**语义合规（Cursor++ BYOK）：**")
+                lines.append(label)
                 lines.append(
                     "- 本计划含 **platform-semantic** 时：定 Top-1 前至少 **1 次** "
                     "**fast_context_search**（fast-context MCP），并记录工具名。"

@@ -14,8 +14,8 @@ from pathlib import Path
 from typing import Any
 
 from .cursor_retrieval_env import (
-    ENV_BYOK,
     detect_cursor_retrieval_env,
+    is_byok_conservative,
     semantic_route_spec,
 )
 
@@ -716,7 +716,7 @@ def _fallback_hints(
             "replacesRole": "semantic",
         })
     cenv = cursor_env or detect_cursor_retrieval_env()
-    if cenv == ENV_BYOK:
+    if is_byok_conservative(cenv):
         hints.append({
             "when": "built-in @codebase / SemanticSearch not in agent tool list",
             "action": (

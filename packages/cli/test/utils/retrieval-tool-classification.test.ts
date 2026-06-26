@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   classifyToolCalls,
+  executedSemanticToolName,
   structuralRoutesInPlan,
 } from "../../src/utils/retrieval-tool-classification.js";
 
@@ -45,6 +46,16 @@ describe("retrieval tool classification", () => {
     });
     expect(result.semantic_executed).toBe(true);
     expect(result.cursor_fast_context_misuse).toBe(false);
+  });
+
+  it("extracts first executed semantic tool name from log", () => {
+    expect(
+      executedSemanticToolName(["Grep", "SemanticSearch", "Read"]),
+    ).toBe("SemanticSearch");
+    expect(
+      executedSemanticToolName(["Grep", "fast_context_search"]),
+    ).toBe("fast_context_search");
+    expect(executedSemanticToolName(["Grep", "Read"])).toBeNull();
   });
 
   it("flags structural routes in plan", () => {
