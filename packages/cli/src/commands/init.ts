@@ -290,7 +290,7 @@ function logCursor2plusSetupHint(): void {
     ),
   );
   console.log(
-    chalk.gray("   使用官方 Cursor API（非 Cursor++）可忽略此步骤。"),
+    chalk.gray("   使用官方 Cursor API（非 Cursor++）可安全忽略 `.trellis/local/cursor2plus/`。"),
   );
   console.log("");
 }

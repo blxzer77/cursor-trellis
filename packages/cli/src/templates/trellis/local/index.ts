@@ -10,6 +10,7 @@ function readLocal(name: string): string {
 
 export const cursor2plusPatchScript = readLocal("patch_wpelc8.py");
 export const cursor2plusReadme = readLocal("README.md");
+export const cursor2plusSmokeScript = readLocal("smoke.py");
 export const cursor2plusConfigExample = readLocal("config.local.json.example");
 export const subagentModelsExample = readLocal("subagent-models.json.example");
 export const trellisTaskModelsJson5Example = readLocal(

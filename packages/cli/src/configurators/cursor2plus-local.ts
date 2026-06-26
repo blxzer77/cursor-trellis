@@ -4,6 +4,7 @@ import { ensureDir, writeFile } from "../utils/file-writer.js";
 import {
   cursor2plusPatchScript,
   cursor2plusReadme,
+  cursor2plusSmokeScript,
   cursor2plusConfigExample,
   subagentModelsExample,
   trellisTaskModelsJson5Example,
@@ -24,6 +25,7 @@ export async function writeCursor2plusLocalBundle(cwd: string): Promise<void> {
     path.join(bundleDir, "trellis_task_models_config.py"),
     trellisTaskModelsConfigPy,
   );
+  await writeFile(path.join(bundleDir, "smoke.py"), cursor2plusSmokeScript);
   await writeFile(path.join(bundleDir, "README.md"), cursor2plusReadme);
   await writeFile(
     path.join(bundleDir, "config.local.json.example"),

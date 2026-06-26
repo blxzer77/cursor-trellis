@@ -20,7 +20,7 @@ Do **not** ask the user to hand-edit slugs (`model-xxxxx`) unless they prefer it
 - User says they use **Cursor++ BYOK** and want per–subagent-type models.
 - After Cursor++ **providers** change: re-list, adjust fallbacks, re-patch.
 
-Native **Cursor API** (no Cursor++): **stop** — frontmatter `model:` works; this skill does not apply.
+Native **Cursor API** (no Cursor++): **stop** — frontmatter `model:` works; this skill does not apply. Tell the user: **`.trellis/local/cursor2plus/` is safe to ignore or delete** unless they use Cursor++ BYOK.
 
 ## Workflow
 
@@ -40,7 +40,7 @@ Native **Cursor API** (no Cursor++): **stop** — frontmatter `model:` works; th
 5. Run:
    ```bash
    python ./.trellis/local/cursor2plus/patch_wpelc8.py --print-map
-   python ./.trellis/local/cursor2plus/patch_wpelc8.py
+   python ./.trellis/local/cursor2plus/patch_wpelc8.py --apply --approve
    ```
 6. Tell user: **Developer: Reload Window** in Cursor (once per patch).
 7. If stderr shows `WARN ... using fallback`, explain that primary was missing from current `providers.json` and fallback was used — suggest updating primary/fallback names, not panicking.
