@@ -21,6 +21,21 @@ Subagents are **not** a parallelism mechanism by default. They are spawned by th
 | `trellis-implement` | `cursor/agents/trellis-implement.md` | Read, Write, Edit, Bash, Glob, Grep, Exa | Same inherit + overlay policy | **Hard guard**: must not spawn another `trellis-implement` or `trellis-check`. `No git commit allowed` — implement does not commit |
 | `trellis-check` | `cursor/agents/trellis-check.md` | Read, Write, Edit, Bash, Glob, Grep, Exa | Same inherit + overlay policy | **Hard guard**: must not spawn another `trellis-check` or `trellis-implement`. May self-fix code and record gates |
 
+### Entry points & Context source (since 0.2.8)
+
+Each `trellis-*` agent definition opens with two standardized sections that make the dispatch contract explicit:
+
+- **Entry points** — lists the three ways the agent can be reached:
+  1. **Agent session** — a chat started directly in the agent's name (rare for `trellis-*`).
+  2. **Task dispatch** — the main session spawns the agent via the `Task` tool with a CLI-generated Layer 2 dispatch prompt (the **primary** path for `trellis-implement` / `trellis-check`).
+  3. **Skill form** — the agent runs as an inline skill in the main session without a separate context window (`trellis-check` skill, `trellis-research` skill).
+- **Context source** — declares **CLI Layer 2 dispatch** (`generate_dispatch_prompt.py` → `Task` tool `prompt`) as the **primary and guaranteed** context channel. `sessionStart.additional_context` and `preToolUse` hooks are **best-effort only**:
+  - Cursor issue #158452 makes `sessionStart.additional_context` unreliable.
+  - The agent definition body does **not** reliably enter the subagent system prompt under Cursor 3.8.22.
+  - When only hook-injected context is available, treat the agent as undersupplied and request a Layer 2 dispatch prompt.
+
+This standardization means the main session can trust that a properly dispatched `trellis-*` agent received its `prd` / `spec` / `research` bundle via Layer 2, regardless of whether hooks fired.
+
 ### Dispatch contracts
 
 - **`trellis-research`** — spawned for dedicated `research/<topic>.md` files. External facts route to `smart-search-cli` + Bash first; Cursor web tools only on documented fallback (`doctor` not ok / timeout). Returns file paths + one-line summaries, not full content.
@@ -41,12 +56,17 @@ Use `task.py suggest-execution-strategy <task-dir>` during planning to get a dat
 
 ### Context loading protocol
 
-All three agents look for the `<!-- trellis-hook-injected -->` marker in their input:
+Context reaches a subagent via **two paths**; the `<!-- trellis-hook-injected -->` marker is the signal that context is already embedded:
+
+- **Primary: CLI Layer 2** — the main session calls `task.py generate-dispatch-prompt` (or the hook below calls `build_dispatch_prompt_for_agent`) before spawning. This pre-embeds `prd` / `spec` / `research` into the dispatch prompt and prepends the marker.
+- **Best-effort: `preToolUse` hook** — `inject-subagent-context.py` (matcher `Task|Subagent`) checks if the marker is already present; if so it skips, otherwise it injects the same context bundle.
+
+All three agents look for the marker in their input:
 
 - **Marker present** — `prd` / `spec` / `research` files already auto-loaded above; proceed directly.
-- **Marker absent** — hook injection did not fire (Windows + Claude Code, `--continue` resume, fork distribution, hooks disabled, `/multitask` parallel dispatch). The agent resolves the selected task path from the dispatch prompt's first line `Selected task: <path>`, then reads `implement.jsonl` / `check.jsonl` and the listed files, then `prd.md` / `design.md` / `implement.md`.
+- **Marker absent** — neither path fired (`--continue` resume, fork distribution, hooks disabled, `/multitask` parallel dispatch). The agent resolves the selected task path from the dispatch prompt's first line `Selected task: <path>`, then reads `implement.jsonl` / `check.jsonl` and the listed files, then `prd.md` / `design.md` / `implement.md`.
 
-This fallback makes dispatch robust even when the `preToolUse` hook does not fire (Cursor 3.8.22 has a known issue where the `preToolUse` hook does not fire for the `Task` tool, so the marker-based fallback is the reliable path).
+This fallback makes dispatch robust even when the `preToolUse` hook does not fire (Cursor 3.8.22 has a known issue where the `preToolUse` hook does not fire for the `Task` tool, but CLI Layer 2 does not depend on the hook, so the primary path still carries the marker). The mechanism is identical for Native and BYOK — it is orthogonal to model routing.
 
 ## Dispatch Methods 1–4
 
