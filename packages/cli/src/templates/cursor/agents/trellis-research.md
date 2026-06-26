@@ -66,6 +66,24 @@ Classify: internal / external / mixed. Determine scope (global / specific direct
 
 Run independent searches in parallel (Glob + Grep + smart-search CLI for external topics) for efficiency.
 
+#### External search — provider relevance caveats
+
+- **Context7** and generic third-party library docs are often **irrelevant** to Trellis/Cursor platform questions. Prefer **Cursor / Cursor++ official documentation**, `docs.cursor.com`, and **local `.trellis/spec/`** before trusting Context7 hits.
+- Every smart-search result you persist must **label the provider source** (e.g. `exa`, `context7`, `cursor-docs`, `tavily`) in the research file — in frontmatter or per bullet — so downstream check/finish can audit provenance.
+- Trellis harness facts: `./.trellis/scripts/run_smart_search.py` writes manifests under `{TASK}/research/smart-search/<run-id>/`; scored pack output (when built) is `{TASK}/research/retrieval-pack-latest.json`.
+
+#### External search — manual query refinement
+
+When the first smart-search pass returns irrelevant results, **refine before falling back** to Cursor web tools:
+
+1. Add site scope: `site:cursor.com`, `site:docs.cursor.com`, or `site:github.com/cursor-ide`
+2. Add product scope: `+Trellis`, `+cursor-trellis`, or the exact API/hook name
+3. Switch route: `--intent official-source --include-domain cursor.com` or `--intent docs` for API reference
+4. Narrow time or topic: shorter query, version number, or feature name from local spec
+5. Re-run: `python ./.trellis/scripts/run_smart_search.py "<refined query>" --intent deep-research --json`
+
+Only use Cursor WebSearch/WebFetch when smart-search is unavailable (`not_configured` / `failed` / timeout) — then persist with `source: cursor-web-fallback`.
+
 ### Step 4: Persist Each Topic
 
 For each distinct research topic, Write a markdown file at `{TASK_DIR}/research/<topic-slug>.md`. Use the File Format below.
