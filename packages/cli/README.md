@@ -1,5 +1,14 @@
 # cursor-trellis
 
+<p>
+  <a href="https://www.npmjs.com/package/@blxzer/cursor-trellis">
+    <img src="https://img.shields.io/npm/v/@blxzer/cursor-trellis?label=npm%20latest" alt="npm latest">
+  </a>
+  <a href="https://www.npmjs.com/package/@blxzer/smart-search">
+    <img src="https://img.shields.io/npm/v/@blxzer/smart-search?label=smart-search" alt="smart-search">
+  </a>
+</p>
+
 English | [简体中文](README.zh-CN.md)
 
 **Trellis** is a progressive context management system for AI coding agents. It structures agent instructions as `.trellis/` (workflow, specs, tasks, workspace) instead of a single large file, and generates platform-specific integration files (`.cursor/` for Cursor).
@@ -12,6 +21,10 @@ Based on the [Trellis framework by mindfold-ai](https://github.com/mindfold-ai/T
 - Resume work across chat sessions with `/trellis-continue`
 - Load specs progressively based on files being edited
 - Route requests through structured workflow: triage → plan → gate → execute → verify
+- **Validated gates** — `trellis validate-rules` + `pnpm mirror-check` enforce dogfood/template sync; `init`/`update` throw on regression
+- **Retrieval compliance** — BYOK/Native split with conservative `unknown` routing; LSP overpromises softened to codegraph + Read; telemetry separates planned vs executed semantic
+- **Cursor++ safety** — Method 2.5 patch requires explicit `--approve`; `--check-compat` pre-flight; `smoke.py` health check (no secrets)
+- **Evidence pack** — finish/check cite `retrieval-pack-latest.json` when present; research prompts include provider relevance caveats
 
 ## Quick start (Cursor)
 
@@ -143,6 +156,7 @@ Local harness layout (`D:\MyHarness`), Git remote policy, release/publish, and d
 | --- | --- |
 | [docs/workflow.md](docs/workflow.md) | Task lifecycle in Cursor |
 | [docs/cursor.md](docs/cursor.md) | Generated Cursor files |
+| [docs/cursor-platform-limitations-and-trellis-adaptation.md](docs/cursor-platform-limitations-and-trellis-adaptation.md) | Cursor platform limits & trellis adaptation (users/devs) |
 | [docs/retrieval.md](docs/retrieval.md) | Retrieval layer design |
 | [docs/architecture.md](docs/architecture.md) | High-level structure + smart-search |
 | [docs/skills.md](docs/skills.md) | Internal skills reference |
