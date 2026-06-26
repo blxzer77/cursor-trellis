@@ -79,6 +79,8 @@ Cursor 的**用户规则**与项目 **`.cursor/rules`** 是常驻策略的可靠
 
 日常以 `.trellis/workflow.md` 为规范来源;rules 概括聊天中必须遵守的硬门禁。
 
+**平台问题、Native/BYOK 分叉、逐步操作与外部证据链接**见：[Cursor 平台限制与 cursor-trellis 适配说明](cursor-platform-limitations-and-trellis-adaptation.zh-CN.md)。
+
 ## 斜杠命令
 
 | 命令文件 | 典型调用 | 用途 |

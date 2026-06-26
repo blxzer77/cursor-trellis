@@ -79,6 +79,8 @@ This compensates for a known Cursor limitation: `sessionStart` hook `additional_
 
 For day-to-day edits, treat `.trellis/workflow.md` as the canonical workflow spec; rules summarize the hard gates agents must follow in chat.
 
+**Platform issues, Native/BYOK split, step-by-step operations, and external evidence** are documented in [Cursor platform limitations and cursor-trellis adaptation](cursor-platform-limitations-and-trellis-adaptation.md).
+
 ## Slash commands
 
 | Command file | Typical invocation | Purpose |

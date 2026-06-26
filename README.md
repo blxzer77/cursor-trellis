@@ -143,6 +143,7 @@ Local harness layout (`D:\MyHarness`), Git remote policy, release/publish, and d
 | --- | --- |
 | [docs/workflow.md](docs/workflow.md) | Task lifecycle in Cursor |
 | [docs/cursor.md](docs/cursor.md) | Generated Cursor files |
+| [docs/cursor-platform-limitations-and-trellis-adaptation.md](docs/cursor-platform-limitations-and-trellis-adaptation.md) | Cursor platform limits & trellis adaptation (users/devs) |
 | [docs/retrieval.md](docs/retrieval.md) | Retrieval layer design |
 | [docs/architecture.md](docs/architecture.md) | High-level structure + smart-search |
 | [docs/skills.md](docs/skills.md) | Internal skills reference |

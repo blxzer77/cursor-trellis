@@ -143,6 +143,7 @@ pnpm test
 | --- | --- |
 | [docs/workflow.zh-CN.md](docs/workflow.zh-CN.md) | Cursor 中的任务生命周期 |
 | [docs/cursor.zh-CN.md](docs/cursor.zh-CN.md) | Cursor 生成文件 |
+| [docs/cursor-platform-limitations-and-trellis-adaptation.zh-CN.md](docs/cursor-platform-limitations-and-trellis-adaptation.zh-CN.md) | Cursor 平台限制与适配说明（用户/开发者） |
 | [docs/retrieval.zh-CN.md](docs/retrieval.zh-CN.md) | 检索层设计 |
 | [docs/architecture.zh-CN.md](docs/architecture.zh-CN.md) | 高层架构与 smart-search |
 | [docs/skills.zh-CN.md](docs/skills.zh-CN.md) | 内部技能参考手册 |
