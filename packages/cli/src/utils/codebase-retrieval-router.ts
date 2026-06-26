@@ -8,7 +8,7 @@
 
 import {
   type CursorRetrievalEnv,
-  ENV_BYOK,
+  isByokConservative,
   detectCursorRetrievalEnv,
   semanticRouteSpec,
 } from "./cursor-retrieval-env.js";
@@ -772,7 +772,7 @@ function buildFallbackHints(
       replacesRole: "semantic",
     });
   }
-  if (cursorEnv === ENV_BYOK) {
+  if (isByokConservative(cursorEnv)) {
     hints.push({
       when: "built-in @codebase / SemanticSearch not in agent tool list",
       action:

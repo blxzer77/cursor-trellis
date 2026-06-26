@@ -8,8 +8,10 @@ import {
   type CodebaseRetrievalRoute,
 } from "./codebase-retrieval-router.js";
 import {
-  ENV_BYOK,
+  type CursorRetrievalEnv,
+  ENV_UNKNOWN,
   detectCursorRetrievalEnv,
+  isByokConservative,
 } from "./cursor-retrieval-env.js";
 import { semanticComplianceGateHint } from "./semantic-plan-gate.js";
 
@@ -101,7 +103,7 @@ function stepForRoute(
   route: CodebaseRetrievalRoute,
   symbol: string,
   query: string,
-  cursorEnv: string,
+  cursorEnv: CursorRetrievalEnv,
 ): string | null {
   const { role, id: routeId } = route;
 
@@ -132,10 +134,15 @@ function stepForRoute(
     (role === "semantic" && route.sourceFamily === "platform-semantic")
   ) {
     const backend = route.semanticBackend ?? "";
-    if (cursorEnv === ENV_BYOK || backend === "fast-context-mcp") {
+    if (isByokConservative(cursorEnv) || backend === "fast-context-mcp") {
+      const unknownNote =
+        cursorEnv === ENV_UNKNOWN
+          ? "（cursorEnv 未知，保守走 fast-context，同 BYOK）。"
+          : "";
       return (
         "使用 **fast_context_search**（fast-context MCP）做概念/代码库语义检索；" +
-        "**不要**假设 @codebase 或内置 SemanticSearch 可用；**不要**用 WebSearch 答代码库问题。"
+        "**不要**假设 @codebase 或内置 SemanticSearch 可用；**不要**用 WebSearch 答代码库问题。" +
+        unknownNote
       );
     }
     return (
@@ -146,7 +153,7 @@ function stepForRoute(
     );
   }
   if (role === "semantic") {
-    if (cursorEnv === ENV_BYOK) {
+    if (isByokConservative(cursorEnv)) {
       return "使用 **fast_context_search**（fast-context MCP）；勿用 WebSearch 答代码库问题。";
     }
     return "使用 Cursor **内置代码库语义搜索**（不要用 fast-context MCP）。";
@@ -161,7 +168,7 @@ function stepForRoute(
   }
 
   if (routeId === "cross-cutting-discovery" || routeId.toLowerCase().includes("deep")) {
-    if (cursorEnv === ENV_BYOK) {
+    if (isByokConservative(cursorEnv)) {
       return "复杂跨模块探索：使用 **Task** 子代理（explore），再用 Grep/codegraph/Read 验证。";
     }
     return "复杂跨模块探索：可选用 **DEEP_SEARCH** 或 Explore 子任务，再用 Grep/codegraph 验证。";
@@ -234,9 +241,13 @@ export function renderAgentInstructions(
 
   if (plan.routes.some((r) => r.id === "platform-semantic")) {
     lines.push("");
-    if (cursorEnv === ENV_BYOK) {
+    if (isByokConservative(cursorEnv)) {
+      const label =
+        cursorEnv === ENV_UNKNOWN
+          ? "**语义合规（cursorEnv 未知，保守 BYOK）：**"
+          : "**语义合规（Cursor++ BYOK）：**";
       lines.push(
-        "**语义合规（Cursor++ BYOK）：**",
+        label,
         "- 本计划含 **platform-semantic** 时：定 Top-1 前至少 **1 次** **fast_context_search**（fast-context MCP），并记录工具名。",
       );
     } else {

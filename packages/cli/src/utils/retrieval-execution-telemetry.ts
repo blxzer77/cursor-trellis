@@ -1,6 +1,8 @@
 import type { CodebaseRetrievalPlanEnvelope } from "./codebase-retrieval-router.js";
+import { isByokConservative } from "./cursor-retrieval-env.js";
 import {
   classifyToolCalls,
+  executedSemanticToolName,
   semanticRoutesInPlan,
   structuralRoutesInPlan,
 } from "./retrieval-tool-classification.js";
@@ -60,6 +62,8 @@ export interface RetrievalAdapterError {
   fallback: ("exact-rg" | "codegraph" | "source-read" | string)[];
 }
 
+export type PlannedSemanticRoute = "cursor-builtin" | "fast-context" | "none";
+
 export interface RetrievalQueryTelemetry {
   schema_version: typeof RETRIEVAL_TELEMETRY_SCHEMA_VERSION;
   query_id: string;
@@ -69,6 +73,8 @@ export interface RetrievalQueryTelemetry {
   platform: string;
 
   // Router-owned plan facts.
+  /** Planned semantic backend from router envelope (distinct from execution). */
+  planned_semantic_route: PlannedSemanticRoute;
   semantic_in_plan: boolean;
   semantic_order: number | null;
   structural_in_plan: boolean;
@@ -90,6 +96,8 @@ export interface RetrievalQueryTelemetry {
   read_verification_done: boolean;
   semantic_attempted: boolean;
   semantic_executed: boolean;
+  /** Host tool name when semantic ran (e.g. SemanticSearch, fast_context_search); null if skipped. */
+  executed_semantic_tool: string | null;
   semantic_outcome: SemanticOutcome;
   semantic_success: boolean;
   semantic_skip_reason: SemanticSkipReason | null;
@@ -112,6 +120,7 @@ export interface RetrievalQueryTelemetry {
 export const RETRIEVAL_TELEMETRY_FIELD_OWNERSHIP = {
   router_plan: [
     "platform",
+    "planned_semantic_route",
     "semantic_in_plan",
     "semantic_order",
     "structural_in_plan",
@@ -133,6 +142,7 @@ export const RETRIEVAL_TELEMETRY_FIELD_OWNERSHIP = {
     "read_verification_done",
     "semantic_attempted",
     "semantic_executed",
+    "executed_semantic_tool",
     "semantic_outcome",
     "semantic_success",
     "semantic_skip_reason",
@@ -182,6 +192,9 @@ export interface RetrievalTelemetryMetrics {
   avg_candidate_pool_recall: number;
   avg_final_top_k_recall: number;
   recall_drop_rate: number;
+  /** Rows with planned semantic but no executed semantic tool (e.g. Grep-only). */
+  planned_semantic_exec_deviation_count: number;
+  planned_semantic_exec_deviation_rate: number;
 }
 
 function emptyOutcomeCounts(): Record<SemanticOutcome, number> {
@@ -214,6 +227,7 @@ export function deriveRetrievalTelemetryMetrics(
   let routerCliCount = 0;
   let planBlockCount = 0;
   let readVerificationCount = 0;
+  let plannedSemanticExecDeviationCount = 0;
 
   const candidatePoolRecalls: number[] = [];
   const finalTopKRecalls: number[] = [];
@@ -229,6 +243,13 @@ export function deriveRetrievalTelemetryMetrics(
     if (record.router_cli_invoked) routerCliCount += 1;
     if (record.plan_block_in_prompt) planBlockCount += 1;
     if (record.read_verification_done) readVerificationCount += 1;
+    if (
+      record.planned_semantic_route !== "none" &&
+      record.executed_semantic_tool === null &&
+      !record.semantic_executed
+    ) {
+      plannedSemanticExecDeviationCount += 1;
+    }
     if (record.semantic_success && record.semantic_outcome === "success") {
       semanticExecSuccessCount += 1;
     }
@@ -284,7 +305,26 @@ export function deriveRetrievalTelemetryMetrics(
     avg_candidate_pool_recall: avgCandidatePoolRecall,
     avg_final_top_k_recall: avgFinalTopKRecall,
     recall_drop_rate: recallDropRate,
+    planned_semantic_exec_deviation_count: plannedSemanticExecDeviationCount,
+    planned_semantic_exec_deviation_rate: rate(plannedSemanticExecDeviationCount),
   };
+}
+
+export function plannedSemanticRouteFromEnvelope(
+  plan: CodebaseRetrievalPlanEnvelope,
+): PlannedSemanticRoute {
+  const semanticRoute = plan.routes.find(
+    (r) =>
+      r.role === "semantic" ||
+      r.id === "semantic-fast-context" ||
+      r.id === "platform-semantic",
+  );
+  if (!semanticRoute) return "none";
+  if (semanticRoute.semanticBackend === "fast-context-mcp") return "fast-context";
+  if (semanticRoute.semanticBackend === "cursor-builtin") return "cursor-builtin";
+  const cursorEnv = plan.cursorEnv;
+  if (cursorEnv && isByokConservative(cursorEnv)) return "fast-context";
+  return "cursor-builtin";
 }
 
 export function planFactsFromEnvelope(
@@ -292,6 +332,7 @@ export function planFactsFromEnvelope(
 ): Pick<
   RetrievalQueryTelemetry,
   | "platform"
+  | "planned_semantic_route"
   | "semantic_in_plan"
   | "semantic_order"
   | "structural_in_plan"
@@ -319,6 +360,7 @@ export function planFactsFromEnvelope(
   const structuralInPlan = structuralRoutesInPlan(routeIds);
   return {
     platform: "cursor",
+    planned_semantic_route: plannedSemanticRouteFromEnvelope(plan),
     semantic_in_plan: semanticInPlan,
     semantic_order: semanticOrder,
     structural_in_plan: structuralInPlan,
@@ -347,6 +389,7 @@ export function applyToolClassification(
       record.router_cli_invoked || classified.router_cli_invoked,
     semantic_attempted: classified.semantic_attempted,
     semantic_executed: classified.semantic_executed,
+    executed_semantic_tool: executedSemanticToolName(toolNames),
     read_verification_done:
       record.read_verification_done || classified.read_count > 0,
   };
@@ -431,6 +474,9 @@ export function migrateTelemetryRecord(
     query_text: String(raw.query_text ?? ""),
     run_id: String(raw.run_id ?? ""),
     platform: String(raw.platform ?? "cursor"),
+    planned_semantic_route:
+      (raw.planned_semantic_route as PlannedSemanticRoute | undefined) ??
+      (semanticIn ? "cursor-builtin" : "none"),
     semantic_in_plan: semanticIn,
     semantic_order:
       typeof raw.semantic_order === "number" ? raw.semantic_order : null,
@@ -481,6 +527,10 @@ export function migrateTelemetryRecord(
       typeof raw.semantic_executed === "boolean"
         ? raw.semantic_executed
         : classified.semantic_executed,
+    executed_semantic_tool:
+      typeof raw.executed_semantic_tool === "string"
+        ? raw.executed_semantic_tool
+        : executedSemanticToolName(tools),
     semantic_outcome: (raw.semantic_outcome as SemanticOutcome) ?? "unknown",
     semantic_success: Boolean(raw.semantic_success),
     semantic_skip_reason:
@@ -524,21 +574,27 @@ function buildTelemetryExample(
     | "router_cli_invoked"
     | "semantic_attempted"
     | "semantic_executed"
+    | "executed_semantic_tool"
     | "read_verification_done"
     | "routes_in_plan"
     | "structural_in_plan"
     | "codegraph_in_plan"
     | "compliance_score"
     | "plan_block_in_prompt"
+    | "planned_semantic_route"
   > & {
     routes: string[];
     tools_called: string[];
+    planned_semantic_route?: PlannedSemanticRoute;
   },
 ): RetrievalQueryTelemetry {
   const routesInPlan = partial.routes;
   const structuralInPlan = structuralRoutesInPlan(routesInPlan);
   const draft: RetrievalQueryTelemetry = {
     schema_version: RETRIEVAL_TELEMETRY_SCHEMA_VERSION,
+    planned_semantic_route:
+      partial.planned_semantic_route ??
+      (semanticRoutesInPlan(routesInPlan) ? "cursor-builtin" : "none"),
     structural_in_plan: structuralInPlan,
     codegraph_in_plan: structuralInPlan,
     routes_in_plan: routesInPlan,
@@ -550,6 +606,7 @@ function buildTelemetryExample(
     read_verification_done: false,
     semantic_attempted: false,
     semantic_executed: false,
+    executed_semantic_tool: null,
     compliance_score: null,
     plan_block_in_prompt: false,
     ...partial,

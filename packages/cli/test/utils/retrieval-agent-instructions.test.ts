@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { routeCodebaseRetrieval } from "../../src/utils/codebase-retrieval-router.js";
-import { ENV_BYOK, ENV_NATIVE } from "../../src/utils/cursor-retrieval-env.js";
+import { ENV_BYOK, ENV_NATIVE, ENV_UNKNOWN } from "../../src/utils/cursor-retrieval-env.js";
 import {
   guessSymbolFromQuery,
   renderAgentInstructions,
@@ -65,6 +65,18 @@ describe("retrieval agent instructions", () => {
     expect(text).toMatch(/codegraph_search|codegraph_explore/);
     expect(text).toContain("trap");
     expect(text).toContain("结果层排序");
+  });
+
+  it("renders unknown cursorEnv with conservative fast_context_search", () => {
+    const plan = routeCodebaseRetrieval({
+      query: "how does gateway protocol differ from plugin sdk",
+      cursorEnv: ENV_UNKNOWN,
+    });
+    const text = renderAgentInstructions(plan);
+    expect(text).toContain("cursorEnv）：unknown");
+    expect(text).toContain("fast_context_search");
+    expect(text).toContain("保守");
+    expect(text).not.toContain("内置代码库语义搜索");
   });
 
   it("appends result-layer ranking hint for caller-chain intent", () => {

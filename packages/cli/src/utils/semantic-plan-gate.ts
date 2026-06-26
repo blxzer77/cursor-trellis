@@ -5,8 +5,9 @@
 
 import {
   type CursorRetrievalEnv,
-  ENV_BYOK,
+  ENV_UNKNOWN,
   detectCursorRetrievalEnv,
+  isByokConservative,
 } from "./cursor-retrieval-env.js";
 import type { CodebaseRetrievalPlanEnvelope } from "./codebase-retrieval-router.js";
 
@@ -32,16 +33,25 @@ export function semanticComplianceGateHint(
   const cursorEnv: CursorRetrievalEnv =
     plan.cursorEnv ?? detectCursorRetrievalEnv();
 
-  if (cursorEnv === ENV_BYOK) {
+  if (isByokConservative(cursorEnv)) {
+    const unknownNote =
+      cursorEnv === ENV_UNKNOWN
+        ? " Unknown cursorEnv — conservative BYOK gate."
+        : "";
     if (locale !== "zh") {
       return (
         `**Plan gate (REC-11, BYOK):** \`platform-semantic\` is step #${order}. ` +
         "Before Top-1 you MUST run one **fast_context_search** (fast-context MCP). " +
-        "Do not use WebSearch for codebase questions. Corroborate hits with Read."
+        "Do not use WebSearch for codebase questions. Corroborate hits with Read." +
+        unknownNote
       );
     }
+    const label =
+      cursorEnv === ENV_UNKNOWN
+        ? "**计划门控（REC-11，未知 env 保守 BYOK）：**"
+        : "**计划门控（REC-11，BYOK）：**";
     return (
-      `**计划门控（REC-11，BYOK）：** 本问 \`platform-semantic\` 为第 ${order} 步。` +
+      `${label} 本问 \`platform-semantic\` 为第 ${order} 步。` +
       "定 Top-1 前 **必须** 执行 1 次 **fast_context_search**（fast-context MCP）；" +
       "**禁止** 用 WebSearch 答代码库问题。命中路径后须 **Read** 验证。"
     );

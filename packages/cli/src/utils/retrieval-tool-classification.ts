@@ -79,6 +79,17 @@ export function isFastContextToolName(name: string): boolean {
   return matchesAny(name.trim(), FAST_CONTEXT_PATTERNS);
 }
 
+/** First semantic tool name from a tool-call log, or null when none ran. */
+export function executedSemanticToolName(raw: readonly string[]): string | null {
+  for (const name of raw) {
+    const trimmed = name.trim();
+    if (!trimmed) continue;
+    if (isFastContextToolName(trimmed)) return trimmed;
+    if (isPlatformSemanticToolName(trimmed)) return trimmed;
+  }
+  return null;
+}
+
 export function classifyToolCalls(
   raw: readonly string[],
   options: ClassifyToolCallsOptions = {},

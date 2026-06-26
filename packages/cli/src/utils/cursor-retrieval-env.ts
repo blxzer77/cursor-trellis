@@ -97,6 +97,12 @@ export function isByok(env?: CursorRetrievalEnv | null): boolean {
   return (env ?? detectCursorRetrievalEnv()) === ENV_BYOK;
 }
 
+/** Conservative semantic routing: BYOK plus unknown (no routes.json / ambiguous byokMode). */
+export function isByokConservative(env?: CursorRetrievalEnv | null): boolean {
+  const resolved = env ?? detectCursorRetrievalEnv();
+  return resolved === ENV_BYOK || resolved === ENV_UNKNOWN;
+}
+
 export interface SemanticRouteSpec {
   commands: string[];
   rationaleSuffix: string;
@@ -107,11 +113,16 @@ export interface SemanticRouteSpec {
 export function semanticRouteSpec(
   cursorEnv: CursorRetrievalEnv,
 ): SemanticRouteSpec {
-  if (cursorEnv === ENV_BYOK) {
+  if (isByokConservative(cursorEnv)) {
+    const unknownCaveat =
+      cursorEnv === ENV_UNKNOWN
+        ? " Unknown cursorEnv: conservative fast-context primary (same as BYOK)."
+        : "";
     return {
       commands: ["fast_context_search (fast-context MCP)"],
       rationaleSuffix:
-        " Cursor++ BYOK: built-in semantic unavailable; fast-context MCP primary.",
+        " Cursor++ BYOK: built-in semantic unavailable; fast-context MCP primary." +
+        unknownCaveat,
       platformNative: false,
       semanticBackend: "fast-context-mcp",
     };

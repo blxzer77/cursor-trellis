@@ -4,7 +4,7 @@ import {
   CODEBASE_RETRIEVAL_ROUTER_VERSION,
   routeCodebaseRetrieval,
 } from "../../src/utils/codebase-retrieval-router.js";
-import { ENV_BYOK, ENV_NATIVE } from "../../src/utils/cursor-retrieval-env.js";
+import { ENV_BYOK, ENV_NATIVE, ENV_UNKNOWN } from "../../src/utils/cursor-retrieval-env.js";
 
 describe("codebase retrieval router", () => {
   it("returns version 2 envelope with empty adapterState and freshness", () => {
@@ -286,5 +286,53 @@ describe("codebase retrieval router", () => {
     expect(lsp?.role).toBe("ast");
     expect(lsp?.sourceFamily).toBe("codegraph");
     expect(lsp?.commands.join(" ")).toMatch(/codegraph_node/);
+    expect(lsp?.rationale).toMatch(/codegraph|GO_TO_DEFINITION/i);
+    expect(lsp?.rationale).not.toMatch(/LSP tool/i);
+  });
+
+  describe("Native/BYOK/unknown plan compliance (OC-03)", () => {
+    const conceptualQuery = "how does retry work across modules";
+
+    function semanticCommands(plan: ReturnType<typeof routeCodebaseRetrieval>): string {
+      return (
+        plan.routes.find((r) => r.id === "platform-semantic")?.commands.join(" ") ?? ""
+      );
+    }
+
+    it("BYOK fixture: plan includes fast_context_search, excludes built-in semantic", () => {
+      const plan = routeCodebaseRetrieval({
+        query: conceptualQuery,
+        cursorEnv: ENV_BYOK,
+      });
+      const cmds = semanticCommands(plan);
+      expect(cmds).toMatch(/fast_context_search/);
+      expect(cmds).not.toMatch(/@codebase|built-in semantic/i);
+    });
+
+    it("Native fixture: plan includes built-in semantic, excludes fast_context_search", () => {
+      const plan = routeCodebaseRetrieval({
+        query: conceptualQuery,
+        cursorEnv: ENV_NATIVE,
+      });
+      const cmds = semanticCommands(plan);
+      expect(cmds).toMatch(/@codebase|built-in semantic/i);
+      expect(cmds).not.toMatch(/fast_context_search/);
+    });
+
+    it("unknown fixture: conservative BYOK fast-context route", () => {
+      const plan = routeCodebaseRetrieval({
+        query: conceptualQuery,
+        cursorEnv: ENV_UNKNOWN,
+      });
+      expect(plan.cursorEnv).toBe(ENV_UNKNOWN);
+      const semantic = plan.routes.find((r) => r.id === "platform-semantic");
+      expect(semantic?.semanticBackend).toBe("fast-context-mcp");
+      expect(semanticCommands(plan)).toMatch(/fast_context_search/);
+      expect(
+        plan.fallback.some((f) =>
+          f.when.includes("built-in @codebase / SemanticSearch"),
+        ),
+      ).toBe(true);
+    });
   });
 });

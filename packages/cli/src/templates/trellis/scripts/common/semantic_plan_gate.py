@@ -4,7 +4,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from .cursor_retrieval_env import ENV_BYOK, detect_cursor_retrieval_env
+from .cursor_retrieval_env import (
+    ENV_UNKNOWN,
+    detect_cursor_retrieval_env,
+    is_byok_conservative,
+)
 
 
 def platform_semantic_order_from_envelope(envelope: dict[str, Any]) -> int | None:
@@ -41,16 +45,26 @@ def semantic_compliance_gate_hint(
 
     cursor_env = str(envelope.get("cursorEnv") or detect_cursor_retrieval_env())
 
-    if cursor_env == ENV_BYOK:
+    if is_byok_conservative(cursor_env):
+        unknown_note = (
+            " Unknown cursorEnv — conservative BYOK gate."
+            if cursor_env == ENV_UNKNOWN
+            else ""
+        )
         if locale != "zh":
             return (
                 "**Plan gate (REC-11, BYOK):** `platform-semantic` is step "
                 f"#{order}. Before Top-1 you MUST run one **fast_context_search** "
                 "(fast-context MCP). Do not use WebSearch for codebase questions. "
-                "Corroborate hits with Read."
+                "Corroborate hits with Read." + unknown_note
             )
+        label = (
+            "**计划门控（REC-11，未知 env 保守 BYOK）：**"
+            if cursor_env == ENV_UNKNOWN
+            else "**计划门控（REC-11，BYOK）：**"
+        )
         return (
-            "**计划门控（REC-11，BYOK）：** 本问 `platform-semantic` 为第 "
+            f"{label} 本问 `platform-semantic` 为第 "
             f"{order} 步。定 Top-1 前 **必须** 执行 1 次 **fast_context_search**（fast-context MCP）；"
             "**禁止** 用 WebSearch 答代码库问题。命中路径后须 **Read** 验证。"
         )
