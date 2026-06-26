@@ -231,6 +231,15 @@ Archive requires `verify.md` evidence lines (grep-friendly):
 
 Plus the `full-task-complete/code-review` gate recording. Use `prepare-archive-evidence` helper to draft the evidence block, then `record-gate` after explicit review (never auto-PASS).
 
+## Task path fallback for subagent dispatch (since 0.2.8)
+
+When `task.py select` has not been run (or the session pointer is missing), the subagent dispatch flow still needs a task path to read `prd` / `design` / `implement` / `implement.jsonl`. The fallback chain is:
+
+1. **`generate_dispatch_prompt.py --task <path>`** — **primary fallback**. The main session passes the task directory explicitly; the script resolves artifacts under that path and embeds them in the Layer 2 dispatch prompt. This works even when no task is `select`ed.
+2. **`task.py select <task>` failure tip** — when `task.py select` fails because no task is given, the error message now prints a one-line tip pointing to `generate_dispatch_prompt.py --task <path>` as the select-free dispatch path.
+
+This makes the dispatch flow robust to the "no selected task" state that arises in `/multitask` parallel dispatch, fresh sessions, or when the session pointer file is stale. The CLI Layer 2 dispatch prompt remains the primary context channel regardless of whether `select` was run — see [Subagent dispatch](subagents.md#entry-points-context-source-since-028).
+
 ## See also
 
 - [Workflow in Cursor](workflow.md) — the full Triage decision tree, Task Ladder, upgrade/downgrade rules

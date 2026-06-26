@@ -144,8 +144,24 @@ The agent entrypoint is always `./.trellis/scripts/run_smart_search.py`, never t
 | --- | --- | --- |
 | `native` | Built-in `@codebase` / agent semantic search (`platformNative: true`) | **Do not** use fast-context MCP as Primary |
 | `byok` | `fast_context_search` (fast-context MCP) (`semanticBackend: fast-context-mcp`) | Built-in `@codebase` is **not** available in the agent tool list; fast-context is **required** for concept retrieval |
+| `unknown` | Conservative fallback | Treat as **BYOK** (require fast-context MCP if available) **and** warn the user that `cursorEnv` could not be resolved; do not silently pick native |
 
 The router envelope always includes `cursorEnv` so the agent knows which semantic backend to call. This is the same signal that drives dual-environment subagent dispatch — see [Cursor integration](cursor.md).
+
+### Retrieval compliance (since 0.2.8)
+
+The retrieval router and agent-instruction builder enforce environment compliance:
+
+- **`unknown` is conservative** — when `cursorEnv` cannot be resolved, the router does **not** default to native `@codebase`; it routes to BYOK behavior (fast-context MCP) and emits a `cursorEnv: unknown` warning so the agent asks the user instead of silently using a backend that may be unavailable.
+- **LSP overpromises softened** — the agent instructions no longer claim LSP / `GO_TO_DEFINITION` is available. Cursor agents do not expose LSP. Definition jumps route to **codegraph** (`codegraph_node` / `codegraph_search`) followed by **Read** for the verbatim source. The instructions carry an explicit caveat that LSP is unavailable and codegraph is the substitute.
+- **Telemetry split** — the execution telemetry envelope separates **planned** semantic backend (what the router told the agent to call) from **executed** semantic backend (what the agent actually called). This surfaces cases where the agent ignored the routing decision (e.g. called `@codebase` under BYOK where it does not exist).
+
+## Evidence pack integration (since 0.2.8)
+
+When a smart-search run writes a retrieval pack (`{TASK}/research/smart-search/retrieval-pack-latest.json`), the finish and check workflow references it:
+
+- **`/trellis-finish-work`** and the `trellis-check` skill cite `retrieval-pack-latest.json` when present, so the verifier can confirm external facts came from smart-search rather than a platform built-in web tool.
+- **`trellis-research`** prompts now include **provider relevance caveats** — a note that semantic-search quality depends on the active provider/model and that the agent should refine the query (add concrete symbols, layer names, or file paths) before declaring "no results".
 
 ## CLI command reference
 
@@ -166,6 +182,8 @@ Use codegraph for **call chains**, **cross-package trap disambiguation**, **exte
 
 - Pure literal search — use Grep.
 - BYOK concept Primary — use `fast_context_search`.
+
+**LSP caveat (since 0.2.8):** Cursor agents do not expose LSP / `GO_TO_DEFINITION`. The agent-instruction builder now states this explicitly and routes definition jumps to `codegraph_node` / `codegraph_search` followed by `Read` for the verbatim source. Treat any "use LSP" guidance in older docs as superseded.
 
 ## See also
 

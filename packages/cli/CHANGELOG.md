@@ -9,6 +9,43 @@ SemVer: [semver.org](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.2.8] - 2026-06-26
+
+Cursor platform adaptation Phase 0 + Phase 1+2 stabilization. Six feature commits landed since 0.2.7, all back-ported to public docs in this release.
+
+### Added
+
+- `trellis validate-rules` hard gate + `pnpm mirror-check` — enforce dogfood/template sync for `.cursor/rules/` and agents; `init`/`update` throw on regression via `assertCursorRulesValid()` (OC-02)
+- Agent template standard sections **Entry points** + **Context source** — declare CLI Layer 2 dispatch as the primary and guaranteed context channel; `sessionStart.additional_context` / `preToolUse` hooks are best-effort only (Cursor #158452) (OC-01, OC-07)
+- Cursor++ Method 2.5 safety gate — `patch_wpelc8.py` requires explicit `--approve`; `--check-compat` pre-flight; `smoke.py` health check (no secrets); `trellis init --cursor` prints a Native safe-to-ignore hint for the Cursor++ appendix (OC-05, OC-08, OC-13)
+- Retrieval BYOK/Native compliance — `unknown` cursorEnv routes conservatively to BYOK + warning (no silent native); LSP overpromises softened to codegraph + Read; telemetry splits **planned** vs **executed** semantic backend (OC-03, OC-04, OC-10)
+- Task path fallback — `task.py select` failure now prints a tip pointing to `generate_dispatch_prompt.py --task <path>` as the select-free dispatch path; dispatch prompt docstring marks `--task` as the primary fallback (OC-09)
+- Evidence pack integration — `/trellis-finish-work` and `trellis-check` skill cite `retrieval-pack-latest.json` when present; `trellis-research` prompts include provider relevance caveats and query-refinement guidance (OC-12, OC-14)
+- Automations spike decision — Cursor Automations assessed as `conditional-go`, non-defaulting; rationale recorded in `cursor-subagent-policy.md` (OC-11)
+
+### Changed
+
+- Agent templates (`trellis-research` / `trellis-implement` / `trellis-check`) now open with Entry points / Context source sections
+- Retrieval router + agent-instruction builder: LSP / `GO_TO_DEFINITION` references replaced with codegraph + Read + caveat
+- `patch_wpelc8.py` bare invocation (no subcommand) no longer implicitly writes; prints planned map and exits
+- Docs synced (English + zh-CN pairs): `cursor.md`, `subagents.md`, `retrieval.md`, `task-system.md`, `README.md`
+
+### Upgrade
+
+```bash
+npm install -g @blxzer/cursor-trellis@0.2.8
+# In each project:
+trellis update
+```
+
+**Behavior changes:**
+
+- `trellis init` / `trellis update` now run `assertCursorRulesValid()` — a regression in the rules manifest aborts the operation. Run `trellis validate-rules` to re-check after hand-editing `.cursor/rules/`.
+- Cursor++ operators: `python patch_wpelc8.py` without `--approve` no longer patches. Add `--approve` to apply.
+- Retrieval: when `cursorEnv` is `unknown`, the router now warns and routes to BYOK behavior instead of silently using native `@codebase`.
+
+[0.2.8]: https://github.com/blxzer77/cursor-trellis/releases/tag/v0.2.8
+
 ## [0.2.7] - 2026-06-25
 
 Aligned **@blxzer/cursor-trellis** and **@blxzer/cursor-trellis-core** at `0.2.7`.
