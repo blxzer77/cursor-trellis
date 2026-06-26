@@ -78,6 +78,18 @@ When `smart-search doctor` is not ok or `run_smart_search.py` status is `not_con
 
 **CLI discovery (Cursor):** `TRELLIS_SMART_SEARCH_COMMAND` / `smart_search.command` → PATH `smart-search` → project `node_modules/.bin/smart-search` (when installed as a dependency). Agent entrypoint is always `./.trellis/scripts/run_smart_search.py`.
 
+**Research flags (smart-search ≥ 0.1.15):** pass through `run_smart_search.py` for `--intent deep-research`:
+
+| Flag | Values | Use |
+| --- | --- | --- |
+| `--locale-scope` | `cn`, `en`, `both` (CLI default) | Skip bilingual discovery when cost matters |
+| `--dry-run` | flag | Plan + routing preview only; no live providers |
+| `--progress` | flag | `[research]` stage logs to stderr |
+
+Research JSON may include `output_schema_version: 1` and structured `citations` (`id`, `source_type`, `verified`, `content_len`). Trellis manifests preserve those fields when present.
+
+**Cursor skill surface:** `smart-search-cli` is an internal workflow name — it is **not** installed under `.cursor/skills/` (commands-only policy). On Cursor, follow this guide + `run_smart_search.py`; bundled skill assets ship for Codex/Gemini via `.agents/skills/` only.
+
 ## Router vs execution
 
 `route_codebase_retrieval.py` returns **intent + route suggestions** and **`agentInstructions`** (numbered steps with Cursor-native tool names). **codebase-evidence** is **candidate** until confirmed by Read/Git/tests.

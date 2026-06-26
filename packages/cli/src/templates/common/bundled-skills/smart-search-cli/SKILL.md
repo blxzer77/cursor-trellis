@@ -1,6 +1,6 @@
 ---
 name: smart-search-cli
-description: CLI-first web research and source retrieval through the local smart-search command. Use when the agent needs current web facts (not repo symbol lookup). Prefer this over Cursor WebSearch/WebFetch unless the user explicitly opts in. Covers fact checking, URL fetch, site mapping, official/API/docs search, and reproducible evidence via Skill + CLI.
+description: CLI-first web research and source retrieval through the local smart-search command. Use when Codex needs current web search, source-backed fact checking, URL fetching, site mapping, official/API/documentation search, or reproducible search evidence via Skill + CLI instead of MCP tools.
 ---
 
 # Smart Search CLI
@@ -12,8 +12,7 @@ Use the local `smart-search` command as the default execution layer for web rese
 1. Run `smart-search doctor --format json` when configuration or availability is uncertain.
 2. If `doctor` reports missing configuration, use `smart-search setup` or `smart-search config set KEY VALUE` when the user provides keys. Do not ask users to edit global environment variables by default.
 3. If OpenAI-compatible `search` hangs or times out after `doctor` succeeds, run `smart-search diagnose openai-compatible --format markdown` and use its summary/recommendation. This one command tests quick chat plus real search-shape `stream=false` and `stream=true`.
-4. If `doctor` returns `ok: true`, use only `smart-search` CLI subcommands for web research. Do not call platform built-in web search (`WebSearch`/`WebFetch` in Cursor, or native web tools elsewhere) in the same task unless the user explicitly requests it.
-4b. **Cursor fallback** — when `doctor` is not ok, or `run_smart_search.py` / CLI status is `not_configured` or `failed`, use **Cursor WebSearch/WebFetch** for external facts, then **persist** to `{TASK}/research/<topic>.md` with YAML frontmatter `source: cursor-web-fallback` and URLs cited. Do not treat fallback output as verified without cross-check when claim risk is high.
+4. If `doctor` returns `ok: true`, use only `smart-search` CLI subcommands for web research. Do not call Codex native web search in the same task.
 5. For every research question, run a bilingual `smart-search search` pair: one Chinese-source query and one English-source query. Save both JSON outputs.
 6. Use `smart-search search` as the first hop for realtime, broad exploration, community signals, multi-source summaries, and routing metadata. The default broad pass is bilingual, not Zhipu-backed.
 7. Do not use `smart-search zhipu-search` in normal workflows. Zhipu is deprecated and not used by default routing because quota may be unavailable; the command remains only for manual legacy compatibility when the user explicitly asks for it.
@@ -123,7 +122,7 @@ Default evidence policy is `fetch_before_claim`: key claims in the final answer 
 
 Live Deep Research executor:
 
-- `smart-search research QUERY [--budget quick|standard|deep] [--evidence-dir PATH] [--fallback auto|off] [--format json|markdown|content] [--output PATH]` runs the staged workflow directly.
+- `smart-search research QUERY [--budget quick|standard|deep] [--locale-scope cn|en|both] [--evidence-dir PATH] [--fallback auto|off] [--dry-run] [--progress] [--format json|markdown|content] [--output PATH]` runs the staged workflow directly. Use `--dry-run` to preview plan/routing without live providers; `--progress` for stderr stage logs; `--locale-scope cn` or `en` to skip bilingual discovery when cost matters.
 - Default `--fallback auto` permits same-capability fallback inside selected routes. Use `--fallback off` only for debugging or deterministic provider checks.
 - Research output includes `final_answer`, `citations`, `evidence_items`, `gap_check`, `provider_attempts`, `fallback_used`, `degraded`, `route_policy_version`, and `evidence_dir`.
 - The synthesis is evidence-only. It may cite fetched/read evidence, but it must not cite unfetched discovery candidates as proof.
@@ -137,7 +136,7 @@ Research provider advantage routing:
 - Jina: known public URL, PDF, and arXiv clean extraction; ReaderLM-v2 requires `JINA_API_KEY`.
 - Firecrawl: robust fetch fallback, JS-heavy/dynamic pages, browser-like extraction, OCR/PDF/structured extraction.
 
-Safe research overrides are `SMART_SEARCH_RESEARCH_PREFERRED_PROVIDERS` and `SMART_SEARCH_RESEARCH_DISABLED_PROVIDERS`. They may reorder or disable providers only within capabilities the provider already supports; they must not move a provider across capability boundaries.
+Safe research overrides are `SMART_SEARCH_RESEARCH_PREFERRED_PROVIDERS`, `SMART_SEARCH_RESEARCH_DISABLED_PROVIDERS`, and `SMART_SEARCH_CACHE` (`on` by default; `off` disables the in-process provider TTL cache). Preferred/disabled provider CSV values may reorder or disable providers only within capabilities the provider already supports; they must not move a provider across capability boundaries.
 
 Deep Research test coverage for workflow maintenance should verify trigger phrases, normal search requests that should not trigger Deep Research, required `research_plan` fields, allowed tool whitelist, bilingual search steps, `fetch_before_claim`, evidence output paths, capability boundaries, `intent_signals`, `capability_plan`, `gap_check`, simple current prompts such as `深度搜索一下最近的比特币行情`, docs/API prompts, claim-verification prompts, user-provided URL fetch-first flows, missing-provider failure guidance, and the rule that fixed topic recipe ids are not required schema. When real keys are available and the user expects live checks, a small live pass can run `doctor`, two broad `search` commands (Chinese and English), one `exa-search`, and one `fetch`.
 
@@ -262,10 +261,10 @@ Use this when the user wants work that can be inspected, resumed, or audited.
 - Prefer the CLI's local config file managed by `smart-search setup` / `smart-search config`.
 - Environment variables remain supported for CI and advanced users, and override the local config file.
 - Do not ask users to set Windows global API-key environment variables by default.
-- If keys are changed with `smart-search config set`, rerun the CLI; no Cursor reload is needed.
-- If PATH is changed, a new terminal or Cursor reload may be needed.
+- If keys are changed with `smart-search config set`, rerun the CLI; no Codex restart is needed.
+- If PATH is changed, a new terminal or Codex restart may be needed.
 - On Windows, the default local config file is `%LOCALAPPDATA%\smart-search\config.json`. Linux/macOS default to `~/.config/smart-search/config.json`.
-- In sandboxed runtimes (Cursor agent-sandbox subprocesses, containers, CI) where the default config directory is not writable or must be pinned, set `SMART_SEARCH_CONFIG_DIR` to an absolute writable path. The CLI uses it for both config and relative logs and skips default-directory selection.
+- In sandboxed runtimes (Codex CLI, containers, CI) where the default config directory is not writable or must be pinned, set `SMART_SEARCH_CONFIG_DIR` to an absolute writable path. The CLI uses it for both config and relative logs and skips default-directory selection.
 - The default research evidence root is `evidence` under the active config directory. Set `SMART_SEARCH_EVIDENCE_DIR` only when evidence needs a separate absolute location; `config path` and `doctor` report both the configured and resolved evidence paths.
 - Earlier Windows source defaults used `~\.config\smart-search\config.json`, while some installs were already pinned to `%LOCALAPPDATA%\smart-search` through `SMART_SEARCH_CONFIG_DIR`. If the new default file is missing but the old file exists, `doctor` reports `legacy_windows_home` as the active source so upgrades do not silently lose configuration. It also reports the override value and whether it matches the current default.
 - Use `smart-search doctor --format json` for agent/script parsing and `smart-search doctor --format markdown` when a human wants a detailed diagnostic report.

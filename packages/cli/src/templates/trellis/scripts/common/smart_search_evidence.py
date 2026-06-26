@@ -69,6 +69,21 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--timeout", type=int, default=90)
     parser.add_argument("--num-results", type=int, default=5)
     parser.add_argument(
+        "--locale-scope",
+        choices=("cn", "en", "both"),
+        help="Bilingual discovery scope for --intent deep-research (smart-search research --locale-scope).",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Preview research plan/routing without live providers (deep-research only).",
+    )
+    parser.add_argument(
+        "--progress",
+        action="store_true",
+        help="Emit [research] stage logs to stderr during deep-research execution.",
+    )
+    parser.add_argument(
         "--include-domain",
         action="append",
         default=[],
@@ -174,6 +189,7 @@ def main(argv: list[str] | None = None) -> int:
         result_data=result_data,
         doctor_data=doctor_data,
         error=error,
+        dry_run=bool(args.dry_run),
     )
     write_manifest(manifest, evidence_dir)
     print_manifest(manifest, args.json)
@@ -211,7 +227,7 @@ def build_smart_search_command(args: argparse.Namespace, evidence_dir: Path) -> 
     output_path = command_output_path(args.intent, evidence_dir)
     command = list(args.smart_search_argv)
     if args.intent == "deep-research":
-        return [
+        built = [
             *command,
             "research",
             args.query,
@@ -224,6 +240,13 @@ def build_smart_search_command(args: argparse.Namespace, evidence_dir: Path) -> 
             "--output",
             str(output_path),
         ]
+        if args.locale_scope:
+            built.extend(["--locale-scope", args.locale_scope])
+        if args.dry_run:
+            built.append("--dry-run")
+        if args.progress:
+            built.append("--progress")
+        return built
     if args.intent == "broad-search":
         return [
             *command,
@@ -349,9 +372,11 @@ def build_manifest(
     result_data: dict[str, Any],
     doctor_data: dict[str, Any],
     error: str = "",
+    dry_run: bool = False,
 ) -> dict[str, Any]:
     provider_attempts = list_value(result_data.get("provider_attempts"))
     citations = normalize_citations(result_data)
+    output_schema_version = result_data.get("output_schema_version")
     manifest: dict[str, Any] = {
         "version": MANIFEST_VERSION,
         "source": "smart-search",
@@ -371,6 +396,10 @@ def build_manifest(
         "routePolicyVersion": string_value(result_data.get("route_policy_version")),
         "doctor": normalize_doctor(doctor_data),
     }
+    if isinstance(output_schema_version, int):
+        manifest["outputSchemaVersion"] = output_schema_version
+    if dry_run:
+        manifest["dryRun"] = True
     if error:
         manifest["error"] = error
     return manifest
@@ -417,6 +446,9 @@ def normalize_citations(result_data: dict[str, Any]) -> list[dict[str, Any]]:
         provider = string_value(item.get("provider"))
         if provider:
             citation["provider"] = provider
+        for key in ("id", "source_type", "subquestion_id", "verified", "content_len"):
+            if key in item:
+                citation[key] = item[key]
         citations.append(citation)
     return citations
 

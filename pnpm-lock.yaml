@@ -13,6 +13,9 @@ importers:
       '@blxzer/cursor-trellis-core':
         specifier: workspace:*
         version: link:../core
+      '@blxzer/smart-search':
+        specifier: ^0.1.15
+        version: 0.1.15
       chalk:
         specifier: ^5.3.0
         version: 5.6.2
@@ -112,6 +115,11 @@ packages:
   '@bcoe/v8-coverage@1.0.2':
     resolution: {integrity: sha512-6zABk/ECA/QYSCQ1NGiVwwbQerUCZ+TQbp64Q3AgmfNvurHH0j8TtXa1qbShXA6qqkpAj4V5W8pP6mLe1mcMqA==}
     engines: {node: '>=18'}
+
+  '@blxzer/smart-search@0.1.15':
+    resolution: {integrity: sha512-GnAucKTpYAKf/lUKMXLkBFjceyxDIPm1ALWfGvm3hAEG5E6dd/8AKp9yQo16b+msfk+xV4DCTZzDkpGay9tx6w==}
+    engines: {node: '>=18'}
+    hasBin: true
 
   '@esbuild/aix-ppc64@0.27.3':
     resolution: {integrity: sha512-9fJMTNFTWZMh5qwrBItuziu834eOCUcEqymSH7pY+zoMVEZg3gcPuBNxH1EvfVYe9h0x/Ptw8KBzv7qxb7l8dg==}
@@ -1323,6 +1331,8 @@ snapshots:
       '@babel/helper-validator-identifier': 7.28.5
 
   '@bcoe/v8-coverage@1.0.2': {}
+
+  '@blxzer/smart-search@0.1.15': {}
 
   '@esbuild/aix-ppc64@0.27.3':
     optional: true

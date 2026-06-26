@@ -1,0 +1,9 @@
+{
+  "version": "0.2.9",
+  "description": "v0.2.9 — Adapt to @blxzer/smart-search 0.1.15: research flags, structured citations in evidence manifests, bundled skill sync for non-Cursor platforms.",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**@blxzer/cursor-trellis 0.2.9 / @blxzer/cursor-trellis-core 0.2.9**\n\n### Added\n- feat(retrieval): `run_smart_search.py` passthrough for `--locale-scope`, `--dry-run`, `--progress` (deep-research)\n- feat(retrieval): Trellis evidence manifest preserves `outputSchemaVersion`, structured citation fields, and `dryRun`\n\n### Changed\n- chore(deps): bump `@blxzer/smart-search` to `^0.1.15`\n- docs: sync bundled `smart-search-cli` skill from smart-search v0.1.15 (`.agents/skills/` platforms only; Cursor stays commands-only)\n- docs: retrieval-daily-guide documents smart-search 0.1.15 research flags and Cursor skill-surface policy\n\nRun `trellis update` in each project.",
+  "migrations": [],
+  "notes": "Cursor projects still use run_smart_search.py + rules — no new .cursor/skills/ entries."
+}
