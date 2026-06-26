@@ -70,6 +70,7 @@ import {
   writeProjectCapabilityFiles,
   type ProjectCapabilityId,
 } from "../utils/project-capabilities.js";
+import { assertCursorRulesValid } from "../utils/validate-rules.js";
 
 const MIN_PYTHON_MAJOR = 3;
 const MIN_PYTHON_MINOR = 9;
@@ -882,6 +883,12 @@ async function handleReinit(
       }
     } finally {
       stopRecordingWrites();
+    }
+
+    if (
+      platformsToAdd.some((tool) => resolveCliFlag(tool as CliFlag) === "cursor")
+    ) {
+      assertCursorRulesValid(cwd);
     }
 
     if (
@@ -2015,6 +2022,10 @@ export async function init(options: InitOptions): Promise<void> {
         );
         await configurePlatform(platformId, cwd);
       }
+    }
+
+    if (selectedPlatformIds.includes("cursor")) {
+      assertCursorRulesValid(cwd);
     }
 
     await writeProjectCapabilityFiles(

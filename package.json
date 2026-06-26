@@ -17,6 +17,7 @@
     "release:rc": "pnpm --filter @blxzer/cursor-trellis release:rc",
     "release:promote": "pnpm --filter @blxzer/cursor-trellis release:promote",
     "release:check": "node packages/cli/scripts/release-preflight.js check-versions",
-    "release:plan": "node packages/cli/scripts/release-preflight.js publish-plan"
+    "release:plan": "node packages/cli/scripts/release-preflight.js publish-plan",
+    "mirror-check": "pnpm --filter @blxzer/cursor-trellis mirror-check"
   }
 }
