@@ -12,6 +12,7 @@ import {
   WorkflowCommandError,
 } from "../commands/workflow.js";
 import { registerChannelCommand } from "../commands/channel/index.js";
+import { runValidateRules } from "../commands/validate-rules.js";
 import { DIR_NAMES } from "../constants/paths.js";
 import { PACKAGE_NAME, VERSION } from "../constants/version.js";
 import { compareVersions } from "../utils/compare-versions.js";
@@ -320,5 +321,33 @@ program
   });
 
 registerChannelCommand(program);
+
+program
+  .command("validate-rules")
+  .description(
+    "Validate Cursor .cursor/rules against the expected manifest (templates and/or installed rules)",
+  )
+  .option(
+    "--dir <rulesDir>",
+    "Validate rules in a specific directory instead of project .cursor/rules",
+  )
+  .option(
+    "--templates-only",
+    "Validate template rules from getAllRules() only (skip installed rules check)",
+  )
+  .action(async (options: Record<string, unknown>) => {
+    try {
+      await runValidateRules(process.cwd(), {
+        dir: options.dir as string | undefined,
+        templatesOnly: options.templatesOnly as boolean | undefined,
+      });
+    } catch (error) {
+      console.error(
+        chalk.red("Error:"),
+        error instanceof Error ? error.message : error,
+      );
+      process.exit(1);
+    }
+  });
 
 program.parse();

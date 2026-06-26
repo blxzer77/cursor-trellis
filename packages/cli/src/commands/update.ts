@@ -71,6 +71,7 @@ import {
 import { replacePythonCommandLiterals } from "../configurators/shared.js";
 import { pruneOrphanManifestKeys } from "../utils/manifest-prune.js";
 import { runPostUpdateSmoke } from "../utils/post-update-smoke.js";
+import { assertCursorRulesValid } from "../utils/validate-rules.js";
 import {
   buildFilePlanFromChanges,
   createBaseRolloutReport,
@@ -2777,6 +2778,11 @@ export async function update(options: UpdateOptions): Promise<void> {
   const postSmoke = options.skipPostUpdateSmoke
     ? []
     : runPostUpdateSmoke(cwd);
+
+  if (getConfiguredPlatforms(cwd).has("cursor")) {
+    assertCursorRulesValid(cwd);
+  }
+
   const relBackup = backupDir ? path.relative(cwd, backupDir) : null;
 
   emitRollout("applied", {
