@@ -197,11 +197,12 @@ API: `getMigrationsForVersion()`, `getAllMigrations()`, `hasPendingMigrations()`
 
 ---
 
-## 7. Smart-Search Vendor Integration
+## 7. Smart-Search npm Dependency
 
-Source: `D:\MyHarness\smartsearch-private\`. Vendor: `packages/cli/vendor/smart-search/`.
-Sync: `scripts/sync-smart-search-vendor.js`. Check: `scripts/check-smart-search-vendor.js`.
-Bin: `smart-search` -> `./bin/smart-search.js`. postinstall: `scripts/postinstall.js`.
+Runtime: `@blxzer/smart-search` npm package (installed as a dependency of `@blxzer/cursor-trellis`).
+Bin: `smart-search` → `./bin/smart-search.js` forwards to `node_modules/@blxzer/smart-search`.
+Bundled skill template: `packages/cli/src/templates/common/bundled-skills/smart-search-cli/` (synced from the smart-search repo; written to `.agents/skills/` on non-Cursor platforms only — **not** `.cursor/skills/`).
+Cursor entrypoint: `./.trellis/scripts/run_smart_search.py` + `.cursor/rules/retrieval-routing.mdc` + `AGENTS.md`.
 
 ---
 
@@ -269,7 +270,7 @@ Modes: force, skip, create-new. `startRecordingWrites()`/`stopRecordingWrites()`
 
 **Modify AGENTS.md template**: Edit `src/templates/markdown/index.ts` (user projects) or root `AGENTS.md` (self). Never edit inside TRELLIS:START/END block.
 
-**Sync smart-search**: Update smartsearch-private -> `pnpm sync:smart-search` -> `pnpm check:smart-search`
+**Sync smart-search bundled skill**: Update `smart-search/skills/smart-search-cli/` → copy into `packages/cli/src/templates/common/bundled-skills/smart-search-cli/` (does not change Cursor `.cursor/skills/` policy).
 
 **Full quality check**: `pnpm lint && pnpm lint:py && pnpm typecheck && pnpm test && pnpm build`
 

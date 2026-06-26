@@ -106,7 +106,8 @@ function writeFakeSmartSearch(root: string): string {
       "        'question': args[1],",
       "        'final_answer': 'Fetched evidence supports the answer.',",
       "        'content': 'Fetched evidence supports the answer.',",
-      "        'citations': [{'title': 'Example', 'url': 'https://example.com', 'provider': 'jina'}],",
+      "        'citations': [{'id': 'c1', 'title': 'Example', 'url': 'https://example.com', 'provider': 'jina', 'source_type': 'web', 'verified': True, 'content_len': 1200}],",
+      "        'output_schema_version': 1,",
       "        'gap_check': {'gaps': []},",
       "        'provider_attempts': [{'provider': 'jina', 'status': 'ok'}],",
       "        'degraded': False,",
@@ -209,8 +210,17 @@ describe.skipIf(pythonCmd === null)("run_smart_search.py", () => {
     expect(manifest.command).toContain("--output");
     expect(manifest.summary).toContain("Fetched evidence supports");
     expect(manifest.citations).toEqual([
-      { title: "Example", url: "https://example.com", provider: "jina" },
+      {
+        id: "c1",
+        title: "Example",
+        url: "https://example.com",
+        provider: "jina",
+        source_type: "web",
+        verified: true,
+        content_len: 1200,
+      },
     ]);
+    expect((manifest as SmartSearchManifest & { outputSchemaVersion?: number }).outputSchemaVersion).toBe(1);
     expect(manifest.gapCheck).toEqual({ gaps: [] });
     expect(manifest.providerAttempts).toEqual([
       { provider: "jina", status: "ok" },
@@ -228,6 +238,34 @@ describe.skipIf(pythonCmd === null)("run_smart_search.py", () => {
       "manifest.json",
     );
     expect(JSON.parse(fs.readFileSync(manifestPath, "utf-8"))).toEqual(manifest);
+  });
+
+  it("passes research flags through to smart-search research", () => {
+    const smartSearchCommand = writeFakeSmartSearch(tmpDir);
+    const result = runSmartSearch(
+      tmpDir,
+      [
+        "React docs",
+        "--smart-search-command",
+        smartSearchCommand,
+        "--task",
+        ".trellis/tasks/06-13-smart",
+        "--run-id",
+        "flags-run",
+        "--locale-scope",
+        "cn",
+        "--dry-run",
+        "--json",
+      ],
+    );
+
+    expect(result.status).toBe(0);
+    const manifest = JSON.parse(result.stdout) as SmartSearchManifest & {
+      dryRun?: boolean;
+    };
+    expect(manifest.command).toContain("--locale-scope cn");
+    expect(manifest.command).toContain("--dry-run");
+    expect(manifest.dryRun).toBe(true);
   });
 
   it("records a not_configured manifest when smart-search is unavailable", () => {

@@ -9,6 +9,31 @@ SemVer: [semver.org](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.2.9] - 2026-06-26
+
+Adapt `@blxzer/cursor-trellis` to **@blxzer/smart-search 0.1.15** (research locale scope, dry-run/progress, structured citations, provider TTL cache). Cursor **commands-only** policy unchanged — internal `smart-search-cli` is not exposed under `.cursor/skills/`.
+
+### Added
+
+- `run_smart_search.py` passthrough for `--locale-scope`, `--dry-run`, and `--progress` on `--intent deep-research`
+- Trellis evidence manifests preserve `outputSchemaVersion`, structured citation fields (`id`, `source_type`, `verified`, `content_len`), and `dryRun` when applicable
+
+### Changed
+
+- Dependency `@blxzer/smart-search` bumped to `^0.1.15`
+- Bundled `smart-search-cli` skill synced from smart-search v0.1.15 (installed to `.agents/skills/` on Codex/Gemini; **not** `.cursor/skills/` on Cursor)
+- `retrieval-daily-guide.md` documents smart-search 0.1.15 research flags and Cursor skill-surface policy
+
+### Upgrade
+
+```bash
+npm install -g @blxzer/cursor-trellis@0.2.9
+# In each project:
+trellis update
+```
+
+[0.2.9]: https://github.com/blxzer77/cursor-trellis/releases/tag/v0.2.9
+
 ## [0.2.8] - 2026-06-26
 
 Cursor platform adaptation Phase 0 + Phase 1+2 stabilization. Six feature commits landed since 0.2.7, all back-ported to public docs in this release.
