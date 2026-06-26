@@ -114,6 +114,15 @@ def _repo_relative(path, repo_root) -> str:
         return str(path)
 
 
+def _print_select_dispatch_fallback_tip() -> None:
+    print(
+        "Tip: if no session identity, use "
+        "'python ./.trellis/scripts/generate_dispatch_prompt.py --task <path>' "
+        "to dispatch directly.",
+        file=sys.stderr,
+    )
+
+
 def _resolve_existing_task(task_input: str, repo_root):
     full_path = resolve_task_dir(task_input, repo_root)
     if not full_path.is_dir():
@@ -136,6 +145,7 @@ def cmd_select(args: argparse.Namespace) -> int:
     task_input = args.dir
     full_path = _resolve_existing_task(task_input, repo_root)
     if full_path is None:
+        _print_select_dispatch_fallback_tip()
         return 1
 
     if not resolve_context_key():
@@ -147,11 +157,13 @@ def cmd_select(args: argparse.Namespace) -> int:
             "Hint: run inside an AI session that exposes session identity, or set TRELLIS_CONTEXT_ID before running task.py select.",
             file=sys.stderr,
         )
+        _print_select_dispatch_fallback_tip()
         return 1
 
     selected = set_selected_task(_repo_relative(full_path, repo_root), repo_root)
     if not selected:
         print(colored("Error: failed to select task", Colors.RED), file=sys.stderr)
+        _print_select_dispatch_fallback_tip()
         return 1
 
     print(colored(f"✓ Selected task: {selected.task_path}", Colors.GREEN))
