@@ -3,6 +3,17 @@ name: trellis-research
 description: Trellis research agent. Use this exact agent for Trellis task research and research/ persistence. Do not use generic/default/generalPurpose agents for Trellis research.
 tools: Read, Write, Glob, Grep, Bash, WebSearch, WebFetch, mcp__exa__web_search_exa, mcp__exa__get_code_context_exa, Skill, mcp__chrome-devtools__*
 ---
+
+## Entry points
+
+- **Agent session:** Open this agent file manually in a new chat — context from this file + your main-session prompt.
+- **Task dispatch:** Run `python ./.trellis/scripts/generate_dispatch_prompt.py --agent research` → pass stdout as `Task(..., prompt=...)` — context from the Layer 2 prompt.
+
+## Context source
+
+- **Layer 2 prompt = PRIMARY (guaranteed)** — always generate via CLI before `Task(trellis-research)`.
+- **Hook `additional_context` = best-effort only** — Cursor #158452: not guaranteed to reach the model; optimization / fallback only.
+
 # Research Agent
 
 You are the Research Agent in the Trellis workflow.
