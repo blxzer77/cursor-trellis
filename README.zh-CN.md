@@ -1,5 +1,14 @@
 # cursor-trellis
 
+<p>
+  <a href="https://www.npmjs.com/package/@blxzer/cursor-trellis">
+    <img src="https://img.shields.io/npm/v/@blxzer/cursor-trellis?label=npm%20latest" alt="npm latest">
+  </a>
+  <a href="https://www.npmjs.com/package/@blxzer/smart-search">
+    <img src="https://img.shields.io/npm/v/@blxzer/smart-search?label=smart-search" alt="smart-search">
+  </a>
+</p>
+
 [English](README.md) | 简体中文
 
 **Trellis** 是面向 AI 编程 Agent 的渐进式上下文管理系统。它将 Agent 指令结构化为 `.trellis/`（workflow、spec、tasks、workspace）而非单一大文件，并生成平台特定的集成文件（Cursor 为 `.cursor/`）。
@@ -12,6 +21,10 @@
 - 通过 `/trellis-continue` 跨会话恢复工作
 - 根据正在编辑的文件渐进式加载规范
 - 结构化工作流路由请求：triage → plan → gate → execute → verify
+- **校验门禁** — `trellis validate-rules` + `pnpm mirror-check` 强制 dogfood/模板同步；`init`/`update` 回归时抛错
+- **检索合规** — BYOK/Native 分叉 + `unknown` 保守路由；LSP 过度承诺软化为 codegraph + Read；telemetry 区分 planned vs executed semantic
+- **Cursor++ 安全** — Method 2.5 patch 需显式 `--approve`；`--check-compat` 预检；`smoke.py` 健康检查（不读 secret）
+- **证据 pack** — finish/check 在 `retrieval-pack-latest.json` 存在时引用；research prompt 含 provider 相关性提示
 
 ## 常用命令
 

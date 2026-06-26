@@ -231,6 +231,15 @@ python ./.trellis/scripts/task.py archive <task>            # 归档(移到 arch
 
 加上 `full-task-complete/code-review` gate 记录。用 `prepare-archive-evidence` 辅助起草证据块,再用 `record-gate` 在显式审查后记录(从不自动 PASS)。
 
+## 任务路径 fallback(子 Agent 派发,0.2.8 起)
+
+当 `task.py select` 未运行(或会话指针缺失)时,子 Agent 派发流仍需一个任务路径来读 `prd` / `design` / `implement` / `implement.jsonl`。fallback 链:
+
+1. **`generate_dispatch_prompt.py --task <path>`** —— **主 fallback**。主会话显式传任务目录;脚本解析该路径下工件并嵌入 Layer 2 派发 prompt。即使无 task 被 `select`,也能工作。
+2. **`task.py select <task>` 失败提示** —— `task.py select` 因无任务而失败时,错误信息现打印一行提示,指向 `generate_dispatch_prompt.py --task <path>` 作为免 select 的派发路径。
+
+这让派发流对"无 selected task"状态鲁棒(`/multitask` 并行派发、新会话、会话指针过期)。无论是否 `select` 过,CLI Layer 2 派发 prompt 始终是主上下文通道——见 [子 Agent 派发](subagents.zh-CN.md#entry-points-与-context-source028-起)。
+
 ## 延伸阅读
 
 - [Cursor 中的工作流](workflow.zh-CN.md) — 完整 Triage 决策树、Task Ladder、升降级规则
