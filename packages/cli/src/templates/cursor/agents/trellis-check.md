@@ -118,6 +118,27 @@ If failed, fix issues and re-run.
 - [ ] **`verify.md` lists unresolved retrieval gaps** (unverified external facts, missing `research/` or `research/smart-search/` evidence, claims without source/Git/test proof)
 - [ ] If `{TASK}/research/retrieval-pack-latest.json` exists (research-end hook), cite top ranked items or document gaps in `verify.md`
 
+**Evidence pack (graceful):** Pack path is `{TASK}/research/retrieval-pack-latest.json`. If missing, skip this block — no error.
+
+When the pack exists:
+
+```bash
+# Optional: confirm path from selected task
+python ./.trellis/scripts/task.py selected --source
+```
+
+Read `{TASK}/research/retrieval-pack-latest.json` and use `contextPack.selected` (top items: `title`, `source`, `reference`, `score`). Add or update `verify.md` with:
+
+```markdown
+## Evidence pack reference
+
+- Pack: `{TASK}/research/retrieval-pack-latest.json` (contextPack.selected=N, artifacts=M, smart-search=K)
+- Cited: <title> — <source> — <reference>
+- Gaps: <any high-score omitted items or unverified external claims>
+```
+
+If `contextPack.selected` is empty but research artifacts exist, document why (budget, failed manifests, or stale pack) instead of silently ignoring the pack.
+
 ---
 
 ## Report Format

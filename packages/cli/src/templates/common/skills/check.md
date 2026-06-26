@@ -70,6 +70,10 @@ Run the project's lint, type-check, and test commands. Fix any failures before p
 - [ ] **`verify.md` lists unresolved retrieval gaps** — external facts still unverified, missing `research/` or `research/smart-search/` evidence, or claims without source/Git/test corroboration
 - [ ] If `{TASK}/research/retrieval-pack-latest.json` exists, top `contextPack.selected` items are cited or gaps are explicitly noted in `verify.md`
 
+**Evidence pack (graceful):** Path `{TASK}/research/retrieval-pack-latest.json`. If absent, skip — no error.
+
+When present, Read the pack and ensure `verify.md` has `## Evidence pack reference` citing `contextPack.selected` (`title`, `source`, `reference`, `score`) or explicit gaps. Empty `selected` with existing `research/` → note stale pack or scoring failure in `verify.md`.
+
 ## Step 5: Cross-Layer Dimensions (if applicable)
 
 Skip this step if your change is confined to a single layer.

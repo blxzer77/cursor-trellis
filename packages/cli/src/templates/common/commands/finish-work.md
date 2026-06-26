@@ -4,6 +4,18 @@ Wrap up the current session: archive the selected task (and any other completed-
 
 Before archive, confirm `verify.md` includes Phase 3.3 **Learning decision** (`update-spec` | `no-update` | `unsure`) and gate-compatible evidence per `.trellis/spec/guides/durable-learning-decision-guide.md`. Run `task.py archive <task> --check` when unsure.
 
+## Evidence pack reference (optional — graceful skip)
+
+When the selected task has `{TASK}/research/retrieval-pack-latest.json` (written by the research-end `stop` hook via `get_context --mode retrieval-pack`, or by an explicit pack run during Phase 3.1):
+
+1. Read the JSON; note top `contextPack.selected` items (`title`, `source`, `reference`, `score`) and `collection` counts.
+2. Ensure `verify.md` includes an `## Evidence pack reference` section citing those ranked sources or documenting explicit gaps.
+3. If the section is missing, add it before proceeding to archive.
+
+If the file does not exist: **skip silently** — no error, no user prompt. Pack absence is normal when the task did not use research/smart-search.
+
+Pack format: `version`, `source` (`retrieval-pack-orchestrator`), `contextPack.selected[]`, `scoredEvidence`, `collection`. Smart-search manifests that feed scoring live under `{TASK}/research/smart-search/<run-id>/` (from `run_smart_search.py`).
+
 ## Step 1: Survey current state
 
 ```bash
