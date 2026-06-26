@@ -21,6 +21,21 @@
 | `trellis-implement` | `cursor/agents/trellis-implement.md` | Read、Write、Edit、Bash、Glob、Grep、Exa | 同继承 + overlay 策略 | **硬守卫**:不得再派 `trellis-implement` 或 `trellis-check`。`No git commit allowed` —— implement 不提交 |
 | `trellis-check` | `cursor/agents/trellis-check.md` | Read、Write、Edit、Bash、Glob、Grep、Exa | 同继承 + overlay 策略 | **硬守卫**:不得再派 `trellis-check` 或 `trellis-implement`。可自修复代码并记录 gate |
 
+### Entry points 与 Context source(0.2.8 起)
+
+每个 `trellis-*` Agent 定义开头有两个标准段,把派发契约讲清楚:
+
+- **Entry points** —— 列出该 Agent 可被触达的三种方式:
+  1. **Agent 会话** —— 直接以该 Agent 名开的聊天(`trellis-*` 罕见)。
+  2. **Task 派发** —— 主会话通过 `Task` 工具 + CLI 生成的 Layer 2 派发 prompt 拉起 Agent(`trellis-implement` / `trellis-check` 的**主**路径)。
+  3. **Skill 形态** —— Agent 作为内联 skill 在主会话跑,无独立上下文窗口(`trellis-check` skill、`trellis-research` skill)。
+- **Context source** —— 声明 **CLI Layer 2 派发**(`generate_dispatch_prompt.py` → `Task` 工具 `prompt`)为**主且有保障**的上下文通道。`sessionStart.additional_context` 与 `preToolUse` 钩子**仅为尽力而为**:
+  - Cursor issue #158452 使 `sessionStart.additional_context` 不可靠。
+  - Cursor 3.8.22 下 Agent 定义体**不保证**进入子 Agent system prompt。
+  - 当仅靠钩子注入是唯一上下文来源时,视为 Agent 上下文不足,应请求 Layer 2 派发 prompt。
+
+这意味着主会话可信任:正常派发的 `trellis-*` Agent 已通过 Layer 2 收到 `prd` / `spec` / `research` bundle,无论钩子是否触发。
+
 ### 派发契约
 
 - **`trellis-research`** —— 为独立 `research/<topic>.md` 文件生成。外部事实先走 `smart-search-cli` + Bash;Cursor web 工具仅在文档化 fallback 时用(`doctor` not ok / 超时)。返回文件路径 + 一行摘要,非全文。
@@ -41,12 +56,17 @@
 
 ### 上下文加载协议
 
-三个 Agent 都在输入里找 `<!-- trellis-hook-injected -->` 标记:
+上下文经**两条路径**到达子 Agent;`<!-- trellis-hook-injected -->` 标记是「上下文已嵌入」的信号:
+
+- **主路径:CLI Layer 2** —— 主会话派发前调 `task.py generate-dispatch-prompt`(或下面的 hook 调 `build_dispatch_prompt_for_agent`),把 prd/spec/research 预嵌进派发 prompt,并在开头打标记。
+- **Best-effort:`preToolUse` hook** —— `inject-subagent-context.py`(matcher `Task|Subagent`)检查标记是否已在;在就跳过,不在才注入同样的上下文包。
+
+三个 Agent 都在输入里找标记:
 
 - **标记存在** —— `prd` / `spec` / `research` 文件已在上方自动加载;直接干活。
-- **标记缺失** —— hook 注入未触发(Windows + Claude Code、`--continue` 恢复、fork 分发、hooks 禁用、`/multitask` 并行派发)。Agent 从派发 prompt 第一行 `Selected task: <path>` 解析选中任务路径,然后读 `implement.jsonl` / `check.jsonl` 及所列文件,再读 `prd.md` / `design.md` / `implement.md`。
+- **标记缺失** —— 两条路径都没触发(`--continue` 恢复、fork 分发、hooks 禁用、`/multitask` 并行派发)。Agent 从派发 prompt 第一行 `Selected task: <path>` 解析选中任务路径,然后读 `implement.jsonl` / `check.jsonl` 及所列文件,再读 `prd.md` / `design.md` / `implement.md`。
 
-这个 fallback 让派发在 `preToolUse` hook 不触发时也稳健(Cursor 3.8.22 已知 `preToolUse` hook 对 `Task` 工具不触发,所以基于标记的 fallback 是可靠路径)。
+这个 fallback 让派发在 `preToolUse` hook 不触发时也稳健(Cursor 3.8.22 已知 `preToolUse` hook 对 `Task` 工具不触发,但 CLI Layer 2 不依赖 hook,主路径仍带标记)。Native 与 BYOK 用同一套机制 —— 它与模型路由正交。
 
 ## 派发 Method 1–4
 

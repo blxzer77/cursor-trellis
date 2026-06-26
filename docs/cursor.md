@@ -95,6 +95,11 @@ Placeholder prefix on Cursor is `/trellis-` (see `AI_TOOLS.cursor.templateContex
 
 Files in `.cursor/agents/` define **Task** subagents with isolated context — for example research, implementation, and check/review passes. Hooks can inject extra context when the agent spawns a subagent (`preToolUse` matcher `Task|Subagent` in `hooks.json`).
 
+Each `trellis-*` agent template opens with two standard sections (since 0.2.8):
+
+- **Entry points** — the three ways the agent can be reached (Agent session, Task dispatch, Skill form) and which model-routing path each implies.
+- **Context source** — declares **CLI Layer 2 dispatch** (`generate_dispatch_prompt.py` → `Task` tool `prompt`) as the **primary** and guaranteed context channel. `sessionStart.additional_context` and `preToolUse` hooks are **best-effort** only (Cursor issue #158452 makes `additional_context` unreliable; the agent definition body does not reliably enter the subagent system prompt). When a hook-injected path is the only context available, treat the agent as undersupplied and request a Layer 2 dispatch prompt.
+
 Prefer named Trellis agents over ad-hoc prompts when a step needs a clean context window. See [Subagent dispatch strategy](#subagent-dispatch-strategy) below for environment-specific model routing.
 
 ## Hooks
@@ -192,6 +197,26 @@ Subagent dispatch needed
 ├─ Native Cursor API (non-BYOK)? → Method 1 (inherit) or Method 4 (ephemeral frontmatter)
 └─ Need a different model, Method 2.5 unavailable? → Method 3 (manual dispatch)
 ```
+
+## Validated gates (since 0.2.8)
+
+Trellis ships two hard gates that keep dogfood files (`./cursor/` and `./.trellis/scripts/`) in lock-step with generated templates. They run as part of `trellis init` / `trellis update` and as standalone checks:
+
+- **`trellis validate-rules`** — compares every rule file under `.cursor/rules/` against the bundled manifest in `packages/cli/src/templates/cursor/fixtures/expected-rules.ts`. Fails the command when a rule is missing, mis-titled, or out of sync.
+- **`pnpm mirror-check`** (contributor-side) — compares agent and rule template files against their dogfood instances in this repo, so the source-of-truth templates and the live `.cursor/` files do not drift.
+
+`trellis init` and `trellis update` call `assertCursorRulesValid()` before writing, so a regression in the manifest aborts the operation instead of leaving the project in a half-init state. Run `trellis validate-rules` manually after hand-editing `.cursor/rules/` to re-check.
+
+## Cursor++ Method 2.5 safety gate (since 0.2.8)
+
+The Cursor++ local patcher (`patch_wpelc8.py`) now requires explicit consent before touching Cursor's `extension.js`:
+
+- **`--approve`** — the patch step refuses to write without this flag. A bare `python patch_wpelc8.py` (no subcommand) prints the planned map and exits; it no longer implicitly patches.
+- **`--check-compat`** — pre-flight that verifies the `WPeLc8` resolver symbol is still present in the installed Cursor++ build before attempting any patch.
+- **`smoke.py`** — health check that confirms the patched resolver maps `subagentType` → slug without reading any secret-bearing files (no provider keys, no token inspection).
+- **Native safe-to-ignore** — `trellis init --cursor` (without `--cursor2plus`) prints a one-line hint that the Cursor++ appendix is safe to ignore for Native API users.
+
+These gates exist because Method 2.5 patches a vendored `extension.js`; the previous default (implicit write) could break Cursor on a Cursor++ upgrade without operator confirmation.
 
 ## Keeping Cursor files current
 

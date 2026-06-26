@@ -1,0 +1,9 @@
+{
+  "version": "0.2.8",
+  "description": "v0.2.8 — Cursor platform adaptation Phase 0 + Phase 1+2: validate-rules gate, agent entry-points, cursor2plus safety, retrieval compliance, evidence pack, task path fallback.",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**@blxzer/cursor-trellis 0.2.8 / @blxzer/cursor-trellis-core 0.2.8**\n\n### Added\n- feat(cursor): `trellis validate-rules` hard gate + `pnpm mirror-check` for rules/agents templates\n- feat(cursor): agent templates open with Entry points + Context source (Layer 2 PRIMARY)\n- feat(cursor2plus): Method 2.5 safety gate (`--approve`, `--check-compat`, `smoke.py`, Native safe-to-ignore)\n- feat(retrieval): BYOK/Native compliance, `unknown` conservative, LSP caveat, telemetry planned/executed split\n- feat(cli): task.py select fallback tip + `generate_dispatch_prompt.py --task` primary fallback\n- feat(retrieval): evidence pack integration (finish/check cite pack) + research prompt provider caveats\n\n### Changed\n- agent templates now open with Entry points / Context source sections\n- retrieval router: LSP/GO_TO_DEFINITION → codegraph + Read + caveat\n- `patch_wpelc8.py` bare invocation no longer implicit writes\n\nRun `trellis update` in each project.",
+  "migrations": [],
+  "notes": "init/update now run assertCursorRulesValid(); Cursor++ patch requires --approve; unknown cursorEnv routes conservatively to BYOK + warning."
+}
