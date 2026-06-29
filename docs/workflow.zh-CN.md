@@ -115,7 +115,7 @@ flowchart TD
 
 ### 1. 规划(Phase 1)
 
-**1.1 Brainstorm(Discovery + PRD Grill)。** Phase A——提问前 Discovery:检查代码、测试、spec、历史、平台文件、parent/child 结构;记录已确认事实,起草 `prd.md`。Phase B——PRD Grill:对 `prd.md` 跑 12 项检查,然后只对 **blocking** 开放问题逐个 micro-grill(附推荐答案 + 权衡)。每个答案后更新 `prd.md`。
+**1.1 Brainstorm(Discovery + PRD Grill)。** Phase A——提问前 Discovery:检查代码、测试、spec、历史、平台文件、parent/child 结构;记录已确认事实,起草 `prd.md`。Phase B——PRD Grill:对 `prd.md` 跑 14 项检查(最后两条对需求与设计强制**第一性原理**与**奥卡姆剃刀**),然后只对 **blocking** 开放问题逐个 micro-grill(附推荐答案 + 权衡)。每个答案后更新 `prd.md`。
 
 **1.2 研究(可选)。** 某主题需要专门 `{TASK}/research/<主题>.md` 时派发 `trellis-research`。外部事实强制首选 smart-search(Cursor WebSearch 为降级)。研究输出必须写文件,不只留在对话。
 

@@ -19,6 +19,21 @@ Clarify a small request just enough to execute it directly without creating Trel
 - Never keep grilling after the request is clear enough to execute.
 - Never repeat already answered questions after escalation.
 
+## Thinking Principles
+
+These two principles shape *which* question is worth asking and *what* to recommend — apply them inside the one-question-per-message contract above.
+
+### First Principles
+
+Pick the question whose answer most changes the result by tracing the request back to its root user value, not to how similar requests are usually handled.
+
+- Separate the **root need** from **inherited shape** ("I want X like Y") — grill the root need first.
+- Prefer the question that, once answered, collapses the most other candidate questions.
+
+### Occam's Razor
+
+Your recommended answer defaults to the **minimal sufficient** option that still satisfies the likely acceptance bar. Complexity must be justified by evidence you can cite, not added speculatively. If two clarifications are equally valid, recommend the simpler one.
+
 ## Workflow
 
 1. Confirm internally that the request is small, underspecified, and not already covered by a selected Trellis task.

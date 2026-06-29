@@ -19,6 +19,26 @@ This is mandatory. Before asking the user a question, first check whether the an
 
 Do not ask the user to confirm facts that the repository can answer. Ask only for product intent, preference, scope, risk tolerance, or decisions that remain ambiguous after inspection.
 
+## Thinking Principles
+
+These two principles shape *how* you grill, not just *what* you ask. Apply them throughout Phase A and B.
+
+### First Principles
+
+Reason from irreducible facts and user value, not from analogy to existing solutions or "how it's always been done".
+
+- When you encounter a requirement phrased as "we need X like Y has", separate the **root need** (the user value behind X) from the **inherited assumption** (Y's specific shape).
+- For every "because that's the convention" justification, ask: what problem did that convention solve, and does that problem actually exist here?
+- Trace each requirement back to a user-facing outcome. If no outcome survives, the requirement is inherited, not fundamental — flag it as a candidate for Out of Scope.
+
+### Occam's Razor
+
+Among competing designs that satisfy the acceptance criteria, prefer the one with the fewest additional assumptions.
+
+- Default recommendation = the **minimal sufficient** design. Complexity must be justified by evidence (a contract, an edge case, a verified constraint), not added speculatively "for later".
+- Actively strip scope that exists only to satisfy an assumption you cannot verify from repo evidence.
+- When two paths are equally sufficient, the simpler one wins; the burden of proof is on the more complex path.
+
 ---
 
 Use this skill during Phase 1 planning to turn the user's request into clear requirements and planning artifacts.
@@ -59,7 +79,7 @@ Inspect and record in `prd.md` (sections: **Confirmed facts**, initial **Out of 
 1. **Code & tests** — relevant modules, fixtures, configs, error paths.
 2. **Specs** — `.trellis/spec/` indexes and layer guides for touched packages.
 3. **History** — archived tasks, active task research, developer journal when useful.
-4. **Platform** — `.cursor/` hooks, agents, skills; shared `.agents/skills/` when behavior spans platforms.
+4. **Platform** — project platform hooks, agents, and skills (see `.trellis/spec/guides/cursor-subagent-policy.md` when using Cursor); shared `.agents/skills/` when behavior spans platforms.
 5. **Parent/Child** — if multiple independent deliverables, note child split early in `prd.md`.
 
 Use retrieval per `.trellis/spec/guides/retrieval-daily-guide.md` (rg for literals, codegraph for structure, fast-context for semantic sweep).
@@ -97,6 +117,8 @@ Treat `prd.md` (+ existing `design.md` fragments) as the **only document surface
 | 10 | **Platform** — Cursor-first; PRD Grill in-session (no legacy grill-me / grill-with-docs subagent gate) |
 | 11 | **Risk & rollback** for complex tasks |
 | 12 | **Open questions** — only **blocking** strategic/preference items remain |
+| 13 | **Root vs inherited assumptions** — every requirement traces to a user-facing root need; inherited assumptions (convention, analogy, "we've always done it") are flagged or removed (First Principles) |
+| 14 | **Minimal sufficient design** — no scope, layer, or mechanism exists to satisfy an unverified assumption; the simplest design that meets acceptance wins (Occam's Razor) |
 
 ## Phase B — Micro-grill unresolved
 
@@ -119,6 +141,8 @@ Each question must include:
 - why the answer matters
 - your recommended answer
 - the trade-off if the user chooses differently
+
+Your recommended answer defaults to Occam's Razor: the **minimal sufficient** option that still satisfies the acceptance criteria. Only recommend a more complex option when you can cite evidence (a contract, a verified edge case, a repo constraint) that the simpler option violates.
 
 ## Artifact Rules
 
@@ -144,6 +168,7 @@ Each question must include:
 - ordered implementation checklist
 - validation commands
 - risky files or rollback points
+- **Development Strategy Contract** (`execution_mode`, `isolation`, …): before finalizing, run `python3 ./.trellis/scripts/task.py suggest-execution-strategy <task-dir>` (or `--json`); reconcile suggestion with scope, then paste the approved YAML block into `implement.md`
 - follow-up checks before `task.py start-execution --check`
 
 Lightweight tasks may have only `prd.md`. Complex tasks must have `prd.md`, `design.md`, and `implement.md` before `task.py start-execution --check`.
@@ -154,7 +179,7 @@ Lightweight tasks may have only `prd.md`. Complex tasks must have `prd.md`, `des
 
 Planning is ready for execution gate when **all** hold:
 
-- PRD Grill checklist (12 items) satisfied or explicitly N/A with rationale in `prd.md`
+- PRD Grill checklist (14 items) satisfied or explicitly N/A with rationale in `prd.md`
 - **No blocking** open questions in `prd.md`
 - Acceptance criteria are testable; out of scope is explicit
 - Complex tasks: `design.md` and `implement.md` present
