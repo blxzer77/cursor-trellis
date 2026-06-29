@@ -115,7 +115,7 @@ flowchart TD
 
 ### 1. Plan (Phase 1)
 
-**1.1 Brainstorm (Discovery + PRD Grill).** Phase A — Discovery Before Questions: inspect code, tests, specs, history, platform files, and parent/child structure; record confirmed facts and draft `prd.md`. Phase B — PRD Grill pass: run a 12-item checklist on `prd.md`, then micro-grill only **blocking** open questions one at a time (with a recommended answer + trade-off). Update `prd.md` after every answer.
+**1.1 Brainstorm (Discovery + PRD Grill).** Phase A — Discovery Before Questions: inspect code, tests, specs, history, platform files, and parent/child structure; record confirmed facts and draft `prd.md`. Phase B — PRD Grill pass: run a 14-item checklist on `prd.md` (the last two enforce **First Principles** and **Occam's Razor** on the requirements and design), then micro-grill only **blocking** open questions one at a time (with a recommended answer + trade-off). Update `prd.md` after every answer.
 
 **1.2 Research (optional).** Dispatch `trellis-research` when a topic needs a dedicated `{TASK}/research/<topic>.md`. For external facts, smart-search is mandatory first (Cursor WebSearch is downgrade-only). Research output must be written to files, not left only in chat.
 

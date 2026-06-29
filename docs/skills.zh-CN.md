@@ -36,7 +36,7 @@ Trellis 定义三种不同角色面。混淆它们是最常见的误解。
 | --- | --- |
 | **定义** | `templates/common/skills/brainstorm.md` |
 | **触发** | Phase 1 规划;`trellis-start` 路由"新功能/不清晰需求";无选中任务 |
-| **角色** | 深度访谈式需求澄清。两阶段:**Phase A Discovery Before Questions**(先穷尽仓库证据 —— 代码、spec、历史、平台 —— 绝不问用户仓库能回答的问题)→ **Phase B PRD Grill**(`prd.md` 12 项 checklist + micro-grill 逐个澄清 blocking 开放问题,每次带推荐答案) |
+| **角色** | 深度访谈式需求澄清。两阶段:**Phase A Discovery Before Questions**(先穷尽仓库证据 —— 代码、spec、历史、平台 —— 绝不问用户仓库能回答的问题)→ **Phase B PRD Grill**(`prd.md` 14 项 checklist,由两条思维原则 —— **第一性原理**与**奥卡姆剃刀** —— 驱动,加上 micro-grill 逐个澄清 blocking 开放问题,每次带推荐答案) |
 | **产出** | `prd.md`,复杂任务还有 `design.md` / `implement.md` 骨架 |
 | **边界** | 不派 legacy grill subagent;PRD Grill 在会话内。仅为独立 `research/<topic>.md` 派 `trellis-research` Agent |
 
@@ -85,7 +85,7 @@ Trellis 定义三种不同角色面。混淆它们是最常见的误解。
 | --- | --- |
 | **定义** | `bundled-skills/trellis-micro-grill/SKILL.md` |
 | **触发** | Triage 决策树命中 `Micro-Grill` 模式;不明确小请求且无任务 |
-| **角色** | 每次一个高价值问题澄清不明确小请求,每个问题带推荐答案与权衡。澄清后直接执行不建任务。范围扩大则升级 Lite/Full/Parent |
+| **角色** | 每次一个高价值问题澄清不明确小请求,每个问题带推荐答案与权衡。两条思维原则驱动 grill:**第一性原理**选出最快触及用户根本价值的问题,**奥卡姆剃刀**让推荐答案落在最小充分方案上。澄清后直接执行不建任务。范围扩大则升级 Lite/Full/Parent |
 | **边界** | 每条消息一个问题;用户面向文本用简体中文;每次回答后更新 `prd.md`(有任务时);不问流程问题 |
 
 #### `trellis-meta`

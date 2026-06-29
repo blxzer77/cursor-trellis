@@ -36,7 +36,7 @@ Three forms inherit differently:
 | --- | --- |
 | **Definition** | `templates/common/skills/brainstorm.md` |
 | **Triggers** | Phase 1 planning; `trellis-start` routes "new feature / unclear requirement"; no selected task yet |
-| **Role** | Deep interview-style requirement clarification. Two-phase: **Phase A Discovery Before Questions** (exhaust repo evidence first — code, specs, history, platform — never ask the user what the repo can answer) → **Phase B PRD Grill** (12-item checklist on `prd.md` + micro-grill blocking open questions one at a time, each with a recommended answer) |
+| **Role** | Deep interview-style requirement clarification. Two-phase: **Phase A Discovery Before Questions** (exhaust repo evidence first — code, specs, history, platform — never ask the user what the repo can answer) → **Phase B PRD Grill** (14-item checklist on `prd.md`, driven by two thinking principles — **First Principles** and **Occam's Razor** — plus micro-grill blocking open questions one at a time, each with a recommended answer) |
 | **Produce** | `prd.md`, and for complex tasks `design.md` / `implement.md` skeletons |
 | **Boundaries** | Does NOT spawn legacy grill subagents; PRD Grill is in-session. Dispatches `trellis-research` Agent only for dedicated `research/<topic>.md` files |
 
@@ -85,7 +85,7 @@ Three forms inherit differently:
 | --- | --- |
 | **Definition** | `bundled-skills/trellis-micro-grill/SKILL.md` |
 | **Triggers** | Triage decision tree hits `Micro-Grill` mode; underspecified small request with no task yet |
-| **Role** | Clarify an underspecified small request by asking **exactly one** high-value question per message, each with a recommended answer and trade-off. Once clarified, execute directly without creating a task. If scope grows, upgrade to Lite/Full/Parent |
+| **Role** | Clarify an underspecified small request by asking **exactly one** high-value question per message, each with a recommended answer and trade-off. Two thinking principles shape the grill: **First Principles** picks the question that reaches the root user value fastest, and **Occam's Razor** makes the recommended answer the minimal-sufficient option. Once clarified, execute directly without creating a task. If scope grows, upgrade to Lite/Full/Parent |
 | **Boundaries** | One question per message; Simplified Chinese for user-facing text; update `prd.md` after every answer (when a task exists); never ask process questions |
 
 #### `trellis-meta`
