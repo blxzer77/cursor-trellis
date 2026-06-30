@@ -363,41 +363,66 @@ function printSafeFileDeleteSummary(
 }
 
 /**
- * Cursor now prefers Agent Skills for manual Trellis entrypoints. Existing
- * legacy `.cursor/commands` files are user-visible duplicates, but update must
- * not delete them silently; surface guidance and leave cleanup explicit.
+ * Commands-only policy residue notice. Cursor's configurator stopped shipping
+ * `.cursor/skills/` (commit acd41a92, v0.2.8); projects initialized before
+ * that carry stale skill directories that pollute the `/` palette with
+ * internal auto-triggered skills and create command+skill double entries for
+ * `finish-work`.
+ *
+ * Safe-file-delete migrations (added in v0.2.10) remove pristine copies
+ * automatically; this notice surfaces residue that survives (user-modified
+ * files, or dry-run preview) so the user knows what remains and why.
  */
-function printCursorCommandSurfaceNotice(cwd: string): void {
-  const legacyCommands = [
-    ".cursor/commands/trellis-continue.md",
-    ".cursor/commands/trellis-finish-work.md",
-  ];
-  const skillEntrypoints = [
-    ".cursor/skills/trellis-continue/SKILL.md",
-    ".cursor/skills/trellis-finish-work/SKILL.md",
-  ];
+const CURSOR_SKILL_RESIDUE_DIRS = [
+  "trellis-brainstorm",
+  "trellis-before-dev",
+  "trellis-check",
+  "trellis-break-loop",
+  "trellis-update-spec",
+  "trellis-finish-work",
+  "trellis-micro-grill",
+  "trellis-meta",
+  "trellis-skill-creator",
+  "trellis-spec-bootstrap",
+  "smart-search-cli",
+  "trellis-cursor2plus-setup",
+];
 
-  const hasLegacyCommand = legacyCommands.some((relativePath) =>
-    fs.existsSync(path.join(cwd, relativePath)),
+function printCursorSkillResidueNotice(cwd: string): void {
+  const skillsRoot = path.join(cwd, ".cursor", "skills");
+  if (!fs.existsSync(skillsRoot)) return;
+
+  const foundResidues: string[] = [];
+  for (const dir of CURSOR_SKILL_RESIDUE_DIRS) {
+    if (fs.existsSync(path.join(skillsRoot, dir))) {
+      foundResidues.push(dir);
+    }
+  }
+  if (foundResidues.length === 0) return;
+
+  const hasFinishWorkCmd = fs.existsSync(
+    path.join(cwd, ".cursor", "commands", "trellis-finish-work.md"),
   );
-  const hasSkillEntrypoint = skillEntrypoints.some((relativePath) =>
-    fs.existsSync(path.join(cwd, relativePath)),
-  );
+  const hasFinishWorkSkill = foundResidues.includes("trellis-finish-work");
 
-  if (!hasLegacyCommand || !hasSkillEntrypoint) return;
-
-  console.log(chalk.cyan("  Cursor command surface notice:"));
+  console.log(chalk.cyan("  Cursor commands-only skill residue notice:"));
   console.log(
     chalk.yellow(
-      "    Agent Skills are the preferred current Cursor entrypoint surface; " +
-        "legacy .cursor/commands files are compatibility-only and were left untouched.",
+      `    Found ${foundResidues.length} stale skill director${foundResidues.length === 1 ? "y" : "ies"} under .cursor/skills/ from before the commands-only policy.`,
     ),
   );
   console.log(
     chalk.gray(
-      "    To remove duplicate Cursor UI entries, delete the legacy command files explicitly after confirming you do not need them.",
+      `    Pristine copies are auto-removed by safe-file-delete; user-modified files are kept (review manually).`,
     ),
   );
+  if (hasFinishWorkCmd && hasFinishWorkSkill) {
+    console.log(
+      chalk.gray(
+        "    trellis-finish-work appears as BOTH command and skill — safe-file-delete resolves the duplicate when the skill copy is pristine.",
+      ),
+    );
+  }
   console.log("");
 }
 
@@ -1991,7 +2016,7 @@ export async function update(options: UpdateOptions): Promise<void> {
 
   // Collect templates (used for both migration classification and change analysis)
   const templates = collectTemplateFiles(cwd, breakingBypass);
-  printCursorCommandSurfaceNotice(cwd);
+  printCursorSkillResidueNotice(cwd);
 
   // Load update.skip paths (used for both safe-file-delete and template collection)
   const skipPaths = loadUpdateSkipPaths(cwd);

@@ -11,6 +11,7 @@ import os from "node:os";
 import path from "node:path";
 import inquirer from "inquirer";
 import { execSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
 // === External dependency mocks (hoisted by vitest) ===
 
@@ -1413,5 +1414,112 @@ describe("update() integration", () => {
     // --force is explicit consent; must not hit the TTY guard.
     await update({ force: true, skipReadiness: true });
     expect(fs.readFileSync(targetFull, "utf-8")).toBe(pristine);
+  });
+
+  // === Commands-only policy skill residue cleanup (v0.2.10) ===
+  // These tests verify safe-file-delete removes stale .cursor/skills/ from
+  // projects initialized before the commands-only policy (v0.2.8).
+
+  /** Read the real 0.2.10 manifest's migration entries from disk. */
+  function readCursorResidueManifest(): migrations.MigrationItem[] {
+    const manifestPath = path.join(
+      path.dirname(fileURLToPath(import.meta.url)),
+      "../../src/migrations/manifests/0.2.10.json",
+    );
+    return (JSON.parse(fs.readFileSync(manifestPath, "utf-8")) as {
+      migrations: migrations.MigrationItem[];
+    }).migrations;
+  }
+
+  it("#cursor-skill-residue-1 safe-file-delete removes pristine .cursor/skills/ brainstorm SKILL.md", async () => {
+    const manifestEntries = readCursorResidueManifest();
+    const allMigrationsSpy = vi
+      .spyOn(migrations, "getAllMigrations")
+      .mockReturnValue(manifestEntries);
+    try {
+      await setupProject();
+
+      // Simulate a stale .cursor/skills/ residue from pre-commands-only init.
+      const skillDir = path.join(tmpDir, ".cursor", "skills", "trellis-brainstorm");
+      fs.mkdirSync(skillDir, { recursive: true });
+      const skillFile = path.join(skillDir, "SKILL.md");
+
+      // Write test content and patch the manifest entry's allowed_hashes to
+      // accept it (we test the deletion mechanism, not historical content).
+      const testContent =
+        "---\nname: trellis-brainstorm\ndescription: test\n---\n# test\n";
+      fs.writeFileSync(skillFile, testContent);
+
+      const patched = manifestEntries.map((m) =>
+        m.from === ".cursor/skills/trellis-brainstorm/SKILL.md"
+          ? { ...m, allowed_hashes: [computeHash(testContent)] }
+          : m,
+      );
+      allMigrationsSpy.mockReturnValue(patched);
+
+      expect(fs.existsSync(skillFile)).toBe(true);
+
+      await update({ force: true });
+
+      // Pristine file deleted by safe-file-delete; empty dir cleaned up
+      expect(fs.existsSync(skillFile)).toBe(false);
+      expect(fs.existsSync(skillDir)).toBe(false);
+    } finally {
+      allMigrationsSpy.mockRestore();
+    }
+  });
+
+  it("#cursor-skill-residue-2 safe-file-delete preserves user-modified skill file", async () => {
+    const allMigrationsSpy = vi
+      .spyOn(migrations, "getAllMigrations")
+      .mockReturnValue(readCursorResidueManifest());
+    try {
+      await setupProject();
+
+      const skillDir = path.join(tmpDir, ".cursor", "skills", "trellis-brainstorm");
+      fs.mkdirSync(skillDir, { recursive: true });
+      const skillFile = path.join(skillDir, "SKILL.md");
+      const userContent =
+        "---\nname: trellis-brainstorm\ndescription: MY CUSTOM EDITS\n---\n# customized\n";
+      fs.writeFileSync(skillFile, userContent);
+
+      // Manifest's real allowed_hashes won't match user content
+      await update({ force: true });
+
+      // User-modified file preserved (hash mismatch → skip-modified)
+      expect(fs.existsSync(skillFile)).toBe(true);
+      expect(fs.readFileSync(skillFile, "utf-8")).toBe(userContent);
+    } finally {
+      allMigrationsSpy.mockRestore();
+    }
+  });
+
+  it("#cursor-skill-residue-3 .agents/skills/ is never touched by update", async () => {
+    const allMigrationsSpy = vi
+      .spyOn(migrations, "getAllMigrations")
+      .mockReturnValue(readCursorResidueManifest());
+    try {
+      await setupProject();
+
+      // Simulate shared-layer skills (e.g. from legacy 13-platform line)
+      const sharedSkillDir = path.join(
+        tmpDir,
+        ".agents",
+        "skills",
+        "trellis-brainstorm",
+      );
+      fs.mkdirSync(sharedSkillDir, { recursive: true });
+      const sharedSkillFile = path.join(sharedSkillDir, "SKILL.md");
+      const sharedContent = "---\nname: trellis-brainstorm\n---\nshared\n";
+      fs.writeFileSync(sharedSkillFile, sharedContent);
+
+      await update({ force: true });
+
+      // .agents/skills/ must survive untouched (not in any safe-file-delete entry)
+      expect(fs.existsSync(sharedSkillFile)).toBe(true);
+      expect(fs.readFileSync(sharedSkillFile, "utf-8")).toBe(sharedContent);
+    } finally {
+      allMigrationsSpy.mockRestore();
+    }
   });
 });

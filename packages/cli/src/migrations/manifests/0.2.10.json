@@ -1,0 +1,374 @@
+{
+  "version": "0.2.10",
+  "description": "v0.2.10 — Commands-only policy skill residue cleanup. Safe-file-delete migration removes stale .cursor/skills/ directories from projects initialized before the commands-only policy (v0.2.8).",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**@blxzer/cursor-trellis 0.2.10 / @blxzer/cursor-trellis-core 0.2.10**\n\n### Fixed\n- fix(cursor): commands-only policy residue cleanup — safe-file-delete migration removes stale .cursor/skills/ directories (11 skill trees, 44 files) from projects initialized before v0.2.8. Pristine copies auto-removed; user-modified files kept with warning.\n\nRun \trellis update in each project.",
+  "migrations": [
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/smart-search-cli/SKILL.md",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "165247f4c2f9d672ab3a2ae04d6a7abc85ec822f56f0089b471b8f2d92e9519b"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/smart-search-cli/agents/openai.yaml",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "e12d55b84111ecfbb0f49bf10ecc88fff4ddaebd63da1e9a176eb21e1a3fc7c1"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/smart-search-cli/examples/batch-search.md",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "6bfdb0ea8eabee67001a2061090ec726299e06bc897d2c014104bd7d946d1f44"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/smart-search-cli/examples/evidence-gathering.md",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "2f327f2726903e7d670d82822a1a779ace0c355c2d0d197ec4e838247234a5e5"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/smart-search-cli/references/cli-contract.md",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "8073087190b409ab0f2bf71f9950a44193d4565ca5599c5f83c138de5a52d957"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/trellis-cursor2plus-setup/SKILL.md",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "008314d02baa69cdf60091e380e4d0953bb5676966841e0da63ac9ade11c1c03"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/trellis-meta/SKILL.md",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "16380026539b840e2cc0bf33f4f7b030343b59ddd5ffe7bce0935fb2c7c09c69"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/trellis-meta/references/customize-local/add-project-local-conventions.md",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "cf3dabacc8692219544761acad97036f5b7627978a899b98d7a42bbeb05ede40",
+        "e078bc469b90819cf9eb4e574a701c7da8cfbe0a5aa727d80fa8fc0f53b80b86"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/trellis-meta/references/customize-local/change-agents.md",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "7f1b4561bbd61cfdb79b56ef3d94e5156aae5d1ec7d6e9779766d065e07e4c7f"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/trellis-meta/references/customize-local/change-context-loading.md",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "1a5810ab42d24df1e6355ed3b4d6421e303abe2664b63cc6b1d024411c45e153",
+        "bd4dbcb1e0fbd5277995cce66a07206b826f0bd869e1b6586365a55d0a532ddf"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/trellis-meta/references/customize-local/change-hooks.md",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "67570b7f3e8185a2051e02459c15699784b4391d4af878585f1531e5fdbb5711",
+        "309d130fdcf510fc3da860960bd836daf893fdb3dcc586cba3c602984c420759"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/trellis-meta/references/customize-local/change-skills-or-commands.md",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "3b924a033355642452ecf0011749f66cb729b6897ca1386fad1b046dbb5d9ec2"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/trellis-meta/references/customize-local/change-spec-structure.md",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "a18b86c7e8788f604f4b925e44617d062ae9ff10cc586205d1de6d32a4f073c5",
+        "b64c1570023a90b97c8c1384d2a9f2c689dd986d3e41e4d8123a2ab63631eb72"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/trellis-meta/references/customize-local/change-task-lifecycle.md",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "f118e072fcf956c8e83747da0ce682f273c79ecbae5a8f179ea418bc5f7add6f",
+        "5b62db27631bddebcb22b74c6b6fdd5714e9d22d5d881a59e33d37608d2614e6"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/trellis-meta/references/customize-local/change-workflow.md",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "3471e9de0649d60cd74bbead4bda69b9b5493ba5ba281023efdf0f3302bda048"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/trellis-meta/references/customize-local/overview.md",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "cf72a13fd3928f0f753dd2ba382dfff108262446677eb22a308994c28a07934a",
+        "de371fd66c0188c8b1419424421071d69bbc764106849aea57b8eb8da055ec0a"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/trellis-meta/references/local-architecture/context-injection.md",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "b3c9c6326d1ae13990cbc2abb01444304dfbe81cc84bc42fb0d4608b88460bc7"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/trellis-meta/references/local-architecture/generated-files.md",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "427038022103b9a957f125914b57bd1bc3b3856adcd715155bc8efc2195e9c51"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/trellis-meta/references/local-architecture/overview.md",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "1ca874f97251774bde70898c1520ee3788fd75ea17955c874071fa43d9f6c2e3"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/trellis-meta/references/local-architecture/spec-system.md",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "55f3c95033a3cbed6c06e225187071502d7dcf3f153f4becbec6aa79acc782f5",
+        "b8d8a6a0888b44a232c8f50161b9e20e903cf621ad7be4021715ab6fab226f47"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/trellis-meta/references/local-architecture/task-system.md",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "99ee49d0869e6c8c5ea3d957ef5cff3c6792e3591812df211d5a68f48bf43aa7",
+        "c9265a12eebd3dd4f429a208d7413e3d7302f4a42b0feb784a93aed445a2d705"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/trellis-meta/references/local-architecture/workflow.md",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "2bee24b09e71af28ba48bb63fcbb22cb359416809892797d8667ec37afbb73d8"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/trellis-meta/references/local-architecture/workspace-memory.md",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "38c83e5374a6d7dad2ea31df92d3c55162ec5b66221d5e5fd8668049ae4f6ba8",
+        "e6deecd689aff58a3c6d691abd07d6808c007e6de86c37178706339799145b7d"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/trellis-meta/references/platform-files/agents.md",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "ea509a98e3934d15ffb5a6a70b2779ecac24634ec7a4735b3e92a602876cd959",
+        "2d4e79a6aacbfb03353b4b6a447a6cd4762ab579c134b6fcc52df20c188753eb"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/trellis-meta/references/platform-files/hooks-and-settings.md",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "32b5d4c7e07f735cc795a553f05d3db9efcd9bd370cf3fece42c34397f0616d6"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/trellis-meta/references/platform-files/overview.md",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "644dcb54d321411fd4a96d1d075c1d28b76cd4240b827548a65368e3b62f49bf"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/trellis-meta/references/platform-files/platform-map.md",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "41f7bb07653c16fb56d0fa3779bb0f794b429943070bb1df4d3abccc6cd2299a"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/trellis-meta/references/platform-files/skills-and-commands.md",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "8fe7c5e9bc69ec2daa9afb1af7b8c5e9e7b3eb1f8eac7517cf50aef0ee79822c"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/trellis-micro-grill/SKILL.md",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "4b5537ac101e1dbba97da6b6bdc779fc5f9fb7cde9df0d81c34a8944e9aceb0f"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/trellis-skill-creator/SKILL.md",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "3390947b96733efff7629ac11cc020d10bfbded379a5adab12eb59c108e75cb4"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/trellis-skill-creator/references/authoring-rules.md",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "3a964698d56b34234061f50cb42e5537033f6b9c8d0196981c446f286d112152"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/trellis-skill-creator/references/review-checklist.md",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "f44355ff5abe41e251951f2c2adf91989fdb1ed636e24902e0677ef45ef67ded"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/trellis-skill-creator/references/trellis-skill-locations.md",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "c53869d29aa96fc00f6ff9a4b0d39e827c40d4ade813d64afc502637063d092e"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/trellis-spec-bootstrap/SKILL.md",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "97bfa68c06cebb558eb4464bc1b81f7d2d56040d75baa8de1ee5ad90cca0196a"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/trellis-spec-bootstrap/references/mcp-setup.md",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "df542fc8f279edd38046d26a7c8151804b708f57b24d4aa2733cea587a88c65e"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/trellis-spec-bootstrap/references/repository-analysis.md",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "0dae98d774f6e34559b9f3442888ac43e3a8af110c37cbefc49ce256986858b6"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/trellis-spec-bootstrap/references/spec-task-planning.md",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "ef493d028c3b0807a8a534bb71fb92a68129f273db763ad27ceb464a522e799d"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/trellis-spec-bootstrap/references/spec-writing.md",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "e9800fe9ed4a4cd87062ea1829cf2caa8d170ec15e141678a6a30e74c497f47d"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/trellis-before-dev/SKILL.md",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "bdead304ba21dbd65387312613f37108f2326eb9c872fbcaa5ff3db6bf45a311",
+        "65c37b2c8637b905ebfe607f6b1c45d728741164b3aded8d004f8d98f8792a63"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/trellis-brainstorm/SKILL.md",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "9081813d6366a574048d94f70ee8dacf659ddb7deadd78b06f5bd2a15f9b8e52"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/trellis-break-loop/SKILL.md",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "b28b4d759b94ea0f38ef4b0bdba2263b72bd18e2ed754cd286aab06d157945c7"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/trellis-check/SKILL.md",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "3d7d75a86e4bfd1d1326a394352446b652666050799c7a5f13b6db4c2587c2f3"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/trellis-update-spec/SKILL.md",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "1cecff6ec5518e44512daa3ef68aa012dc1fef2447980a9e92d285b913dece8c"
+      ]
+    },
+    {
+      "type": "safe-file-delete",
+      "from": ".cursor/skills/trellis-finish-work/SKILL.md",
+      "description": "Commands-only policy residue cleanup (v0.2.10)",
+      "allowed_hashes": [
+        "54b3ebec0b0e90b0dec57fffac5833f350fafb43e9d044d9a855fa96de0db947",
+        "45ca4f4075bc99f35892ace80d9a7a5413694a8fc0e5f7458088dd9c5db4f8f6"
+      ]
+    }
+  ],
+  "notes": "Hash source: templates at commit acd41a92^ (pre-commands-only). Platform-variant hashes cover win32 (python) and linux (python3) where python3 appears in template content. .agents/skills/ (shared layer) is NOT touched — only .cursor/skills/ residue."
+}
