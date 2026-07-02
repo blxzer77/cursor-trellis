@@ -11,14 +11,7 @@ SemVer: [semver.org](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Changed
-
-- **docs(spec)**: mirror Native OC-06/OC-15 live evidence into spec templates — `cursor-subagent-policy.md` (Method 4 verified footnote) and `cursor-semantic-compliance.md` (Native semantic exec proof + caveat); add `cursor-semantic-compliance.md` to spec guides index.
-- **feat(init/capabilities)**: selected project capabilities now land as `pending` in `.trellis/capabilities.json`, bootstrap/join tasks prompt capability verification, and `cstl capability-smoke --write-status` can promote them to `ready` / `failed` without losing stored readiness on later template refreshes.
-- **fix(tasks)**: Parent `record-gate` / archive now share the same `implement.md` contract fingerprint when a Parent task carries a Development Strategy Contract (fixes `stale contract fingerprint` on `parent-integrated`).
-- **docs(cursor++)**: Method 2.5 ops — document `--check-compat` after Cursor/Cursor++ upgrades; soften `WPeLc8` as a verified anchor, not a stable API; `cstl update` prints a BYOK compat reminder when `.trellis/local/cursor2plus/` exists.
-
-## [0.3.0] - 2026-07-01
+## [0.3.0] - 2026-07-02
 
 **Breaking**: rename CLI command from `trellis`/`tl` to `cstl`. The `trellis` and `tl` bin aliases are **removed**. All skill, command, agent, and rule name prefixes renamed `trellis-*` → `cstl-*` (hard cut, no compatibility aliases).
 
@@ -38,11 +31,21 @@ SemVer: [semver.org](https://semver.org/spec/v2.0.0.html).
 - **fix(hooks)**: `<!-- trellis-hook-injected -->` marker → `<!-- cstl-hook-injected -->`
 - **fix(subagents)**: `subagent_type` identifiers `trellis-research/implement/check` → `cstl-research/implement/check` (affects Cursor++ BYOK `trellis-task-models.json5` keys)
 
+### Added
+
+- **feat(cli)**: `cstl capability-smoke` (`--json`, `--write-status`) probes selected project capabilities and can persist `ready` / `failed` in `.trellis/capabilities.json` without losing status on later template refreshes.
+- Migration manifest `src/migrations/manifests/0.3.0.json` (13 rename entries for `trellis-*` → `cstl-*` under `.cursor/`).
+
 ### Changed
 
 - `AUTO_PLANNING_REVIEWER` identifier `"trellis-cli"` → `"cstl-cli"`
 - `<!-- trellis-research-end-pack -->` marker → `<!-- cstl-research-end-pack -->`
 - `CURSOR_SKILL_RESIDUE_DIRS` in `update.ts` now checks both `cstl-*` (current) and `trellis-*` (legacy) skill directories for residue detection
+- **feat(init/capabilities)**: selected capabilities default to `pending` in `capabilities.json` (schema v3); bootstrap/join PRDs prompt capability verification.
+- **docs(spec)**: mirror Native OC-06/OC-15 live evidence into spec templates (`cursor-subagent-policy`, `cursor-semantic-compliance`).
+- **docs(migration)**: README / CHANGELOG closed-loop for `npm install -g` + `cstl update --migrate`; remove stale `tl` bin alias from user docs.
+- **docs(cursor)**: Native + BYOK **coexistence** (per-repo `--cursor2plus`, not either/or); Method 2.5 ops — run `--check-compat` after Cursor/Cursor++ upgrades (`cstl update` prints BYOK reminder when `cursor2plus/` exists).
+- **fix(tasks)**: Parent `record-gate` / archive share the same `implement.md` contract fingerprint (fixes `stale contract fingerprint` on `parent-integrated`).
 
 ### Migration
 
@@ -55,7 +58,7 @@ cstl update --migrate
 
 The `--migrate` flag is REQUIRED to trigger the file renames in your project (`trellis-*` → `cstl-*`). Renames are hash-verified; locally modified files are preserved with a warning.
 
-New migration manifest `src/migrations/manifests/0.3.0.json` ships 13 rename entries (3 commands, 2 rules, 3 agents, 5 skill directories).
+New migration manifest `src/migrations/manifests/0.3.0.json` ships 13 rename entries (3 commands, 2 rules, 3 agents, 5 skill directories). See **Added** above.
 
 If you use Cursor++ BYOK (`.trellis/local/cursor2plus/`), the `trellis-task-models.json5` keys must be updated from `trellis-research/implement/check` to `cstl-research/implement/check`. Run the `cstl-cursor2plus-setup` skill or edit `~/.ccursor/trellis-task-models.json5` manually then re-run `patch_wpelc8.py --apply`.
 

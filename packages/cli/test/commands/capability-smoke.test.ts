@@ -7,6 +7,7 @@ import {
   ensureCapabilitiesFileExists,
   runCapabilitySmokeCommand,
 } from "../../src/commands/capability-smoke.js";
+import * as readiness from "../../src/utils/readiness.js";
 import {
   renderCapabilitiesJson,
   renderCapabilitiesMarkdown,
@@ -67,6 +68,12 @@ describe("capability-smoke command", () => {
       "utf-8",
     );
     fs.mkdirSync(path.join(tmpDir, ".codegraph"), { recursive: true });
+    vi.spyOn(readiness, "probeProjectCapability").mockReturnValue({
+      id: "codebase-retrieval",
+      infos: ["host visibility smoke passed (mocked for unit test)"],
+      warnings: [],
+      failures: [],
+    });
 
     const result = await runCapabilitySmokeCommand({
       cwd: tmpDir,
