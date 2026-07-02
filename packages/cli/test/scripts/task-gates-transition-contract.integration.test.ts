@@ -401,4 +401,69 @@ describe("task_gates transition contract", () => {
       /missing gate record: parent-integrated\/integration-review/,
     );
   });
+
+  it("allows Parent archive after parent-integrated gate when implement.md contract is present", () => {
+    const parentName = "parent-with-contract";
+    const parentDir = path.join(tmp, ".trellis", "tasks", parentName);
+    fs.mkdirSync(parentDir, { recursive: true });
+    writeJson(path.join(parentDir, "task.json"), {
+      id: parentName,
+      name: parentName,
+      title: parentName,
+      status: "in_progress",
+      children: ["child-a"],
+      meta: { classification: "parent" },
+    });
+    fs.writeFileSync(path.join(parentDir, "implement.md"), fullChildContract());
+    fs.writeFileSync(
+      path.join(parentDir, "verify.md"),
+      [
+        "Validation commands: pnpm test — pass",
+        "Check evidence: parent integration gate regression executed",
+        "Reviewed change-set: task_gates.py parent contract fingerprint",
+        "Final acceptance evidence: parent criteria met",
+        "Durable learning decision: no durable learning",
+        "Final integration evidence: child-a=integrated per task-map.md",
+        "",
+      ].join("\n"),
+    );
+    fs.writeFileSync(
+      path.join(parentDir, "task-map.md"),
+      [
+        "---",
+        "parent_id: parent-with-contract",
+        "merge_limit: 1",
+        "children:",
+        "  - id: child-a",
+        "    state: integrated",
+        "    depends_on: []",
+        "    touches: []",
+        "---",
+        "# Task Map",
+        "",
+      ].join("\n"),
+    );
+
+    const record = runTask(tmp, [
+      "record-gate",
+      parentName,
+      "--transition",
+      "parent-integrated",
+      "--gate",
+      "integration-review",
+      "--result",
+      "PASS",
+      "--reviewer",
+      "tester",
+      "--evidence",
+      "verify.md",
+    ]);
+    expect(record.status).toBe(0);
+
+    const archive = runTask(tmp, ["archive", parentName, "--check"]);
+    expect(archive.status).toBe(0);
+    expect(archive.stdout + archive.stderr).not.toMatch(
+      /stale contract fingerprint/,
+    );
+  });
 });

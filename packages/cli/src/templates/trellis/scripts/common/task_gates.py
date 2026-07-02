@@ -219,6 +219,21 @@ def is_full_task(task_dir: Path, task_data: dict | None = None) -> bool:
     return task_closeout_profile(task_dir, task_data) == "full"
 
 
+def resolve_strategy_contract_for_gates(
+    task_dir: Path,
+    task_data: dict | None,
+) -> tuple[dict, list[str]]:
+    """Return the Development Strategy Contract used for gate fingerprints."""
+    if task_data is None:
+        return {}, []
+    profile = task_closeout_profile(task_dir, task_data)
+    if profile == "full":
+        return read_strategy_contract(task_dir)
+    if profile == "parent" and (task_dir / "implement.md").is_file():
+        return read_strategy_contract(task_dir)
+    return {}, []
+
+
 def read_strategy_contract(task_dir: Path) -> tuple[dict, list[str]]:
     """Parse the lightweight Development Strategy Contract from implement.md."""
     implement_path = task_dir / "implement.md"
@@ -524,7 +539,7 @@ def build_reviewer_gate_record(
         if errors:
             return None, errors, warnings
 
-    contract, contract_errors = read_strategy_contract(task_dir) if is_full_task(task_dir, task_data) else ({}, [])
+    contract, contract_errors = resolve_strategy_contract_for_gates(task_dir, task_data)
     if contract_errors:
         errors.extend(contract_errors)
         return None, errors, warnings
@@ -798,12 +813,13 @@ def validate_transition_readiness(
         errors.extend(
             _evidence_errors_for_signals(task_dir, task_data, ["integration"])
         )
-        contract: dict = {}
-        if (task_dir / "implement.md").is_file():
-            contract, contract_errors = read_strategy_contract(task_dir)
-            errors.extend(contract_errors)
-            if contract_errors:
-                return errors
+        contract, contract_errors = resolve_strategy_contract_for_gates(
+            task_dir,
+            task_data,
+        )
+        errors.extend(contract_errors)
+        if contract_errors:
+            return errors
         return errors + _complete_transition_gate_errors(
             task_dir,
             task_data,
@@ -971,14 +987,20 @@ def validate_archive(
                 )
             )
     elif profile == "parent":
-        errors.extend(
-            validate_transition_readiness(
-                task_dir,
-                task_data,
-                "parent-integrated",
-                mode="complete",
-            )
+        contract, contract_errors = resolve_strategy_contract_for_gates(
+            task_dir,
+            task_data,
         )
+        errors.extend(contract_errors)
+        if not contract_errors:
+            errors.extend(
+                validate_transition_readiness(
+                    task_dir,
+                    task_data,
+                    "parent-integrated",
+                    mode="complete",
+                )
+            )
         required_gates = required_gates_for_transition("parent-integrated", contract)
 
     contract_fingerprint = compute_contract_fingerprint(task_dir, task_data, contract)

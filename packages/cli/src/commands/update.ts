@@ -84,6 +84,18 @@ import {
 } from "../utils/update-rollout-report.js";
 import { snapshotReadinessForRollout } from "../utils/readiness.js";
 
+function logCursor2plusCompatHint(cwd: string): void {
+  const bundleDir = path.join(cwd, DIR_NAMES.WORKFLOW, "local", "cursor2plus");
+  if (!fs.existsSync(bundleDir)) {
+    return;
+  }
+  console.log(
+    chalk.gray(
+      "\nCursor++ BYOK: after Cursor/Cursor++ upgrades, run `python .trellis/local/cursor2plus/patch_wpelc8.py --check-compat` before re-applying Method 2.5.",
+    ),
+  );
+}
+
 export interface UpdateOptions {
   dryRun?: boolean;
   force?: boolean;
@@ -2646,6 +2658,7 @@ export async function update(options: UpdateOptions): Promise<void> {
       `\n✅ ${actionWord} complete! (${projectVersion} → ${cliVersion})`,
     ),
   );
+  logCursor2plusCompatHint(cwd);
 
   if (createdNew > 0) {
     console.log(

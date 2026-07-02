@@ -192,14 +192,22 @@ When a subagent dispatch is imminent, the dispatch method depends on environment
 | --- | --- | --- | --- |
 | **1. Inherit** (default) | Both | Custom Task subagents inherit parent session model. No frontmatter edit. | Parent model is appropriate; user says "inherit" / "用当前模型派发" |
 | **2. Explore + custom model** | BYOK | Dispatch built-in **Explore** subagent (read-only) with independent model via Cursor++ panel | Pure codebase exploration; no file writing, no external search |
-| **2.5. BYOK proxy map** | BYOK only | Reversible patch to Cursor++ `extension.js` resolver `WPeLc8`; maps `subagentType` → BYOK slug from `~/.ccursor/trellis-task-models.json5`; evaluated **before** inherit branch | Need fixed per-role models for `cstl-research` / `cstl-implement` / `cstl-check` under BYOK |
+| **2.5. BYOK proxy map** | BYOK only | Reversible patch to Cursor++ `extension.js` task resolver (historically `WPeLc8`; symbol names can change between Cursor++ builds); maps `subagentType` → BYOK slug from `~/.ccursor/trellis-task-models.json5`; evaluated **before** inherit branch | Need fixed per-role models for `cstl-research` / `cstl-implement` / `cstl-check` under BYOK |
 | **2.6. Temporary Task types** | BYOK | Add `.cursor/agents/cstl-worker-<id>.md` + project `subagent-models.json` key; re-run patch; dispatch; remove when done | Rare per-dispatch model without changing global slots |
 | **3. Manual dispatch** | Both | Main session prepares full dispatch prompt; user opens new chat, selects model, pastes prompt, returns results | Subagent work benefits significantly from a different model, Method 2.5 unavailable |
 | **4. Ephemeral overlay** | Native only | Before dispatch: edit frontmatter `model: <id>`; after dispatch: restore frontmatter | Native API, need temporary per-dispatch model. **Does NOT work under BYOK** |
 
 ### Method 2.5 detail (BYOK json5 patch)
 
-**What it is:** a reversible patch to Cursor++ `extension.js` resolver `WPeLc8` that maps `subagentType` → BYOK catalog slug (`model-xxxxx`), evaluated before the inherit-parent branch. Verified against Cursor++ v0.0.11+.
+**What it is:** a reversible patch to Cursor++ `extension.js` that maps `subagentType` → BYOK catalog slug (`model-xxxxx`), evaluated before the inherit-parent branch. Trellis currently locates the resolver via the `function WPeLc8(` anchor in verified Cursor++ builds (v0.0.11+); **that symbol is not a stable public API** — after Cursor or Cursor++ upgrades, run `--check-compat` before re-applying.
+
+**After Cursor or Cursor++ upgrades (BYOK operators):**
+
+1. `python .trellis/local/cursor2plus/patch_wpelc8.py --check-compat`
+2. If `fail` / `not_locatable`: `patch_wpelc8.py --revert` → Reload Window → wait for a Trellis bundle update or manual re-location guidance.
+3. If `ok`: re-run `--print-map` then `--apply --approve` only when you still need the patch.
+
+`cstl update` refreshes the patch **scripts** in `.trellis/local/cursor2plus/` but does **not** re-apply the extension patch automatically.
 
 **Trellis ships** (every `cstl init` / `cstl update`, when `--cursor2plus` is passed): `.trellis/local/cursor2plus/` containing `patch_wpelc8.py`, `README.md`, `config.local.json.example`. Native Cursor API users can ignore this directory.
 
@@ -251,7 +259,7 @@ Trellis ships two hard gates that keep dogfood files (`./cursor/` and `./.trelli
 The Cursor++ local patcher (`patch_wpelc8.py`) now requires explicit consent before touching Cursor's `extension.js`:
 
 - **`--approve`** — the patch step refuses to write without this flag. A bare `python patch_wpelc8.py` (no subcommand) prints the planned map and exits; it no longer implicitly patches.
-- **`--check-compat`** — pre-flight that verifies the `WPeLc8` resolver symbol is still present in the installed Cursor++ build before attempting any patch.
+- **`--check-compat`** — pre-flight that verifies the resolver symbol and inject anchor are still locatable in the installed Cursor++ build before attempting any patch (symbol names are not guaranteed across upgrades).
 - **`smoke.py`** — health check that confirms the patched resolver maps `subagentType` → slug without reading any secret-bearing files (no provider keys, no token inspection).
 - **Native safe-to-ignore** — `cstl init --cursor` (without `--cursor2plus`) prints a one-line hint that the Cursor++ appendix is safe to ignore for Native API users.
 
