@@ -283,7 +283,7 @@ function logCursor2plusSetupHint(): void {
   );
   console.log(
     chalk.gray(
-      "   与大模型交互选择各 Task 角色的 primary/fallback 模型，并应用 WPeLc8 patch。",
+      "   与大模型交互选择各 Task 角色的 primary/fallback 模型，并应用 Method 2.5 patch（升级 Cursor/Cursor++ 后先跑 patch_wpelc8.py --check-compat）。",
     ),
   );
   console.log(

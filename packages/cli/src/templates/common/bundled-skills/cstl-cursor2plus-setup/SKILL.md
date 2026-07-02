@@ -19,6 +19,7 @@ Do **not** ask the user to hand-edit slugs (`model-xxxxx`) unless they prefer it
 - Right after **`cstl init`** when **Cursor** was selected (CLI prints a follow-up hint).
 - User says they use **Cursor++ BYOK** and want per–subagent-type models.
 - After Cursor++ **providers** change: re-list, adjust fallbacks, re-patch.
+- After **Cursor or Cursor++ upgrade**: run `python ./.trellis/local/cursor2plus/patch_wpelc8.py --check-compat` before `--apply --approve`; revert first if compat fails.
 
 Native **Cursor API** (no Cursor++): **stop** — frontmatter `model:` works; this skill does not apply. Tell the user: **`.trellis/local/cursor2plus/` is safe to ignore or delete** unless they use Cursor++ BYOK.
 

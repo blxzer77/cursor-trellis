@@ -15,6 +15,8 @@ SemVer: [semver.org](https://semver.org/spec/v2.0.0.html).
 
 - **docs(spec)**: mirror Native OC-06/OC-15 live evidence into spec templates — `cursor-subagent-policy.md` (Method 4 verified footnote) and `cursor-semantic-compliance.md` (Native semantic exec proof + caveat); add `cursor-semantic-compliance.md` to spec guides index.
 - **feat(init/capabilities)**: selected project capabilities now land as `pending` in `.trellis/capabilities.json`, bootstrap/join tasks prompt capability verification, and `cstl capability-smoke --write-status` can promote them to `ready` / `failed` without losing stored readiness on later template refreshes.
+- **fix(tasks)**: Parent `record-gate` / archive now share the same `implement.md` contract fingerprint when a Parent task carries a Development Strategy Contract (fixes `stale contract fingerprint` on `parent-integrated`).
+- **docs(cursor++)**: Method 2.5 ops — document `--check-compat` after Cursor/Cursor++ upgrades; soften `WPeLc8` as a verified anchor, not a stable API; `cstl update` prints a BYOK compat reminder when `.trellis/local/cursor2plus/` exists.
 
 ## [0.3.0] - 2026-07-01
 

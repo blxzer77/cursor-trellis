@@ -4,7 +4,7 @@
 
 **Coexistence:** Native and BYOK can run on the same machine across different projects. This bundle is **per-repo** (`cstl init --cursor --cursor2plus`); sibling repos may use `cstl init --cursor` only. Full guide: cursor-trellis `docs/cursor.md` — section *Native and BYOK coexistence (not either/or)*.
 
-**Who needs this:** Cursor IDE with [Cursor++](https://ccursor.cometix.dev) (BYOK proxy). Method 2.5 patches the `WPeLc8` resolver so Trellis Task subagents get per-role BYOK slugs instead of inheriting the parent model.
+**Who needs this:** Cursor IDE with [Cursor++](https://ccursor.cometix.dev) (BYOK proxy). Method 2.5 patches the Cursor++ task model resolver (historically located via `WPeLc8` in verified builds) so Trellis Task subagents get per-role BYOK slugs instead of inheriting the parent model. **After any Cursor or Cursor++ upgrade**, run `python patch_wpelc8.py --check-compat` before re-applying.
 
 ## Bundle files
 
