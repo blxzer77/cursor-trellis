@@ -1,0 +1,89 @@
+{
+  "version": "0.3.0",
+  "description": "v0.3.0 — Rename CLI command from trellis/tl to cstl. Breaking: trellis/tl bin aliases removed; all skill/command/agent/rule names renamed trellis-* -> cstl-*.",
+  "breaking": true,
+  "recommendMigrate": true,
+  "changelog": "**@blxzer/cursor-trellis 0.3.0 / @blxzer/cursor-trellis-core 0.3.0**\n\n### Breaking\n- feat(cli): rename CLI command from `trellis`/`tl` to `cstl`. The `trellis` and `tl` bin aliases are **removed**. Update any aliases, CI scripts, or shell history that reference `trellis` or `tl`.\n- feat(templates): all skill, command, agent, and rule names renamed `trellis-*` -> `cstl-*` (hard cut, no compatibility aliases).\n  - `.cursor/commands/trellis-continue.md` -> `cstl-continue.md`\n  - `.cursor/commands/trellis-finish-work.md` -> `cstl-finish-work.md`\n  - `.cursor/commands/trellis-cursor2plus-setup.md` -> `cstl-cursor2plus-setup.md`\n  - `.cursor/rules/trellis-triage.mdc` -> `cstl-triage.mdc`\n  - `.cursor/rules/trellis-subagent-dispatch.mdc` -> `cstl-subagent-dispatch.mdc`\n  - `.cursor/agents/trellis-research.md` -> `cstl-research.md`\n  - `.cursor/agents/trellis-implement.md` -> `cstl-implement.md`\n  - `.cursor/agents/trellis-check.md` -> `cstl-check.md`\n  - `.cursor/skills/trellis-meta/` -> `cstl-meta/` (and 4 other bundled skill dirs)\n- fix(hooks): `<!-- trellis-hook-injected -->` marker -> `<!-- cstl-hook-injected -->`\n- fix(subagents): `subagent_type` identifiers `trellis-research/implement/check` -> `cstl-research/implement/check` (affects Cursor++ BYOK `trellis-task-models.json5` keys)\n\n### Upgrade\n\n**Manual npm install required** — the old `trellis upgrade` command no longer exists after install.\n\n```bash\nnpm install -g @blxzer/cursor-trellis@latest\ncstl update --migrate\n```\n\nThe `--migrate` flag is REQUIRED to trigger the file renames in your project. Renames are hash-verified; locally modified files are preserved with a warning.",
+  "aiInstructions": "When helping a user migrate from 0.2.x to 0.3.0:\n1. **Manual npm install required** — the old `trellis upgrade` command no longer exists after install. Run: `npm install -g @blxzer/cursor-trellis@latest`\n2. **Run `cstl update --migrate`** in each project — the `--migrate` flag is REQUIRED to trigger the rename of `.cursor/commands/trellis-*.md` -> `cstl-*.md`, `.cursor/rules/trellis-*.mdc` -> `cstl-*.mdc`, `.cursor/agents/trellis-*.md` -> `cstl-*.md`, and `.cursor/skills/trellis-*` -> `cstl-*` directories.\n3. Renames are hash-verified; locally modified files are preserved with a warning. The user can manually rename modified files or accept the new template and re-apply their customizations.\n4. Update any personal aliases, CI scripts, or shell history that reference `trellis` or `tl` to use `cstl`.\n5. If the user uses Cursor++ BYOK (`.trellis/local/cursor2plus/`), the `trellis-task-models.json5` keys must be updated from `trellis-research/implement/check` to `cstl-research/implement/check`. Run the `cstl-cursor2plus-setup` skill or edit `~/.ccursor/trellis-task-models.json5` manually then re-run `patch_wpelc8.py --apply`.\n6. The `.trellis/` directory name is UNCHANGED — only the CLI command and skill/command/agent/rule name prefixes changed.",
+  "migrations": [
+    {
+      "type": "rename",
+      "from": ".cursor/commands/trellis-continue.md",
+      "to": ".cursor/commands/cstl-continue.md",
+      "description": "v0.3.0 rename: trellis-continue command -> cstl-continue"
+    },
+    {
+      "type": "rename",
+      "from": ".cursor/commands/trellis-finish-work.md",
+      "to": ".cursor/commands/cstl-finish-work.md",
+      "description": "v0.3.0 rename: trellis-finish-work command -> cstl-finish-work"
+    },
+    {
+      "type": "rename",
+      "from": ".cursor/commands/trellis-cursor2plus-setup.md",
+      "to": ".cursor/commands/cstl-cursor2plus-setup.md",
+      "description": "v0.3.0 rename: trellis-cursor2plus-setup command -> cstl-cursor2plus-setup"
+    },
+    {
+      "type": "rename",
+      "from": ".cursor/rules/trellis-triage.mdc",
+      "to": ".cursor/rules/cstl-triage.mdc",
+      "description": "v0.3.0 rename: trellis-triage rule -> cstl-triage"
+    },
+    {
+      "type": "rename",
+      "from": ".cursor/rules/trellis-subagent-dispatch.mdc",
+      "to": ".cursor/rules/cstl-subagent-dispatch.mdc",
+      "description": "v0.3.0 rename: trellis-subagent-dispatch rule -> cstl-subagent-dispatch"
+    },
+    {
+      "type": "rename",
+      "from": ".cursor/agents/trellis-research.md",
+      "to": ".cursor/agents/cstl-research.md",
+      "description": "v0.3.0 rename: trellis-research agent -> cstl-research"
+    },
+    {
+      "type": "rename",
+      "from": ".cursor/agents/trellis-implement.md",
+      "to": ".cursor/agents/cstl-implement.md",
+      "description": "v0.3.0 rename: trellis-implement agent -> cstl-implement"
+    },
+    {
+      "type": "rename",
+      "from": ".cursor/agents/trellis-check.md",
+      "to": ".cursor/agents/cstl-check.md",
+      "description": "v0.3.0 rename: trellis-check agent -> cstl-check"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".cursor/skills/trellis-meta",
+      "to": ".cursor/skills/cstl-meta",
+      "description": "v0.3.0 rename: trellis-meta skill dir -> cstl-meta"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".cursor/skills/trellis-micro-grill",
+      "to": ".cursor/skills/cstl-micro-grill",
+      "description": "v0.3.0 rename: trellis-micro-grill skill dir -> cstl-micro-grill"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".cursor/skills/trellis-skill-creator",
+      "to": ".cursor/skills/cstl-skill-creator",
+      "description": "v0.3.0 rename: trellis-skill-creator skill dir -> cstl-skill-creator"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".cursor/skills/trellis-spec-bootstrap",
+      "to": ".cursor/skills/cstl-spec-bootstrap",
+      "description": "v0.3.0 rename: trellis-spec-bootstrap skill dir -> cstl-spec-bootstrap"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".cursor/skills/trellis-cursor2plus-setup",
+      "to": ".cursor/skills/cstl-cursor2plus-setup",
+      "description": "v0.3.0 rename: trellis-cursor2plus-setup skill dir -> cstl-cursor2plus-setup"
+    }
+  ],
+  "notes": "Breaking rename: trellis/tl bin aliases removed. Projects initialized before v0.3.0 must run `cstl update --migrate` to rename .cursor/ files. Pre-0.2.8 projects that still have .cursor/skills/trellis-* directories (commands-only policy) will find them missing — those directories were already safe-file-deleted by v0.2.10; the rename-dir migration silently skips missing sources. User-modified files at legacy paths are preserved with a warning; the user must manually rename or re-apply customizations to the new cstl-* paths."
+}

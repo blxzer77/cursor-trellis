@@ -10,20 +10,20 @@
 
 {
   "models": {
-    // Trellis 调研（Task trellis-research）
-    "trellis-research": {
+    // Trellis 调研（Task cstl-research）
+    "cstl-research": {
       "primary": "glm-5.1",
       "fallback": "qwen3.7-max"
     },
 
     // Trellis 实现；Parent generate-child-prompt --mode subagent 默认派发此类型
-    "trellis-implement": {
+    "cstl-implement": {
       "primary": "qwen3.6-plus",
       "fallback": "kimi-k2.7-code"
     },
 
-    // Trellis 验收（Task trellis-check）
-    "trellis-check": {
+    // Trellis 验收（Task cstl-check）
+    "cstl-check": {
       "primary": "qwen3.7-max",
       "fallback": "glm-5.1"
     },

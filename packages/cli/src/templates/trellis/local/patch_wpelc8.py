@@ -166,7 +166,7 @@ def try_resolve_extension_js(bundle_dir: Path, config: dict) -> Path | None:
 def build_inject_block(model_map: dict[str, str]) -> str:
     if not model_map:
         raise SystemExit(
-            "model map empty — use skill trellis-cursor2plus-setup or write "
+            "model map empty — use skill cstl-cursor2plus-setup or write "
             "~/.ccursor/trellis-task-models.json5 (see .trellis/local/trellis-task-models.json5.example)"
         )
     pairs = ",".join(f'"{k}":"{v}"' for k, v in sorted(model_map.items()))
@@ -240,7 +240,7 @@ def cmd_explain() -> None:
         print(f"  {key}")
         print(f"    → {SUBAGENT_TYPE_HELP.get(key, '')}")
     print()
-    print("Skill: trellis-cursor2plus-setup (init 后与大模型交互完成配置)")
+    print("Skill: cstl-cursor2plus-setup (init 后与大模型交互完成配置)")
 
 
 def cmd_list_models(providers_path: Path) -> None:
@@ -272,7 +272,7 @@ def cmd_bootstrap(bundle_dir: Path) -> None:
             config["extensionJs"] = path
     cfg_out.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
     print("wrote", cfg_out)
-    print("Next: in Cursor Agent, run skill trellis-cursor2plus-setup", file=sys.stderr)
+    print("Next: in Cursor Agent, run skill cstl-cursor2plus-setup", file=sys.stderr)
 
 
 def cmd_check_compat(bundle_dir: Path, config: dict) -> int:

@@ -7,10 +7,12 @@ import {
   applyCodexCapabilityConfig,
   buildProjectCapabilityTemplates,
   loadProjectCapabilities,
+  loadStoredCapabilityStates,
   parseProjectCapabilities,
   renderCapabilitiesJson,
   renderCapabilitiesMarkdown,
   renderMcpJson,
+  updateCapabilityReadinessStatus,
 } from "../../src/utils/project-capabilities.js";
 
 describe("project capabilities", () => {
@@ -110,8 +112,9 @@ describe("project capabilities", () => {
     };
     const retrieval = parsed.capabilities["codebase-retrieval"];
 
-    expect(parsed.schema_version).toBe(2);
+    expect(parsed.schema_version).toBe(3);
     expect(parsed.selected).toEqual(["codebase-retrieval"]);
+    expect(retrieval?.readiness_status).toBe("pending");
     expect(retrieval?.adapters?.exact).toEqual(
       expect.objectContaining({
         provider: "rg",
@@ -256,6 +259,7 @@ describe("project capabilities", () => {
   it("renders selected retrieval workflow and CLI routing", () => {
     const capabilitiesMd = renderCapabilitiesMarkdown(["codebase-retrieval"]);
 
+    expect(capabilitiesMd).toContain("- codebase-retrieval [pending]:");
     expect(capabilitiesMd).toContain(
       "## Policy and Document-First Routing (intent-gated)",
     );
@@ -338,5 +342,103 @@ describe("project capabilities", () => {
       "current source, Git, or tests confirm the claim",
     );
     expect(capabilitiesMd).not.toContain("## MCP Query Guidance");
+  });
+
+  it("updates readiness state and refreshes markdown", () => {
+    const tmpDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "trellis-capability-status-"),
+    );
+    try {
+      fs.mkdirSync(path.join(tmpDir, ".trellis"), { recursive: true });
+      fs.writeFileSync(
+        path.join(tmpDir, ".trellis", "capabilities.json"),
+        renderCapabilitiesJson(["codebase-retrieval", "github-mcp"]),
+        "utf-8",
+      );
+      fs.writeFileSync(
+        path.join(tmpDir, ".trellis", "capabilities.md"),
+        renderCapabilitiesMarkdown(["codebase-retrieval", "github-mcp"]),
+        "utf-8",
+      );
+
+      updateCapabilityReadinessStatus(
+        tmpDir,
+        "codebase-retrieval",
+        "ready",
+        "smoke passed",
+      );
+
+      const parsed = JSON.parse(
+        fs.readFileSync(
+          path.join(tmpDir, ".trellis", "capabilities.json"),
+          "utf-8",
+        ),
+      ) as {
+        schema_version: number;
+        capabilities: Record<
+          string,
+          {
+            readiness_status?: string;
+            readiness_status_detail?: string;
+          }
+        >;
+      };
+      const capabilitiesMd = fs.readFileSync(
+        path.join(tmpDir, ".trellis", "capabilities.md"),
+        "utf-8",
+      );
+
+      expect(parsed.schema_version).toBe(3);
+      expect(parsed.capabilities["codebase-retrieval"]?.readiness_status).toBe(
+        "ready",
+      );
+      expect(
+        parsed.capabilities["codebase-retrieval"]?.readiness_status_detail,
+      ).toBe("smoke passed");
+      expect(capabilitiesMd).toContain(
+        "- codebase-retrieval [ready]:",
+      );
+      expect(capabilitiesMd).toContain("(smoke passed)");
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it("preserves stored readiness state when rebuilding templates", () => {
+    const tmpDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "trellis-capability-preserve-"),
+    );
+    try {
+      fs.mkdirSync(path.join(tmpDir, ".trellis"), { recursive: true });
+      fs.writeFileSync(
+        path.join(tmpDir, ".trellis", "capabilities.json"),
+        renderCapabilitiesJson(["codebase-retrieval"]),
+        "utf-8",
+      );
+      fs.writeFileSync(
+        path.join(tmpDir, ".trellis", "capabilities.md"),
+        renderCapabilitiesMarkdown(["codebase-retrieval"]),
+        "utf-8",
+      );
+
+      updateCapabilityReadinessStatus(tmpDir, "codebase-retrieval", "ready");
+
+      const templates = buildProjectCapabilityTemplates(
+        ["codebase-retrieval"],
+        ["cursor"],
+        loadStoredCapabilityStates(tmpDir),
+      );
+      const rebuilt = JSON.parse(
+        templates.get(".trellis/capabilities.json") ?? "{}",
+      ) as {
+        capabilities: Record<string, { readiness_status?: string }>;
+      };
+
+      expect(rebuilt.capabilities["codebase-retrieval"]?.readiness_status).toBe(
+        "ready",
+      );
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
   });
 });

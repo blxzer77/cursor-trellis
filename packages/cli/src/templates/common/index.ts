@@ -47,7 +47,7 @@ export interface CommonBundledSkillFile {
 }
 
 export interface CommonBundledSkill {
-  /** Skill directory name, e.g. "trellis-meta" */
+  /** Skill directory name, e.g. "cstl-meta" */
   name: string;
   /** Files that must be written under the skill directory */
   files: CommonBundledSkillFile[];

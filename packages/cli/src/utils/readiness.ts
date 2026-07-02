@@ -47,7 +47,7 @@ interface ExecSyncFailure {
   signal?: unknown;
 }
 
-interface ProjectCapabilityProbe {
+export interface ProjectCapabilityProbe {
   id: ProjectCapabilityId;
   infos: string[];
   failures: string[];
@@ -206,7 +206,10 @@ function runSafeVisibilitySmoke(
   }
 }
 
-function existingRelativePaths(cwd: string, relativePaths: string[]): string[] {
+export function existingRelativePaths(
+  cwd: string,
+  relativePaths: string[],
+): string[] {
   return relativePaths.filter((relativePath) =>
     fs.existsSync(path.join(cwd, ...relativePath.split("/"))),
   );
@@ -222,7 +225,7 @@ function hasLegacyGithubCredentialEnv(): boolean {
   return Boolean(process.env.GH_TOKEN);
 }
 
-function probeProjectCapability(
+export function probeProjectCapability(
   cwd: string,
   id: ProjectCapabilityId,
 ): ProjectCapabilityProbe {
@@ -290,7 +293,9 @@ function probeProjectCapability(
   return { id, infos, failures, warnings };
 }
 
-function probeCodebaseRetrievalCapability(cwd: string): ProjectCapabilityProbe {
+export function probeCodebaseRetrievalCapability(
+  cwd: string,
+): ProjectCapabilityProbe {
   const id: ProjectCapabilityId = "codebase-retrieval";
   const infos: string[] = [];
   const failures: string[] = [];
@@ -366,6 +371,10 @@ function probeCodebaseRetrievalCapability(cwd: string): ProjectCapabilityProbe {
   );
 
   return { id, infos, failures, warnings };
+}
+
+export function getCodegraphIndexMarkers(cwd: string): string[] {
+  return existingRelativePaths(cwd, CODEGRAPH_INDEX_MARKERS);
 }
 
 function projectCapabilityReadinessError(

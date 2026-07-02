@@ -16,7 +16,7 @@ Trellis/
   pnpm-workspace.yaml
   packages/
     core/          # @blxzer/cursor-trellis-core
-    cli/           # @blxzer/cursor-trellis（trellis、tl、smart-search）
+    cli/           # @blxzer/cursor-trellis（cstl、tl、smart-search）
       src/
         cli/
         commands/
@@ -39,11 +39,11 @@ Trellis/
 ```mermaid
 flowchart LR
   subgraph publish["@blxzer/cursor-trellis npm 包"]
-    CLI["trellis CLI"]
+    CLI["cstl CLI"]
     TPL["templates/ + configurators/"]
   end
   subgraph user["你的项目仓库"]
-    INIT["trellis init --cursor"]
+    INIT["cstl init --cursor"]
     TRELLIS[".trellis/"]
     CURSOR[".cursor/"]
     AGENTS["AGENTS.md"]
@@ -65,9 +65,9 @@ flowchart LR
   WF --> runtime
 ```
 
-1. 在用户项目中执行 **`trellis init --cursor`**，写入 `.trellis/` 并调用 `configureCursor()`（`packages/cli/src/configurators/cursor.ts`）。
-2. **模板**位于 `packages/cli/src/templates/cursor/`，构建时拷贝到 `dist/` 并做占位符替换（Python 路径、`/trellis-` 前缀等）。
-3. 用户项目中的 **哈希跟踪** 支持 **`trellis update`** 安全刷新模板与可选 **迁移**。
+1. 在用户项目中执行 **`cstl init --cursor`**，写入 `.trellis/` 并调用 `configureCursor()`（`packages/cli/src/configurators/cursor.ts`）。
+2. **模板**位于 `packages/cli/src/templates/cursor/`，构建时拷贝到 `dist/` 并做占位符替换（Python 路径、`/cstl-` 前缀等）。
+3. 用户项目中的 **哈希跟踪** 支持 **`cstl update`** 安全刷新模板与可选 **迁移**。
 4. 对话时 **rules** 与 **AGENTS.md** 承载策略；**hooks** 补充会话/终端/子 Agent 上下文（`sessionStart` 注入在 Cursor 上有限制，见 [cursor.zh-CN.md](cursor.zh-CN.md)）。
 
 ## 检索层与上下文注入

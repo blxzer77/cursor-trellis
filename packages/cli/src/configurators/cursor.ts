@@ -26,8 +26,8 @@ import {
  * through `.cursor/rules` + `AGENTS.md` instead). This is a policy choice for
  * palette hygiene and workflow reliability, not a statement about Agent Skills.
  *
- * - commands/trellis-{continue,finish-work}.md — common command templates
- * - commands/trellis-cursor2plus-setup.md — Cursor-only command (BYOK setup)
+ * - commands/cstl-{continue,finish-work}.md — common command templates
+ * - commands/cstl-cursor2plus-setup.md — Cursor-only command (BYOK setup)
  * - rules/*.mdc — always-apply / glob-scoped Cursor rules (Triage hard gate etc.)
  * - agents/{name}.md — sub-agent definitions
  * - hooks/*.py — shared hook scripts
@@ -44,13 +44,13 @@ export async function configureCursor(cwd: string): Promise<void> {
   ensureDir(commandsDir);
   for (const cmd of resolveCommands(ctx)) {
     await writeFile(
-      path.join(commandsDir, `trellis-${cmd.name}.md`),
+      path.join(commandsDir, `cstl-${cmd.name}.md`),
       resolvePlaceholders(cmd.content, ctx),
     );
   }
   for (const cmd of getCursorCommands()) {
     await writeFile(
-      path.join(commandsDir, `trellis-${cmd.name}.md`),
+      path.join(commandsDir, `cstl-${cmd.name}.md`),
       resolvePlaceholders(cmd.content, ctx),
     );
   }

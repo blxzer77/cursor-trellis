@@ -9,6 +9,65 @@ SemVer: [semver.org](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [Unreleased]
+
+### Changed
+
+- **docs(spec)**: mirror Native OC-06/OC-15 live evidence into spec templates — `cursor-subagent-policy.md` (Method 4 verified footnote) and `cursor-semantic-compliance.md` (Native semantic exec proof + caveat); add `cursor-semantic-compliance.md` to spec guides index.
+- **feat(init/capabilities)**: selected project capabilities now land as `pending` in `.trellis/capabilities.json`, bootstrap/join tasks prompt capability verification, and `cstl capability-smoke --write-status` can promote them to `ready` / `failed` without losing stored readiness on later template refreshes.
+
+## [0.3.0] - 2026-07-01
+
+**Breaking**: rename CLI command from `trellis`/`tl` to `cstl`. The `trellis` and `tl` bin aliases are **removed**. All skill, command, agent, and rule name prefixes renamed `trellis-*` → `cstl-*` (hard cut, no compatibility aliases).
+
+### Breaking
+
+- **feat(cli)**: rename CLI command from `trellis`/`tl` to `cstl`. Update any aliases, CI scripts, or shell history that reference `trellis` or `tl`.
+- **feat(templates)**: all skill, command, agent, and rule names renamed `trellis-*` → `cstl-*` (hard cut, no compatibility aliases):
+  - `.cursor/commands/trellis-continue.md` → `cstl-continue.md`
+  - `.cursor/commands/trellis-finish-work.md` → `cstl-finish-work.md`
+  - `.cursor/commands/trellis-cursor2plus-setup.md` → `cstl-cursor2plus-setup.md`
+  - `.cursor/rules/trellis-triage.mdc` → `cstl-triage.mdc`
+  - `.cursor/rules/trellis-subagent-dispatch.mdc` → `cstl-subagent-dispatch.mdc`
+  - `.cursor/agents/trellis-research.md` → `cstl-research.md`
+  - `.cursor/agents/trellis-implement.md` → `cstl-implement.md`
+  - `.cursor/agents/trellis-check.md` → `cstl-check.md`
+  - `.cursor/skills/trellis-meta/` → `cstl-meta/` (and 4 other bundled skill dirs)
+- **fix(hooks)**: `<!-- trellis-hook-injected -->` marker → `<!-- cstl-hook-injected -->`
+- **fix(subagents)**: `subagent_type` identifiers `trellis-research/implement/check` → `cstl-research/implement/check` (affects Cursor++ BYOK `trellis-task-models.json5` keys)
+
+### Changed
+
+- `AUTO_PLANNING_REVIEWER` identifier `"trellis-cli"` → `"cstl-cli"`
+- `<!-- trellis-research-end-pack -->` marker → `<!-- cstl-research-end-pack -->`
+- `CURSOR_SKILL_RESIDUE_DIRS` in `update.ts` now checks both `cstl-*` (current) and `trellis-*` (legacy) skill directories for residue detection
+
+### Migration
+
+**Manual npm install required** — the old `trellis upgrade` command no longer exists after install.
+
+```bash
+npm install -g @blxzer/cursor-trellis@latest
+cstl update --migrate
+```
+
+The `--migrate` flag is REQUIRED to trigger the file renames in your project (`trellis-*` → `cstl-*`). Renames are hash-verified; locally modified files are preserved with a warning.
+
+New migration manifest `src/migrations/manifests/0.3.0.json` ships 13 rename entries (3 commands, 2 rules, 3 agents, 5 skill directories).
+
+If you use Cursor++ BYOK (`.trellis/local/cursor2plus/`), the `trellis-task-models.json5` keys must be updated from `trellis-research/implement/check` to `cstl-research/implement/check`. Run the `cstl-cursor2plus-setup` skill or edit `~/.ccursor/trellis-task-models.json5` manually then re-run `patch_wpelc8.py --apply`.
+
+The `.trellis/` directory name is UNCHANGED — only the CLI command and skill/command/agent/rule name prefixes changed.
+
+### Notes
+
+- npm package name `@blxzer/cursor-trellis` is unchanged.
+- `trellis-task-models.json5` filename is unchanged (user data file).
+- `trellis_task_models_config.py` module name is unchanged.
+- `<!-- TRELLIS:START -->` / `<!-- TRELLIS:END -->` managed block markers are unchanged.
+
+[0.3.0]: https://github.com/blxzer77/cursor-trellis/releases/tag/v0.3.0
+
 ## [0.2.9] - 2026-06-26
 
 Adapt `@blxzer/cursor-trellis` to **@blxzer/smart-search 0.1.15** (research locale scope, dry-run/progress, structured citations, provider TTL cache). Cursor **commands-only** policy unchanged — internal `smart-search-cli` is not exposed under `.cursor/skills/`.

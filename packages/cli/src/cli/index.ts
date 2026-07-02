@@ -2,6 +2,10 @@ import fs from "node:fs";
 import path from "node:path";
 import chalk from "chalk";
 import { Command } from "commander";
+import {
+  ensureCapabilitiesFileExists,
+  runCapabilitySmokeCommand,
+} from "../commands/capability-smoke.js";
 import { init } from "../commands/init.js";
 import { update } from "../commands/update.js";
 import { rollout } from "../commands/rollout.js";
@@ -39,7 +43,7 @@ function checkForUpdates(cwd: string): void {
         `\n⚠️  Trellis update available: ${projectVersion} → ${cliVersion}`,
       ),
     );
-    console.log(chalk.gray(`   Run: trellis update\n`));
+    console.log(chalk.gray(`   Run: cstl update\n`));
   } else if (comparison < 0) {
     // CLI is older than project - CLI needs updating
     console.log(
@@ -47,7 +51,7 @@ function checkForUpdates(cwd: string): void {
         `\n⚠️  Your CLI (${cliVersion}) is older than project (${projectVersion})`,
       ),
     );
-    console.log(chalk.gray(`   Run: trellis upgrade\n`));
+    console.log(chalk.gray(`   Run: cstl upgrade\n`));
   }
 }
 
@@ -64,7 +68,7 @@ function collectOption(value: string, previous: string[]): string[] {
 }
 
 program
-  .name("trellis")
+  .name("cstl")
   .description("AI-assisted development workflow framework for Cursor")
   .version(VERSION, "-v, --version", "output the version number");
 
@@ -132,6 +136,39 @@ program
   });
 
 program
+  .command("capability-smoke")
+  .description(
+    "Verify selected project capabilities and optionally write readiness statuses",
+  )
+  .option("--json", "Emit machine-readable capability smoke output")
+  .option(
+    "--write-status",
+    "Write ready/failed status back to .trellis/capabilities.json and capabilities.md",
+  )
+  .action(async (options: Record<string, unknown>) => {
+    try {
+      ensureCapabilitiesFileExists(process.cwd());
+      const report = await runCapabilitySmokeCommand({
+        cwd: process.cwd(),
+        json: options.json as boolean,
+        writeStatus: options.writeStatus as boolean,
+      });
+      if (!report.ok) {
+        process.exit(1);
+      }
+    } catch (error) {
+      console.error(
+        chalk.red("Error:"),
+        error instanceof Error ? error.message : error,
+      );
+      if (process.env.DEBUG || process.env.TRELLIS_DEBUG) {
+        console.error(error instanceof Error ? error.stack : error);
+      }
+      process.exit(1);
+    }
+  });
+
+program
   .command("update")
   .description("Update trellis configuration and commands to latest version")
   .option("--dry-run", "Preview changes without applying them")
@@ -180,7 +217,7 @@ program
 program
   .command("rollout")
   .description(
-    "Run trellis update across multiple project paths and aggregate rollout evidence",
+    "Run cstl update across multiple project paths and aggregate rollout evidence",
   )
   .requiredOption(
     "-p, --project <path>",

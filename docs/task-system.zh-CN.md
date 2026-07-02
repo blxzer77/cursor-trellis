@@ -64,8 +64,8 @@ quality_gates:
 
 | `execution_mode` | 谁实现 / 检查 | 典型 `isolation` |
 | --- | --- | --- |
-| `inline` | 主会话自实现自检查(`trellis-check` 技能形态或 inline review) | `main-worktree` |
-| `worker` | 派 `trellis-implement` 再 `trellis-check` Agent | `main-worktree` |
+| `inline` | 主会话自实现自检查(`cstl-check` 技能形态或 inline review) | `main-worktree` |
+| `worker` | 派 `cstl-implement` 再 `cstl-check` Agent | `main-worktree` |
 | `child-task` | Child 会话做工作;Parent 编排 | `git-worktree`(有 git package root 时) |
 
 派发合约详见 [subagents.zh-CN.md](subagents.zh-CN.md)。已批合约与最新建议不一致时,`task.py start-execution --check` 打 `[execution-strategy] WARN`(仅提示)。
@@ -138,7 +138,7 @@ python ./.trellis/scripts/task.py record-gate <task> \
 | --- | --- | --- | --- |
 | 1.0 | 建任务(同意后) | 一次 | — |
 | 1.1 | 需求探索(`prd.md`;Full 还需 `design.md` + `implement.md`) | 必需 | 可重复 |
-| 1.2 | 研究(派 `trellis-research`,写 `research/<topic>.md`) | 可选 | 可重复 |
+| 1.2 | 研究(派 `cstl-research`,写 `research/<topic>.md`) | 可选 | 可重复 |
 | 1.3 | 配置上下文(`implement.jsonl` / `check.jsonl`) | 条件 | 一次 |
 | 1.4 | 执行门禁(`start-execution --check` → 批准 → `--approved`;status → `in_progress`) | 必需 | 一次 |
 | 1.5 | 完成标准 | — | — |
@@ -147,8 +147,8 @@ python ./.trellis/scripts/task.py record-gate <task> \
 
 | 步 | 名称 | 必需 | 可重复 |
 | --- | --- | --- | --- |
-| 2.1 | 实现(`trellis-implement` 子 Agent 或 inline) | 必需 | 可重复 |
-| 2.2 | 质量检查(`trellis-check` 技能或 Agent) | 必需 | 可重复 |
+| 2.1 | 实现(`cstl-implement` 子 Agent 或 inline) | 必需 | 可重复 |
+| 2.2 | 质量检查(`cstl-check` 技能或 Agent) | 必需 | 可重复 |
 | 2.3 | 回滚 | 按需 | — |
 
 ### Phase 3: Finish
@@ -156,7 +156,7 @@ python ./.trellis/scripts/task.py record-gate <task> \
 | 步 | 名称 | 必需 |
 | --- | --- | --- |
 | 3.1 | 验证(证据入 `verify.md`) | 必需 |
-| 3.2 | Break loop(卡住时;`trellis-break-loop`) | 按需 |
+| 3.2 | Break loop(卡住时;`cstl-break-loop`) | 按需 |
 | 3.3 | 持久学习决策(`update-spec` \| `no-update` \| `unsure`) | 必需 |
 | 3.4 | 提交 | 必需 |
 
@@ -226,7 +226,7 @@ python ./.trellis/scripts/task.py archive <task>            # 归档(移到 arch
 - 校验命令 + 结果
 - 最终验收证据(或 `Accepted by user:`)
 - 持久学习决策(`no durable learning` / `Spec update evidence:` / `Learning artifact:`)
-- check 证据(`trellis-check` 摘要或手动审查记录)
+- check 证据(`cstl-check` 摘要或手动审查记录)
 - 审查 change-set(git ref 或 diff 摘要)
 
 加上 `full-task-complete/code-review` gate 记录。用 `prepare-archive-evidence` 辅助起草证据块,再用 `record-gate` 在显式审查后记录(从不自动 PASS)。
@@ -243,6 +243,6 @@ python ./.trellis/scripts/task.py archive <task>            # 归档(移到 arch
 ## 延伸阅读
 
 - [Cursor 中的工作流](workflow.zh-CN.md) — 完整 Triage 决策树、Task Ladder、升降级规则
-- [内部技能](skills.zh-CN.md) — `trellis-brainstorm` / `trellis-before-dev` / `trellis-check` / `trellis-break-loop` / `trellis-update-spec`
-- [子 Agent 派发](subagents.zh-CN.md) — `trellis-implement` / `trellis-check` 派发、Parent/Child 集成权限
+- [内部技能](skills.zh-CN.md) — `cstl-brainstorm` / `cstl-before-dev` / `cstl-check` / `cstl-break-loop` / `cstl-update-spec`
+- [子 Agent 派发](subagents.zh-CN.md) — `cstl-implement` / `cstl-check` 派发、Parent/Child 集成权限
 - [Spec 系统](spec-system.zh-CN.md) — 喂给任务上下文的 `implement.jsonl` / `check.jsonl` manifest

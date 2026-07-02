@@ -8,9 +8,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "../../../..");
 
 const EXPECTED_AGENT_NAMES = [
-  "trellis-check",
-  "trellis-implement",
-  "trellis-research",
+  "cstl-check",
+  "cstl-implement",
+  "cstl-research",
 ];
 
 describe("cursor getAllAgents", () => {
@@ -20,9 +20,9 @@ describe("cursor getAllAgents", () => {
     expect(names).toEqual(EXPECTED_AGENT_NAMES);
   });
 
-  it("trellis-check declares Cursor reviewer id and record-gate boundary", () => {
+  it("cstl-check declares Cursor reviewer id and record-gate boundary", () => {
     const checkAgent = getAllAgents().find(
-      (agent) => agent.name === "trellis-check",
+      (agent) => agent.name === "cstl-check",
     );
     expect(checkAgent?.content).toContain("Reviewer id: `cursor`");
     expect(checkAgent?.content).toContain("task.py record-gate");
@@ -41,7 +41,7 @@ describe("cursor getAllAgents", () => {
 // the agent becomes unusable. See PRD task
 // 05-06-fix-codex-subagent-recursion-and-cursor-agent-description-format.
 describe("cursor agents frontmatter single-line description", () => {
-  for (const name of ["trellis-research", "trellis-implement", "trellis-check"]) {
+  for (const name of ["cstl-research", "cstl-implement", "cstl-check"]) {
     it(`${name}.md frontmatter description is a single-line literal (no '|' block scalar)`, () => {
       const filePath = path.join(
         repoRoot,

@@ -251,10 +251,10 @@ describe("shouldExcludeFromBackup", () => {
 
   it.each([
     ".cursor/commands/trellis/continue.md",
-    ".cursor/skills/trellis-check/SKILL.md",
+    ".cursor/skills/cstl-check/SKILL.md",
     ".trellis/workflow.md",
     ".trellis/scripts/get_context.py",
-    ".agents/skills/trellis-check/SKILL.md",
+    ".agents/skills/cstl-check/SKILL.md",
   ])("includes managed file %s", (p) => {
     expect(shouldExcludeFromBackup(p)).toBe(false);
   });
@@ -270,7 +270,7 @@ describe("shouldExcludeFromBackup", () => {
   // after normalization, otherwise Trellis's native worktree protection
   // silently fails on Windows and `collectAllFiles` descends into nested
   // full project copies (observed in the field: stack-overflow crash on
-  // `trellis update --migrate`, late April 2026).
+  // `cstl update --migrate`, late April 2026).
   it.each([
     ".cursor\\worktrees\\feat-x\\src\\main.ts",
     ".trellis\\tasks\\04-17-foo\\prd.md",

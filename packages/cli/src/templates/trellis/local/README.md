@@ -1,6 +1,8 @@
 # Cursor++ Local Bundle
 
-> **Native Cursor users:** safe to ignore or delete this directory unless using **Cursor++ BYOK**.
+> **Native Cursor users:** safe to ignore or delete this directory unless using **Cursor++ BYOK** on **this repo**.
+
+**Coexistence:** Native and BYOK can run on the same machine across different projects. This bundle is **per-repo** (`cstl init --cursor --cursor2plus`); sibling repos may use `cstl init --cursor` only. Full guide: cursor-trellis `docs/cursor.md` — section *Native and BYOK coexistence (not either/or)*.
 
 **Who needs this:** Cursor IDE with [Cursor++](https://ccursor.cometix.dev) (BYOK proxy). Method 2.5 patches the `WPeLc8` resolver so Trellis Task subagents get per-role BYOK slugs instead of inheriting the parent model.
 
@@ -28,10 +30,10 @@ User-wide model doc: `~/.ccursor/trellis-task-models.json5` (see `../trellis-tas
 2. **Operator approval** — review map and compat output; decide to proceed
 3. **Apply** — `python patch_wpelc8.py --apply --approve` (writes `extension.js`)
 4. **Reload Cursor** — Developer: Reload Window (once per apply/revert)
-5. **A ≠ B probe** — parent chat model must differ from a patched subagent map target; dispatch a `trellis-*` Task and confirm the subagent self-reports the **map target** slug/model, not the parent
+5. **A ≠ B probe** — parent chat model must differ from a patched subagent map target; dispatch a `cstl-*` Task and confirm the subagent self-reports the **map target** slug/model, not the parent
 6. **Revert if needed** — `python patch_wpelc8.py --revert` then Reload Window
 
-Agent-led setup: run skill **`trellis-cursor2plus-setup`** in Cursor Agent (lists models, writes JSON5, runs patch steps).
+Agent-led setup: run skill **`cstl-cursor2plus-setup`** in Cursor Agent (lists models, writes JSON5, runs patch steps).
 
 ## Revert recipe
 
@@ -47,10 +49,10 @@ Then **Developer: Reload Window**. Subagents return to **inherit parent** BYOK m
 Goal: prove the patch routes **subagent** model independently of the **parent** session model.
 
 1. Set parent chat to model **A** (any BYOK model in Cursor++).
-2. Ensure `trellis-task-models.json5` maps e.g. `trellis-implement` to model **B** (`primary`/`fallback` resolving to a different slug than A).
-3. `python patch_wpelc8.py --print-map` — note the slug for `trellis-implement` (= map target **B**).
+2. Ensure `trellis-task-models.json5` maps e.g. `cstl-implement` to model **B** (`primary`/`fallback` resolving to a different slug than A).
+3. `python patch_wpelc8.py --print-map` — note the slug for `cstl-implement` (= map target **B**).
 4. `python patch_wpelc8.py --apply --approve` → Reload Window.
-5. Dispatch a `trellis-implement` Task from a parent on model **A**.
+5. Dispatch a `cstl-implement` Task from a parent on model **A**.
 6. **Pass:** subagent self-report / trace shows **B** (map target), not **A**.
 7. **Fail:** subagent shows **A** → patch stale or not applied; run `--check-compat`, re-patch, or `--revert`.
 
@@ -73,9 +75,9 @@ python smoke.py                             # env + patch_status smoke
 
 | JSON key (under `models`) | Meaning |
 |---------------------------|---------|
-| `trellis-research` | Trellis research Task subagent |
-| `trellis-implement` | Trellis implement (+ Parent/Child default Task) |
-| `trellis-check` | Trellis check Task subagent |
+| `cstl-research` | Trellis research Task subagent |
+| `cstl-implement` | Trellis implement (+ Parent/Child default Task) |
+| `cstl-check` | Trellis check Task subagent |
 | `generalPurpose` / `shell` / `best-of-n-runner` | Cursor built-in Task types |
 
 Each role: `{ "primary": "<name>", "fallback": "<name>" }`. Names: **apiModel** or **displayName** from Cursor++ (`--list-models`). **Explore** is not in this file — use the Cursor++ panel.

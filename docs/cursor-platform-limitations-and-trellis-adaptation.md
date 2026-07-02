@@ -38,15 +38,17 @@ Day-to-day integration: [Cursor integration](cursor.md). Subagent dispatch detai
 
 In both environments, `.cursor/agents`, `.cursor/hooks`, and `.cursor/rules` in your project **usually still load**. Differences matter for: **which model subtasks use**, **whether built-in semantic search is available to the Agent**, and **whether an optional local patch is needed**.
 
+**Coexistence:** You can use Native on some repos and BYOK on others from the same machine. `--cursor2plus` is per-project; `cursorEnv` is resolved per session. See [Native and BYOK coexistence](cursor.md#native-and-byok-coexistence-not-eitheror).
+
 Initialize:
 
 ```bash
 npm install -g @blxzer/cursor-trellis
 cd /path/to/your-project
-trellis init --cursor
+cstl init --cursor
 
 # Only if you use Cursor++ and need fixed per-role models:
-trellis init --cursor --cursor2plus
+cstl init --cursor --cursor2plus
 ```
 
 ---
@@ -84,7 +86,7 @@ These are **Cursor or community-reported behaviors**, not bugs cursor-trellis ca
 
 **What users see**
 
-- You set models for `trellis-research`, `trellis-implement`, `trellis-check`, or use Cursor Settings “per-agent model.”
+- You set models for `cstl-research`, `cstl-implement`, `cstl-check`, or use Cursor Settings “per-agent model.”
 - Subtasks still **inherit the parent session model**.
 
 **External evidence**
@@ -152,9 +154,9 @@ Native vs BYOK split: Parts 2 and 3 below.
 
 | Measure | Explanation |
 | --- | --- |
-| Always-on rules | `trellis-triage.mdc`, `retrieval-routing.mdc`, `alwaysApply: true` |
+| Always-on rules | `cstl-triage.mdc`, `retrieval-routing.mdc`, `alwaysApply: true` |
 | AGENTS.md | Project layout, smart-search-first for external facts, remote policy |
-| Small slash surface | `/trellis-continue`, `/trellis-finish-work`; no default `.cursor/skills/` dump |
+| Small slash surface | `/cstl-continue`, `/cstl-finish-work`; no default `.cursor/skills/` dump |
 | **CLI full dispatch prompt** | Before research/implement/check Task dispatch, run `generate_dispatch_prompt.py`, paste **entire output** into Task `prompt`. **This is the reliable primary path** for subtask context. |
 | Hooks demoted | sessionStart helper; beforeSubmitPrompt may inject retrieval plan; hooks do not carry hard gates alone |
 | Native semantic | Plans may suggest Cursor built-in semantic; distinguish plan vs execution |
@@ -164,10 +166,10 @@ Native vs BYOK split: Parts 2 and 3 below.
 **A. Initialize**
 
 ```bash
-trellis init --cursor
+cstl init --cursor
 ```
 
-Confirm `.trellis/workflow.md`, `.cursor/rules/trellis-triage.mdc`, `.cursor/agents/trellis-*.md`.
+Confirm `.trellis/workflow.md`, `.cursor/rules/cstl-triage.mdc`, `.cursor/agents/cstl-*.md`.
 
 **B. Triage**
 
@@ -179,7 +181,7 @@ Rules require a classification line at the start of replies; do not rely on hook
 python ./.trellis/scripts/generate_dispatch_prompt.py --agent research --task ".trellis/tasks/your-task-dir"
 ```
 
-Use `--agent implement` or `check`. Copy the **full** output; in Cursor Task set `subagent_type` to `trellis-research` (etc.) and paste into `prompt`.  
+Use `--agent implement` or `check`. Copy the **full** output; in Cursor Task set `subagent_type` to `cstl-research` (etc.) and paste into `prompt`.  
 **Do not** assume `preToolUse` always injects the same payload.
 
 **D. Temporary subtask model (Native only; revert after)**
@@ -214,7 +216,7 @@ Use other web search only when smart-search is unavailable.
 | --- | --- |
 | Env detection | `TRELLIS_CURSOR_BYOK` or `~/.ccursor/routes.json` |
 | BYOK semantic | Retrieval plans use **fast-context MCP** (`fast_context_search`), not built-in semantic |
-| Optional bundle | `trellis init --cursor --cursor2plus` → `.trellis/local/cursor2plus/` |
+| Optional bundle | `cstl init --cursor --cursor2plus` → `.trellis/local/cursor2plus/` |
 | Subtask context | Same as Native: CLI dispatch prompt is primary |
 | Mapping files | `~/.ccursor/trellis-task-models.json5` or `.trellis/local/subagent-models.json` |
 | Optional patch | `patch_wpelc8.py` only with your explicit consent |
@@ -224,7 +226,7 @@ Use other web search only when smart-search is unavailable.
 **1. Initialize**
 
 ```bash
-trellis init --cursor --cursor2plus
+cstl init --cursor --cursor2plus
 ```
 
 Native users can ignore the entire `cursor2plus` directory.
@@ -235,9 +237,9 @@ Edit `~/.ccursor/trellis-task-models.json5` (slugs from `providers.json` `id` fi
 
 ```json5
 {
-  "trellis-research": "model-xxx",
-  "trellis-implement": "model-yyy",
-  "trellis-check": "model-zzz"
+  "cstl-research": "model-xxx",
+  "cstl-implement": "model-yyy",
+  "cstl-check": "model-zzz"
 }
 ```
 
@@ -266,7 +268,7 @@ Re-run print-map / patch, or `python patch_wpelc8.py --revert` and reload.
 | Explore subagent | Read-only exploration; pick model in Cursor++ panel |
 | Manual dispatch | New chat, pick model, paste CLI dispatch prompt |
 
-Slash command `/trellis-cursor2plus-setup` can guide setup.
+Slash command `/cstl-cursor2plus-setup` can guide setup.
 
 ---
 
@@ -296,15 +298,15 @@ Slash command `/trellis-cursor2plus-setup` can guide setup.
 - “Hooks automatically inject workflow into the Agent” — **false**
 - “On BYOK, one line `model:` in the agent file switches subtask models” — **usually false**
 - “Agent always runs semantic search” — **cannot guarantee**
-- “Patching is required for `trellis init`” — **false**
+- “Patching is required for `cstl init`” — **false**
 
 ---
 
 ## Part 5: Self-check checklist
 
-**After each `trellis update`**
+**After each `cstl update`**
 
-- [ ] `trellis-triage.mdc` exists with `alwaysApply: true`
+- [ ] `cstl-triage.mdc` exists with `alwaysApply: true`
 - [ ] Subtask dispatch uses full `generate_dispatch_prompt.py` output
 
 **Native**

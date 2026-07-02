@@ -281,7 +281,7 @@ make the intended decision. Otherwise a transient sandbox/network failure hides
 the hint for the rest of the session.
 
 **Rule 2**: If a local command can provide the needed value, try it with a short
-timeout and captured output. For example, `trellis --version` already runs the
+timeout and captured output. For example, `cstl --version` already runs the
 CLI's version comparison logic and can support an actionable update prompt
 without duplicating npm registry parsing.
 
@@ -607,7 +607,7 @@ included with Trellis, verify the whole distribution path:
 - [ ] `npm pack --dry-run --json` includes the expected `dist/**` path.
 - [ ] The built binary installs the asset in a fresh temp repository.
 - [ ] `.trellis/.template-hashes.json` tracks the generated asset path.
-- [ ] `trellis update --dry-run` reports `Already up to date!` in that temp
+- [ ] `cstl update --dry-run` reports `Already up to date!` in that temp
   repository.
 
 **Why this matters**: docs/changelog text can move independently from the code

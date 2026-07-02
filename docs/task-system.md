@@ -64,8 +64,8 @@ All six top-level fields (`execution_mode`, `isolation`, `verification_profile`,
 
 | `execution_mode` | Who implements / checks | Typical `isolation` |
 | --- | --- | --- |
-| `inline` | Main session self-implements and self-checks (`trellis-check` skill form or inline review) | `main-worktree` |
-| `worker` | Spawns `trellis-implement` then `trellis-check` agents | `main-worktree` |
+| `inline` | Main session self-implements and self-checks (`cstl-check` skill form or inline review) | `main-worktree` |
+| `worker` | Spawns `cstl-implement` then `cstl-check` agents | `main-worktree` |
 | `child-task` | Child session does the work; Parent orchestrates | `git-worktree` (when a git package root resolves) |
 
 See [subagents.md](subagents.md) for the full dispatch contract. `task.py start-execution --check` prints `[execution-strategy] WARN` if the approved contract drifts from a fresh suggestion (advisory).
@@ -138,7 +138,7 @@ python ./.trellis/scripts/task.py record-gate <task> \
 | --- | --- | --- | --- |
 | 1.0 | Create task (after consent) | once | — |
 | 1.1 | Requirement exploration (`prd.md`; Full also needs `design.md` + `implement.md`) | required | repeatable |
-| 1.2 | Research (dispatch `trellis-research`, write `research/<topic>.md`) | optional | repeatable |
+| 1.2 | Research (dispatch `cstl-research`, write `research/<topic>.md`) | optional | repeatable |
 | 1.3 | Configure context (`implement.jsonl` / `check.jsonl`) | conditional | once |
 | 1.4 | Execution gate (`start-execution --check` → approval → `--approved`; status → `in_progress`) | required | once |
 | 1.5 | Completion criteria | — | — |
@@ -147,8 +147,8 @@ python ./.trellis/scripts/task.py record-gate <task> \
 
 | Step | Name | Required | Repeatable |
 | --- | --- | --- | --- |
-| 2.1 | Implement (`trellis-implement` subagent or inline) | required | repeatable |
-| 2.2 | Quality check (`trellis-check` skill or agent) | required | repeatable |
+| 2.1 | Implement (`cstl-implement` subagent or inline) | required | repeatable |
+| 2.2 | Quality check (`cstl-check` skill or agent) | required | repeatable |
 | 2.3 | Rollback | on demand | — |
 
 ### Phase 3: Finish
@@ -156,7 +156,7 @@ python ./.trellis/scripts/task.py record-gate <task> \
 | Step | Name | Required |
 | --- | --- | --- |
 | 3.1 | Verification (evidence in `verify.md`) | required |
-| 3.2 | Break loop (if stuck; `trellis-break-loop`) | on demand |
+| 3.2 | Break loop (if stuck; `cstl-break-loop`) | on demand |
 | 3.3 | Durable learning decision (`update-spec` \| `no-update` \| `unsure`) | required |
 | 3.4 | Commit | required |
 
@@ -226,7 +226,7 @@ Archive requires `verify.md` evidence lines (grep-friendly):
 - Validation commands + outcome
 - Final acceptance evidence (or `Accepted by user:`)
 - Durable learning decision (`no durable learning` / `Spec update evidence:` / `Learning artifact:`)
-- Check evidence (`trellis-check` summary or manual review notes)
+- Check evidence (`cstl-check` summary or manual review notes)
 - Reviewed change-set (git ref or diff summary)
 
 Plus the `full-task-complete/code-review` gate recording. Use `prepare-archive-evidence` helper to draft the evidence block, then `record-gate` after explicit review (never auto-PASS).
@@ -243,6 +243,6 @@ This makes the dispatch flow robust to the "no selected task" state that arises 
 ## See also
 
 - [Workflow in Cursor](workflow.md) — the full Triage decision tree, Task Ladder, upgrade/downgrade rules
-- [Internal skills](skills.md) — `trellis-brainstorm` / `trellis-before-dev` / `trellis-check` / `trellis-break-loop` / `trellis-update-spec`
-- [Subagent dispatch](subagents.md) — `trellis-implement` / `trellis-check` dispatch, Parent/Child integration authority
+- [Internal skills](skills.md) — `cstl-brainstorm` / `cstl-before-dev` / `cstl-check` / `cstl-break-loop` / `cstl-update-spec`
+- [Subagent dispatch](subagents.md) — `cstl-implement` / `cstl-check` dispatch, Parent/Child integration authority
 - [Spec system](spec-system.md) — `implement.jsonl` / `check.jsonl` manifests that feed task context

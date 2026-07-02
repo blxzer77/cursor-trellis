@@ -3,7 +3,7 @@
 import { execSync } from "node:child_process";
 
 const required = [
-  "bin/trellis.js",
+  "bin/cstl.js",
   "bin/smart-search.js",
   "dist/cli/index.js",
   "dist/templates/trellis/scripts/task.py",

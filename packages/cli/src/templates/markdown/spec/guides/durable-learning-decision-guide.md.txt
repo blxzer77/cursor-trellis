@@ -1,4 +1,4 @@
-# Durable Learning Decision Guide
+﻿# Durable Learning Decision Guide
 
 > **Purpose**: Decide whether a completed task should update `.trellis/spec/` or can archive with an explicit **no durable learning** line.
 
@@ -17,7 +17,7 @@ Pick **one** grep-friendly line before `archive --check`:
 | Insight already documented | `Learning artifact: .trellis/tasks/<task>/handoff.md` |
 | Retrospective captured | `Learning artifact: .trellis/workspace/...` or `retrospective.md: <path>` |
 
-Optional planning note (not sufficient alone): `Spec update needed: <reason>` — still record **spec update evidence** after `/trellis:update-spec`.
+Optional planning note (not sufficient alone): `Spec update needed: <reason>` — still record **spec update evidence** after `/cstl:update-spec`.
 
 ---
 
@@ -33,7 +33,7 @@ Optional planning note (not sufficient alone): `Spec update needed: <reason>` �
 
 - New or changed CLI/API signature or gate behavior
 - Repeated parent review **changes** on the same class of mistake
-- Workflow bug that should not recur (after `/trellis:break-loop` analysis)
+- Workflow bug that should not recur (after `/cstl:break-loop` analysis)
 - Cross-layer contract clarification
 
 ### Learning artifact
@@ -60,9 +60,9 @@ python ./.trellis/scripts/task.py review-child <parent> <child> --check
 
 ## Skills
 
-- **`/trellis:update-spec`** — edit code-spec after reviewer confirmation
-- **`/trellis:break-loop`** — deep bug analysis; often leads to spec updates
-- **`/trellis:finish-work`** — archive after learning line is present in `verify.md`
+- **`/cstl:update-spec`** — edit code-spec after reviewer confirmation
+- **`/cstl:break-loop`** — deep bug analysis; often leads to spec updates
+- **`/cstl:finish-work`** — archive after learning line is present in `verify.md`
 
 ---
 

@@ -36,14 +36,14 @@ Index files list the specific guideline docs to read when you actually start cod
 ## Step 4: Decide next action
 From Step 1 you know whether a task is selected.
 
-- If `Selected task: none` → show the Task Dashboard; do **not** load `trellis-continue`. For a **small** request without a task, use `trellis-micro-grill` first.
-- If a task **is** selected and you need the next workflow step → use `trellis-continue` instead of repeating Steps 1–3 here.
+- If `Selected task: none` → show the Task Dashboard; do **not** load `cstl-continue`. For a **small** request without a task, use `cstl-micro-grill` first.
+- If a task **is** selected and you need the next workflow step → use `cstl-continue` instead of repeating Steps 1–3 here.
 
 If `Selected task: none`, ask the user to choose: select a task, create a task, inspect details, or continue without a task.
 
 If a task is selected, check the task directory:
 
-- **Selected task status `planning` + no `prd.md`** → Phase 1.1. Load the `trellis-brainstorm` skill.
+- **Selected task status `planning` + no `prd.md`** → Phase 1.1. Load the `cstl-brainstorm` skill.
 - **Selected task status `planning` + `prd.md` exists** → stay in Planning / Execution Gate. Lightweight tasks can be PRD-only; complex tasks need `design.md` + `implement.md`. Run `task.py start-execution <task> --check` and request explicit execution approval before execution.
 - **Selected task status `in_progress`** → Phase 2 step 2.1. Load the step detail:
   ```bash
@@ -57,13 +57,13 @@ If a task is selected, check the task directory:
 
 | User intent | Skill |
 |---|---|
-| Resume **selected** in-progress task | `trellis-continue` |
-| New feature / unclear requirements | `trellis-brainstorm` |
-| Small request, no task yet | `trellis-micro-grill` |
-| About to write code | `trellis-before-dev` |
-| Done coding / quality check | `trellis-check` |
-| Session wrap-up after Phase 3.4 commit | `trellis-finish-work` |
-| Stuck / fixed same bug multiple times | `trellis-break-loop` |
-| Learned something worth capturing | `trellis-update-spec` |
+| Resume **selected** in-progress task | `cstl-continue` |
+| New feature / unclear requirements | `cstl-brainstorm` |
+| Small request, no task yet | `cstl-micro-grill` |
+| About to write code | `cstl-before-dev` |
+| Done coding / quality check | `cstl-check` |
+| Session wrap-up after Phase 3.4 commit | `cstl-finish-work` |
+| Stuck / fixed same bug multiple times | `cstl-break-loop` |
+| Learned something worth capturing | `cstl-update-spec` |
 
 Full rules + anti-rationalization table in `.trellis/workflow.md`.

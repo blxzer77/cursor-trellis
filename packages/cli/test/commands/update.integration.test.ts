@@ -321,7 +321,7 @@ describe("update() integration", () => {
     }) as typeof execSync);
 
     await expect(update({ force: true })).rejects.toThrow(
-      /Smart Search readiness failed[\s\S]*trellis update --skip-readiness/,
+      /Smart Search readiness failed[\s\S]*cstl update --skip-readiness/,
     );
     expect(fs.readFileSync(targetFull, "utf-8")).toBe(
       "user customized content",
@@ -471,7 +471,7 @@ describe("update() integration", () => {
     }) as typeof execSync);
 
     await expect(update({ force: true })).rejects.toThrow(
-      /Selected project capability readiness failed[\s\S]*codebase-retrieval[\s\S]*rg[\s\S]*trellis update --skip-readiness/,
+      /Selected project capability readiness failed[\s\S]*codebase-retrieval[\s\S]*rg[\s\S]*cstl update --skip-readiness/,
     );
     expect(fs.readFileSync(targetFull, "utf-8")).toBe(
       "user customized content",
@@ -843,7 +843,7 @@ describe("update() integration", () => {
       "#### 2.1 Implement `[required · repeatable]`\n\n" +
       "[Codex]\nSpawn the implement sub-agent:\n[/Codex]\n\n" +
       "[Kilo, Antigravity, Windsurf]\n" +
-      "1. Load the `trellis-before-dev` skill to read project guidelines\n" +
+      "1. Load the `cstl-before-dev` skill to read project guidelines\n" +
       "[/Kilo, Antigravity, Windsurf]\n";
 
     stageVersionedUpgradeProject({
@@ -1345,7 +1345,7 @@ describe("update() integration", () => {
       "#### 2.1 Implement `[required · repeatable]`\n\n" +
       "[Codex]\nSpawn the implement sub-agent:\n[/Codex]\n\n" +
       "[Kilo, Antigravity, Windsurf]\n" +
-      "1. Load the `trellis-before-dev` skill to read project guidelines\n" +
+      "1. Load the `cstl-before-dev` skill to read project guidelines\n" +
       "[/Kilo, Antigravity, Windsurf]\n";
 
     fs.writeFileSync(workflowPath, staleWorkflow, "utf-8");
@@ -1367,7 +1367,7 @@ describe("update() integration", () => {
     const updated = fs.readFileSync(workflowPath, "utf-8");
     expect(updated).toBe(replacePythonCommandLiterals(workflowMdTemplate));
     expect(updated).toContain("Selected task:");
-    expect(updated).toContain("trellis-implement");
+    expect(updated).toContain("cstl-implement");
     expect(updated).not.toContain("[Codex]");
     expect(updated).not.toContain("legacy body");
 

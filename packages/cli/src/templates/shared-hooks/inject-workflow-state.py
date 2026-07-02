@@ -62,7 +62,7 @@ from typing import Optional
 # get the full SessionStart overview; this short reminder points the main session
 # at the start skill once and leaves the per-turn state block compact.
 CODEX_NO_TASK_BOOTSTRAP_NOTICE = """<trellis-bootstrap>
-If you have not already loaded Trellis context this session, read the `trellis-start` skill once.
+If you have not already loaded Trellis context this session, read the `cstl-start` skill once.
 </trellis-bootstrap>"""
 
 

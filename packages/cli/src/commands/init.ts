@@ -65,7 +65,9 @@ import {
   checkSmartSearchReadiness,
 } from "../utils/readiness.js";
 import {
+  getProjectCapability,
   getProjectCapabilityChoices,
+  loadProjectCapabilities,
   parseProjectCapabilities,
   writeProjectCapabilityFiles,
   type ProjectCapabilityId,
@@ -151,7 +153,7 @@ export function requireSupportedPython(command: string): string {
  * Windows: `python` is the usual python.org installer choice, but Microsoft
  * Store ships `python3`, and the `py` launcher is `py -3`. We try all three
  * before giving up — fixes #236 where users with only `python3` (not
- * `python`) had `trellis init` fail outright.
+ * `python`) had `cstl init` fail outright.
  *
  * Non-Windows: `python3` is canonical; `python` is a fallback for systems
  * where Python 3 is the only Python and is named `python` (some Arch
@@ -276,7 +278,7 @@ function logCursor2plusSetupHint(): void {
   console.log("");
   console.log(
     chalk.cyan(
-      "🔧 Cursor++ BYOK: 在 Cursor Agent 中运行 skill trellis-cursor2plus-setup",
+      "🔧 Cursor++ BYOK: 在 Cursor Agent 中运行 skill cstl-cursor2plus-setup",
     ),
   );
   console.log(
@@ -377,6 +379,42 @@ function getBootstrapChecklistItems(
   ];
 }
 
+function renderCapabilityReadinessSection(
+  selectedCapabilities: readonly ProjectCapabilityId[],
+): string {
+  if (selectedCapabilities.length === 0) {
+    return "";
+  }
+
+  const checklist = selectedCapabilities
+    .map((id) => {
+      const capability = getProjectCapability(id);
+      return `- [ ] \`${capability.id}\` — ${capability.title}. Verify the generated MCP/config path is usable before claiming it in task evidence.`;
+    })
+    .join("\n");
+
+  return `
+## Capability readiness (required before archive)
+
+Init selected optional project capabilities for this repo. Treat them as
+\`pending\` until you verify they work in this checkout.
+
+${checklist}
+
+- Read \`.trellis/capabilities.json\` / \`.trellis/capabilities.md\` and keep the
+  readiness state honest: \`pending\`, \`ready\`, or \`failed\`.
+- For \`codebase-retrieval\`, verify \`.codegraph/\` exists (or initialize it)
+  and confirm the MCP path is usable. After the first index, CodeGraph's file
+  watcher auto-syncs later edits; you do not need to re-run full indexing for
+  every code change.
+- If a capability cannot be made ready, record the failure and fallback path in
+  \`verify.md\` before archiving bootstrap.
+- Validation entrypoint: \`cstl capability-smoke --write-status\`
+
+---
+`;
+}
+
 function getBootstrapRelatedFiles(
   projectType: ProjectType,
   packages?: DetectedPackage[],
@@ -396,6 +434,7 @@ function getBootstrapRelatedFiles(
 function getBootstrapPrdContent(
   projectType: ProjectType,
   pythonCmd: string,
+  selectedCapabilities: readonly ProjectCapabilityId[],
   packages?: DetectedPackage[],
 ): string {
   const checklistItems = getBootstrapChecklistItems(projectType, packages);
@@ -407,14 +446,14 @@ function getBootstrapPrdContent(
 
 **You (the AI) are running this task. The developer does not read this file.**
 
-The developer just ran \`trellis init\` on this project for the first time.
+The developer just ran \`cstl init\` on this project for the first time.
 \`.trellis/\` now exists with empty spec scaffolding, and this bootstrap task
 exists under \`.trellis/tasks/\`. When they want to work on it, they should start
 this task from a session that provides Trellis session identity.
 
 **Your job**: help them populate \`.trellis/spec/\` with the team's real
 coding conventions. Every future AI session — this project's
-\`trellis-implement\` and \`trellis-check\` sub-agents — auto-loads spec files
+\`cstl-implement\` and \`cstl-check\` sub-agents — auto-loads spec files
 listed in per-task jsonl manifests. Empty spec = sub-agents write generic
 code. Real spec = sub-agents match the team's actual patterns.
 
@@ -429,6 +468,8 @@ the rest conversationally.
 ${checklistMarkdown}
 
 ---
+
+${renderCapabilityReadinessSection(selectedCapabilities)}
 
 ## Spec files to populate
 `;
@@ -505,8 +546,8 @@ is a separate conversation, not a bootstrap concern.
 
 ## Quick explainer of the runtime (share when they ask "why do we need spec at all")
 
-- Every AI coding task spawns two sub-agents: \`trellis-implement\` (writes
-  code) and \`trellis-check\` (verifies quality).
+- Every AI coding task spawns two sub-agents: \`cstl-implement\` (writes
+  code) and \`cstl-check\` (verifies quality).
 - Each task has \`implement.jsonl\` / \`check.jsonl\` manifests listing which
   spec files to load.
 - The platform hook auto-injects those spec files + the task's \`prd.md\`
@@ -593,7 +634,7 @@ function getBootstrapTaskJson(
     assignee: developer,
     createdAt: today,
     relatedFiles,
-    notes: `First-time setup task created by trellis init (${projectType} project)`,
+    notes: `First-time setup task created by cstl init (${projectType} project)`,
   });
 }
 
@@ -605,10 +646,16 @@ function createBootstrapTask(
   developer: string,
   pythonCmd: string,
   projectType: ProjectType,
+  selectedCapabilities: readonly ProjectCapabilityId[],
   packages?: DetectedPackage[],
 ): boolean {
   const taskJson = getBootstrapTaskJson(developer, projectType, packages);
-  const prdContent = getBootstrapPrdContent(projectType, pythonCmd, packages);
+  const prdContent = getBootstrapPrdContent(
+    projectType,
+    pythonCmd,
+    selectedCapabilities,
+    packages,
+  );
   return writeTaskSkeleton(cwd, BOOTSTRAP_TASK_NAME, taskJson, prdContent);
 }
 
@@ -636,7 +683,7 @@ function getJoinerTaskJson(developer: string, taskName: string): TaskJson {
     assignee: developer,
     createdAt: today,
     notes:
-      "Generated by trellis init for a new developer joining an existing Trellis project",
+      "Generated by cstl init for a new developer joining an existing Trellis project",
   });
 }
 
@@ -644,13 +691,39 @@ function getJoinerTaskJson(developer: string, taskName: string): TaskJson {
  * PRD content for joiner onboarding. Kept concise (~80 lines) — deeper
  * guidance lives in skills and docs.
  */
-function getJoinerPrdContent(developer: string, pythonCmd: string): string {
+function getJoinerPrdContent(
+  developer: string,
+  pythonCmd: string,
+  selectedCapabilities: readonly ProjectCapabilityId[],
+): string {
   const slug = slugifyDeveloperName(developer);
+  const selectedCapabilityChecklist = selectedCapabilities
+    .map((id) => {
+      const capability = getProjectCapability(id);
+      return `- \`${capability.id}\` — re-check readiness in this clone before claiming it is available.`;
+    })
+    .join("\n");
+  let capabilitySection = "";
+  if (selectedCapabilities.length > 0) {
+    capabilitySection = `
+### 5. Re-verify selected project capabilities
+
+This repo has capability selections recorded in \`.trellis/capabilities.json\`.
+Before they rely on MCP-backed behavior, remind them to check the selected set:
+
+${selectedCapabilityChecklist}
+
+- If a capability is not \`ready\`, have them re-run the local verification path
+  instead of assuming the previous machine's setup carries over.
+
+---
+`;
+  }
   return `# Joiner Onboarding Task
 
 **You (the AI) are running this task. The developer does not read this file.**
 
-\`${developer}\` just ran \`trellis init\` on a fresh clone, saw "Developer
+\`${developer}\` just ran \`cstl init\` on a fresh clone, saw "Developer
 initialized", and will now start asking you questions in chat. This joiner task
 exists under \`.trellis/tasks/\`; when they want to work on it, they should
 select it from a session that provides Trellis session identity.
@@ -674,9 +747,9 @@ code every session.
 - **Task lifecycle**: planning → in_progress → done → archive, under
   \`.trellis/tasks/\`.
 - **Core slash commands**:
-  - \`/trellis:continue\` — continue the current live session's selected task
-  - \`/trellis:finish-work\` — wrap up a finished task
-  - \`/trellis:start\` — framework/dashboard entry (not needed here; the
+  - \`/cstl:continue\` — continue the current live session's selected task
+  - \`/cstl:finish-work\` — wrap up a finished task
+  - \`/cstl:start\` — framework/dashboard entry (not needed here; the
     SessionStart hook does its job automatically)
 
 ### 2. Runtime mechanics (explain when they ask "how does it know what to do")
@@ -686,14 +759,14 @@ code every session.
   conversation at every session start.
 - **\`<workflow-state>\` tag** is auto-injected with every user message,
   carrying the selected task + phase hint.
-- **\`/trellis:continue\`** loads the Phase Index, reads \`prd.md\` + recent
-  activity, and routes to the right skill (\`trellis-brainstorm\` for planning,
-  \`trellis-implement\` for coding, \`trellis-check\` for verification).
-- **\`trellis-implement\` sub-agent** is spawned when code needs to be written.
+- **\`/cstl:continue\`** loads the Phase Index, reads \`prd.md\` + recent
+  activity, and routes to the right skill (\`cstl-brainstorm\` for planning,
+  \`cstl-implement\` for coding, \`cstl-check\` for verification).
+- **\`cstl-implement\` sub-agent** is spawned when code needs to be written.
   The platform hook reads \`{TASK_DIR}/implement.jsonl\` and auto-injects those
   spec files + \`prd.md\` into the sub-agent's prompt so it codes per project
   conventions.
-- **\`trellis-check\` sub-agent** follows the same pattern with \`check.jsonl\`
+- **\`cstl-check\` sub-agent** follows the same pattern with \`check.jsonl\`
   — reviews changes against specs, auto-fixes issues, runs lint/typecheck.
 
 File layout (mention when they ask "where does what live"):
@@ -724,11 +797,13 @@ File layout (mention when they ask "where does what live"):
 
 ---
 
+${capabilitySection}
+
 ## Optional: walk through a small task end-to-end
 
 If they want to practice before touching real work, offer to pick a tiny
-P3 task or a typo fix and run the full cycle together: \`/trellis:continue\`
-→ you implement via sub-agents → \`/trellis:finish-work\`.
+P3 task or a typo fix and run the full cycle together: \`/cstl:continue\`
+→ you implement via sub-agents → \`/cstl:finish-work\`.
 
 ---
 
@@ -745,7 +820,7 @@ ${pythonCmd} ./.trellis/scripts/task.py archive 00-join-${slug}
 
 ## Suggested opening line
 
-"Welcome! Your \`trellis init\` set me up to onboard you to this project. I
+"Welcome! Your \`cstl init\` set me up to onboard you to this project. I
 can walk you through the workflow, show you the runtime mechanics under the
 hood, summarize the team's spec, or jump to what you're already curious about
 — which would you prefer?"
@@ -765,7 +840,11 @@ function createJoinerOnboardingTask(
   const slug = slugifyDeveloperName(developer);
   const taskName = `00-join-${slug}`;
   const taskJson = getJoinerTaskJson(developer, taskName);
-  const prdContent = getJoinerPrdContent(developer, pythonCmd);
+  const prdContent = getJoinerPrdContent(
+    developer,
+    pythonCmd,
+    loadProjectCapabilities(cwd),
+  );
   return writeTaskSkeleton(cwd, taskName, taskJson, prdContent);
 }
 
@@ -1052,7 +1131,7 @@ async function checkSmartSearchReadinessForInit(options: {
   interactive: boolean;
   skipReadiness?: boolean;
 }): Promise<void> {
-  const skipReadinessCommand = "trellis init --skip-readiness";
+  const skipReadinessCommand = "cstl init --skip-readiness";
 
   try {
     checkSmartSearchReadiness({
@@ -1122,7 +1201,7 @@ async function checkProjectCapabilityReadinessForInit(options: {
   interactive: boolean;
   skipReadiness?: boolean;
 }): Promise<void> {
-  const skipReadinessCommand = "trellis init --skip-readiness";
+  const skipReadinessCommand = "cstl init --skip-readiness";
 
   try {
     checkProjectCapabilityReadiness({
@@ -1176,7 +1255,7 @@ async function checkProjectCapabilityReadinessForInit(options: {
 export async function init(options: InitOptions): Promise<void> {
   // Refuse to run in $HOME — running here would scoop platform runtime data
   // (Claude/Codex/OpenCode session histories etc.) into the trellis hash
-  // manifest, and a subsequent `trellis uninstall` would wipe it.
+  // manifest, and a subsequent `cstl uninstall` would wipe it.
   if (isCwdHomedir() && !homedirBypassEnabled()) {
     console.error(chalk.red(homedirGuardMessage("init")));
     process.exit(1);
@@ -1878,8 +1957,8 @@ export async function init(options: InitOptions): Promise<void> {
       console.log(chalk.yellow(`   ${result.message}`));
       console.log(chalk.gray("   Falling back to blank templates..."));
       const retryCmd = registry
-        ? `trellis init --registry ${registry.gigetSource} --template ${selectedTemplate}`
-        : `trellis init --template ${selectedTemplate}`;
+        ? `cstl init --registry ${registry.gigetSource} --template ${selectedTemplate}`
+        : `cstl init --template ${selectedTemplate}`;
       console.log(chalk.gray(`   You can retry later: ${retryCmd}`));
     }
   } else if (registry && fetchedTemplates.length === 0) {
@@ -1932,7 +2011,7 @@ export async function init(options: InitOptions): Promise<void> {
       console.log(chalk.gray("   Falling back to blank templates..."));
       console.log(
         chalk.gray(
-          `   You can retry later: trellis init --registry ${registry.gigetSource}`,
+          `   You can retry later: cstl init --registry ${registry.gigetSource}`,
         ),
       );
     }
@@ -2100,13 +2179,21 @@ export async function init(options: InitOptions): Promise<void> {
       !fs.existsSync(tasksDir) || fs.readdirSync(tasksDir).length === 0;
 
     if (isFirstInit || tasksEmpty) {
-      createBootstrapTask(
+      const bootstrapCreated = createBootstrapTask(
         cwd,
         developerName,
         pythonCmd,
         projectType,
+        selectedCapabilities,
         monorepoPackages,
       );
+      if (bootstrapCreated) {
+        console.log(
+          chalk.gray(
+            `Next: complete ${BOOTSTRAP_TASK_NAME} to verify selected capabilities and fill the project spec.`,
+          ),
+        );
+      }
     } else if (!hadDeveloperFileAtStart) {
       try {
         if (!createJoinerOnboardingTask(cwd, developerName, pythonCmd)) {

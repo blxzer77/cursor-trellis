@@ -61,7 +61,7 @@ Run the project's lint, type-check, and test commands. Fix any failures before p
 
 ### Spec Sync
 
-- [ ] Does `.trellis/spec/` need updates? (route through semi-automatic flow: proposal → confirm → `trellis-update-spec`)
+- [ ] Does `.trellis/spec/` need updates? (route through semi-automatic flow: proposal → confirm → `cstl-update-spec`)
 
 > "If I fixed a bug or discovered something non-obvious, should I document it so future me won't hit the same issue?" → If YES, update the relevant spec doc.
 

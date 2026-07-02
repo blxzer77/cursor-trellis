@@ -113,10 +113,24 @@ describe("getMigrationsForVersion", () => {
     expect(migrations).toEqual([]);
   });
 
-  it("returns empty array for prerelease→stable when all migrations already applied", () => {
-    // rc.6 users already have all beta.0 migrations applied
-    const migrations = getMigrationsForVersion("0.3.0-rc.6", "0.3.0");
+  it("returns empty array for prerelease→stable when all migrations already applied (legacy line)", () => {
+    // rc.6 users already have all beta.0 migrations applied (legacy line)
+    const migrations = getLegacyMigrationsForVersion("0.3.0-rc.6", "0.3.0");
     expect(migrations).toEqual([]);
+  });
+
+  it("returns 0.3.0 rename migrations for 0.2.x→0.3.0 upgrade (current line)", () => {
+    // Current @blxzer/cursor-trellis line: 0.3.0 renames trellis-* → cstl-*
+    const migrations = getMigrationsForVersion("0.2.10", "0.3.0");
+    expect(migrations.length).toBeGreaterThan(0);
+    const renames = migrations.filter(
+      (m) => m.type === "rename" || m.type === "rename-dir",
+    );
+    expect(renames.length).toBeGreaterThan(0);
+    // Every rename should target cstl-* destinations
+    for (const m of renames) {
+      expect(m.to).toMatch(/cstl-/);
+    }
   });
 
   it("returns beta.0 migrations for 0.2.x→0.3.0 stable upgrade (legacy line)", () => {

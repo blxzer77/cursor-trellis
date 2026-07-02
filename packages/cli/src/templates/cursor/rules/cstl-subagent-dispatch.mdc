@@ -1,0 +1,34 @@
+---
+description: "Trellis subagent dispatch — generate dispatch prompt via CLI before Task tool (hook injection is broken in Cursor 3.8.22; this rule is the D-1 workaround)"
+alwaysApply: true
+---
+
+# Trellis Subagent Dispatch (CLI Layer 2 — MANDATORY)
+
+**CLI Layer 2 is the primary Cursor path.** The `preToolUse` hook does NOT fire for the Task tool in Cursor 3.8.22. Agent definition body does NOT enter subagent system prompt. The ONLY reliable context channel is the `Task` tool's `prompt` parameter.
+
+## Rule
+
+Before calling `Task(subagent_type="cstl-research|cstl-implement|cstl-check", ...)` you MUST:
+
+1. Generate a complete dispatch prompt via CLI:
+
+   ```powershell
+   python ./.trellis/scripts/generate_dispatch_prompt.py --agent <research|implement|check> --task "<task-path>" --repo-root "<repo-root>"
+   ```
+
+2. Use the CLI output as the `prompt` parameter value for `Task(...)`.
+
+3. Append any additional user instructions AFTER the generated prompt, separated by `\n\n---\n\n`.
+
+## Why
+
+The generated prompt carries role identity ("You are the Trellis Research/Implement/Check Agent"), write scope constraints, recursion guard, and dynamic context (prd.md, design.md, implement.md, spec tree, jsonl files). Without this, the subagent receives only a bare user instruction with no Trellis context.
+
+## Auto-detection
+
+If `--task` is omitted, the script resolves the currently selected task. If `--repo-root` is omitted, it auto-detects via `.trellis` or `.git` upward search.
+
+## Exception
+
+This rule does NOT apply to `generalPurpose`, `explore`, `shell`, or other non-Trellis subagent types. Only `cstl-research`, `cstl-implement`, `cstl-check` require CLI-generated prompts.

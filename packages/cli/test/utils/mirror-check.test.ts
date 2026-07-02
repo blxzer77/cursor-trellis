@@ -31,14 +31,14 @@ describe("mirror-check", () => {
 
     const templateRule = path.join(
       cliDir,
-      "src/templates/cursor/rules/trellis-triage.mdc",
+      "src/templates/cursor/rules/cstl-triage.mdc",
     );
     fs.copyFileSync(
       templateRule,
-      path.join(dogfoodCursor, "trellis-triage.mdc"),
+      path.join(dogfoodCursor, "cstl-triage.mdc"),
     );
     fs.writeFileSync(
-      path.join(dogfoodCursor, "trellis-triage.mdc"),
+      path.join(dogfoodCursor, "cstl-triage.mdc"),
       fs.readFileSync(templateRule, "utf-8") + "\n# drift",
     );
 
@@ -48,7 +48,7 @@ describe("mirror-check", () => {
       templateAgentsPath: path.join(cliDir, "src/templates/markdown/agents.md"),
     });
     expect(result.ok).toBe(false);
-    expect(result.diffs.some((d) => d.relativePath === "rules/trellis-triage.mdc")).toBe(
+    expect(result.diffs.some((d) => d.relativePath === "rules/cstl-triage.mdc")).toBe(
       true,
     );
   });

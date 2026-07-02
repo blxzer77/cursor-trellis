@@ -195,7 +195,7 @@ def suggest_execution_strategy(
     elif profile == "full":
         mode = "worker"
         iso = "main-worktree"
-        reasons.append("Full task touching code → worker (trellis-implement / check sub-agents)")
+        reasons.append("Full task touching code → worker (cstl-implement / check sub-agents)")
     else:
         mode = "inline"
         iso = "main-worktree"

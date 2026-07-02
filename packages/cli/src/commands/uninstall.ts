@@ -1,5 +1,5 @@
 /**
- * `trellis uninstall` — remove every file written by `trellis init` / `update`
+ * `cstl uninstall` — remove every file written by `cstl init` / `update`
  * from the current project, plus the `.trellis/` directory itself.
  *
  * The single source of truth for "what trellis wrote" is
@@ -400,7 +400,7 @@ export async function uninstall(options: UninstallOptions = {}): Promise<void> {
   if (!options.yes) {
     // Make sure stdin is in a usable state for the prompt; in scripted
     // environments that closed stdin, inquirer would otherwise raise. We
-    // honor the same UX as `trellis update` (which also fails closed in
+    // honor the same UX as `cstl update` (which also fails closed in
     // that case).
     if (!process.stdin.isTTY) {
       console.error(

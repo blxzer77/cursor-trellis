@@ -61,6 +61,22 @@ interface RenderedCapabilityAdapter {
   mcp_server?: string;
 }
 
+export const PROJECT_CAPABILITY_READINESS_STATUSES = [
+  "pending",
+  "ready",
+  "failed",
+] as const;
+
+export type ProjectCapabilityReadinessStatus =
+  (typeof PROJECT_CAPABILITY_READINESS_STATUSES)[number];
+
+interface StoredCapabilityState {
+  selected: boolean;
+  readiness_status?: ProjectCapabilityReadinessStatus;
+  readiness_status_updated_at?: string;
+  readiness_status_detail?: string;
+}
+
 const CAPABILITIES_JSON_PATH = ".trellis/capabilities.json";
 const CAPABILITIES_MD_PATH = ".trellis/capabilities.md";
 const CODEX_CAPABILITIES_START = "# TRELLIS:PROJECT-CAPABILITIES:START";
@@ -404,16 +420,35 @@ export function getProjectCapabilityChoices(): {
 
 export function renderCapabilitiesJson(
   selected: readonly ProjectCapabilityId[],
+  states?: Partial<Record<ProjectCapabilityId, StoredCapabilityState>>,
 ): string {
   const selectedIds = uniqueInRegistryOrder(selected);
   const selectedLookup = selectedSet(selectedIds);
+  const renderedAt = new Date().toISOString();
   const capabilities = Object.fromEntries(
     PROJECT_CAPABILITIES.map((capability) => {
       const adapters = renderCapabilityAdapters(capability.adapters);
+      const isSelected = selectedLookup.has(capability.id);
+      const existingState = states?.[capability.id];
       return [
         capability.id,
         {
-          selected: selectedLookup.has(capability.id),
+          selected: isSelected,
+          ...(isSelected
+            ? {
+                readiness_status:
+                  existingState?.readiness_status ??
+                  ("pending" satisfies ProjectCapabilityReadinessStatus),
+                readiness_status_updated_at:
+                  existingState?.readiness_status_updated_at ?? renderedAt,
+                ...(existingState?.readiness_status_detail
+                  ? {
+                      readiness_status_detail:
+                        existingState.readiness_status_detail,
+                    }
+                  : {}),
+              }
+            : {}),
           mcp_servers: capability.mcpServers.map((server) => ({
             name: server.name,
             command: server.command,
@@ -439,7 +474,7 @@ export function renderCapabilitiesJson(
 
   return `${JSON.stringify(
     {
-      schema_version: 2,
+      schema_version: 3,
       note: "Trellis-managed project capability selection. Credentials and global MCP/client config stay outside repository templates.",
       selected: selectedIds,
       capabilities,
@@ -591,8 +626,22 @@ function appendCodebaseRetrievalWorkflow(lines: string[]): void {
   appendCodebaseRetrievalIntentBranches(lines);
 }
 
+function capabilityStatusLabel(
+  status: ProjectCapabilityReadinessStatus | undefined,
+): string {
+  switch (status) {
+    case "ready":
+      return "ready";
+    case "failed":
+      return "failed";
+    default:
+      return "pending";
+  }
+}
+
 export function renderCapabilitiesMarkdown(
   selected: readonly ProjectCapabilityId[],
+  states?: Partial<Record<ProjectCapabilityId, StoredCapabilityState>>,
 ): string {
   const selectedIds = uniqueInRegistryOrder(selected);
   const lines = [
@@ -609,7 +658,15 @@ export function renderCapabilitiesMarkdown(
   } else {
     for (const id of selectedIds) {
       const capability = capabilityById(id);
-      lines.push(`- ${capability.id}: ${capability.description}`);
+      const state = states?.[id];
+      const status = capabilityStatusLabel(state?.readiness_status);
+      const detail =
+        state?.readiness_status_detail?.trim()
+          ? ` (${state.readiness_status_detail.trim()})`
+          : "";
+      lines.push(
+        `- ${capability.id} [${status}]: ${capability.description}${detail}`,
+      );
     }
   }
 
@@ -781,6 +838,7 @@ export function renderMcpJson(
 export function buildProjectCapabilityTemplates(
   selected: readonly ProjectCapabilityId[],
   platforms: Iterable<AITool>,
+  states?: Partial<Record<ProjectCapabilityId, StoredCapabilityState>>,
 ): Map<string, string> {
   const selectedIds = uniqueInRegistryOrder(selected);
   const files = new Map<string, string>();
@@ -788,8 +846,8 @@ export function buildProjectCapabilityTemplates(
     return files;
   }
 
-  files.set(CAPABILITIES_JSON_PATH, renderCapabilitiesJson(selectedIds));
-  files.set(CAPABILITIES_MD_PATH, renderCapabilitiesMarkdown(selectedIds));
+  files.set(CAPABILITIES_JSON_PATH, renderCapabilitiesJson(selectedIds, states));
+  files.set(CAPABILITIES_MD_PATH, renderCapabilitiesMarkdown(selectedIds, states));
 
   const platformSet = new Set(platforms);
   if (platformSet.has("cursor")) {
@@ -804,7 +862,11 @@ export async function writeProjectCapabilityFiles(
   selected: readonly ProjectCapabilityId[],
   platforms: Iterable<AITool>,
 ): Promise<void> {
-  const files = buildProjectCapabilityTemplates(selected, platforms);
+  const files = buildProjectCapabilityTemplates(
+    selected,
+    platforms,
+    loadStoredCapabilityStates(cwd),
+  );
   if (files.size === 0) {
     return;
   }
@@ -816,8 +878,70 @@ export async function writeProjectCapabilityFiles(
   }
 }
 
-function normalizeLineEndings(content: string): string {
-  return content.replace(/\r\n/g, "\n");
+function parseStoredCapabilityState(
+  value: unknown,
+): StoredCapabilityState | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+  const candidate = value as Record<string, unknown>;
+  if (typeof candidate.selected !== "boolean") {
+    return undefined;
+  }
+  const state: StoredCapabilityState = {
+    selected: candidate.selected,
+  };
+  if (
+    typeof candidate.readiness_status === "string" &&
+    PROJECT_CAPABILITY_READINESS_STATUSES.includes(
+      candidate.readiness_status as ProjectCapabilityReadinessStatus,
+    )
+  ) {
+    state.readiness_status =
+      candidate.readiness_status as ProjectCapabilityReadinessStatus;
+  }
+  if (typeof candidate.readiness_status_updated_at === "string") {
+    state.readiness_status_updated_at = candidate.readiness_status_updated_at;
+  }
+  if (typeof candidate.readiness_status_detail === "string") {
+    state.readiness_status_detail = candidate.readiness_status_detail;
+  }
+  return state;
+}
+
+export function loadStoredCapabilityStates(
+  cwd: string,
+): Partial<Record<ProjectCapabilityId, StoredCapabilityState>> {
+  const filePath = path.join(cwd, ...CAPABILITIES_JSON_PATH.split("/"));
+  if (!fs.existsSync(filePath)) {
+    return {};
+  }
+
+  try {
+    const parsed = JSON.parse(fs.readFileSync(filePath, "utf-8")) as {
+      capabilities?: unknown;
+    };
+    if (
+      !parsed.capabilities ||
+      typeof parsed.capabilities !== "object" ||
+      Array.isArray(parsed.capabilities)
+    ) {
+      return {};
+    }
+    const states: Partial<Record<ProjectCapabilityId, StoredCapabilityState>> =
+      {};
+    for (const id of PROJECT_CAPABILITY_IDS) {
+      const state = parseStoredCapabilityState(
+        (parsed.capabilities as Record<string, unknown>)[id],
+      );
+      if (state) {
+        states[id] = state;
+      }
+    }
+    return states;
+  } catch {
+    return {};
+  }
 }
 
 export function loadProjectCapabilities(cwd: string): ProjectCapabilityId[] {
@@ -850,5 +974,54 @@ export function collectProjectCapabilityTemplates(
   return buildProjectCapabilityTemplates(
     loadProjectCapabilities(cwd),
     platforms,
+    loadStoredCapabilityStates(cwd),
+  );
+}
+
+export function updateCapabilityReadinessStatus(
+  cwd: string,
+  capabilityId: ProjectCapabilityId,
+  status: ProjectCapabilityReadinessStatus,
+  detail?: string,
+): void {
+  const filePath = path.join(cwd, ...CAPABILITIES_JSON_PATH.split("/"));
+  if (!fs.existsSync(filePath)) {
+    throw new Error(`Missing ${CAPABILITIES_JSON_PATH}`);
+  }
+
+  const parsed = JSON.parse(fs.readFileSync(filePath, "utf-8")) as {
+    selected?: unknown;
+    capabilities?: Record<string, unknown>;
+    schema_version?: unknown;
+  };
+  if (!parsed.capabilities || typeof parsed.capabilities !== "object") {
+    throw new Error("capabilities.json missing capabilities object");
+  }
+
+  const current = parseStoredCapabilityState(parsed.capabilities[capabilityId]);
+  if (!current?.selected) {
+    throw new Error(`Capability ${capabilityId} is not selected`);
+  }
+
+  const next = {
+    ...(parsed.capabilities[capabilityId] as Record<string, unknown>),
+    readiness_status: status,
+    readiness_status_updated_at: new Date().toISOString(),
+    ...(detail?.trim()
+      ? { readiness_status_detail: detail.trim() }
+      : { readiness_status_detail: undefined }),
+  };
+
+  parsed.schema_version = 3;
+  parsed.capabilities[capabilityId] = next;
+  fs.writeFileSync(filePath, `${JSON.stringify(parsed, null, 2)}\n`, "utf-8");
+
+  const markdownPath = path.join(cwd, ...CAPABILITIES_MD_PATH.split("/"));
+  const selectedIds = loadProjectCapabilities(cwd);
+  const states = loadStoredCapabilityStates(cwd);
+  fs.writeFileSync(
+    markdownPath,
+    renderCapabilitiesMarkdown(selectedIds, states),
+    "utf-8",
   );
 }

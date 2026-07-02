@@ -72,19 +72,19 @@ describe("configurePlatform", () => {
       tmpDir,
       ".cursor",
       "commands",
-      "trellis-continue.md",
+      "cstl-continue.md",
     );
     const finishCmd = path.join(
       tmpDir,
       ".cursor",
       "commands",
-      "trellis-finish-work.md",
+      "cstl-finish-work.md",
     );
     const c2pCmd = path.join(
       tmpDir,
       ".cursor",
       "commands",
-      "trellis-cursor2plus-setup.md",
+      "cstl-cursor2plus-setup.md",
     );
     expect(fs.existsSync(continueCmd)).toBe(true);
     expect(fs.existsSync(finishCmd)).toBe(true);
@@ -98,9 +98,9 @@ describe("configurePlatform", () => {
     const templates = collectPlatformTemplates("cursor");
     expect(templates).toBeInstanceOf(Map);
     if (!templates) throw new Error("cursor did not expose template tracking");
-    expect(templates.has(".cursor/commands/trellis-continue.md")).toBe(true);
-    expect(templates.has(".cursor/commands/trellis-finish-work.md")).toBe(true);
-    expect(templates.has(".cursor/commands/trellis-cursor2plus-setup.md")).toBe(
+    expect(templates.has(".cursor/commands/cstl-continue.md")).toBe(true);
+    expect(templates.has(".cursor/commands/cstl-finish-work.md")).toBe(true);
+    expect(templates.has(".cursor/commands/cstl-cursor2plus-setup.md")).toBe(
       true,
     );
     const skillKeys = [...templates.keys()].filter((k) =>

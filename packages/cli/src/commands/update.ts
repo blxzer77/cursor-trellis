@@ -96,7 +96,7 @@ export interface UpdateOptions {
   json?: boolean;
   /** Skip post-apply Python script smoke checks (apply mode only). */
   skipPostUpdateSmoke?: boolean;
-  /** Filled on completion for `trellis rollout` aggregation. */
+  /** Filled on completion for `cstl rollout` aggregation. */
   lastReport?: UpdateRolloutReport;
 }
 
@@ -374,6 +374,20 @@ function printSafeFileDeleteSummary(
  * files, or dry-run preview) so the user knows what remains and why.
  */
 const CURSOR_SKILL_RESIDUE_DIRS = [
+  // Current cstl-* names (post-0.3.0)
+  "cstl-brainstorm",
+  "cstl-before-dev",
+  "cstl-check",
+  "cstl-break-loop",
+  "cstl-update-spec",
+  "cstl-finish-work",
+  "cstl-micro-grill",
+  "cstl-meta",
+  "cstl-skill-creator",
+  "cstl-spec-bootstrap",
+  "cstl-cursor2plus-setup",
+  "smart-search-cli",
+  // Legacy trellis-* names also checked for residue detection (pre-0.3.0 projects)
   "trellis-brainstorm",
   "trellis-before-dev",
   "trellis-check",
@@ -384,7 +398,6 @@ const CURSOR_SKILL_RESIDUE_DIRS = [
   "trellis-meta",
   "trellis-skill-creator",
   "trellis-spec-bootstrap",
-  "smart-search-cli",
   "trellis-cursor2plus-setup",
 ];
 
@@ -401,9 +414,11 @@ function printCursorSkillResidueNotice(cwd: string): void {
   if (foundResidues.length === 0) return;
 
   const hasFinishWorkCmd = fs.existsSync(
-    path.join(cwd, ".cursor", "commands", "trellis-finish-work.md"),
+    path.join(cwd, ".cursor", "commands", "cstl-finish-work.md"),
   );
-  const hasFinishWorkSkill = foundResidues.includes("trellis-finish-work");
+  const hasFinishWorkSkill =
+    foundResidues.includes("cstl-finish-work") ||
+    foundResidues.includes("trellis-finish-work");
 
   console.log(chalk.cyan("  Cursor commands-only skill residue notice:"));
   console.log(
@@ -1767,7 +1782,7 @@ function releaseBlockersFromReadiness(
     blockers.push({
       code: "cli_behind_npm",
       message: `CLI ${cliVersion} is behind npm ${latestNpmVersion}`,
-      recovery: ["trellis upgrade"],
+      recovery: ["cstl upgrade"],
     });
   }
   if (!readiness.skipped && !readiness.smartSearch.ok) {
@@ -1776,7 +1791,7 @@ function releaseBlockersFromReadiness(
       message: "Smart Search readiness did not pass",
       recovery: [
         "smart-search doctor --format json",
-        "trellis update --skip-readiness",
+        "cstl update --skip-readiness",
       ],
     });
   }
@@ -1785,7 +1800,7 @@ function releaseBlockersFromReadiness(
       blockers.push({
         code: `capability_${cap.id}`,
         message: `Capability ${cap.id} readiness failed`,
-        recovery: ["trellis update --skip-readiness"],
+        recovery: ["cstl update --skip-readiness"],
       });
     }
   }
@@ -1872,7 +1887,7 @@ export async function update(options: UpdateOptions): Promise<void> {
   // Check if Trellis is initialized
   if (!fs.existsSync(path.join(cwd, DIR_NAMES.WORKFLOW))) {
     console.log(chalk.red("Error: Trellis not initialized in this directory."));
-    console.log(chalk.gray("Run 'trellis init' first."));
+    console.log(chalk.gray("Run 'cstl init' first."));
     emitEarly("blocked_not_initialized");
     return;
   }
@@ -1885,13 +1900,13 @@ export async function update(options: UpdateOptions): Promise<void> {
 
   checkSmartSearchReadiness({
     skipReadiness: options.skipReadiness,
-    skipReadinessCommand: "trellis update --skip-readiness",
+    skipReadinessCommand: "cstl update --skip-readiness",
   });
   checkProjectCapabilityReadiness({
     cwd,
     selected: loadProjectCapabilities(cwd),
     skipReadiness: options.skipReadiness,
-    skipReadinessCommand: "trellis update --skip-readiness",
+    skipReadinessCommand: "cstl update --skip-readiness",
   });
 
   readinessSnapshot = snapshotReadinessForRollout({
@@ -1928,7 +1943,7 @@ export async function update(options: UpdateOptions): Promise<void> {
         `⚠️  Your CLI (${cliVersion}) is behind npm (${latestNpmVersion}).`,
       ),
     );
-    console.log(chalk.yellow(`   Run: trellis upgrade\n`));
+    console.log(chalk.yellow(`   Run: cstl upgrade\n`));
   }
 
   // Check for downgrade situation
@@ -1942,9 +1957,9 @@ export async function update(options: UpdateOptions): Promise<void> {
 
     if (!options.allowDowngrade) {
       console.log(chalk.gray("Solutions:"));
-      console.log(chalk.gray(`  1. Update your CLI: trellis upgrade`));
+      console.log(chalk.gray(`  1. Update your CLI: cstl upgrade`));
       console.log(
-        chalk.gray(`  2. Force downgrade: trellis update --allow-downgrade\n`),
+        chalk.gray(`  2. Force downgrade: cstl update --allow-downgrade\n`),
       );
       emitEarly("blocked_downgrade");
       return;
@@ -1968,7 +1983,7 @@ export async function update(options: UpdateOptions): Promise<void> {
   if (isUnknownVersion) {
     console.log(
       chalk.yellow(
-        "⚠️  No version file found. Skipping migrations — run trellis init to fix.",
+        "⚠️  No version file found. Skipping migrations — run cstl init to fix.",
       ),
     );
     console.log(chalk.gray("   Template updates will still be applied."));
@@ -1979,7 +1994,7 @@ export async function update(options: UpdateOptions): Promise<void> {
 
   // Self-heal poisoned manifests: prune entries that no current platform
   // configurator owns. This silently removes user-owned paths that early
-  // buggy versions of `trellis init` over-hashed (e.g. legacy session dirs).
+  // buggy versions of `cstl init` over-hashed (e.g. legacy session dirs).
   {
     const configuredPlatforms = new Set<AITool>(getConfiguredPlatforms(cwd));
     const prune = pruneOrphanManifestKeys(
@@ -2113,7 +2128,7 @@ export async function update(options: UpdateOptions): Promise<void> {
             ),
         );
         console.log("");
-        console.log(chalk.yellow(`  Run: trellis update --migrate`));
+        console.log(chalk.yellow(`  Run: cstl update --migrate`));
         console.log("");
         console.log(
           chalk.gray(
@@ -2387,7 +2402,7 @@ export async function update(options: UpdateOptions): Promise<void> {
     // explicit consent flag or a dry-run first.
     if (!process.stdin.isTTY) {
       throw new Error(
-        "Non-interactive `trellis update` requires an explicit consent flag. " +
+        "Non-interactive `cstl update` requires an explicit consent flag. " +
           "Re-run with --force (apply all), --skip-all (preserve modified), --create-new (.new copies), or --dry-run (preview only).",
       );
     }
@@ -2702,7 +2717,7 @@ export async function update(options: UpdateOptions): Promise<void> {
         prdContent += `**From Version**: ${projectVersion}\n`;
         prdContent += `**To Version**: ${cliVersion}\n`;
         prdContent += `**Assignee**: ${currentDeveloper}\n\n`;
-        prdContent += `## Status\n\n- [ ] Review migration guide\n- [ ] Update custom files\n- [ ] Run \`trellis update --migrate\`\n- [ ] Test workflows\n\n`;
+        prdContent += `## Status\n\n- [ ] Review migration guide\n- [ ] Update custom files\n- [ ] Run \`cstl update --migrate\`\n- [ ] Test workflows\n\n`;
 
         for (const {
           version,

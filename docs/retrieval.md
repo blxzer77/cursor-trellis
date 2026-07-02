@@ -160,8 +160,8 @@ The retrieval router and agent-instruction builder enforce environment complianc
 
 When a smart-search run writes a retrieval pack (`{TASK}/research/smart-search/retrieval-pack-latest.json`), the finish and check workflow references it:
 
-- **`/trellis-finish-work`** and the `trellis-check` skill cite `retrieval-pack-latest.json` when present, so the verifier can confirm external facts came from smart-search rather than a platform built-in web tool.
-- **`trellis-research`** prompts now include **provider relevance caveats** — a note that semantic-search quality depends on the active provider/model and that the agent should refine the query (add concrete symbols, layer names, or file paths) before declaring "no results".
+- **`/cstl-finish-work`** and the `cstl-check` skill cite `retrieval-pack-latest.json` when present, so the verifier can confirm external facts came from smart-search rather than a platform built-in web tool.
+- **`cstl-research`** prompts now include **provider relevance caveats** — a note that semantic-search quality depends on the active provider/model and that the agent should refine the query (add concrete symbols, layer names, or file paths) before declaring "no results".
 
 ## CLI command reference
 

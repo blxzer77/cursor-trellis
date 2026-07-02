@@ -2,14 +2,14 @@
 
 English | [简体中文](workflow.zh-CN.md)
 
-This guide explains how to run the **Trellis task lifecycle** inside **Cursor** after `trellis init --cursor`. It covers the full lifecycle: Request Triage, the Task Ladder, planning artifacts, Parent/Child task trees, the three phases (Plan → Execute → Finish), and the differences between Lite, Micro-Grill, and No Task turns.
+This guide explains how to run the **Trellis task lifecycle** inside **Cursor** after `cstl init --cursor`. It covers the full lifecycle: Request Triage, the Task Ladder, planning artifacts, Parent/Child task trees, the three phases (Plan → Execute → Finish), and the differences between Lite, Micro-Grill, and No Task turns.
 
-The canonical rules live in your project's `.trellis/workflow.md` (generated/updated by Trellis). Cursor agents also see **Request Triage** via `.cursor/rules/trellis-triage.mdc`.
+The canonical rules live in your project's `.trellis/workflow.md` (generated/updated by Trellis). Cursor agents also see **Request Triage** via `.cursor/rules/cstl-triage.mdc`.
 
 ## Prerequisites
 
 1. Install the CLI: `npm install -g @blxzer/cursor-trellis`
-2. In your repo root: `trellis init --cursor`
+2. In your repo root: `cstl init --cursor`
 3. Open the project in Cursor and use **Agent** mode for durable work.
 
 Optional: run `python ./.trellis/scripts/get_context.py` in a terminal to see the active task and phase hints.
@@ -67,10 +67,10 @@ Before executing an upgrade that creates artifacts, changes task mode, adds gate
 
 | Situation | Action |
 | --- | --- |
-| No selected task + small unclear ask | `trellis-micro-grill` |
-| No selected task + need dashboard | `trellis-start` |
-| Selected task + resume step | `/trellis-continue` |
-| Planning / PRD | `trellis-brainstorm` |
+| No selected task + small unclear ask | `cstl-micro-grill` |
+| No selected task + need dashboard | `cstl-start` |
+| Selected task + resume step | `/cstl-continue` |
+| Planning / PRD | `cstl-brainstorm` |
 | Parent with parallel children | `generate-child-prompt --mode subagent` (writable Agent) |
 
 ## Planning artifacts
@@ -117,7 +117,7 @@ flowchart TD
 
 **1.1 Brainstorm (Discovery + PRD Grill).** Phase A — Discovery Before Questions: inspect code, tests, specs, history, platform files, and parent/child structure; record confirmed facts and draft `prd.md`. Phase B — PRD Grill pass: run a 14-item checklist on `prd.md` (the last two enforce **First Principles** and **Occam's Razor** on the requirements and design), then micro-grill only **blocking** open questions one at a time (with a recommended answer + trade-off). Update `prd.md` after every answer.
 
-**1.2 Research (optional).** Dispatch `trellis-research` when a topic needs a dedicated `{TASK}/research/<topic>.md`. For external facts, smart-search is mandatory first (Cursor WebSearch is downgrade-only). Research output must be written to files, not left only in chat.
+**1.2 Research (optional).** Dispatch `cstl-research` when a topic needs a dedicated `{TASK}/research/<topic>.md`. For external facts, smart-search is mandatory first (Cursor WebSearch is downgrade-only). Research output must be written to files, not left only in chat.
 
 **1.3 Configure context.** Curate `implement.jsonl` and `check.jsonl` so Phase 2 sub-agents get the right spec/research context. Format: one JSON object per line `{"file": "<path>", "reason": "<why>"}`. Put in spec files and research files; do **not** put in code files you're about to modify. Discover relevant specs with `get_context.py --mode packages`.
 
@@ -141,23 +141,23 @@ Status moves to `in_progress`. Only then should the agent modify code scoped in 
 
 Execution is bounded by the approved `prd.md`, `design.md`, `implement.md`, and Development Strategy Contract. Do not global-reclassify, auto-switch tasks, auto-create new scope, or edit planning artifacts to change scope/design/contract while pretending execution is still approved.
 
-**2.1 Implement.** Use retrieval layers (see [retrieval.md](retrieval.md)) before and during implementation when context is incomplete. Spawn the `trellis-implement` sub-agent (Full / Parent — Cursor): the main session assembles the full dispatch prompt via Trellis scripts, then calls `Task(subagent_type=trellis-implement, prompt=<assembled>)`. Do not rely on the `preToolUse` hook alone for context on Cursor.
+**2.1 Implement.** Use retrieval layers (see [retrieval.md](retrieval.md)) before and during implementation when context is incomplete. Spawn the `cstl-implement` sub-agent (Full / Parent — Cursor): the main session assembles the full dispatch prompt via Trellis scripts, then calls `Task(subagent_type=cstl-implement, prompt=<assembled>)`. Do not rely on the `preToolUse` hook alone for context on Cursor.
 
-**2.2 Quality check.** Spawn the `trellis-check` sub-agent: review code against specs and planning artifacts; fix implementation defects only inside the approved contract; route requirement/design/contract/scope/capability defects back to Planning. Run lint and typecheck.
+**2.2 Quality check.** Spawn the `cstl-check` sub-agent: review code against specs and planning artifacts; fix implementation defects only inside the approved contract; route requirement/design/contract/scope/capability defects back to Planning. Run lint and typecheck.
 
 **2.3 Rollback.** `check` reveals a contract-changing defect → Return-to-Planning, refresh gates/fingerprints, get explicit approval again. Implementation went wrong → revert code, redo 2.1. Need more research → research (same as 1.2), write findings into `research/`.
 
 ### 3. Finish (Phase 3)
 
-**3.1 Quality verification.** Load `trellis-check` for a final review: spec compliance, lint/type-check/tests, cross-layer consistency, and retrieval evidence (final claims must cite current source, Git, or validation proof). Write human-readable validation, review, and acceptance evidence in `verify.md`. Do not silently implement fixes or expand scope during Verification. Optionally run `get_context.py --mode retrieval-pack` to score collected evidence.
+**3.1 Quality verification.** Load `cstl-check` for a final review: spec compliance, lint/type-check/tests, cross-layer consistency, and retrieval evidence (final claims must cite current source, Git, or validation proof). Write human-readable validation, review, and acceptance evidence in `verify.md`. Do not silently implement fixes or expand scope during Verification. Optionally run `get_context.py --mode retrieval-pack` to score collected evidence.
 
-**3.2 Debug retrospective (on demand).** If the task involved repeated debugging (same issue fixed multiple times), load `trellis-break-loop` to classify root cause, explain why earlier fixes failed, and propose prevention.
+**3.2 Debug retrospective (on demand).** If the task involved repeated debugging (same issue fixed multiple times), load `cstl-break-loop` to classify root cause, explain why earlier fixes failed, and propose prevention.
 
-**3.3 Learning decision.** Review whether the task produced durable learning worth recording (repeated failure loops, requirement drift, architecture decisions, reusable conventions, toolchain pitfalls). If yes, load `trellis-update-spec` and update `.trellis/spec/` or write a focused `retrospective.md`, linked from `verify.md`. If no durable learning exists, write an explicit `No durable learning` decision in `verify.md`.
+**3.3 Learning decision.** Review whether the task produced durable learning worth recording (repeated failure loops, requirement drift, architecture decisions, reusable conventions, toolchain pitfalls). If yes, load `cstl-update-spec` and update `.trellis/spec/` or write a focused `retrospective.md`, linked from `verify.md`. If no durable learning exists, write an explicit `No durable learning` decision in `verify.md`.
 
 **3.4 Commit changes.** The agent drives a batched commit: inspect `git status --porcelain`, learn commit style from `git log --oneline -5`, classify dirty files into "AI-edited this session" (work commits FIRST) vs "bookkeeping" (archive + journal commits after). Work commits land before bookkeeping — never interleaved.
 
-**3.5 Archive.** Close the loop with `/trellis-finish-work` or manual status update:
+**3.5 Archive.** Close the loop with `/cstl-finish-work` or manual status update:
 
 ```bash
 python ./.trellis/scripts/task.py status <task> done   # when your workflow allows
@@ -170,7 +170,7 @@ Before archive, `verify.md` must contain validation evidence, final acceptance e
 | Mode | Cursor behavior |
 | --- | --- |
 | **Lite** | Short `implement.md` or inline plan; may skip heavy PRD; still triage-mark replies; still needs validation + acceptance + learning evidence in `verify.md` before archive |
-| **Micro-Grill** | One clarifying question at a time via `trellis-micro-grill` skill semantics; no task artifacts by default; upgrade before durable edits |
+| **Micro-Grill** | One clarifying question at a time via `cstl-micro-grill` skill semantics; no task artifacts by default; upgrade before durable edits |
 | **No Task** | Answer directly; no task artifacts |
 
 ## workflow-state breadcrumb
@@ -181,8 +181,8 @@ Cursor's `UserPromptSubmit` hook reads `[workflow-state:*]` blocks embedded in `
 
 | User action | Cursor | Manual equivalent |
 | --- | --- | --- |
-| Resume task | `/trellis-continue` | `get_context.py`, read `task.json` |
-| Finish work | `/trellis-finish-work` | `task.py` finish helpers per workflow |
+| Resume task | `/cstl-continue` | `get_context.py`, read `task.json` |
+| Finish work | `/cstl-finish-work` | `task.py` finish helpers per workflow |
 | Continue after planning | User says "approve execution" | `start-execution --approved` |
 
 Only **user-invocable** commands belong in the `/` palette. Other Trellis skills are internal and do not appear under `.cursor/skills/` (commands-only policy) — see [Cursor integration](cursor.md).
@@ -194,7 +194,7 @@ After upgrading the global CLI:
 ```bash
 npm update -g @blxzer/cursor-trellis
 cd /path/to/your-project
-trellis update
+cstl update
 ```
 
 This refreshes `.trellis/workflow.md`, Cursor rules/commands/hooks, and hash-tracked templates. Review diffs when you have customized workflow or rules.
