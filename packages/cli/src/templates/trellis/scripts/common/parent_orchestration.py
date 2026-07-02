@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Parent reviewer orchestration: child prompt generation and review workflows.
 
@@ -266,9 +266,9 @@ def build_child_prompt(
                 f"Selected task: {child_rel}",
                 "",
                 "Delivery mode: subagent (Cursor)",
-                "- **Default:** Parent session dispatches **Task** with `subagent_type=trellis-implement` and this prompt as the task description (writable sub-agent). Model under Cursor++ BYOK comes from `.trellis/local/cursor2plus/` routing (see `cursor-subagent-policy.md` Method 2.5/2.6).",
+                "- **Default:** Parent session dispatches **Task** with `subagent_type=cstl-implement` and this prompt as the task description (writable sub-agent). Model under Cursor++ BYOK comes from `.trellis/local/cursor2plus/` routing (see `cursor-subagent-policy.md` Method 2.5/2.6).",
                 "- **Exception:** If parent `child-prompts.md` or the user names this child for a **separate writable Agent chat**, open a new Agent session, pick the model manually, paste this prompt — do not use Task from Parent.",
-                "- Parent retains `review-child` / `integrate-child`. Child must not nest further `trellis-research` / `trellis-implement` / `trellis-check` Task dispatches.",
+                "- Parent retains `review-child` / `integrate-child`. Child must not nest further `cstl-research` / `cstl-implement` / `cstl-check` Task dispatches.",
                 f"- Parent orchestration: `execution_topology={topo}`, `merge_limit={merge_lim}`.",
                 "- When `isolation: git-worktree`, prepare worktree from a **git repo root** (e.g. `Trellis/`) before large edits.",
                 "",
@@ -421,7 +421,7 @@ def _learning_decision_review_lines(
         "Child verify.md has no grep-friendly durable-learning line yet. Pick one outcome:",
         "",
         "- `Durable learning decision: no durable learning` — routine scope, no reusable contract.",
-        "- `Spec update evidence: .trellis/spec/<path>` — after `/trellis:update-spec` with reviewer confirmation.",
+        "- `Spec update evidence: .trellis/spec/<path>` — after `/cstl:update-spec` with reviewer confirmation.",
         f"- `Learning artifact: {child_rel}/handoff.md` — handoff already captures the insight.",
         "",
         f"Helper: `python ./.trellis/scripts/task.py prepare-archive-evidence {child_rel}`",

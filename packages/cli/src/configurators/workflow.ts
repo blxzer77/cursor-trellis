@@ -76,9 +76,9 @@ export interface WorkflowOptions {
   /**
    * Whether to materialize the Cursor++ BYOK local operator bundle
    * (`.trellis/local/cursor2plus/`). Defaults to `false` from 1.1.0: only
-   * written when the user opts in during `trellis init` (interactive BYOK
+   * written when the user opts in during `cstl init` (interactive BYOK
    * question) or passes `--cursor2plus`. Native Cursor API users do not need
-   * these assets. `trellis update` keeps existing bundles (detected by
+   * these assets. `cstl update` keeps existing bundles (detected by
    * directory presence) regardless of this flag.
    */
   cursor2plus?: boolean;

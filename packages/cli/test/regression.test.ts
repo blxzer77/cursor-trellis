@@ -796,14 +796,14 @@ describe("regression: agent-session Trellis update hint", () => {
     return match?.[0] ?? "";
   }
 
-  it("shows a concise update hint when trellis --version reports a newer version", () => {
+  it("shows a concise update hint when cstl --version reports a newer version", () => {
     const output = runContextWithTrellisOutput(
       "0.5.0",
-      "Trellis update available: 0.5.0 → 0.5.9\nRun: trellis update\n0.5.9",
+      "Trellis update available: 0.5.0 → 0.5.9\nRun: cstl update\n0.5.9",
     );
 
     expect(output).toContain("Trellis update available: 0.5.0 -> 0.5.9");
-    expect(output).toContain("run trellis upgrade");
+    expect(output).toContain("run cstl upgrade");
     expect(output).toContain("SESSION CONTEXT");
   });
 
@@ -820,7 +820,7 @@ describe("regression: agent-session Trellis update hint", () => {
     );
   });
 
-  it("silently skips the hint when trellis --version fails or version parsing fails", () => {
+  it("silently skips the hint when cstl --version fails or version parsing fails", () => {
     expect(runContextWithTrellisOutput("0.5.0", null)).not.toContain(
       "Trellis update available",
     );
@@ -843,7 +843,7 @@ describe("regression: agent-session Trellis update hint", () => {
     expect(output).toContain("Trellis update available: 0.5.0 -> 0.5.9");
   });
 
-  it("uses the final trellis --version token when no update line is present", () => {
+  it("uses the final cstl --version token when no update line is present", () => {
     const output = runContextWithTrellisOutput("0.5.0", "0.5.9");
 
     expect(output).toContain("Trellis update available: 0.5.0 -> 0.5.9");

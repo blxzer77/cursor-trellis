@@ -18,14 +18,14 @@ from .paths import FILE_TASK_JSON
 DIR_WORKFLOW = ".trellis"
 DIR_SPEC = "spec"
 
-AGENT_IMPLEMENT = "trellis-implement"
-AGENT_CHECK = "trellis-check"
-AGENT_RESEARCH = "trellis-research"
+AGENT_IMPLEMENT = "cstl-implement"
+AGENT_CHECK = "cstl-check"
+AGENT_RESEARCH = "cstl-research"
 
 AGENTS_ALL = (AGENT_IMPLEMENT, AGENT_CHECK, AGENT_RESEARCH)
 AGENTS_REQUIRE_TASK = (AGENT_IMPLEMENT, AGENT_CHECK)
 
-INJECTION_MARKER = "<!-- trellis-hook-injected -->"
+INJECTION_MARKER = "<!-- cstl-hook-injected -->"
 
 DispatchRole = Literal["implement", "check", "research"]
 
@@ -341,7 +341,7 @@ Conversations get compacted; files do not. Every research topic MUST be written 
 ## Dispatch contract
 
 - External facts: load `smart-search-cli` skill + Bash — default **not** Cursor `WebSearch`/`WebFetch`.
-- Do NOT spawn nested `trellis-implement` / `trellis-check` / `trellis-research` sub-agents.
+- Do NOT spawn nested `cstl-implement` / `cstl-check` / `cstl-research` sub-agents.
 
 ## Project Info
 

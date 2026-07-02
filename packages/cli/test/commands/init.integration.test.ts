@@ -29,7 +29,6 @@ vi.mock("node:child_process", () => ({
 import { init } from "../../src/commands/init.js";
 import { VERSION } from "../../src/constants/version.js";
 import { DIR_NAMES, FILE_NAMES, PATHS } from "../../src/constants/paths.js";
-import { collectPlatformTemplates } from "../../src/configurators/index.js";
 import { computeHash } from "../../src/utils/template-hash.js";
 import { execSync } from "node:child_process";
 import inquirer from "inquirer";
@@ -41,12 +40,6 @@ function capabilityLookupCommand(command: string): string {
   return process.platform === "win32"
     ? `where "${command}"`
     : `command -v '${command}'`;
-}
-
-function capabilityHelpCommand(command: string): string {
-  return process.platform === "win32"
-    ? `"${command}" --help`
-    : `'${command}' --help`;
 }
 
 function npmPackageLookupCommand(packageName: string): string {
@@ -124,12 +117,12 @@ describe("init() integration", () => {
     // Cursor commands-only policy: 3 slash commands, no skills shipped.
     expect(
       fs.existsSync(
-        path.join(tmpDir, ".cursor", "commands", "trellis-continue.md"),
+        path.join(tmpDir, ".cursor", "commands", "cstl-continue.md"),
       ),
     ).toBe(true);
     expect(
       fs.existsSync(
-        path.join(tmpDir, ".cursor", "commands", "trellis-finish-work.md"),
+        path.join(tmpDir, ".cursor", "commands", "cstl-finish-work.md"),
       ),
     ).toBe(true);
     expect(
@@ -138,7 +131,7 @@ describe("init() integration", () => {
           tmpDir,
           ".cursor",
           "commands",
-          "trellis-cursor2plus-setup.md",
+          "cstl-cursor2plus-setup.md",
         ),
       ),
     ).toBe(true);
@@ -149,6 +142,7 @@ describe("init() integration", () => {
     await init({
       yes: true,
       cursor: true,
+      user: "dev",
       capability: ["fast-context-mcp", "playwright"],
     });
 
@@ -157,11 +151,22 @@ describe("init() integration", () => {
         path.join(tmpDir, DIR_NAMES.WORKFLOW, "capabilities.json"),
         "utf-8",
       ),
-    ) as { selected: string[] };
+    ) as {
+      selected: string[];
+      schema_version: number;
+      capabilities: Record<string, { readiness_status?: string }>;
+    };
     expect(capabilities.selected).toEqual([
       "codebase-retrieval",
       "playwright-mcp",
     ]);
+    expect(capabilities.schema_version).toBe(3);
+    expect(
+      capabilities.capabilities["codebase-retrieval"]?.readiness_status,
+    ).toBe("pending");
+    expect(
+      capabilities.capabilities["playwright-mcp"]?.readiness_status,
+    ).toBe("pending");
 
     const cursorMcp = JSON.parse(
       fs.readFileSync(path.join(tmpDir, ".cursor", "mcp.json"), "utf-8"),
@@ -174,6 +179,15 @@ describe("init() integration", () => {
     });
     expect(fs.existsSync(path.join(tmpDir, ".mcp.json"))).toBe(false);
     expect(fs.existsSync(path.join(tmpDir, ".codex", "config.toml"))).toBe(false);
+
+    const bootstrapPrd = fs.readFileSync(
+      path.join(tmpDir, PATHS.TASKS, "00-bootstrap-guidelines", "prd.md"),
+      "utf-8",
+    );
+    expect(bootstrapPrd).toContain("## Capability readiness (required before archive)");
+    expect(bootstrapPrd).toContain("`codebase-retrieval`");
+    expect(bootstrapPrd).toContain("`playwright-mcp`");
+    expect(bootstrapPrd).toContain("watcher auto-syncs later edits");
   });
 
 
@@ -362,7 +376,7 @@ describe("init() integration", () => {
     await expect(
       init({ yes: true, capability: ["codebase-retrieval"] }),
     ).rejects.toThrow(
-      /Selected project capability readiness failed[\s\S]*codebase-retrieval[\s\S]*rg[\s\S]*trellis init --skip-readiness/,
+      /Selected project capability readiness failed[\s\S]*codebase-retrieval[\s\S]*rg[\s\S]*cstl init --skip-readiness/,
     );
     expect(fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW))).toBe(false);
   });
@@ -501,7 +515,7 @@ describe("init() integration", () => {
     await expect(
       init({ yes: true, capability: ["codebase-retrieval"] }),
     ).rejects.toThrow(
-      /Selected project capability readiness failed[\s\S]*fast-context[\s\S]*trellis init --skip-readiness/,
+      /Selected project capability readiness failed[\s\S]*fast-context[\s\S]*cstl init --skip-readiness/,
     );
     expect(fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW))).toBe(false);
   });
@@ -514,7 +528,7 @@ describe("init() integration", () => {
     await expect(
       init({ yes: true, capability: ["github-mcp"] }),
     ).rejects.toThrow(
-      /Selected project capability readiness failed[\s\S]*github-mcp[\s\S]*GITHUB_TOKEN[\s\S]*GITHUB_PERSONAL_ACCESS_TOKEN[\s\S]*trellis init --skip-readiness/,
+      /Selected project capability readiness failed[\s\S]*github-mcp[\s\S]*GITHUB_TOKEN[\s\S]*GITHUB_PERSONAL_ACCESS_TOKEN[\s\S]*cstl init --skip-readiness/,
     );
     expect(fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW))).toBe(false);
   });
@@ -527,7 +541,7 @@ describe("init() integration", () => {
     expect(fs.existsSync(path.join(tmpDir, ".codex"))).toBe(false);
     expect(
       fs.existsSync(
-        path.join(tmpDir, ".cursor", "commands", "trellis-continue.md"),
+        path.join(tmpDir, ".cursor", "commands", "cstl-continue.md"),
       ),
     ).toBe(true);
   });

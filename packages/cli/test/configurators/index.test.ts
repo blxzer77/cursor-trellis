@@ -56,7 +56,7 @@ describe("ALL_MANAGED_DIRS", () => {
 describe("isManagedPath", () => {
   it("matches cursor config sub-paths", () => {
     expect(isManagedPath(".cursor/rules/bar.md")).toBe(true);
-    expect(isManagedPath(".cursor/commands/trellis-continue.md")).toBe(true);
+    expect(isManagedPath(".cursor/commands/cstl-continue.md")).toBe(true);
     expect(isManagedPath(".cursor/hooks/session-start.py")).toBe(true);
   });
 
@@ -184,7 +184,7 @@ describe("collectPlatformTemplates", () => {
 
   it("tracks cursor commands but not skills (commands-only policy)", () => {
     const result = collectPlatformTemplates("cursor");
-    expect(result?.has(".cursor/commands/trellis-continue.md")).toBe(true);
+    expect(result?.has(".cursor/commands/cstl-continue.md")).toBe(true);
     expect(result?.has(".cursor/hooks.json")).toBe(true);
     const skillKeys = [...(result?.keys() ?? [])].filter((k) =>
       k.includes(".cursor/skills/"),

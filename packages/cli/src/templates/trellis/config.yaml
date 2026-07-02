@@ -55,7 +55,7 @@ max_journal_lines: 2000
 #-------------------------------------------------------------------------------
 
 # Declare packages for monorepo projects.
-# Trellis auto-detects workspaces during `trellis init`, but you can also
+# Trellis auto-detects workspaces during `cstl init`, but you can also
 # configure them manually here.
 #
 # packages:
@@ -101,7 +101,7 @@ max_journal_lines: 2000
 #-------------------------------------------------------------------------------
 # Channel worker OOM guard
 #-------------------------------------------------------------------------------
-# Default safeguards for `trellis channel spawn` workers. The guard runs
+# Default safeguards for `cstl channel spawn` workers. The guard runs
 # at spawn time (cleans expired idle workers, then enforces the live-worker
 # budget) and inside each supervisor (self-terminates a worker that stays
 # continuously idle past `idle_timeout`).
@@ -125,8 +125,8 @@ channel:
 # main Codex agent edit code directly because Codex sub-agents run with
 # `fork_turns="none"` isolation and can't inherit the parent session's
 # task context. Set to "sub-agent" to opt into the legacy dispatch model
-# (main agent spawns trellis-implement / trellis-check / trellis-research
+# (main agent spawns cstl-implement / cstl-check / cstl-research
 # sub-agents).
 #
 # codex:
-#   dispatch_mode: inline  # or "sub-agent" to dispatch trellis-* sub-agents
+#   dispatch_mode: inline  # or "sub-agent" to dispatch cstl-* sub-agents

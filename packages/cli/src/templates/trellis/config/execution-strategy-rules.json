@@ -20,7 +20,7 @@
     {
       "execution_mode": "worker",
       "isolation": "git-worktree",
-      "message": "worker usually runs in main-worktree; git-worktree is rare for trellis-implement"
+      "message": "worker usually runs in main-worktree; git-worktree is rare for cstl-implement"
     },
     {
       "execution_mode": "inline",

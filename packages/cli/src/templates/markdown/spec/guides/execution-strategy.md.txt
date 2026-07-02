@@ -8,7 +8,7 @@
 
 | Field | Question |
 | --- | --- |
-| `execution_mode` | **Who** implements and checks? (`inline` main session, `worker` trellis-implement/check agents, `child-task` Child worker) |
+| `execution_mode` | **Who** implements and checks? (`inline` main session, `worker` cstl-implement/check agents, `child-task` Child worker) |
 | `isolation` | **Where** are files edited? (`main-worktree` vs `git-worktree` for Child) |
 
 Non-git repo roots do **not** force `inline` for code Full tasks; they only affect whether `git-worktree` / `prepare-child-worktree` is recommended.
@@ -40,4 +40,4 @@ Run during brainstorm / before finalizing the YAML block in `implement.md`. Reco
 
 ## Phase 2 alignment
 
-See `workflow.md` Phase 2.1 / 2.2 tables: spawn `trellis-implement` / `trellis-check` only when `execution_mode: worker`.
+See `workflow.md` Phase 2.1 / 2.2 tables: spawn `cstl-implement` / `cstl-check` only when `execution_mode: worker`.

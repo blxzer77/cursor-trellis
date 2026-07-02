@@ -4,7 +4,7 @@
  */
 
 export interface ExpectedRule {
-  /** Filename including .mdc extension, e.g. "trellis-triage.mdc" */
+  /** Filename including .mdc extension, e.g. "cstl-triage.mdc" */
   filename: string;
   /** Substrings that must appear in rule body (case-sensitive) */
   requiredSections: string[];
@@ -14,7 +14,7 @@ export interface ExpectedRule {
 
 export const expectedRules: ExpectedRule[] = [
   {
-    filename: "trellis-triage.mdc",
+    filename: "cstl-triage.mdc",
     requiredSections: [
       "Decision tree",
       "Classification mark",
@@ -23,7 +23,7 @@ export const expectedRules: ExpectedRule[] = [
     minBytes: 500,
   },
   {
-    filename: "trellis-subagent-dispatch.mdc",
+    filename: "cstl-subagent-dispatch.mdc",
     requiredSections: ["Layer 2", "generate_dispatch_prompt", "CLI"],
     minBytes: 400,
   },

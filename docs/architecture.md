@@ -18,7 +18,7 @@ Trellis/                          # This git repository
   pnpm-workspace.yaml
   packages/
     core/                         # @blxzer/cursor-trellis-core
-    cli/                          # @blxzer/cursor-trellis (bins: trellis, tl)
+    cli/                          # @blxzer/cursor-trellis (bins: cstl, tl)
       src/
         cli/                      # Commander entry
         commands/                 # init, update, uninstall, …
@@ -40,11 +40,11 @@ Build order: **core before cli** (`pnpm build`). Node **≥ 18.17**, Python **�
 ```mermaid
 flowchart LR
   subgraph publish["@blxzer/cursor-trellis npm package"]
-    CLI["trellis CLI"]
+    CLI["cstl CLI"]
     TPL["templates/ + configurators/"]
   end
   subgraph user["Your project repo"]
-    INIT["trellis init --cursor"]
+    INIT["cstl init --cursor"]
     TRELLIS[".trellis/"]
     CURSOR[".cursor/"]
     AGENTS["AGENTS.md"]
@@ -66,9 +66,9 @@ flowchart LR
   WF --> runtime
 ```
 
-1. **`trellis init --cursor`** (in the user project) detects options, writes `.trellis/` skeleton, then calls `configureCursor()` (`packages/cli/src/configurators/cursor.ts`).
-2. **Templates** under `packages/cli/src/templates/cursor/` are read at build time, copied into `dist/`, and rendered with placeholders (Python command path, command prefix `/trellis-`, etc.).
-3. **Hash tracking** (`.trellis/template-hashes.json` in the user project) lets **`trellis update`** apply safe template refreshes and optional **migrations** without blindly overwriting customized files.
+1. **`cstl init --cursor`** (in the user project) detects options, writes `.trellis/` skeleton, then calls `configureCursor()` (`packages/cli/src/configurators/cursor.ts`).
+2. **Templates** under `packages/cli/src/templates/cursor/` are read at build time, copied into `dist/`, and rendered with placeholders (Python command path, command prefix `/cstl-`, etc.).
+3. **Hash tracking** (`.trellis/template-hashes.json` in the user project) lets **`cstl update`** apply safe template refreshes and optional **migrations** without blindly overwriting customized files.
 4. At chat time, **rules** and **AGENTS.md** carry policy; **hooks** add session/shell/subagent context (with Cursor-specific limits on `sessionStart` injection—see [cursor.md](cursor.md)).
 
 ## Retrieval layer and context injection

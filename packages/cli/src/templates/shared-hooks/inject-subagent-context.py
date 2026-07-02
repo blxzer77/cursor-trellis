@@ -28,9 +28,9 @@ if sys.platform.startswith("win"):
 
 DIR_WORKFLOW = ".trellis"
 
-AGENT_IMPLEMENT = "trellis-implement"
-AGENT_CHECK = "trellis-check"
-AGENT_RESEARCH = "trellis-research"
+AGENT_IMPLEMENT = "cstl-implement"
+AGENT_CHECK = "cstl-check"
+AGENT_RESEARCH = "cstl-research"
 AGENTS_ALL = (AGENT_IMPLEMENT, AGENT_CHECK, AGENT_RESEARCH)
 AGENTS_REQUIRE_TASK = (AGENT_IMPLEMENT, AGENT_CHECK)
 

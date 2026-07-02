@@ -85,18 +85,18 @@ const PLATFORM_FUNCTIONS: Record<AITool, PlatformFunctions> = {
       const ctx = AI_TOOLS.cursor.templateContext;
       const files = new Map<string, string>();
       // commands-only policy: ship common commands (continue, finish-work) +
-      // Cursor-only commands (cursor2plus-setup) as .cursor/commands/trellis-*.md.
+      // Cursor-only commands (cursor2plus-setup) as .cursor/commands/cstl-*.md.
       // No .cursor/skills/ are shipped on Cursor — internal workflow skills
       // reach the agent via .cursor/rules + AGENTS.md instead.
       for (const cmd of resolveCommands(ctx)) {
         files.set(
-          `.cursor/commands/trellis-${cmd.name}.md`,
+          `.cursor/commands/cstl-${cmd.name}.md`,
           resolvePlaceholders(cmd.content, ctx),
         );
       }
       for (const cmd of getCursorCommands()) {
         files.set(
-          `.cursor/commands/trellis-${cmd.name}.md`,
+          `.cursor/commands/cstl-${cmd.name}.md`,
           resolvePlaceholders(cmd.content, ctx),
         );
       }

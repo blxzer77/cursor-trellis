@@ -57,7 +57,7 @@ export function resolveUpgradeTag(
 function binaryCheckCommand(
   platform: NodeJS.Platform = process.platform,
 ): string {
-  return platform === "win32" ? "where trellis" : "which trellis";
+  return platform === "win32" ? "where cstl" : "which cstl";
 }
 
 export function buildUpgradeCommand(
@@ -143,6 +143,6 @@ export async function upgrade(
   }
 
   console.log(chalk.green("\n✓ Trellis CLI upgrade completed"));
-  console.log(chalk.gray("Run: trellis --version"));
+  console.log(chalk.gray("Run: cstl --version"));
   console.log(chalk.gray(`Run: ${plan.binaryCheckCommand}`));
 }

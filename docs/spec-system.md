@@ -2,13 +2,13 @@
 
 English | [简体中文](spec-system.zh-CN.md)
 
-This document covers the design of `.trellis/spec/`: the **progressive specification system** that holds project-specific engineering conventions, how it is loaded into agent context, and the two skills (`trellis-spec-bootstrap` and `trellis-update-spec`) that manage its lifecycle.
+This document covers the design of `.trellis/spec/`: the **progressive specification system** that holds project-specific engineering conventions, how it is loaded into agent context, and the two skills (`cstl-spec-bootstrap` and `cstl-update-spec`) that manage its lifecycle.
 
 ## What `.trellis/spec/` is
 
 Agents that memorize conventions get them wrong. Trellis injects relevant specs — or requires the agent to read them — at the right time, instead of front-loading everything into one giant file. `.trellis/spec/` is the user's project-specific engineering spec library: executable contracts about how this codebase is built, not generic best practices.
 
-The key property is **progressive loading**: the agent reads the spec slices relevant to the files it is about to edit, not the whole tree. This is enforced by the `trellis-before-dev` skill and the `implement.jsonl` / `check.jsonl` manifests.
+The key property is **progressive loading**: the agent reads the spec slices relevant to the files it is about to edit, not the whole tree. This is enforced by the `cstl-before-dev` skill and the `implement.jsonl` / `check.jsonl` manifests.
 
 ## Directory model
 
@@ -47,7 +47,7 @@ The key property is **progressive loading**: the agent reads the spec slices rel
     └── ...
 ```
 
-`index.md` is the entry point for each layer — it lists the **Pre-Development Checklist** and **Quality Check** pointers. Specific guidelines live in sibling Markdown files the index points to. The index is a pointer, not the goal; `trellis-before-dev` forces reading the actual guideline files.
+`index.md` is the entry point for each layer — it lists the **Pre-Development Checklist** and **Quality Check** pointers. Specific guidelines live in sibling Markdown files the index points to. The index is a pointer, not the goal; `cstl-before-dev` forces reading the actual guideline files.
 
 ## Package configuration
 
@@ -80,7 +80,7 @@ Before a task enters implementation, planning may write relevant specs into `imp
 {"file": ".trellis/spec/cli/unit-test/conventions.md", "reason": "Test expectations"}
 ```
 
-Subagents read these manifests on dispatch. If the `<!-- trellis-hook-injected -->` marker is present, the listed files are already auto-loaded above; otherwise the agent reads them from the dispatch prompt's `Selected task: <path>` line. See [subagents.md](subagents.md) for the context loading protocol.
+Subagents read these manifests on dispatch. If the `<!-- cstl-hook-injected -->` marker is present, the listed files are already auto-loaded above; otherwise the agent reads them from the dispatch prompt's `Selected task: <path>` line. See [subagents.md](subagents.md) for the context loading protocol.
 
 On platforms without subagent support, the agent reads the relevant specs directly per the workflow.
 
@@ -111,11 +111,11 @@ Specs hold executable engineering conventions for the project, not generic best 
 - Cases that require tests
 - Project-specific pitfalls and how to avoid them
 
-When the agent learns a new rule during implementation or debugging, it should update `.trellis/spec/` (via `trellis-update-spec`) rather than only summarizing it in chat.
+When the agent learns a new rule during implementation or debugging, it should update `.trellis/spec/` (via `cstl-update-spec`) rather than only summarizing it in chat.
 
-## Lifecycle: `trellis-spec-bootstrap` (creation)
+## Lifecycle: `cstl-spec-bootstrap` (creation)
 
-The `trellis-spec-bootstrap` skill handles spec tree creation or restructuring. Single-owner full flow:
+The `cstl-spec-bootstrap` skill handles spec tree creation or restructuring. Single-owner full flow:
 
 1. **Analyze repository** — use source analysis (GitNexus / ABCoder / direct source reading) to extract actual conventions, not template guesses
 2. **Decouple spec boundaries** — separate concerns into layer/package directories; avoid one giant spec file
@@ -124,9 +124,9 @@ The `trellis-spec-bootstrap` skill handles spec tree creation or restructuring. 
 
 Boundaries: no template clichés; one owner owns the whole bootstrap. The skill has references for `mcp-setup`, `repository-analysis`, and `spec-task-planning`.
 
-## Lifecycle: `trellis-update-spec` (maintenance)
+## Lifecycle: `cstl-update-spec` (maintenance)
 
-The `trellis-update-spec` skill is the semi-automatic flow for sinking durable learning back into specs. Triggered in Phase 3.3 when the durable learning decision is `update-spec`.
+The `cstl-update-spec` skill is the semi-automatic flow for sinking durable learning back into specs. Triggered in Phase 3.3 when the durable learning decision is `update-spec`.
 
 **Flow** (required — silent spec edits are forbidden):
 
@@ -139,7 +139,7 @@ The `trellis-update-spec` skill is the semi-automatic flow for sinking durable l
 
 ### Code-Spec depth (7 sections)
 
-For infra or cross-layer contract changes, `trellis-update-spec` mandates all 7 sections:
+For infra or cross-layer contract changes, `cstl-update-spec` mandates all 7 sections:
 
 1. **Scope / Trigger** — why this requires code-spec depth
 2. **Signatures** — command / API / DB signatures
@@ -159,7 +159,7 @@ Mandatory triggers: new/changed command or API signature, cross-layer request/re
 | Change monorepo spec mapping | `packages` / `default_package` / `spec_scope` in `.trellis/config.yaml` |
 | Change which specs the implementer reads | the task's `implement.jsonl` |
 | Change which specs the checker reads | the task's `check.jsonl` |
-| Change when specs should be updated | Phase 3.3 in `.trellis/workflow.md` and the `trellis-update-spec` skill |
+| Change when specs should be updated | Phase 3.3 in `.trellis/workflow.md` and the `cstl-update-spec` skill |
 
 ## Boundaries
 
@@ -168,6 +168,6 @@ Mandatory triggers: new/changed command or API signature, cross-layer request/re
 ## See also
 
 - [Task system design](task-system.md) — `implement.jsonl` / `check.jsonl` manifests, Phase 3.3 learning decision
-- [Internal skills](skills.md) — `trellis-spec-bootstrap` and `trellis-update-spec` definitions
-- [Workflow in Cursor](workflow.md) — Phase 2.1 (`trellis-before-dev` spec reading) and Phase 3.3 (learning decision)
+- [Internal skills](skills.md) — `cstl-spec-bootstrap` and `cstl-update-spec` definitions
+- [Workflow in Cursor](workflow.md) — Phase 2.1 (`cstl-before-dev` spec reading) and Phase 3.3 (learning decision)
 - [Cursor integration](cursor.md) — context injection, `preToolUse` hook limits

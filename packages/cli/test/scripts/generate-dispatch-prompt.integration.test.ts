@@ -105,7 +105,7 @@ describe("generate-dispatch-prompt integration", () => {
     ]);
 
     expect(status).toBe(0);
-    expect(stdout).toContain("<!-- trellis-hook-injected -->");
+    expect(stdout).toContain("<!-- cstl-hook-injected -->");
     expect(stdout).toContain("Fixture PRD Title");
     expect(stdout).toContain(`Selected task: ${relTask}`);
     expect(stderr).toMatch(/no curated entries/i);
@@ -139,8 +139,8 @@ describe("generate-dispatch-prompt integration", () => {
       tool_name: "Task",
       cwd: tmp,
       tool_input: {
-        subagent_type: "trellis-implement",
-        prompt: "<!-- trellis-hook-injected -->\nAlready embedded",
+        subagent_type: "cstl-implement",
+        prompt: "<!-- cstl-hook-injected -->\nAlready embedded",
       },
     };
 
@@ -178,7 +178,7 @@ describe("generate-dispatch-prompt integration", () => {
       tool_name: "Task",
       cwd: tmp,
       tool_input: {
-        subagent_type: "trellis-implement",
+        subagent_type: "cstl-implement",
         prompt: `Selected task: ${relTask}\n\nDo the work.`,
       },
     };
@@ -194,7 +194,7 @@ describe("generate-dispatch-prompt integration", () => {
     expect(hook.status).toBe(0);
     const payload = JSON.parse(hook.stdout ?? "{}");
     const hookPrompt = payload.updated_input?.prompt ?? "";
-    expect(hookPrompt).toContain("<!-- trellis-hook-injected -->");
+    expect(hookPrompt).toContain("<!-- cstl-hook-injected -->");
     expect(hookPrompt).toContain("Shared Builder");
     expect(hookPrompt).toContain("# Implement Agent Task");
     expect(cli.stdout).toContain("# Implement Agent Task");

@@ -18,10 +18,10 @@
 ## 功能
 
 - 任务工件（PRD、设计、实现计划）持久化在 `.trellis/tasks/`
-- 通过 `/trellis-continue` 跨会话恢复工作
+- 通过 `/cstl-continue` 跨会话恢复工作
 - 根据正在编辑的文件渐进式加载规范
 - 结构化工作流路由请求：triage → plan → gate → execute → verify
-- **校验门禁** — `trellis validate-rules` + `pnpm mirror-check` 强制 dogfood/模板同步；`init`/`update` 回归时抛错
+- **校验门禁** — `cstl validate-rules` + `pnpm mirror-check` 强制 dogfood/模板同步；`init`/`update` 回归时抛错
 - **检索合规** — BYOK/Native 分叉 + `unknown` 保守路由；LSP 过度承诺软化为 codegraph + Read；telemetry 区分 planned vs executed semantic
 - **Cursor++ 安全** — Method 2.5 patch 需显式 `--approve`；`--check-compat` 预检；`smoke.py` 健康检查（不读 secret）
 - **证据 pack** — finish/check 在 `retrieval-pack-latest.json` 存在时引用；research prompt 含 provider 相关性提示
@@ -30,9 +30,9 @@
 
 | 命令 | 用途 |
 | --- | --- |
-| `trellis init --cursor` | 在当前项目创建 `.trellis/` + `.cursor/` |
-| `trellis update` | 按已安装 CLI 版本刷新模板 |
-| `trellis uninstall` | 从项目中移除 Trellis 管理文件 |
+| `cstl init --cursor` | 在当前项目创建 `.trellis/` + `.cursor/` |
+| `cstl update` | 按已安装 CLI 版本刷新模板 |
+| `cstl uninstall` | 从项目中移除 Trellis 管理文件 |
 
 完整 CLI 参考：[packages/cli/README.zh-CN.md](packages/cli/README.zh-CN.md)。
 
@@ -40,7 +40,7 @@
 
 | | |
 | --- | --- |
-| **npm CLI** | `@blxzer/cursor-trellis`（`trellis`、`tl`） |
+| **npm CLI** | `@blxzer/cursor-trellis`（`cstl`） |
 | **Core SDK** | `@blxzer/cursor-trellis-core` |
 | **smart-search** | `@blxzer/smart-search`（自动安装的依赖） |
 | **本仓库** | https://github.com/blxzer77/cursor-trellis |
@@ -52,19 +52,44 @@
 
 ```bash
 npm install -g @blxzer/cursor-trellis
-trellis --version
+cstl --version
 ```
 
 **2. 在你的应用仓库根目录初始化**（不是 Trellis 源码目录）：
 
 ```bash
 cd /path/to/your-app
-trellis init --cursor
+cstl init --cursor
 ```
 
-**3. 用 Cursor 打开项目**，使用 Agent 模式。用户可见斜杠命令包括 `/trellis-continue`、`/trellis-finish-work`。Request Triage 由 `.cursor/rules/trellis-triage.mdc` 强制执行。
+**3. 用 Cursor 打开项目**，使用 Agent 模式。用户可见斜杠命令包括 `/cstl-continue`、`/cstl-finish-work`。Request Triage 由 `.cursor/rules/cstl-triage.mdc` 强制执行。
 
-可选：`trellis init --cursor --cursor2plus` 物化 Cursor++ BYOK 本地包；见 [docs/cursor.zh-CN.md](docs/cursor.zh-CN.md#cursor可选附录)。
+可选：`cstl init --cursor --cursor2plus` 物化**按仓库**的 Cursor++ BYOK 包（非全局二选一）。同一机器上 Native 与 BYOK 可并存 —— 见 [Native 与 BYOK 并存](docs/cursor.zh-CN.md#native-与-byok-并存非二选一)。
+
+## 从 0.2.x 升级（v0.3.0）
+
+v0.3.0 为**硬切更名**：CLI 仅保留 **`cstl`**，`trellis` 与 `tl` 两个 bin 别名已移除。
+
+| 变了 | 没变 |
+| --- | --- |
+| CLI：`trellis` / `tl` → `cstl` | `.trellis/` 目录名 |
+| skill / command / agent / rule：`trellis-*` → `cstl-*` | `trellis-task-models.json5` 文件名 |
+
+**迁移步骤**（每个项目执行一次）：
+
+```bash
+npm install -g @blxzer/cursor-trellis@latest
+cd /path/to/your-app
+cstl update --migrate
+```
+
+`--migrate` **必须**带上，才会重命名 `.cursor/` 下的 `trellis-*` → `cstl-*`。重命名经哈希校验；若你本地改过文件，会保留旧路径并警告——请手动改名或把自定义内容迁到新的 `cstl-*` 路径。
+
+0.3.0 之后日常 CLI 小版本可用 `cstl upgrade`。升级到 0.3.0 后，旧的 `trellis upgrade` 命令已不存在。
+
+**Cursor++ BYOK**（可选，仅 `.trellis/local/cursor2plus/`）：将 `trellis-task-models.json5` 中的 `trellis-research/implement/check` 键改为 `cstl-research/implement/check`，然后重跑 `patch_wpelc8.py --apply`。可在 Agent 模式使用 `/cstl-cursor2plus-setup`。
+
+详见 [CHANGELOG](packages/cli/CHANGELOG.md#030---2026-07-01)。
 
 ## 初始化后会出现什么
 
@@ -92,7 +117,7 @@ your-app/
 2. 持久性工作 **规划** 任务工件（尤其 Full Task）。
 3. **门禁**：`task.py validate` + `start-execution --check`。
 4. 用户 **明确批准** 后 `start-execution --approved`。
-5. **验证** 并收尾（`/trellis-finish-work`）。
+5. **验证** 并收尾（`/cstl-finish-work`）。
 
 实操指南：[workflow.zh-CN.md](docs/workflow.zh-CN.md) — Triage 决策树、Task Ladder、升降级规则、Parent/Child 任务树、Phase 1–3 生命周期。
 
@@ -100,7 +125,7 @@ your-app/
 
 - **Rules** — 常驻策略（含 Triage 与检索路由）。
 - **Commands** — 精简 `/` 面板（commands-only；默认不向 `.cursor/skills/` 写入内部 skills）。
-- **Agents** — `trellis-research`、`trellis-implement`、`trellis-check`。
+- **Agents** — `cstl-research`、`cstl-implement`、`cstl-check`。
 - **Hooks** — Python 脚本：会话、终端、子 Agent 上下文。
 
 深入说明：[docs/cursor.zh-CN.md](docs/cursor.zh-CN.md) — Native vs Cursor++ BYOK 双环境、子 Agent 派发 Method 1–4、环境探测。检索层设计：[docs/retrieval.zh-CN.md](docs/retrieval.zh-CN.md)。

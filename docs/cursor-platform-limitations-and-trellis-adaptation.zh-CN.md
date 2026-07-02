@@ -38,15 +38,17 @@
 
 两种环境下，项目里的 `.cursor/agents`、`.cursor/hooks`、`.cursor/rules` **通常都能加载**。差异主要在：**子任务用哪个模型**、**Agent 能否用内置语义搜索**、**是否需要本机可选补丁**。
 
+**并存**：同一台机器上可对不同仓库分别使用 Native 与 BYOK；`--cursor2plus` 按项目物化，`cursorEnv` 按会话解析。见 [Native 与 BYOK 并存](cursor.zh-CN.md#native-与-byok-并存非二选一)。
+
 初始化：
 
 ```bash
 npm install -g @blxzer/cursor-trellis
 cd /path/to/your-project
-trellis init --cursor
+cstl init --cursor
 
 # 仅当你使用 Cursor++ 且需要「按角色固定模型」时：
-trellis init --cursor --cursor2plus
+cstl init --cursor --cursor2plus
 ```
 
 ---
@@ -84,7 +86,7 @@ trellis init --cursor --cursor2plus
 
 **现象**
 
-- 为 `trellis-research`、`trellis-implement`、`trellis-check` 指定了模型，或在本机 Cursor 设置里配置了「每个 Agent 的模型」。
+- 为 `cstl-research`、`cstl-implement`、`cstl-check` 指定了模型，或在本机 Cursor 设置里配置了「每个 Agent 的模型」。
 - 实际派发时子 Agent **仍用主会话同一模型**。
 
 **外部证据**
@@ -152,9 +154,9 @@ Native 与 BYOK 分叉见下文第二、三部分。
 
 | 做法 | 说明 |
 | --- | --- |
-| 常驻规则 | `trellis-triage.mdc`、`retrieval-routing.mdc`，`alwaysApply: true` |
+| 常驻规则 | `cstl-triage.mdc`、`retrieval-routing.mdc`，`alwaysApply: true` |
 | AGENTS.md | 项目结构、外部资料优先 smart-search、推送策略等 |
-| 少量斜杠命令 | `/trellis-continue`、`/trellis-finish-work`；默认不堆 `.cursor/skills/` |
+| 少量斜杠命令 | `/cstl-continue`、`/cstl-finish-work`；默认不堆 `.cursor/skills/` |
 | **CLI 生成完整派发说明** | 派发 research/implement/check 前用 `generate_dispatch_prompt.py` 生成全文，再粘贴到 Task 的 prompt。**这是保证子任务看见任务上下文的可靠主路径。** |
 | 钩子降级 | sessionStart 辅助；beforeSubmitPrompt 可注入检索计划；不依赖钩子传硬规则 |
 | Native 语义 | 检索计划可走 Cursor 内置语义建议，并区分计划与执行 |
@@ -164,10 +166,10 @@ Native 与 BYOK 分叉见下文第二、三部分。
 **A. 初始化**
 
 ```bash
-trellis init --cursor
+cstl init --cursor
 ```
 
-确认存在 `.trellis/workflow.md`、`.cursor/rules/trellis-triage.mdc`、`.cursor/agents/trellis-*.md`。
+确认存在 `.trellis/workflow.md`、`.cursor/rules/cstl-triage.mdc`、`.cursor/agents/cstl-*.md`。
 
 **B. Triage**
 
@@ -179,12 +181,12 @@ trellis init --cursor
 python ./.trellis/scripts/generate_dispatch_prompt.py --agent research --task ".trellis/tasks/你的任务目录"
 ```
 
-将 `--agent` 改为 `implement` 或 `check`。复制**整段输出**，在 Cursor Task 中 `subagent_type` 填 `trellis-research`（等），prompt 粘贴全文。  
+将 `--agent` 改为 `implement` 或 `check`。复制**整段输出**，在 Cursor Task 中 `subagent_type` 填 `cstl-research`（等），prompt 粘贴全文。  
 **不要**假设 preToolUse 钩子一定会注入同样内容。
 
 **D. 临时换子任务模型（仅 Native，用后还原）**
 
-在对应 `.cursor/agents/trellis-*.md` frontmatter 临时加 `model: <id>`，派发后删除该行，避免提交 Git。
+在对应 `.cursor/agents/cstl-*.md` frontmatter 临时加 `model: <id>`，派发后删除该行，避免提交 Git。
 
 **E. 查外部资料**
 
@@ -214,7 +216,7 @@ python ./.trellis/scripts/run_smart_search.py "你的问题" --intent deep-resea
 | --- | --- |
 | 环境检测 | `TRELLIS_CURSOR_BYOK` 或 `~/.ccursor/routes.json` |
 | BYOK 语义 | 检索计划用 **fast-context MCP**（`fast_context_search`），不用内置 semantic |
-| 可选包 | `trellis init --cursor --cursor2plus` → `.trellis/local/cursor2plus/` |
+| 可选包 | `cstl init --cursor --cursor2plus` → `.trellis/local/cursor2plus/` |
 | 子任务上下文 | 与 Native 相同：CLI 生成派发说明为主路径 |
 | 映射文件 | `~/.ccursor/trellis-task-models.json5` 或 `.trellis/local/subagent-models.json` |
 | 可选补丁 | `patch_wpelc8.py`：仅在你明确同意后执行 |
@@ -224,7 +226,7 @@ python ./.trellis/scripts/run_smart_search.py "你的问题" --intent deep-resea
 **1. 初始化**
 
 ```bash
-trellis init --cursor --cursor2plus
+cstl init --cursor --cursor2plus
 ```
 
 Native 用户可忽略整个 `cursor2plus` 目录。
@@ -235,9 +237,9 @@ Native 用户可忽略整个 `cursor2plus` 目录。
 
 ```json5
 {
-  "trellis-research": "model-xxx",
-  "trellis-implement": "model-yyy",
-  "trellis-check": "model-zzz"
+  "cstl-research": "model-xxx",
+  "cstl-implement": "model-yyy",
+  "cstl-check": "model-zzz"
 }
 ```
 
@@ -266,7 +268,7 @@ python patch_wpelc8.py
 | Explore 子 Agent | 只读探索，在 Cursor++ 面板选模型 |
 | 手动派发 | 新对话选手动模型 + 粘贴 CLI 生成的派发说明 |
 
-也可用斜杠命令 `/trellis-cursor2plus-setup` 引导配置。
+也可用斜杠命令 `/cstl-cursor2plus-setup` 引导配置。
 
 ---
 
@@ -302,9 +304,9 @@ python patch_wpelc8.py
 
 ## 第五部分：自检清单
 
-**每次 `trellis update` 后**
+**每次 `cstl update` 后**
 
-- [ ] `trellis-triage.mdc` 存在且 `alwaysApply: true`
+- [ ] `cstl-triage.mdc` 存在且 `alwaysApply: true`
 - [ ] 派发子任务前运行 `generate_dispatch_prompt.py` 并粘贴**全文**
 
 **Native**

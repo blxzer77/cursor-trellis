@@ -160,8 +160,8 @@ Agent 入口始终是 `./.trellis/scripts/run_smart_search.py`,不是裸 CLI 二
 
 smart-search 运行写 retrieval pack(`{TASK}/research/smart-search/retrieval-pack-latest.json`)时,finish 与 check 工作流引用它:
 
-- **`/trellis-finish-work`** 与 `trellis-check` skill 在 pack 存在时引用 `retrieval-pack-latest.json`,验证者可确认外部事实来自 smart-search 而非平台内置 web 工具。
-- **`trellis-research`** prompt 现含**provider 相关性 caveat** —— 提示语义检索质量取决于当前 provider/model,Agent 在判定"无结果"前应精炼查询(加具体符号、层名、文件路径)。
+- **`/cstl-finish-work`** 与 `cstl-check` skill 在 pack 存在时引用 `retrieval-pack-latest.json`,验证者可确认外部事实来自 smart-search 而非平台内置 web 工具。
+- **`cstl-research`** prompt 现含**provider 相关性 caveat** —— 提示语义检索质量取决于当前 provider/model,Agent 在判定"无结果"前应精炼查询(加具体符号、层名、文件路径)。
 
 ## CLI 命令参考
 

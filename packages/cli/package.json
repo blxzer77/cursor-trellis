@@ -1,13 +1,12 @@
 {
   "name": "@blxzer/cursor-trellis",
-  "version": "0.2.10",
+  "version": "0.3.0",
   "description": "AI capabilities grow like ivy — Trellis provides the structure to guide them along a disciplined path",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "trellis": "./bin/trellis.js",
-    "tl": "./bin/trellis.js",
+    "cstl": "./bin/cstl.js",
     "smart-search": "./bin/smart-search.js"
   },
   "publishConfig": {

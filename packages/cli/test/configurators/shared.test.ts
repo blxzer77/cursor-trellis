@@ -15,7 +15,7 @@ import type { TemplateContext } from "../../src/types/ai-tools.js";
 // ---------------------------------------------------------------------------
 
 const claudeCtx: TemplateContext = {
-  cmdRefPrefix: "/trellis:",
+  cmdRefPrefix: "/cstl:",
   executorAI: "Bash scripts or Task calls",
   userActionLabel: "Slash commands",
   agentCapable: true,
@@ -33,7 +33,7 @@ const codexCtx: TemplateContext = {
 };
 
 const cursorCtx: TemplateContext = {
-  cmdRefPrefix: "/trellis-",
+  cmdRefPrefix: "/cstl-",
   executorAI: "Bash scripts or file reads",
   userActionLabel: "Slash commands",
   agentCapable: false,
@@ -172,12 +172,12 @@ describe("resolvePlaceholders", () => {
   // -----------------------------------------------------------------------
 
   describe("{{CMD_REF:name}}", () => {
-    it("resolves with /trellis: prefix (Claude)", () => {
+    it("resolves with /cstl: prefix (Claude)", () => {
       const result = resolvePlaceholders(
         "See {{CMD_REF:brainstorm}} for details",
         claudeCtx,
       );
-      expect(result).toBe("See /trellis:brainstorm for details");
+      expect(result).toBe("See /cstl:brainstorm for details");
     });
 
     it("resolves with $ prefix (Codex)", () => {
@@ -188,26 +188,26 @@ describe("resolvePlaceholders", () => {
       expect(result).toBe("Run $check after coding");
     });
 
-    it("resolves with /trellis- prefix (Cursor)", () => {
+    it("resolves with /cstl- prefix (Cursor)", () => {
       const result = resolvePlaceholders(
         "Use {{CMD_REF:finish-work}} when done",
         cursorCtx,
       );
-      expect(result).toBe("Use /trellis-finish-work when done");
+      expect(result).toBe("Use /cstl-finish-work when done");
     });
 
     it("handles multiple CMD_REF in one template", () => {
       const input =
         "{{CMD_REF:start}} then {{CMD_REF:brainstorm}} then {{CMD_REF:check}}";
       expect(resolvePlaceholders(input, claudeCtx)).toBe(
-        "/trellis:start then /trellis:brainstorm then /trellis:check",
+        "/cstl:start then /cstl:brainstorm then /cstl:check",
       );
     });
 
     it("handles hyphenated command names", () => {
       expect(
         resolvePlaceholders("{{CMD_REF:finish-work}}", claudeCtx),
-      ).toBe("/trellis:finish-work");
+      ).toBe("/cstl:finish-work");
       expect(
         resolvePlaceholders("{{CMD_REF:check-cross-layer}}", codexCtx),
       ).toBe("$check-cross-layer");
@@ -244,7 +244,7 @@ describe("resolvePlaceholders", () => {
       );
       const py = process.platform === "win32" ? "python" : "python3";
       expect(result).toBe(
-        `${py} ./.trellis/scripts/task.py and /trellis:start`,
+        `${py} ./.trellis/scripts/task.py and /cstl:start`,
       );
     });
   });
@@ -517,7 +517,7 @@ describe("resolveSkillsNeutral / resolveAllAsSkillsNeutral", () => {
   it("resolveSkillsNeutral produces stable shared skill set for Cursor context", () => {
     const cursorSkills = resolveSkillsNeutral(AI_TOOLS.cursor.templateContext);
     expect(cursorSkills.length).toBeGreaterThan(0);
-    expect(cursorSkills.map((s) => s.name)).toContain("trellis-before-dev");
+    expect(cursorSkills.map((s) => s.name)).toContain("cstl-before-dev");
   });
 
   it("resolveSkillsNeutral renders CMD_REF without platform-specific prefix", () => {
@@ -539,11 +539,11 @@ describe("resolveSkillsNeutral / resolveAllAsSkillsNeutral", () => {
         expect(
           skill.content,
           `${skill.name} leaks Claude prefix for ${name}`,
-        ).not.toContain(`/trellis:${name}`);
+        ).not.toContain(`/cstl:${name}`);
         expect(
           skill.content,
           `${skill.name} leaks Cursor prefix for ${name}`,
-        ).not.toContain(`/trellis-${name}`);
+        ).not.toContain(`/cstl-${name}`);
       }
     }
   });

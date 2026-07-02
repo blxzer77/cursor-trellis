@@ -172,8 +172,8 @@ export function resolvePlaceholders(
  * `{{CLI_FLAG}}`, `{{EXECUTOR_AI}}`, `{{USER_ACTION_LABEL}}`, conditionals,
  * and `{{PYTHON_CMD}}` are still resolved from the platform context. The 5
  * shared skills do not use those placeholders, so they remain platform-
- * neutral. Codex-only skill files (e.g. `trellis-continue/SKILL.md`,
- * `trellis-finish-work/SKILL.md` written via `resolveAllAsSkillsNeutral`) DO
+ * neutral. Codex-only skill files (e.g. `cstl-continue/SKILL.md`,
+ * `cstl-finish-work/SKILL.md` written via `resolveAllAsSkillsNeutral`) DO
  * use `{{CLI_FLAG}}` / `{{PYTHON_CMD}}` and resolve to Codex-correct values
  * — no other platform writes those files, so byte-identity is not required.
  */
@@ -249,8 +249,8 @@ export function wrapWithSkillFrontmatter(
   name: string,
   content: string,
 ): string {
-  // Look up description by base name (without trellis- prefix)
-  const baseName = name.replace(/^trellis-/, "");
+  // Look up description by base name (without cstl- prefix)
+  const baseName = name.replace(/^cstl-/, "");
   const description = SKILL_DESCRIPTIONS[baseName];
   if (!description) {
     throw new Error(
@@ -276,7 +276,7 @@ export function wrapWithCommandFrontmatter(
   name: string,
   content: string,
 ): string {
-  const baseName = name.replace(/^trellis-/, "");
+  const baseName = name.replace(/^cstl-/, "");
   const description = COMMAND_DESCRIPTIONS[baseName];
   if (!description) {
     throw new Error(
@@ -307,7 +307,7 @@ export interface ResolvedTemplate {
 
 /** A resolved file inside a multi-file skill directory. */
 export interface ResolvedSkillFile {
-  /** POSIX path relative to the skills root, e.g. "trellis-meta/SKILL.md" */
+  /** POSIX path relative to the skills root, e.g. "cstl-meta/SKILL.md" */
   relativePath: string;
   content: string;
 }
@@ -331,7 +331,7 @@ function filterCommands(
 }
 
 /**
- * Resolve ALL templates as skills with trellis- prefix.
+ * Resolve ALL templates as skills with cstl- prefix.
  * Used by skill-only platforms (Kiro, Qoder, Codex) where everything is a skill.
  *
  * `start` is filtered out on agent-capable platforms — the session-start hook
@@ -346,9 +346,9 @@ export function resolveAllAsSkills(ctx: TemplateContext): ResolvedTemplate[] {
     ...getSkillTemplates(),
   ];
   return templates.map((tmpl) => ({
-    name: `trellis-${tmpl.name}`,
+    name: `cstl-${tmpl.name}`,
     content: wrapWithSkillFrontmatter(
-      `trellis-${tmpl.name}`,
+      `cstl-${tmpl.name}`,
       resolvePlaceholders(tmpl.content, ctx),
     ),
   }));
@@ -368,14 +368,14 @@ export function resolveCommands(ctx: TemplateContext): ResolvedTemplate[] {
 }
 
 /**
- * Resolve only the 5 skill templates with trellis- prefix + SKILL.md frontmatter.
+ * Resolve only the 5 skill templates with cstl- prefix + SKILL.md frontmatter.
  * Used by "both" platforms for the auto-triggered skills.
  */
 export function resolveSkills(ctx: TemplateContext): ResolvedTemplate[] {
   return getSkillTemplates().map((tmpl) => ({
-    name: `trellis-${tmpl.name}`,
+    name: `cstl-${tmpl.name}`,
     content: wrapWithSkillFrontmatter(
-      `trellis-${tmpl.name}`,
+      `cstl-${tmpl.name}`,
       resolvePlaceholders(tmpl.content, ctx),
     ),
   }));
@@ -395,9 +395,9 @@ export function resolveCommandAsSkills(
     const tmpl = byName.get(name);
     if (!tmpl) continue;
     out.push({
-      name: `trellis-${name}`,
+      name: `cstl-${name}`,
       content: wrapWithSkillFrontmatter(
-        `trellis-${name}`,
+        `cstl-${name}`,
         resolvePlaceholders(tmpl.content, ctx),
       ),
     });
@@ -414,9 +414,9 @@ export function resolveCommandAsSkills(
  */
 export function resolveSkillsNeutral(ctx: TemplateContext): ResolvedTemplate[] {
   return getSkillTemplates().map((tmpl) => ({
-    name: `trellis-${tmpl.name}`,
+    name: `cstl-${tmpl.name}`,
     content: wrapWithSkillFrontmatter(
-      `trellis-${tmpl.name}`,
+      `cstl-${tmpl.name}`,
       resolvePlaceholdersNeutral(tmpl.content, ctx),
     ),
   }));
@@ -437,19 +437,19 @@ export function resolveAllAsSkillsNeutral(
     ...getSkillTemplates(),
   ];
   return templates.map((tmpl) => ({
-    name: `trellis-${tmpl.name}`,
+    name: `cstl-${tmpl.name}`,
     content: wrapWithSkillFrontmatter(
-      `trellis-${tmpl.name}`,
+      `cstl-${tmpl.name}`,
       resolvePlaceholdersNeutral(tmpl.content, ctx),
     ),
   }));
 }
 
 /**
- * Codex needs a `trellis-start` skill in `.agents/skills/` so the
- * `<trellis-bootstrap>` notice from `inject-workflow-state.py` resolves
+ * Codex needs a `cstl-start` skill in `.agents/skills/` so the
+ * `<cstl-bootstrap>` notice from `inject-workflow-state.py` resolves
  * to an actual skill file (the bootstrap notice tells the AI to invoke
- * `$trellis-start` once on the first `no_task` turn — added in 0.5.5
+ * `$cstl-start` once on the first `no_task` turn — added in 0.5.5
  * after the Codex SessionStart hook was removed for de-recursion).
  *
  * Built from `common/commands/start.md` + skill frontmatter; renders
@@ -460,7 +460,7 @@ export function resolveAllAsSkillsNeutral(
  * `collectPlatformTemplates.codex` (update path, manifest map). Both
  * paths must agree, otherwise upgraded users miss the file (which broke
  * 0.4.x → 0.5.5/0.5.6 upgrades — see #247-style symptom: AI reports
- * "no .agents/skills/trellis-start/SKILL.md" because update only ran
+ * "no .agents/skills/cstl-start/SKILL.md" because update only ran
  * `collectTemplates` and never wrote the file).
  */
 export function resolveCodexTrellisStartSkill(
@@ -469,9 +469,9 @@ export function resolveCodexTrellisStartSkill(
   const startTemplate = getCommandTemplates().find((t) => t.name === "start");
   if (!startTemplate) return null;
   return {
-    name: "trellis-start",
+    name: "cstl-start",
     content: wrapWithSkillFrontmatter(
-      "trellis-start",
+      "cstl-start",
       resolvePlaceholdersNeutral(startTemplate.content, ctx),
     ),
   };
@@ -648,13 +648,13 @@ export function injectPullBasedPreludeToml(
   return content.replace(re, `$1$2${prelude}`);
 }
 
-/** Best-effort detect agent type from filename ("trellis-implement.md" → "implement").
+/** Best-effort detect agent type from filename ("cstl-implement.md" → "implement").
  *  Returns null for research and unknown names — they skip the prelude.
  */
 export function detectSubAgentType(name: string): SubAgentType | null {
   const base = name.replace(/\.(md|toml|prompt\.md)$/, "");
-  if (base === "trellis-implement" || base === "trellis-check") {
-    return base === "trellis-implement" ? "implement" : "check";
+  if (base === "cstl-implement" || base === "cstl-check") {
+    return base === "cstl-implement" ? "implement" : "check";
   }
   return null;
 }

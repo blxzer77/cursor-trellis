@@ -279,7 +279,7 @@ def _read_project_version(repo_root: Path) -> str | None:
 def _fetch_trellis_version_output() -> str | None:
     try:
         result = subprocess.run(
-            ["trellis", "--version"],
+            ["cstl", "--version"],
             capture_output=True,
             text=True,
             encoding="utf-8",
@@ -414,7 +414,7 @@ def _get_update_hint(repo_root: Path) -> str | None:
 
     return (
         f"Trellis update available: {current_version} -> {latest_version}, "
-        "run trellis upgrade"
+        "run cstl upgrade"
     )
 
 

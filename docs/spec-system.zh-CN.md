@@ -2,13 +2,13 @@
 
 [English](spec-system.md) | 简体中文
 
-本文讲述 `.trellis/spec/` 的设计:**渐进式规范系统**,承载项目特定的工程约定,如何加载进 Agent 上下文,以及管理其生命周期的两个技能(`trellis-spec-bootstrap` 与 `trellis-update-spec`)。
+本文讲述 `.trellis/spec/` 的设计:**渐进式规范系统**,承载项目特定的工程约定,如何加载进 Agent 上下文,以及管理其生命周期的两个技能(`cstl-spec-bootstrap` 与 `cstl-update-spec`)。
 
 ## `.trellis/spec/` 是什么
 
 靠记忆约定的 Agent 一定会记错。Trellis 在合适时机注入相关 spec —— 或要求 Agent 读取 —— 不把所有东西前置塞进一个巨型文件。`.trellis/spec/` 是用户项目特定的工程规范库:关于这个代码库如何构建的可执行契约,不是泛泛最佳实践。
 
-关键属性是**渐进式加载**:Agent 只读即将编辑文件相关的 spec 切片,不读整棵树。这由 `trellis-before-dev` 技能与 `implement.jsonl` / `check.jsonl` manifest 强制。
+关键属性是**渐进式加载**:Agent 只读即将编辑文件相关的 spec 切片,不读整棵树。这由 `cstl-before-dev` 技能与 `implement.jsonl` / `check.jsonl` manifest 强制。
 
 ## 目录模型
 
@@ -47,7 +47,7 @@
     └── ...
 ```
 
-`index.md` 是每层入口 —— 列出 **Pre-Development Checklist** 与 **Quality Check** 指针。具体规范在 index 指向的同级 Markdown 文件里。index 是指针,不是目标;`trellis-before-dev` 强制读实际的 guideline 文件。
+`index.md` 是每层入口 —— 列出 **Pre-Development Checklist** 与 **Quality Check** 指针。具体规范在 index 指向的同级 Markdown 文件里。index 是指针,不是目标;`cstl-before-dev` 强制读实际的 guideline 文件。
 
 ## 包配置
 
@@ -80,7 +80,7 @@ python ./.trellis/scripts/get_context.py --mode packages
 {"file": ".trellis/spec/cli/unit-test/conventions.md", "reason": "Test expectations"}
 ```
 
-子 Agent 派发时读这些 manifest。若 `<!-- trellis-hook-injected -->` 标记存在,所列文件已自动加载;否则 Agent 从派发 prompt 的 `Selected task: <path>` 行读取。上下文加载协议见 [subagents.zh-CN.md](subagents.zh-CN.md)。
+子 Agent 派发时读这些 manifest。若 `<!-- cstl-hook-injected -->` 标记存在,所列文件已自动加载;否则 Agent 从派发 prompt 的 `Selected task: <path>` 行读取。上下文加载协议见 [subagents.zh-CN.md](subagents.zh-CN.md)。
 
 无子 Agent 支持的平台,Agent 按工作流直接读相关 spec。
 
@@ -111,11 +111,11 @@ Spec 承载项目可执行工程约定,非泛泛最佳实践:
 - 需要测试的场景
 - 项目特定坑与规避
 
-Agent 在实现或调试中学到新规则时,应更新 `.trellis/spec/`(经 `trellis-update-spec`),而非只在 chat 里总结。
+Agent 在实现或调试中学到新规则时,应更新 `.trellis/spec/`(经 `cstl-update-spec`),而非只在 chat 里总结。
 
-## 生命周期:`trellis-spec-bootstrap`(创建)
+## 生命周期:`cstl-spec-bootstrap`(创建)
 
-`trellis-spec-bootstrap` 技能处理 spec 树创建或重构。单 owner 全流程:
+`cstl-spec-bootstrap` 技能处理 spec 树创建或重构。单 owner 全流程:
 
 1. **分析仓库** —— 用源码分析(GitNexus / ABCoder / 直接读源码)提取真实约定,非模板猜测
 2. **解耦 spec 边界** —— 把关注点分到 layer/package 目录;避免一个巨型 spec 文件
@@ -124,9 +124,9 @@ Agent 在实现或调试中学到新规则时,应更新 `.trellis/spec/`(经 `tr
 
 边界:无模板套话;一个 owner 负责整个 bootstrap。技能带 `mcp-setup`、`repository-analysis`、`spec-task-planning` 参考。
 
-## 生命周期:`trellis-update-spec`(维护)
+## 生命周期:`cstl-update-spec`(维护)
 
-`trellis-update-spec` 技能是把持久学习回写 spec 的半自动流。Phase 3.3 学习决策为 `update-spec` 时触发。
+`cstl-update-spec` 技能是把持久学习回写 spec 的半自动流。Phase 3.3 学习决策为 `update-spec` 时触发。
 
 **流程**(必须 —— 禁止静默 spec 编辑):
 
@@ -139,7 +139,7 @@ Agent 在实现或调试中学到新规则时,应更新 `.trellis/spec/`(经 `tr
 
 ### Code-Spec 深度(7 段)
 
-infra 或跨层契约变更时,`trellis-update-spec` 强制 7 段:
+infra 或跨层契约变更时,`cstl-update-spec` 强制 7 段:
 
 1. **Scope / Trigger** —— 为何需要 code-spec 深度
 2. **Signatures** —— command / API / DB 签名
@@ -159,7 +159,7 @@ infra 或跨层契约变更时,`trellis-update-spec` 强制 7 段:
 | 改 monorepo spec 映射 | `.trellis/config.yaml` 的 `packages` / `default_package` / `spec_scope` |
 | 改实现者读哪些 spec | 任务的 `implement.jsonl` |
 | 改审查者读哪些 spec | 任务的 `check.jsonl` |
-| 改 spec 何时更新 | `.trellis/workflow.md` 的 Phase 3.3 与 `trellis-update-spec` 技能 |
+| 改 spec 何时更新 | `.trellis/workflow.md` 的 Phase 3.3 与 `cstl-update-spec` 技能 |
 
 ## 边界
 
@@ -168,6 +168,6 @@ infra 或跨层契约变更时,`trellis-update-spec` 强制 7 段:
 ## 延伸阅读
 
 - [Task 系统设计](task-system.zh-CN.md) — `implement.jsonl` / `check.jsonl` manifest、Phase 3.3 学习决策
-- [内部技能](skills.zh-CN.md) — `trellis-spec-bootstrap` 与 `trellis-update-spec` 定义
-- [Cursor 中的工作流](workflow.zh-CN.md) — Phase 2.1(`trellis-before-dev` 规范读取)与 Phase 3.3(学习决策)
+- [内部技能](skills.zh-CN.md) — `cstl-spec-bootstrap` 与 `cstl-update-spec` 定义
+- [Cursor 中的工作流](workflow.zh-CN.md) — Phase 2.1(`cstl-before-dev` 规范读取)与 Phase 3.3(学习决策)
 - [Cursor 集成](cursor.zh-CN.md) — 上下文注入、`preToolUse` hook 限制

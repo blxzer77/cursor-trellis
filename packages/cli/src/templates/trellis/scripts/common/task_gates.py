@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Task quality gate helpers.
 
@@ -103,7 +103,7 @@ REVIEWED_CHANGE_SET_RE = re.compile(
     r"(?:\s+(?:identity|evidence|summary|ref))?\s*:\s*(\S[^\r\n]*)$"
 )
 CHECK_EVIDENCE_RE = re.compile(
-    r"(?im)^\s*(?:[-*]\s*)?(?:check\s+evidence|trellis-check(?:\s+evidence)?)"
+    r"(?im)^\s*(?:[-*]\s*)?(?:check\s+evidence|cstl-check(?:\s+evidence)?)"
     r"\s*:\s*(\S[^\r\n]*)$"
 )
 PLACEHOLDER_VALUES_RE = re.compile(
@@ -116,7 +116,7 @@ PRD_ACCEPTANCE_ITEM_RE = re.compile(
     r"(?im)^\s*-\s*\[[ xX]\]\s+(.+)$"
 )
 PRD_PLACEHOLDER_RE = re.compile(r"(?i)^\s*(TBD|TODO|待定|待补充)(?:\s*[.:：])?\s*$")
-AUTO_PLANNING_REVIEWER = "trellis-cli"
+AUTO_PLANNING_REVIEWER = "cstl-cli"
 START_EXECUTION_AUTO_GATES = frozenset({"requirements-review", "architecture-review"})
 
 STABLE_TASK_KEYS = (
@@ -444,7 +444,7 @@ def make_baseline_record(
         "transition": transition,
         "gate": BASELINE_GATE,
         "result": "PASS",
-        "reviewer": "trellis-cli",
+        "reviewer": "cstl-cli",
         "evidence": evidence,
         "checked_at": utc_now(),
         "contract_fingerprint": contract_fingerprint,
@@ -1186,7 +1186,7 @@ def build_spec_update_scaffold(
             "   - Reusable insight: `Spec update evidence: .trellis/spec/<path>` after edits",
             f"   - Already documented: `Learning artifact: {rel_task}/handoff.md`",
             "",
-            "2. Use `/trellis:update-spec` or `/trellis:break-loop` for depth; never auto-write specs.",
+            "2. Use `/cstl:update-spec` or `/cstl:break-loop` for depth; never auto-write specs.",
             "",
         ]
     )
@@ -1218,7 +1218,7 @@ def _learning_decision_draft_lines(task_dir: Path, task_data: dict) -> list[str]
         "# Replace the line above with ONE of these before archive:",
         f"# Spec update evidence: {target_hint}",
         f"# Learning artifact: .trellis/tasks/{task_dir.name}/handoff.md",
-        "# Spec update needed: (brief reason) — then run /trellis:update-spec and point Spec update evidence at the edited file",
+        "# Spec update needed: (brief reason) — then run /cstl:update-spec and point Spec update evidence at the edited file",
         "",
     ]
 
@@ -1273,7 +1273,7 @@ def archive_repair_hints(
             hints.append(
                 "Durable learning decision (pick one grep-friendly line in verify.md): "
                 "'Durable learning decision: no durable learning' for routine work; "
-                "'Spec update evidence: .trellis/spec/<path>' after /trellis:update-spec; "
+                "'Spec update evidence: .trellis/spec/<path>' after /cstl:update-spec; "
                 "'Learning artifact: <path>' when handoff/retrospective already captures the insight. "
                 f"Or run: python ./.trellis/scripts/task.py prepare-archive-evidence {rel_task}"
             )
@@ -1313,7 +1313,7 @@ def archive_repair_hints(
         if error == "verify.md missing check evidence":
             hints.append(
                 "Add a grep-friendly line such as "
-                "'Check evidence: <trellis-check summary or manual review notes>' to verify.md"
+                "'Check evidence: <cstl-check summary or manual review notes>' to verify.md"
             )
             continue
         if error == (
@@ -1898,7 +1898,7 @@ def start_execution_repair_hints(
             continue
         if "Acceptance Criteria" in error or "TBD" in error:
             hints.append(
-                "Finish PRD Grill in trellis-brainstorm: fill Goal, Acceptance Criteria "
+                "Finish PRD Grill in cstl-brainstorm: fill Goal, Acceptance Criteria "
                 "(non-TBD checkboxes), then re-run start-execution --check."
             )
             continue

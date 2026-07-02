@@ -45,7 +45,7 @@ describe("upgrade command", () => {
       displayCommand: "npm install -g @blxzer/cursor-trellis@beta",
       target: "@blxzer/cursor-trellis@beta",
       tag: "beta",
-      binaryCheckCommand: "which trellis",
+      binaryCheckCommand: "which cstl",
     });
   });
 
@@ -59,7 +59,7 @@ describe("upgrade command", () => {
       displayCommand: "npm install -g @blxzer/cursor-trellis@beta",
       target: "@blxzer/cursor-trellis@beta",
       tag: "beta",
-      binaryCheckCommand: "where trellis",
+      binaryCheckCommand: "where cstl",
     });
   });
 
@@ -90,7 +90,7 @@ describe("upgrade command", () => {
       plan.spawnOptions,
     );
     expect(log).toHaveBeenCalledWith(
-      expect.stringContaining("trellis --version"),
+      expect.stringContaining("cstl --version"),
     );
     expect(log).toHaveBeenCalledWith(
       expect.stringContaining(plan.binaryCheckCommand),

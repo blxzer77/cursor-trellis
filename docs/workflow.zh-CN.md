@@ -2,14 +2,14 @@
 
 [English](workflow.md) | 简体中文
 
-本文说明在 `trellis init --cursor` 之后,如何在 Cursor 里跑 Trellis **任务生命周期**。覆盖完整生命周期:Request Triage、Task Ladder、规划工件、Parent/Child 任务树、三阶段(Plan → Execute → Finish)以及 Lite、Micro-Grill、No Task 三种模式的差异。
+本文说明在 `cstl init --cursor` 之后,如何在 Cursor 里跑 Trellis **任务生命周期**。覆盖完整生命周期:Request Triage、Task Ladder、规划工件、Parent/Child 任务树、三阶段(Plan → Execute → Finish)以及 Lite、Micro-Grill、No Task 三种模式的差异。
 
-规范原文在项目 `.trellis/workflow.md`(由 Trellis 生成/更新)。Cursor Agent 还会通过 `.cursor/rules/trellis-triage.mdc` 看到 **Request Triage** 硬门禁。
+规范原文在项目 `.trellis/workflow.md`(由 Trellis 生成/更新)。Cursor Agent 还会通过 `.cursor/rules/cstl-triage.mdc` 看到 **Request Triage** 硬门禁。
 
 ## 前置条件
 
 1. 安装 CLI:`npm install -g @blxzer/cursor-trellis`
-2. 在仓库根目录:`trellis init --cursor`
+2. 在仓库根目录:`cstl init --cursor`
 3. 用 Cursor 打开项目;持久性工作使用 **Agent** 模式。
 
 可选:在终端运行 `python ./.trellis/scripts/get_context.py` 查看当前任务与阶段提示。
@@ -67,10 +67,10 @@
 
 | 情况 | 动作 |
 | --- | --- |
-| 无已选任务 + 小范围不清需求 | `trellis-micro-grill` |
-| 无已选任务 + 需要看板 | `trellis-start` |
-| 已选任务 + 继续步骤 | `/trellis-continue` |
-| 规划 / PRD | `trellis-brainstorm` |
+| 无已选任务 + 小范围不清需求 | `cstl-micro-grill` |
+| 无已选任务 + 需要看板 | `cstl-start` |
+| 已选任务 + 继续步骤 | `/cstl-continue` |
+| 规划 / PRD | `cstl-brainstorm` |
 | Parent 带并行 children | `generate-child-prompt --mode subagent`(可写 Agent) |
 
 ## 规划工件
@@ -117,7 +117,7 @@ flowchart TD
 
 **1.1 Brainstorm(Discovery + PRD Grill)。** Phase A——提问前 Discovery:检查代码、测试、spec、历史、平台文件、parent/child 结构;记录已确认事实,起草 `prd.md`。Phase B——PRD Grill:对 `prd.md` 跑 14 项检查(最后两条对需求与设计强制**第一性原理**与**奥卡姆剃刀**),然后只对 **blocking** 开放问题逐个 micro-grill(附推荐答案 + 权衡)。每个答案后更新 `prd.md`。
 
-**1.2 研究(可选)。** 某主题需要专门 `{TASK}/research/<主题>.md` 时派发 `trellis-research`。外部事实强制首选 smart-search(Cursor WebSearch 为降级)。研究输出必须写文件,不只留在对话。
+**1.2 研究(可选)。** 某主题需要专门 `{TASK}/research/<主题>.md` 时派发 `cstl-research`。外部事实强制首选 smart-search(Cursor WebSearch 为降级)。研究输出必须写文件,不只留在对话。
 
 **1.3 配置上下文。** 维护 `implement.jsonl` 和 `check.jsonl` 让 Phase 2 子 Agent 获得正确 spec/研究上下文。格式:每行一个 JSON 对象 `{"file": "<路径>", "reason": "<原因>"}`。放 spec 文件和研究文件;**不要**放即将修改的代码文件。用 `get_context.py --mode packages` 发现相关 spec。
 
@@ -141,23 +141,23 @@ python ./.trellis/scripts/task.py start-execution <任务目录> --approved
 
 执行受已批准的 `prd.md`、`design.md`、`implement.md`、Development Strategy Contract 约束。不要全局重分类、自动切任务、自动创新范围、或改规划工件以变范围/设计/契约却假装执行仍被批准。
 
-**2.1 实现。** 上下文不完整时,实现前与实现中使用检索层(见 [retrieval.zh-CN.md](retrieval.zh-CN.md))。派发 `trellis-implement` 子 Agent(Full/Parent——Cursor):主会话通过 Trellis 脚本组装完整派发 prompt,再 `Task(subagent_type=trellis-implement, prompt=<已组装>)`。在 Cursor 上**不要**仅依赖 `preToolUse` 钩子注入上下文。
+**2.1 实现。** 上下文不完整时,实现前与实现中使用检索层(见 [retrieval.zh-CN.md](retrieval.zh-CN.md))。派发 `cstl-implement` 子 Agent(Full/Parent——Cursor):主会话通过 Trellis 脚本组装完整派发 prompt,再 `Task(subagent_type=cstl-implement, prompt=<已组装>)`。在 Cursor 上**不要**仅依赖 `preToolUse` 钩子注入上下文。
 
-**2.2 质量检查。** 派发 `trellis-check` 子 Agent:对照 spec 与规划工件评审代码;仅在已批准契约内修实现缺陷;需求/设计/契约/范围/能力缺陷路由回规划。跑 lint 和 typecheck。
+**2.2 质量检查。** 派发 `cstl-check` 子 Agent:对照 spec 与规划工件评审代码;仅在已批准契约内修实现缺陷;需求/设计/契约/范围/能力缺陷路由回规划。跑 lint 和 typecheck。
 
 **2.3 回滚。** `check` 揭示契约改动缺陷 → 返回规划,刷新门/指纹,再次获明确批准。实现出错 → 还原代码,重做 2.1。需更多研究 → 研究(同 1.2),写入 `research/`。
 
 ### 3. 收尾(Phase 3)
 
-**3.1 质量验证。** 加载 `trellis-check` 做最终评审:spec 合规、lint/type-check/测试、跨层一致性、检索证据(最终结论必须引用当前源码、Git 或验证证明)。在 `verify.md` 写人可读验证、评审、验收证据。验证期间不要静默修或扩范围。可选运行 `get_context.py --mode retrieval-pack` 对收集证据评分。
+**3.1 质量验证。** 加载 `cstl-check` 做最终评审:spec 合规、lint/type-check/测试、跨层一致性、检索证据(最终结论必须引用当前源码、Git 或验证证明)。在 `verify.md` 写人可读验证、评审、验收证据。验证期间不要静默修或扩范围。可选运行 `get_context.py --mode retrieval-pack` 对收集证据评分。
 
-**3.2 调试回顾(按需)。** 若任务涉及反复调试(同一问题修多次),加载 `trellis-break-loop` 分类根因、解释早期修复为何失败、提出预防。
+**3.2 调试回顾(按需)。** 若任务涉及反复调试(同一问题修多次),加载 `cstl-break-loop` 分类根因、解释早期修复为何失败、提出预防。
 
-**3.3 学习决策。** 审查任务是否产生值得记录的持久学习(反复失败环、需求漂移、架构决策、可复用约定、工具链坑)。若有,加载 `trellis-update-spec` 更新 `.trellis/spec/` 或写聚焦 `retrospective.md`,从 `verify.md` 链接。若无持久学习,在 `verify.md` 写明确 `No durable learning` 决策。
+**3.3 学习决策。** 审查任务是否产生值得记录的持久学习(反复失败环、需求漂移、架构决策、可复用约定、工具链坑)。若有,加载 `cstl-update-spec` 更新 `.trellis/spec/` 或写聚焦 `retrospective.md`,从 `verify.md` 链接。若无持久学习,在 `verify.md` 写明确 `No durable learning` 决策。
 
 **3.4 提交。** Agent 驱动批量提交:查 `git status --porcelain`,从 `git log --oneline -5` 学提交风格,把脏文件分"本次 AI 编辑"(工作提交先)与"记账"(归档+日志提交后)。工作提交先于记账——不交错。
 
-**3.5 归档。** 用 `/trellis-finish-work` 或手动状态更新闭环:
+**3.5 归档。** 用 `/cstl-finish-work` 或手动状态更新闭环:
 
 ```bash
 python ./.trellis/scripts/task.py status <task> done   # 若 workflow 允许
@@ -170,7 +170,7 @@ python ./.trellis/scripts/task.py status <task> done   # 若 workflow 允许
 | 模式 | Cursor 行为 |
 | --- | --- |
 | **Lite** | 简短 `implement.md` 或内联计划;可跳重型 PRD;仍须 Triage 标记;归档前仍需 `verify.md` 中验证+验收+学习证据 |
-| **Micro-Grill** | 按 `trellis-micro-grill` 语义一次问清一点;默认无任务工件;持久编辑前先升级 |
+| **Micro-Grill** | 按 `cstl-micro-grill` 语义一次问清一点;默认无任务工件;持久编辑前先升级 |
 | **No Task** | 直接回答,不建任务工件 |
 
 ## workflow-state breadcrumb
@@ -181,8 +181,8 @@ Cursor 的 `UserPromptSubmit` 钩子读 `.trellis/workflow.md` 内嵌的 `[workf
 
 | 用户动作 | Cursor | 手工等价 |
 | --- | --- | --- |
-| 继续任务 | `/trellis-continue` | `get_context.py`、读 `task.json` |
-| 收尾 | `/trellis-finish-work` | workflow 中的 finish 辅助 |
+| 继续任务 | `/cstl-continue` | `get_context.py`、读 `task.json` |
+| 收尾 | `/cstl-finish-work` | workflow 中的 finish 辅助 |
 | 规划后开干 | 用户说批准执行 | `start-execution --approved` |
 
 **仅用户可调用**的命令出现在 `/` 面板;其他 Trellis skill 为内部能力,Cursor 默认不写入 `.cursor/skills/`(commands-only)——见 [Cursor 集成](cursor.zh-CN.md)。
@@ -194,7 +194,7 @@ Cursor 的 `UserPromptSubmit` 钩子读 `.trellis/workflow.md` 内嵌的 `[workf
 ```bash
 npm update -g @blxzer/cursor-trellis
 cd /path/to/your-project
-trellis update
+cstl update
 ```
 
 刷新 `.trellis/workflow.md`、Cursor rules/commands/hooks、哈希跟踪模板。若自定义过 workflow 或 rules,审阅 diff。

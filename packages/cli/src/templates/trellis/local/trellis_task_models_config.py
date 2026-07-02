@@ -6,18 +6,18 @@ from pathlib import Path
 from typing import Any
 
 KNOWN_SUBAGENT_TYPES = (
-    "trellis-research",
-    "trellis-implement",
-    "trellis-check",
+    "cstl-research",
+    "cstl-implement",
+    "cstl-check",
     "generalPurpose",
     "shell",
     "best-of-n-runner",
 )
 
 SUBAGENT_TYPE_HELP: dict[str, str] = {
-    "trellis-research": "Trellis 调研 Task（trellis-research）",
-    "trellis-implement": "Trellis 实现 Task；Parent/Child 默认派发类型",
-    "trellis-check": "Trellis 验收 Task（trellis-check）",
+    "cstl-research": "Trellis 调研 Task（cstl-research）",
+    "cstl-implement": "Trellis 实现 Task；Parent/Child 默认派发类型",
+    "cstl-check": "Trellis 验收 Task（cstl-check）",
     "generalPurpose": "Cursor 内置 Task：generalPurpose",
     "shell": "Cursor 内置 Task：shell",
     "best-of-n-runner": "Cursor 内置 Task：best-of-n-runner",

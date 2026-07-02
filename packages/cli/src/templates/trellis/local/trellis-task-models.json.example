@@ -1,9 +1,9 @@
 {
   "_comment": "Copy to ~/.ccursor/trellis-task-models.json (Windows: %USERPROFILE%\\.ccursor\\). Values: use apiModel or displayName from Cursor++ — patch_wpelc8.py resolves to slug at patch time. Optional keys: omit types you do not use.",
   "_when_providers_change": "Run: python patch_wpelc8.py --list-models then fix this file and patch again.",
-  "trellis-research": "glm-5.1",
-  "trellis-implement": "qwen3.6-plus",
-  "trellis-check": "qwen3.7-max",
+  "cstl-research": "glm-5.1",
+  "cstl-implement": "qwen3.6-plus",
+  "cstl-check": "qwen3.7-max",
   "generalPurpose": "gpt-5.5",
   "shell": "grok-composer-2.5-fast",
   "best-of-n-runner": "kimi-k2.7-code"

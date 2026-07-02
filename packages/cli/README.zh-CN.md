@@ -12,15 +12,40 @@ npm install -g @blxzer/cursor-trellis
 
 需要 **Node.js ≥ 18.17**。生成项目的钩子在运行 Cursor 的机器上需要 **Python ≥ 3.9**。
 
-## 可执行文件
+## 从 0.2.x 升级（v0.3.0）
 
-| Bin | 别名 | 作用 |
-| --- | --- | --- |
-| `trellis` | `tl` | 在项目中初始化、更新、管理 Trellis |
-| `smart-search` | — | 随包分发的网页检索 CLI（见 [smart-search](#smart-search)） |
+v0.3.0 为**硬切更名**：CLI 仅保留 **`cstl`**，`trellis` 与 `tl` 两个 bin 别名已移除。
+
+| 变了 | 没变 |
+| --- | --- |
+| CLI：`trellis` / `tl` → `cstl` | `.trellis/` 目录名 |
+| skill / command / agent / rule：`trellis-*` → `cstl-*` | `trellis-task-models.json5` 文件名 |
+
+**迁移步骤**（每个项目执行一次）：
 
 ```bash
-trellis --version
+npm install -g @blxzer/cursor-trellis@latest
+cd /path/to/your-app
+cstl update --migrate
+```
+
+`--migrate` **必须**带上，才会重命名 `.cursor/` 下的 `trellis-*` → `cstl-*`。重命名经哈希校验；若你本地改过文件，会保留旧路径并警告——请手动改名或把自定义内容迁到新的 `cstl-*` 路径。
+
+0.3.0 之后日常 CLI 小版本可用 `cstl upgrade`。升级到 0.3.0 后，旧的 `trellis upgrade` 命令已不存在。
+
+**Cursor++ BYOK**（可选，仅 `.trellis/local/cursor2plus/`）：将 `trellis-task-models.json5` 中的 `trellis-research/implement/check` 键改为 `cstl-research/implement/check`，然后重跑 `patch_wpelc8.py --apply`。可在 Agent 模式使用 `/cstl-cursor2plus-setup`。
+
+详见 [CHANGELOG](./CHANGELOG.md#030---2026-07-01)。
+
+## 可执行文件
+
+| Bin | 作用 |
+| --- | --- |
+| `cstl` | 在项目中初始化、更新、管理 Trellis |
+| `smart-search` | 随包分发的网页检索 CLI（见 [smart-search](#smart-search)） |
+
+```bash
+cstl --version
 smart-search --version
 ```
 
@@ -35,18 +60,18 @@ smart-search --version
 | `rollout` | 对多个项目路径批量 `update` |
 | `workflow` | 工作流模板工具（进阶） |
 
-与 **channel** 相关的命令服务于进阶多 Agent 工作流，不属于 Cursor-first 公开文档范围。完整列表：`trellis --help`。
+与 **channel** 相关的命令服务于进阶多 Agent 工作流，不属于 Cursor-first 公开文档范围。完整列表：`cstl --help`。
 
 下文详述 **`init`**、**`update`**、**`uninstall`**。
 
 ---
 
-## `trellis init`
+## `cstl init`
 
 在**目标项目根目录**执行：
 
 ```bash
-trellis init --cursor
+cstl init --cursor
 ```
 
 ### 平台标志
@@ -82,13 +107,13 @@ trellis init --cursor
 
 ---
 
-## `trellis update`
+## `cstl update`
 
 在已有 `.trellis/` 的项目根目录：
 
 ```bash
-trellis update
-trellis update --dry-run
+cstl update
+cstl update --dry-run
 ```
 
 ### 标志
@@ -105,16 +130,16 @@ trellis update --dry-run
 | `--json` | 单行 JSON rollout 证据 |
 | `--skip-post-update-smoke` | 跳过应用后 Python 冒烟脚本 |
 
-常见流程：升级全局 CLI → 进入项目 → `trellis update` → 若自定义过 workflow/rules 请审阅 diff。
+常见流程：升级全局 CLI → 进入项目 → `cstl update`（从 0.2.x 首次升到 0.3.0 须加 `--migrate`）→ 若自定义过 workflow/rules 请审阅 diff。
 
 ---
 
-## `trellis uninstall`
+## `cstl uninstall`
 
 ```bash
-trellis uninstall
-trellis uninstall --dry-run
-trellis uninstall -y
+cstl uninstall
+cstl uninstall --dry-run
+cstl uninstall -y
 ```
 
 ### 标志

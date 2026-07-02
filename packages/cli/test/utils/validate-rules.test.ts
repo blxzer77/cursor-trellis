@@ -39,7 +39,7 @@ describe("validate-rules", () => {
     fs.mkdirSync(rulesDir);
 
     for (const rule of getAllRules()) {
-      if (rule.name !== "trellis-triage.mdc") {
+      if (rule.name !== "cstl-triage.mdc") {
         fs.writeFileSync(path.join(rulesDir, rule.name), rule.content);
       }
     }
@@ -48,7 +48,7 @@ describe("validate-rules", () => {
     expect(result.ok).toBe(false);
     expect(
       result.issues.some(
-        (i) => i.filename === "trellis-triage.mdc" && i.kind === "missing",
+        (i) => i.filename === "cstl-triage.mdc" && i.kind === "missing",
       ),
     ).toBe(true);
   });

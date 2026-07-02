@@ -1,6 +1,6 @@
 # Trellis Cursor++ Subagent Model Setup
 
-Configure per-subagent-type model routing for Cursor++ BYOK. Run this after `trellis init` (when Cursor++ is selected), when providers change, or whenever you want to re-map which model each Trellis Task subagent uses.
+Configure per-subagent-type model routing for Cursor++ BYOK. Run this after `cstl init` (when Cursor++ is selected), when providers change, or whenever you want to re-map which model each Trellis Task subagent uses.
 
 Native Cursor API (no Cursor++): stop — this does not apply; agent frontmatter `model:` works natively.
 
@@ -24,7 +24,7 @@ python ./.trellis/local/cursor2plus/patch_wpelc8.py --explain
 `--list-models` shows the model catalog (apiModel / displayName / slug / provider) from `providers.json`.
 `--explain` lists the subagent types you can route:
 
-- `trellis-research`, `trellis-implement`, `trellis-check` (core Trellis roles)
+- `cstl-research`, `cstl-implement`, `cstl-check` (core Trellis roles)
 - `generalPurpose`, `shell`, `best-of-n-runner` (built-in Cursor Task types, optional)
 
 ## Step 3: Ask the user which model per role
@@ -42,9 +42,9 @@ Write `~/.ccursor/trellis-task-models.json5` (or `~/.ccursor/` on Unix) using th
 {
   "models": {
     // <role comment>
-    "trellis-research": { "primary": "<model>", "fallback": "<model>" },
-    "trellis-implement": { "primary": "<model>", "fallback": "<model>" },
-    "trellis-check": { "primary": "<model>", "fallback": "<model>" }
+    "cstl-research": { "primary": "<model>", "fallback": "<model>" },
+    "cstl-implement": { "primary": "<model>", "fallback": "<model>" },
+    "cstl-check": { "primary": "<model>", "fallback": "<model>" }
   }
 }
 ```

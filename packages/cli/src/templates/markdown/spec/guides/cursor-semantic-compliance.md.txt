@@ -33,3 +33,9 @@ Plan-level presence does not imply execution-level use.
 ## Agent instructions
 
 When `platform-semantic` is in the route list, `render_agent_instructions` appends **语义合规（Cursor）** requiring one built-in semantic search before Top-1 and logging the host tool name.
+
+## Native live proof (OC-15, 2026-07-02)
+
+Controlled main-session run (`07-02-child-oc15-semantic-proof`): 3/3 conceptual queries with router `platform-semantic` executed host tool **`SemanticSearch`** → `platform_semantic_executed=true` (`cursor_env=native`). See `research/native-semantic-execution-proof.md`.
+
+**Caveat:** Proves observability + compliant-agent behavior; does not guarantee all sessions follow the plan (historical evals show Grep-only gaps when agents skip semantic).

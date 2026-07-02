@@ -46,15 +46,15 @@ class CLIAdapter:
     def get_commands_path(self, project_root: Path, *parts: str) -> Path:
         if not parts:
             return self.get_config_dir(project_root) / "commands"
-        if len(parts) >= 2 and parts[0] == "trellis":
+        if len(parts) >= 2 and parts[0] == "cstl":
             filename = parts[-1]
             return (
-                self.get_config_dir(project_root) / "commands" / f"trellis-{filename}"
+                self.get_config_dir(project_root) / "commands" / f"cstl-{filename}"
             )
         return self.get_config_dir(project_root) / "commands" / Path(*parts)
 
     def get_trellis_command_path(self, name: str) -> str:
-        return f".cursor/commands/trellis-{name}.md"
+        return f".cursor/commands/cstl-{name}.md"
 
     def get_non_interactive_env(self) -> dict[str, str]:
         return {}

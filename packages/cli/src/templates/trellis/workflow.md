@@ -108,7 +108,7 @@ python3 ./.trellis/scripts/get_context.py --mode retrieval-pack --json --input <
 
 **Retrieval daily guide:** `.trellis/spec/guides/retrieval-daily-guide.md` — when to use rg, codegraph, fast-context-mcp, smart-search-cli (and Cursor web fallback), artifact/session memory, codebase router (suggest-only), and explicit retrieval-pack scoring.
 
-**Cursor subagent dispatch:** `.trellis/spec/guides/cursor-subagent-policy.md` — `trellis-research` / `trellis-implement` / `trellis-check`; Parent child default **Task** `trellis-implement` from Parent session (`generate-child-prompt --mode subagent`). **Cursor++ BYOK:** per-type models via `.trellis/local/cursor2plus/` + user/project JSON maps (not committed slugs). **Native Cursor API:** frontmatter `model:` on agents still works. PRD Grill stays in `trellis-brainstorm`, not a subagent. **Cursor++:** compatible v0.0.11+ (SubAgent readonly bug fixed).
+**Cursor subagent dispatch:** `.trellis/spec/guides/cursor-subagent-policy.md` — `cstl-research` / `cstl-implement` / `cstl-check`; Parent child default **Task** `cstl-implement` from Parent session (`generate-child-prompt --mode subagent`). **Cursor++ BYOK:** per-type models via `.trellis/local/cursor2plus/` + user/project JSON maps (not committed slugs). **Native Cursor API:** frontmatter `model:` on agents still works. PRD Grill stays in `cstl-brainstorm`, not a subagent. **Cursor++:** compatible v0.0.11+ (SubAgent readonly bug fixed).
 
 ---
 
@@ -148,7 +148,7 @@ python3 ./.trellis/scripts/get_context.py --mode retrieval-pack --json --input <
   Editing checklist:
     - When you change a [workflow-state:STATUS] block, also check the
       matching phase's `[required · once]` walkthrough steps for sync
-    - Run `trellis update` after editing to push the new bodies to
+    - Run `cstl update` after editing to push the new bodies to
       downstream user projects (block-level managed replacement)
     - Full runtime contract:
       .trellis/spec/cli/backend/workflow-state-contract.md
@@ -169,7 +169,7 @@ Phase 3: Finish  → verify, record learning decision, commit, and guarded archi
 Decision tree (first match wins):
 
 1. **No durable project change** (conversation, status, explanation, read-only lookup, tiny one-turn action) → `No Task`.
-2. **Underspecified small request, no task yet** (needs focused clarification or decision pressure before work exists) → `Micro-Grill` (load `trellis-micro-grill`).
+2. **Underspecified small request, no task yet** (needs focused clarification or decision pressure before work exists) → `Micro-Grill` (load `cstl-micro-grill`).
 3. **Low-risk durable work, narrow scope, local validation, no shared contract** → `Lite Task`.
 4. **Durable code/template/runtime/workflow/cross-file behavior, or framework semantics** → `Full Task`.
 5. **Multiple independent deliverables, staged/parallel execution, or final integration authority** → `Parent Task / Child Tasks`.
@@ -219,10 +219,10 @@ Before executing an upgrade that creates artifacts, changes task mode, adds gate
 
 | Situation | Action |
 |-----------|--------|
-| No selected task + small unclear ask | `trellis-micro-grill` |
-| No selected task + need dashboard | `trellis-start` |
-| Selected task + resume step | `trellis-continue` |
-| Planning / PRD | `trellis-brainstorm` |
+| No selected task + small unclear ask | `cstl-micro-grill` |
+| No selected task + need dashboard | `cstl-start` |
+| Selected task + resume step | `cstl-continue` |
+| Planning / PRD | `cstl-brainstorm` |
 | Parent with parallel children | `generate-child-prompt --mode subagent`; writable Agent; see `.trellis/spec/guides/cursor-subagent-policy.md` |
 
 Details: archived `06-15-child-phase3-task-ladder` → `research/task-ladder-iteration.md`.
@@ -275,8 +275,8 @@ python3 ./.trellis/scripts/task.py review-child <parent-task> <child-task> --dec
 Trellis framework active. Selected task: none. Use `task.py dashboard` for routing; do not auto-select an existing task.
 MANDATORY TRIAGE (hard gate, not optional): every work-capable turn must be classified FIRST, before any action, into No Task / Micro-Grill / Lite Task / Full Task / Parent Task — see "Request Triage" in workflow.md for the decision tree. Emit the classification as the first line of your reply: `[Triage: <Mode>] <one-sentence reason citing the trigger signal>`. If you cannot classify, you have not understood the request — ask a clarifying question instead of starting work.
 After classifying into any mode that creates a task, ask the user for task-creation consent before creating any Trellis artifact. User consent to create a task is NOT consent to start implementation — planning still happens first.
-Underspecified small request with no task: load `trellis-micro-grill` before creating artifacts or upgrading the ladder.
-Framework refresh with no selected task: load `trellis-start` once; after the user selects a task, use `trellis-continue` for step-level resume—not `trellis-start`.
+Underspecified small request with no task: load `cstl-micro-grill` before creating artifacts or upgrading the ladder.
+Framework refresh with no selected task: load `cstl-start` once; after the user selects a task, use `cstl-continue` for step-level resume—not `cstl-start`.
 [/workflow-state:no_task]
 
 ### Phase 1: Plan
@@ -290,7 +290,7 @@ Framework refresh with no selected task: load `trellis-start` once; after the us
 <!-- Per-turn breadcrumb: shown throughout Phase 1 (status='planning') -->
 
 [workflow-state:planning]
-Load `trellis-brainstorm`; stay in planning.
+Load `cstl-brainstorm`; stay in planning.
 Lightweight: `prd.md` can be enough. Complex: finish `prd.md`, `design.md`, and `implement.md`; run `task.py start-execution <task> --check`, report PASS with task plus current contract/fingerprint context, and ask for explicit execution approval before `--approved`.
 Multi-deliverable scope: consider a parent task plus independently verifiable child tasks; dependencies must be written in child artifacts, not implied by tree position.
 Sub-agent mode: curate `implement.jsonl` and `check.jsonl` as spec/research manifests before start.
@@ -308,14 +308,14 @@ Sub-agent mode: curate `implement.jsonl` and `check.jsonl` as spec/research mani
                                     commit, including Phase 3.3 learning decision and Phase 3.4 commit. -->
 
 [workflow-state:in_progress]
-Tools: `trellis-implement` / `trellis-research` are sub-agent types only (Task/Agent tool, NOT Skill; there is no skill by these names). `trellis-update-spec` is a skill for durable learning only. `trellis-check` exists as both; prefer the Agent form when verifying after code changes when `execution_mode: worker`.
+Tools: `cstl-implement` / `cstl-research` are sub-agent types only (Task/Agent tool, NOT Skill; there is no skill by these names). `cstl-update-spec` is a skill for durable learning only. `cstl-check` exists as both; prefer the Agent form when verifying after code changes when `execution_mode: worker`.
 Execution boundary: implement only inside approved `prd.md`, `design.md`, `implement.md`, and Development Strategy Contract; stop and Return-to-Planning for scope, contract, gate, capability/runtime, Parent `contract_epoch`, Child boundary, selected-task fit, or non-implementation reviewer-gate changes.
 Follow the approved contract's `execution_mode` for Phase 2 (see Phase 2.1 / 2.2):
-- `inline` — main session implements and checks (use `trellis-check` skill or inline review); do NOT spawn `trellis-implement` / `trellis-check` agents unless you explicitly re-negotiate the contract.
-- `worker` — main session dispatches `trellis-implement` then `trellis-check` agents (CLI Layer 2 dispatch prompt + `Task`).
+- `inline` — main session implements and checks (use `cstl-check` skill or inline review); do NOT spawn `cstl-implement` / `cstl-check` agents unless you explicitly re-negotiate the contract.
+- `worker` — main session dispatches `cstl-implement` then `cstl-check` agents (CLI Layer 2 dispatch prompt + `Task`).
 - `child-task` — Child session or Parent orchestration per `task-map.md`; main session does not replace Child delivery.
-Flow after implementation path: validation/evidence in `verify.md` -> learning decision -> commit (Phase 3.4) -> `task.py archive <task> --check` -> `/trellis:finish-work`.
-Sub-agent self-exemption: if already running as `trellis-implement`, do NOT spawn another `trellis-implement` or `trellis-check`; if already running as `trellis-check`, do NOT spawn another `trellis-check` or `trellis-implement`. Dispatch is main session only.
+Flow after implementation path: validation/evidence in `verify.md` -> learning decision -> commit (Phase 3.4) -> `task.py archive <task> --check` -> `/cstl:finish-work`.
+Sub-agent self-exemption: if already running as `cstl-implement`, do NOT spawn another `cstl-implement` or `cstl-check`; if already running as `cstl-check`, do NOT spawn another `cstl-check` or `cstl-implement`. Dispatch is main session only.
 Dispatch prompt starts with `Selected task: <task path from task.py selected>`. Read context: jsonl entries -> `prd.md` -> `design.md if present` -> `implement.md if present`.
 [/workflow-state:in_progress]
 
@@ -335,7 +335,7 @@ Dispatch prompt starts with `Selected task: <task path from task.py selected>`. 
      channel as the live blocks. -->
 
 [workflow-state:completed]
-Code committed. Run `/trellis:finish-work`; if dirty, return to Phase 3.4 first.
+Code committed. Run `/cstl:finish-work`; if dirty, return to Phase 3.4 first.
 [/workflow-state:completed]
 
 ### Rules
@@ -352,9 +352,9 @@ Code committed. Run `/trellis:finish-work`; if dirty, return to Phase 3.4 first.
 When a user request matches one of these intents inside a selected task, route first, then load the detailed phase step if needed.
 
 
-- Planning or unclear requirements -> `trellis-brainstorm`.
-- `in_progress` implementation/check -> if contract `execution_mode: worker`, dispatch `trellis-implement` / `trellis-check`; if `inline`, main session; if `child-task`, Child/Parent orchestration.
-- Repeated debugging -> `trellis-break-loop`; spec updates -> `trellis-update-spec`.
+- Planning or unclear requirements -> `cstl-brainstorm`.
+- `in_progress` implementation/check -> if contract `execution_mode: worker`, dispatch `cstl-implement` / `cstl-check`; if `inline`, main session; if `child-task`, Child/Parent orchestration.
+- Repeated debugging -> `cstl-break-loop`; spec updates -> `cstl-update-spec`.
 
 
 
@@ -416,7 +416,7 @@ Skip when the user has already explicitly selected an appropriate task with `pyt
 
 #### 1.1 Requirement exploration `[required · repeatable]`
 
-Load the `trellis-brainstorm` skill and explore requirements interactively with the user per the skill's guidance.
+Load the `cstl-brainstorm` skill and explore requirements interactively with the user per the skill's guidance.
 
 The brainstorm skill will guide you to:
 - Ask one question at a time
@@ -443,7 +443,7 @@ Research can happen at any time during requirement exploration. It isn't limited
 
 Spawn the research sub-agent:
 
-- **Agent type**: `trellis-research`
+- **Agent type**: `cstl-research`
 - **Task description**: Research <specific question>
 - **Key requirement**: Research output MUST be persisted to `{TASK_DIR}/research/`
 
@@ -591,7 +591,7 @@ Read `execution_mode` from the approved Development Strategy Contract in `implem
 | `execution_mode` | Phase 2.1 implement |
 | --- | --- |
 | `inline` | Main session implements directly in the approved contract. |
-| `worker` | Spawn **`trellis-implement`** (Cursor): after `start-execution --approved`, assemble dispatch prompt via CLI Layer 2, then `Task(subagent_type=trellis-implement, prompt=<assembled>)`. Do **not** rely on preToolUse hook alone — see `cursor-context-injection-guide.md`. Tell the spawned agent it is already `trellis-implement` and must not spawn another `trellis-implement` / `trellis-check`. |
+| `worker` | Spawn **`cstl-implement`** (Cursor): after `start-execution --approved`, assemble dispatch prompt via CLI Layer 2, then `Task(subagent_type=cstl-implement, prompt=<assembled>)`. Do **not** rely on preToolUse hook alone — see `cursor-context-injection-guide.md`. Tell the spawned agent it is already `cstl-implement` and must not spawn another `cstl-implement` / `cstl-check`. |
 | `child-task` | Child worker session (or Parent `generate-child-prompt`); isolation per contract (`git-worktree` → `prepare-child-worktree` when applicable). |
 
 Context for worker dispatch includes `implement.jsonl` references, `prd.md`, `design.md` if present, and `implement.md` if present.
@@ -600,8 +600,8 @@ Context for worker dispatch includes `implement.jsonl` references, `prd.md`, `de
 
 | `execution_mode` | Phase 2.2 check |
 | --- | --- |
-| `inline` | Main session: `trellis-check` **skill** or inline review; record evidence in `verify.md`. |
-| `worker` | Spawn **`trellis-check`** agent: CLI Layer 2 dispatch prompt, then `Task(subagent_type=trellis-check, prompt=<assembled>)`. Agent may fix defects inside the approved contract; must not spawn another check/implement agent. |
+| `inline` | Main session: `cstl-check` **skill** or inline review; record evidence in `verify.md`. |
+| `worker` | Spawn **`cstl-check`** agent: CLI Layer 2 dispatch prompt, then `Task(subagent_type=cstl-check, prompt=<assembled>)`. Agent may fix defects inside the approved contract; must not spawn another check/implement agent. |
 | `child-task` | Child delivers `verify.md` / handoff; Parent reviews via `review-child` when applicable. |
 
 The check agent's job:
@@ -635,7 +635,7 @@ Use `contextPack.selected` / `scoredEvidence` to order citations in `verify.md`.
 
 #### 3.1 Quality verification `[required · repeatable]`
 
-Verification / Review is evidence and judgment, not a hidden implementation loop. Load the `trellis-check` skill or agent and do a final review:
+Verification / Review is evidence and judgment, not a hidden implementation loop. Load the `cstl-check` skill or agent and do a final review:
 - Spec compliance
 - lint / type-check / tests
 - Cross-layer consistency (when changes span layers)
@@ -649,7 +649,7 @@ Do not silently implement fixes, expand scope, or edit planning artifacts during
 
 #### 3.2 Debug retrospective `[on demand]`
 
-If this task involved repeated debugging (the same issue was fixed multiple times), load the `trellis-break-loop` skill to:
+If this task involved repeated debugging (the same issue was fixed multiple times), load the `cstl-break-loop` skill to:
 - Classify the root cause
 - Explain why earlier fixes failed
 - Propose prevention
@@ -663,7 +663,7 @@ Review whether this task produced durable learning worth recording:
 - requirement drift, architecture decisions, reusable conventions, or toolchain pitfalls;
 - new project-local patterns that should affect future work.
 
-If durable learning exists, load `trellis-update-spec` and update `.trellis/spec/` or write a focused `retrospective.md`, then link that evidence from `verify.md`.
+If durable learning exists, load `cstl-update-spec` and update `.trellis/spec/` or write a focused `retrospective.md`, then link that evidence from `verify.md`.
 
 If no durable learning exists, write an explicit `No durable learning` decision in `verify.md`. Do not run a spec update only to satisfy ceremony.
 
@@ -751,7 +751,7 @@ This section is for developers who want to modify the Trellis workflow itself. A
 Edit the corresponding step's walkthrough body in the Phase 1 / 2 / 3 sections above. Critical invariants:
 - No selected task must use framework/dashboard routing, then triage and ask for task-creation consent before creating a Trellis task.
 - Planning must distinguish lightweight PRD-only tasks from complex tasks that require `prd.md`, `design.md`, and `implement.md` before start.
-- Every required execution path must keep the Phase 3.4 commit reminder reachable before `/trellis:finish-work`.
+- Every required execution path must keep the Phase 3.4 commit reminder reachable before `/cstl:finish-work`.
 
 All tag blocks live in the `## Phase Index` section above, immediately after each phase summary:
 
@@ -764,7 +764,7 @@ All tag blocks live in the `## Phase Index` section above, immediately after eac
 
 ### Changing the per-turn prompt text
 
-Directly edit the body of the corresponding `[workflow-state:STATUS]` block. After editing, run `trellis update` (if you're a template maintainer) or restart your AI session (if you're customizing your own project) — no script changes required.
+Directly edit the body of the corresponding `[workflow-state:STATUS]` block. After editing, run `cstl update` (if you're a template maintainer) or restart your AI session (if you're customizing your own project) — no script changes required.
 
 ### Adding a custom status
 

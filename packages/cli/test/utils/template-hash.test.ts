@@ -517,24 +517,24 @@ describe("initializeHashes", () => {
       tmpDir,
       ".pi",
       "skills",
-      "trellis-update-spec",
+      "cstl-update-spec",
       "SKILL.md",
     );
     fs.mkdirSync(path.dirname(skillPath), { recursive: true });
     fs.writeFileSync(skillPath, "# Update Spec");
 
     // Old EXCLUDE_FROM_HASH had a "spec/" pattern that incorrectly matched
-    // `.pi/skills/trellis-update-spec/`. The new model doesn't use that
+    // `.pi/skills/cstl-update-spec/`. The new model doesn't use that
     // exclusion at all for platform dirs (they're driven by trackedPaths),
     // so as long as the path is tracked it lands in the manifest regardless
     // of whether its name contains "spec".
     const count = initializeHashes(tmpDir, {
-      trackedPaths: new Set([".pi/skills/trellis-update-spec/SKILL.md"]),
+      trackedPaths: new Set([".pi/skills/cstl-update-spec/SKILL.md"]),
     });
     const hashes = loadHashes(tmpDir);
 
     expect(hashes).toHaveProperty(
-      ".pi/skills/trellis-update-spec/SKILL.md",
+      ".pi/skills/cstl-update-spec/SKILL.md",
     );
     expect(count).toBe(1);
   });

@@ -38,7 +38,7 @@ Among competing designs that satisfy the acceptance criteria, prefer the one wit
 
 Use this skill during Phase 1 planning to turn the user's request into clear requirements and planning artifacts.
 
-**Agent-capable platforms:** Do **not** use legacy Claude-only grill subagents as a hard gate. Complete **PRD Grill** (below) and **`trellis-micro-grill`** for blocking open questions before treating planning as ready for `design.md` / `implement.md` / `start-execution --check`.
+**Agent-capable platforms:** Do **not** use legacy Claude-only grill subagents as a hard gate. Complete **PRD Grill** (below) and **`cstl-micro-grill`** for blocking open questions before treating planning as ready for `design.md` / `implement.md` / `start-execution --check`.
 
 ## Preconditions
 
@@ -79,7 +79,7 @@ Inspect and record in `prd.md` (sections: **Confirmed facts**, initial **Out of 
 
 Use retrieval per `.trellis/spec/guides/retrieval-daily-guide.md` (rg for literals, codegraph for structure, fast-context for semantic sweep).
 
-Dispatch **`trellis-research`** (writable Agent) when a topic needs a dedicated `{TASK}/research/<topic>.md` file; do **not** use a subagent for PRD Grill itself.
+Dispatch **`cstl-research`** (writable Agent) when a topic needs a dedicated `{TASK}/research/<topic>.md` file; do **not** use a subagent for PRD Grill itself.
 
 ## Phase A — PRD draft
 
@@ -117,7 +117,7 @@ Treat `prd.md` (+ existing `design.md` fragments) as the **only document surface
 
 ## Phase B — Micro-grill unresolved
 
-For each **blocking** open question after the checklist, embed the **`trellis-micro-grill` contract**:
+For each **blocking** open question after the checklist, embed the **`cstl-micro-grill` contract**:
 
 - exactly **one** question per message
 - **Simplified Chinese** for user-facing text

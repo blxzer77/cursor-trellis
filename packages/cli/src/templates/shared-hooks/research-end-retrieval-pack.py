@@ -33,7 +33,7 @@ if sys.platform.startswith("win"):
 
 DIR_WORKFLOW = ".trellis"
 OUTPUT_BASENAME = "retrieval-pack-latest.json"
-MARKER = "<!-- trellis-research-end-pack -->"
+MARKER = "<!-- cstl-research-end-pack -->"
 
 
 def _repo_root(cwd: str) -> Path | None:

@@ -207,20 +207,20 @@ describe("trellis template constants", () => {
     expect(block).toContain("execution_mode");
     expect(block).toContain("`worker`");
     expect(block).toContain("Sub-agent self-exemption");
-    expect(block).toContain("already running as `trellis-implement`");
-    expect(block).toContain("do NOT spawn another `trellis-implement`");
-    expect(block).toContain("already running as `trellis-check`");
-    expect(block).toContain("do NOT spawn another `trellis-check`");
+    expect(block).toContain("already running as `cstl-implement`");
+    expect(block).toContain("do NOT spawn another `cstl-implement`");
+    expect(block).toContain("already running as `cstl-check`");
+    expect(block).toContain("do NOT spawn another `cstl-check`");
     expect(block).toContain("main session only");
   });
 
   it("[issue-237] workflow.md Phase 2 dispatch steps require prompt recursion guards", () => {
     expect(workflowMdTemplate).toContain("execution_mode");
-    expect(workflowMdTemplate).toContain("trellis-implement");
+    expect(workflowMdTemplate).toContain("cstl-implement");
     expect(workflowMdTemplate).toContain(
-      "must not spawn another `trellis-implement` / `trellis-check`",
+      "must not spawn another `cstl-implement` / `cstl-check`",
     );
-    expect(workflowMdTemplate).toContain("trellis-check");
+    expect(workflowMdTemplate).toContain("cstl-check");
     expect(workflowMdTemplate).toContain(
       "must not spawn another check/implement agent",
     );
