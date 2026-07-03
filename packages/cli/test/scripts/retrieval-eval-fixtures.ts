@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { getAllScripts } from "../../src/templates/trellis/index.js";
 
-export const EVAL_TASK_PATH = ".trellis/tasks/06-13-eval";
+export const EVAL_TASK_PATH = ".cstl/tasks/06-13-eval";
 export const EVAL_DEVELOPER = "eval-dev";
 export const EVAL_SESSION_ID = "retrieval-eval-test";
 
@@ -56,14 +56,14 @@ export function writeJson(root: string, rel: string, data: unknown): void {
 }
 
 export function writeTrellisScripts(root: string): void {
-  const scriptsDir = path.join(root, ".trellis", "scripts");
+  const scriptsDir = path.join(root, ".cstl", "scripts");
   for (const [rel, content] of getAllScripts()) {
     writeFile(scriptsDir, rel, content);
   }
 }
 
 export function contextPackModulePath(root: string): string {
-  return path.join(root, ".trellis", "scripts", "common", "context_pack.py");
+  return path.join(root, ".cstl", "scripts", "common", "context_pack.py");
 }
 
 export function hasContextPackModule(root: string): boolean {
@@ -121,7 +121,7 @@ export const evalRecommendations = [
     confidence: "medium",
     reason: "Search local session history.",
     action: "python search_memory.py",
-    reference: ".trellis/workspace/",
+    reference: ".cstl/workspace/",
   },
   {
     source: "smart-search",
@@ -170,8 +170,8 @@ function manifestFixture(
 
 export function seedEvalProject(root: string): void {
   writeTrellisScripts(root);
-  writeFile(root, ".trellis/.developer", `name=${EVAL_DEVELOPER}\n`);
-  writeJson(root, ".trellis/.runtime/sessions/retrieval-eval-test.json", {
+  writeFile(root, ".cstl/.developer", `name=${EVAL_DEVELOPER}\n`);
+  writeJson(root, ".cstl/.runtime/sessions/retrieval-eval-test.json", {
     selected_task: EVAL_TASK_PATH,
   });
   writeJson(root, `${EVAL_TASK_PATH}/task.json`, {
@@ -196,12 +196,12 @@ export function seedEvalProject(root: string): void {
   );
   writeFile(
     root,
-    ".trellis/spec/Trellis/framework/retrieval.md",
+    ".cstl/spec/Trellis/framework/retrieval.md",
     "# Retrieval Framework\n\nDurable spec artifact for eval harness.\n",
   );
   writeFile(
     root,
-    `.trellis/workspace/${EVAL_DEVELOPER}/journal-1.md`,
+    `.cstl/workspace/${EVAL_DEVELOPER}/journal-1.md`,
     [
       "# Journal 1",
       "",
@@ -254,7 +254,7 @@ export function buildMixedSourceBundle(): Record<string, unknown> {
     },
     artifactSearchResults: [
       {
-        path: ".trellis/spec/Trellis/framework/retrieval.md",
+        path: ".cstl/spec/Trellis/framework/retrieval.md",
         title: "Retrieval Framework",
         kind: "spec",
         category: "spec",
@@ -278,7 +278,7 @@ export function buildMixedSourceBundle(): Record<string, unknown> {
         summary: "Seeded session memory for deterministic eval coverage.",
         matchedSections: ["Summary"],
         matchedFields: ["task"],
-        path: `.trellis/workspace/${EVAL_DEVELOPER}/journal-1.md`,
+        path: `.cstl/workspace/${EVAL_DEVELOPER}/journal-1.md`,
         line: 12,
         score: 16,
         reason: "matched 'retrieval'",
@@ -316,7 +316,7 @@ export function runScoreEvidence(
 ): { status: number | null; stdout: string; stderr: string } {
   const script = `
 import json, sys
-sys.path.insert(0, r"${path.join(root, ".trellis", "scripts").replace(/\\/g, "\\\\")}")
+sys.path.insert(0, r"${path.join(root, ".cstl", "scripts").replace(/\\/g, "\\\\")}")
 from common.retrieval_evidence import score_evidence_bundle
 print(json.dumps(score_evidence_bundle(json.loads(sys.stdin.read())), ensure_ascii=False))
 `;
@@ -340,7 +340,7 @@ export function runGetContext(
 ): { status: number | null; stdout: string; stderr: string } {
   const result = spawnSync(
     pythonCmd,
-    [path.join(root, ".trellis", "scripts", "get_context.py"), ...args],
+    [path.join(root, ".cstl", "scripts", "get_context.py"), ...args],
     {
       cwd: root,
       encoding: "utf-8",
@@ -371,7 +371,7 @@ export function runBuildContextPack(
 
   const script = `
 import json, sys
-sys.path.insert(0, r"${path.join(root, ".trellis", "scripts").replace(/\\/g, "\\\\")}")
+sys.path.insert(0, r"${path.join(root, ".cstl", "scripts").replace(/\\/g, "\\\\")}")
 from common.context_pack import build_context_pack
 print(json.dumps(build_context_pack(json.loads(sys.stdin.read())${kwargsExpr}), ensure_ascii=False))
 `;
@@ -481,7 +481,7 @@ export function runBuildRetrievalPack(
 
   const script = `
 import json, sys
-sys.path.insert(0, r"${path.join(root, ".trellis", "scripts").replace(/\\/g, "\\\\")}")
+sys.path.insert(0, r"${path.join(root, ".cstl", "scripts").replace(/\\/g, "\\\\")}")
 from common.retrieval_pack import build_retrieval_pack
 payload = json.loads(sys.stdin.read())
 print(json.dumps(build_retrieval_pack(

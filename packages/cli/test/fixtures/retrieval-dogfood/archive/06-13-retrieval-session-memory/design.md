@@ -6,8 +6,8 @@ Add a Trellis-native session memory retrieval layer for reusable decisions, prio
 
 ## Evidence
 
-- `.trellis/workspace/<developer>/journal-N.md` stores structured session records.
-- `.trellis/workspace/<developer>/index.md` stores session history and active journal metadata.
+- `.cstl/workspace/<developer>/journal-N.md` stores structured session records.
+- `.cstl/workspace/<developer>/index.md` stores session history and active journal metadata.
 - `add_session.py` writes session entries and rotates journals.
 - `session_context.py` reports active journal metadata but does not search prior sessions.
 - Phase 1 `artifact_search.py` indexes `workspace` artifacts generically, but downstream ranking needs a session-specific result shape.
@@ -29,7 +29,7 @@ Add a session memory helper that parses workspace journals into compact memory e
   "commits": ["abcdef0"],
   "summary": "session summary",
   "matchedSections": ["Summary", "Main Changes", "Next Steps"],
-  "path": ".trellis/workspace/<developer>/journal-1.md",
+  "path": ".cstl/workspace/<developer>/journal-1.md",
   "line": 42,
   "score": 12,
   "reason": "matched task slug and summary keyword"

@@ -77,7 +77,7 @@ function writeJson(root: string, rel: string, data: unknown): void {
 }
 
 function writeTrellisScripts(root: string): void {
-  const scriptsDir = path.join(root, ".trellis", "scripts");
+  const scriptsDir = path.join(root, ".cstl", "scripts");
   for (const [rel, content] of getAllScripts()) {
     writeFile(scriptsDir, rel, content);
   }
@@ -85,11 +85,11 @@ function writeTrellisScripts(root: string): void {
 
 function seedProject(root: string): void {
   writeTrellisScripts(root);
-  writeFile(root, ".trellis/.developer", "name=test-dev\n");
-  writeJson(root, ".trellis/.runtime/sessions/context-loading-test.json", {
-    selected_task: ".trellis/tasks/06-13-context",
+  writeFile(root, ".cstl/.developer", "name=test-dev\n");
+  writeJson(root, ".cstl/.runtime/sessions/context-loading-test.json", {
+    selected_task: ".cstl/tasks/06-13-context",
   });
-  writeJson(root, ".trellis/tasks/06-13-context/task.json", {
+  writeJson(root, ".cstl/tasks/06-13-context/task.json", {
     id: "context",
     name: "context",
     title: "Context Loading",
@@ -102,18 +102,18 @@ function seedProject(root: string): void {
     parent: null,
     package: "trellis",
   });
-  writeFile(root, ".trellis/tasks/06-13-context/prd.md", "# PRD\n");
-  writeFile(root, ".trellis/tasks/06-13-context/design.md", "# Design\n");
+  writeFile(root, ".cstl/tasks/06-13-context/prd.md", "# PRD\n");
+  writeFile(root, ".cstl/tasks/06-13-context/design.md", "# Design\n");
   writeFile(
     root,
-    ".trellis/tasks/06-13-context/research/baseline.md",
+    ".cstl/tasks/06-13-context/research/baseline.md",
     "# Baseline\n",
   );
 }
 
 function seedProjectWithoutSelectedTask(root: string): void {
   writeTrellisScripts(root);
-  writeFile(root, ".trellis/.developer", "name=test-dev\n");
+  writeFile(root, ".cstl/.developer", "name=test-dev\n");
 }
 
 function runGetContext(
@@ -122,7 +122,7 @@ function runGetContext(
 ): { status: number | null; stdout: string; stderr: string } {
   const result = spawnSync(
     pythonCmd as string,
-    [path.join(root, ".trellis", "scripts", "get_context.py"), ...args],
+    [path.join(root, ".cstl", "scripts", "get_context.py"), ...args],
     {
       cwd: root,
       encoding: "utf-8",
@@ -155,16 +155,16 @@ describe.skipIf(pythonCmd === null)("get_context.py retrieval guidance", () => {
     expect(result.stderr).toBe("");
     expect(result.stdout).toContain("## RETRIEVAL GUIDE");
     expect(result.stdout).toContain(
-      'Artifact search: python3 ./.trellis/scripts/search_artifacts.py --query "<topic>" --json',
+      'Artifact search: python3 ./.cstl/scripts/search_artifacts.py --query "<topic>" --json',
     );
     expect(result.stdout).toContain(
-      'Session memory: python3 ./.trellis/scripts/search_memory.py --query "<topic>" --json',
+      'Session memory: python3 ./.cstl/scripts/search_memory.py --query "<topic>" --json',
     );
     expect(result.stdout).toContain(
       "Use session memory for reusable prior decisions",
     );
     expect(result.stdout).toContain(
-      'Smart Search evidence: python3 ./.trellis/scripts/run_smart_search.py "<question>" --intent deep-research --json',
+      'Smart Search evidence: python3 ./.cstl/scripts/run_smart_search.py "<question>" --intent deep-research --json',
     );
     expect(result.stdout).toContain(
       "Run Smart Search evidence only when external/current source evidence is needed",
@@ -173,10 +173,10 @@ describe.skipIf(pythonCmd === null)("get_context.py retrieval guidance", () => {
       "Codebase evidence: adapter output is candidate evidence",
     );
     expect(result.stdout).toContain(
-      ".trellis/tasks/06-13-context/research/*.md for exploratory chains",
+      ".cstl/tasks/06-13-context/research/*.md for exploratory chains",
     );
     expect(result.stdout).toContain(
-      ".trellis/tasks/06-13-context/verify.md for final proof",
+      ".cstl/tasks/06-13-context/verify.md for final proof",
     );
     expect(result.stdout).toContain("Selected-task artifacts:");
     expect(result.stdout).toContain("- prd.md: present");
@@ -190,7 +190,7 @@ describe.skipIf(pythonCmd === null)("get_context.py retrieval guidance", () => {
     );
     expect(result.stdout).toContain("2. artifact-search [high] priority 90");
     expect(result.stdout).toContain(
-      "Action: python3 ./.trellis/scripts/search_artifacts.py --query",
+      "Action: python3 ./.cstl/scripts/search_artifacts.py --query",
     );
   });
 
@@ -204,16 +204,16 @@ describe.skipIf(pythonCmd === null)("get_context.py retrieval guidance", () => {
     expect(payload.developer).toBe("test-dev");
     expect(payload.tasks.active).toHaveLength(1);
     expect(payload.retrievalGuide.artifactSearch.command).toBe(
-      'python3 ./.trellis/scripts/search_artifacts.py --query "<topic>" --json',
+      'python3 ./.cstl/scripts/search_artifacts.py --query "<topic>" --json',
     );
     expect(payload.retrievalGuide.sessionMemory.command).toBe(
-      'python3 ./.trellis/scripts/search_memory.py --query "<topic>" --json',
+      'python3 ./.cstl/scripts/search_memory.py --query "<topic>" --json',
     );
     expect(payload.retrievalGuide.sessionMemory.purpose).toContain(
       "workspace journals",
     );
     expect(payload.retrievalGuide.smartSearchEvidence.command).toBe(
-      'python3 ./.trellis/scripts/run_smart_search.py "<question>" --intent deep-research --json',
+      'python3 ./.cstl/scripts/run_smart_search.py "<question>" --intent deep-research --json',
     );
     expect(payload.retrievalGuide.smartSearchEvidence.purpose).toContain(
       "task-local evidence manifest",
@@ -225,7 +225,7 @@ describe.skipIf(pythonCmd === null)("get_context.py retrieval guidance", () => {
       "selected task research/*.md",
     );
     expect(payload.retrievalGuide.selectedTaskArtifacts).toEqual({
-      taskPath: ".trellis/tasks/06-13-context",
+      taskPath: ".cstl/tasks/06-13-context",
       prd: true,
       design: true,
       implement: false,
@@ -254,15 +254,15 @@ describe.skipIf(pythonCmd === null)("get_context.py retrieval guidance", () => {
     expect(recommendations[4]).toMatchObject({
       source: "smart-search",
       confidence: "low",
-      reference: ".trellis/tasks/06-13-context/research/smart-search/",
+      reference: ".cstl/tasks/06-13-context/research/smart-search/",
     });
   });
 
   it("keeps fallback recommendations when selected-task artifacts are missing", () => {
-    fs.rmSync(path.join(tmpDir, ".trellis", "tasks", "06-13-context", "prd.md"));
-    fs.rmSync(path.join(tmpDir, ".trellis", "tasks", "06-13-context", "design.md"));
+    fs.rmSync(path.join(tmpDir, ".cstl", "tasks", "06-13-context", "prd.md"));
+    fs.rmSync(path.join(tmpDir, ".cstl", "tasks", "06-13-context", "design.md"));
     fs.rmSync(
-      path.join(tmpDir, ".trellis", "tasks", "06-13-context", "research"),
+      path.join(tmpDir, ".cstl", "tasks", "06-13-context", "research"),
       { recursive: true, force: true },
     );
 

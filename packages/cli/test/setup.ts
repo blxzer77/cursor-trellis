@@ -7,7 +7,7 @@ delete process.env.OPENCODE_RUN_ID;
 // Strip *_PROJECT_DIR vars: shared-hooks/session-start.py prefers them over
 // JSON cwd / process cwd, so a dev running tests inside a Claude Code /
 // Copilot / etc. session would otherwise have the hook read the *real*
-// repo's .trellis/ instead of the test tmpDir.
+// repo's .cstl/ instead of the test tmpDir.
 delete process.env.CLAUDE_PROJECT_DIR;
 delete process.env.QODER_PROJECT_DIR;
 delete process.env.CODEBUDDY_PROJECT_DIR;

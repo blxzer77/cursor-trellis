@@ -76,10 +76,10 @@ def _probe_grep(repo_root: Path) -> dict[str, object]:
     """P-01: Grep a known literal in a known file under the repo.
 
     Known answer: 'TRELLIS_B2_WPeLc8' must appear in
-    .trellis/local/cursor2plus/patch_wpelc8.py (the MARKER constant).
+    .cstl/local/cursor2plus/patch_wpelc8.py (the MARKER constant).
     """
     marker = "TRELLIS_B2_WPeLc8"
-    target = repo_root / ".trellis" / "local" / "cursor2plus" / "patch_wpelc8.py"
+    target = repo_root / ".cstl" / "local" / "cursor2plus" / "patch_wpelc8.py"
     ok_file = target.is_file()
     found = False
     matches: list[str] = []
@@ -172,7 +172,7 @@ def _probe_smart_search(repo_root: Path) -> dict[str, object]:
     argv without running a network search. A separate `doctor` invocation is
     attempted if the resolved entrypoint is the smart-search package CLI.
     """
-    scripts_dir = repo_root / ".trellis" / "scripts"
+    scripts_dir = repo_root / ".cstl" / "scripts"
     if str(scripts_dir) not in sys.path:
         sys.path.insert(0, str(scripts_dir))
     resolved: list[str] | None = None

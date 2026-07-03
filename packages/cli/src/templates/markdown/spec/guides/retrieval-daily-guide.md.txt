@@ -46,13 +46,13 @@ When `projectFileCount > 2000`, the router promotes structural (codegraph) route
 ## Commands
 
 ```powershell
-python ./.trellis/scripts/search_artifacts.py --query "<topic>" --json
-python ./.trellis/scripts/search_memory.py --query "<topic>" --json
-python ./.trellis/scripts/run_smart_search.py "<question>" --intent deep-research --json
-python ./.trellis/scripts/route_codebase_retrieval.py "<question>" --json
-python ./.trellis/scripts/route_codebase_retrieval.py "<question>" --instructions
-python ./.trellis/scripts/get_context.py --mode retrieval-pack --json --input evidence.json
-python ./.trellis/scripts/codegraph_session_smoke.py --json
+python ./.cstl/scripts/search_artifacts.py --query "<topic>" --json
+python ./.cstl/scripts/search_memory.py --query "<topic>" --json
+python ./.cstl/scripts/run_smart_search.py "<question>" --intent deep-research --json
+python ./.cstl/scripts/route_codebase_retrieval.py "<question>" --json
+python ./.cstl/scripts/route_codebase_retrieval.py "<question>" --instructions
+python ./.cstl/scripts/get_context.py --mode retrieval-pack --json --input evidence.json
+python ./.cstl/scripts/codegraph_session_smoke.py --json
 ```
 
 ## Codegraph session readiness (eval / dogfood)
@@ -60,7 +60,7 @@ python ./.trellis/scripts/codegraph_session_smoke.py --json
 Before a **cold benchmark** or structural-heavy run:
 
 1. **MCP**: In Cursor project MCP settings, enable the **codegraph** server for the workspace (or eval checkout).
-2. **Index on disk**: Run `python ./.trellis/scripts/codegraph_session_smoke.py` (exit 0 = at least one `.codegraph/` under workspace root or a top-level subproject). Use `--root <eval-checkout>` when the agent root is not the harness.
+2. **Index on disk**: Run `python ./.cstl/scripts/codegraph_session_smoke.py` (exit 0 = at least one `.codegraph/` under workspace root or a top-level subproject). Use `--root <eval-checkout>` when the agent root is not the harness.
 3. **Live MCP smoke** (manual): one `codegraph_search` with a known symbol in that repo; stale-index banner → re-read affected files.
 
 Paste into the **run report header** (markdown):
@@ -76,7 +76,7 @@ Paste into the **run report header** (markdown):
 
 When `smart-search doctor` is not ok or `run_smart_search.py` status is `not_configured` / `failed` (including **search timeout**), use **Cursor WebSearch/WebFetch**, then persist to `{TASK}/research/` with `source: cursor-web-fallback` in frontmatter. See `smart-search-cli` skill §4b.
 
-**CLI discovery (Cursor):** `TRELLIS_SMART_SEARCH_COMMAND` / `smart_search.command` → PATH `smart-search` → project `node_modules/.bin/smart-search` (when installed as a dependency). Agent entrypoint is always `./.trellis/scripts/run_smart_search.py`.
+**CLI discovery (Cursor):** `TRELLIS_SMART_SEARCH_COMMAND` / `smart_search.command` → PATH `smart-search` → project `node_modules/.bin/smart-search` (when installed as a dependency). Agent entrypoint is always `./.cstl/scripts/run_smart_search.py`.
 
 **Research flags (smart-search ≥ 0.1.15):** pass through `run_smart_search.py` for `--intent deep-research`:
 
@@ -107,7 +107,7 @@ After Grep/codegraph/semantic produce **path candidates**, reorder before choosi
 | `env-config-literal` | Prefer `scripts/`, `e2e/`, `bench/`, `test/` over generic `src/auth` / `src/paths`. |
 
 - **Agent plans**: `render_agent_instructions` / `inject-retrieval-plan.py` append a **结果层排序** block when these intents appear.
-- **Offline reorder**: `python ./.trellis/scripts/rank_retrieval_candidates.py --candidates fixtures.json --intents caller-chain --top-k 5 --pretty`
+- **Offline reorder**: `python ./.cstl/scripts/rank_retrieval_candidates.py --candidates fixtures.json --intents caller-chain --top-k 5 --pretty`
 - **Library**: `common/retrieval_result_ranking.py` (Python mirror used by router and rank script).
 
 Do **not** claim aggregate openclaw score gains from ranking alone without fresh telemetry (`candidate_pool_recall` vs final Top-K).

@@ -211,7 +211,7 @@ describe("regression: add_session.py runtime branch context (issue-106)", () => 
   });
 
   function writeTrellisScripts(): void {
-    const scriptsDir = path.join(tmpDir, ".trellis", "scripts");
+    const scriptsDir = path.join(tmpDir, ".cstl", "scripts");
     for (const [relativePath, content] of getAllScripts()) {
       const absPath = path.join(scriptsDir, relativePath);
       fs.mkdirSync(path.dirname(absPath), { recursive: true });
@@ -257,7 +257,7 @@ ${separator}
 <!-- @@@/auto:session-history -->
 `;
     fs.writeFileSync(
-      path.join(tmpDir, ".trellis", "workspace", "test-dev", "index.md"),
+      path.join(tmpDir, ".cstl", "workspace", "test-dev", "index.md"),
       indexContent,
       "utf-8",
     );
@@ -271,39 +271,39 @@ ${separator}
   }): void {
     writeTrellisScripts();
 
-    fs.mkdirSync(path.join(tmpDir, ".trellis", "workspace", "test-dev"), {
+    fs.mkdirSync(path.join(tmpDir, ".cstl", "workspace", "test-dev"), {
       recursive: true,
     });
     fs.writeFileSync(
-      path.join(tmpDir, ".trellis", ".developer"),
+      path.join(tmpDir, ".cstl", ".developer"),
       "name=test-dev\ninitialized_at=2026-03-22T00:00:00\n",
       "utf-8",
     );
     fs.writeFileSync(
-      path.join(tmpDir, ".trellis", "workspace", "test-dev", "journal-1.md"),
+      path.join(tmpDir, ".cstl", "workspace", "test-dev", "journal-1.md"),
       "# Journal - test-dev (Part 1)\n\n---\n",
       "utf-8",
     );
     createWorkspaceIndex(options?.headerMode ?? "current5");
 
     if (options?.taskBranch || options?.taskBaseBranch) {
-      const taskDir = path.join(tmpDir, ".trellis", "tasks", "issue-106");
+      const taskDir = path.join(tmpDir, ".cstl", "tasks", "issue-106");
       fs.mkdirSync(taskDir, { recursive: true });
       fs.mkdirSync(
-        path.join(tmpDir, ".trellis", ".runtime", "sessions"),
+        path.join(tmpDir, ".cstl", ".runtime", "sessions"),
         { recursive: true },
       );
       fs.writeFileSync(
         path.join(
           tmpDir,
-          ".trellis",
+          ".cstl",
           ".runtime",
           "sessions",
           "session-a.json",
         ),
         JSON.stringify(
           {
-            selected_task: ".trellis/tasks/issue-106",
+            selected_task: ".cstl/tasks/issue-106",
             platform: "test",
           },
           null,
@@ -340,7 +340,7 @@ ${separator}
     const command = [
       "python3",
       JSON.stringify(
-        path.join(tmpDir, ".trellis", "scripts", "add_session.py"),
+        path.join(tmpDir, ".cstl", "scripts", "add_session.py"),
       ),
       "--title",
       JSON.stringify(title),
@@ -369,11 +369,11 @@ ${separator}
     runAddSession("CLI branch wins", { branch: "cli/from-arg" });
 
     const journal = fs.readFileSync(
-      path.join(tmpDir, ".trellis", "workspace", "test-dev", "journal-1.md"),
+      path.join(tmpDir, ".cstl", "workspace", "test-dev", "journal-1.md"),
       "utf-8",
     );
     const index = fs.readFileSync(
-      path.join(tmpDir, ".trellis", "workspace", "test-dev", "index.md"),
+      path.join(tmpDir, ".cstl", "workspace", "test-dev", "index.md"),
       "utf-8",
     );
 
@@ -396,11 +396,11 @@ ${separator}
     runAddSession("Task branch wins");
 
     const journal = fs.readFileSync(
-      path.join(tmpDir, ".trellis", "workspace", "test-dev", "journal-1.md"),
+      path.join(tmpDir, ".cstl", "workspace", "test-dev", "journal-1.md"),
       "utf-8",
     );
     const index = fs.readFileSync(
-      path.join(tmpDir, ".trellis", "workspace", "test-dev", "index.md"),
+      path.join(tmpDir, ".cstl", "workspace", "test-dev", "index.md"),
       "utf-8",
     );
 
@@ -420,11 +420,11 @@ ${separator}
     runAddSession("Git branch fallback");
 
     const journal = fs.readFileSync(
-      path.join(tmpDir, ".trellis", "workspace", "test-dev", "journal-1.md"),
+      path.join(tmpDir, ".cstl", "workspace", "test-dev", "journal-1.md"),
       "utf-8",
     );
     const index = fs.readFileSync(
-      path.join(tmpDir, ".trellis", "workspace", "test-dev", "index.md"),
+      path.join(tmpDir, ".cstl", "workspace", "test-dev", "index.md"),
       "utf-8",
     );
 
@@ -446,7 +446,7 @@ ${separator}
     runAddSession("Legacy 4-column migration");
 
     const index = fs.readFileSync(
-      path.join(tmpDir, ".trellis", "workspace", "test-dev", "index.md"),
+      path.join(tmpDir, ".cstl", "workspace", "test-dev", "index.md"),
       "utf-8",
     );
 
@@ -463,11 +463,11 @@ ${separator}
     runAddSession("No branch available");
 
     const journal = fs.readFileSync(
-      path.join(tmpDir, ".trellis", "workspace", "test-dev", "journal-1.md"),
+      path.join(tmpDir, ".cstl", "workspace", "test-dev", "journal-1.md"),
       "utf-8",
     );
     const index = fs.readFileSync(
-      path.join(tmpDir, ".trellis", "workspace", "test-dev", "index.md"),
+      path.join(tmpDir, ".cstl", "workspace", "test-dev", "index.md"),
       "utf-8",
     );
 
@@ -482,7 +482,7 @@ ${separator}
 
 describe("regression: Windows path separator (beta.12)", () => {
   it("[beta.12] isManagedPath handles Windows backslash paths", () => {
-    expect(isManagedPath(".trellis\\spec\\backend")).toBe(true);
+    expect(isManagedPath(".cstl\\spec\\backend")).toBe(true);
     expect(isManagedPath(".cursor\\commands\\start.md")).toBe(true);
   });
 
@@ -497,8 +497,8 @@ describe("regression: Windows path separator (beta.12)", () => {
 // =============================================================================
 
 describe("regression: task directory paths (0.2.14, 0.2.15, beta.13)", () => {
-  it("[0.2.15] PATHS.TASKS is .trellis/tasks (not .trellis/workspace/*/tasks)", () => {
-    expect(PATHS.TASKS).toBe(".trellis/tasks");
+  it("[0.2.15] PATHS.TASKS is .cstl/tasks (not .cstl/workspace/*/tasks)", () => {
+    expect(PATHS.TASKS).toBe(".cstl/tasks");
     expect(PATHS.TASKS).not.toContain("workspace");
   });
 
@@ -526,7 +526,7 @@ describe("regression: task directory paths (0.2.14, 0.2.15, beta.13)", () => {
 describe("regression: resolve_task_dir path handling", () => {
   it("[beta.12] resolve_task_dir handles .trellis prefix", () => {
     // The function should recognize .trellis-prefixed paths as relative paths
-    expect(commonTaskUtils).toContain('.startswith(".trellis")');
+    expect(commonTaskUtils).toContain('.startswith(".cstl")');
   });
 
   it("[current-task] resolve_task_dir normalizes backslash separators before path classification", () => {
@@ -734,15 +734,15 @@ describe("regression: agent-session Trellis update hint", () => {
 
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-update-hint-"));
-    const scriptsDir = path.join(tmpDir, ".trellis", "scripts");
+    const scriptsDir = path.join(tmpDir, ".cstl", "scripts");
     for (const [relativePath, content] of getAllScripts()) {
       const absPath = path.join(scriptsDir, relativePath);
       fs.mkdirSync(path.dirname(absPath), { recursive: true });
       fs.writeFileSync(absPath, content, "utf-8");
     }
-    fs.mkdirSync(path.join(tmpDir, ".trellis", "tasks"), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, ".cstl", "tasks"), { recursive: true });
     fs.writeFileSync(
-      path.join(tmpDir, ".trellis", ".developer"),
+      path.join(tmpDir, ".cstl", ".developer"),
       "name=test-dev\ninitialized_at=2026-05-09T00:00:00Z\n",
       "utf-8",
     );
@@ -757,7 +757,7 @@ describe("regression: agent-session Trellis update hint", () => {
     trellisVersionOutput: string | null,
   ): string {
     fs.writeFileSync(
-      path.join(tmpDir, ".trellis", ".version"),
+      path.join(tmpDir, ".cstl", ".version"),
       `${currentVersion}\n`,
       "utf-8",
     );
@@ -768,7 +768,7 @@ describe("regression: agent-session Trellis update hint", () => {
         "import os",
         "import sys",
         "from pathlib import Path",
-        "sys.path.insert(0, str(Path.cwd() / '.trellis' / 'scripts'))",
+        "sys.path.insert(0, str(Path.cwd() / '.cstl' / 'scripts'))",
         "from common import session_context",
         "output = os.environ.get('TRELLIS_VERSION_OUTPUT')",
         "session_context._fetch_trellis_version_output = lambda: None if output == '__NONE__' else output",
@@ -811,7 +811,7 @@ describe("regression: agent-session Trellis update hint", () => {
     expect(runContextWithTrellisOutput("0.5.9", "0.5.9")).not.toContain(
       "Trellis update available",
     );
-    fs.rmSync(path.join(tmpDir, ".trellis", ".runtime"), {
+    fs.rmSync(path.join(tmpDir, ".cstl", ".runtime"), {
       recursive: true,
       force: true,
     });
@@ -824,7 +824,7 @@ describe("regression: agent-session Trellis update hint", () => {
     expect(runContextWithTrellisOutput("0.5.0", null)).not.toContain(
       "Trellis update available",
     );
-    fs.rmSync(path.join(tmpDir, ".trellis", ".runtime"), {
+    fs.rmSync(path.join(tmpDir, ".cstl", ".runtime"), {
       recursive: true,
       force: true,
     });
@@ -859,7 +859,7 @@ describe("regression: agent-session Trellis update hint", () => {
       fs.existsSync(
         path.join(
           tmpDir,
-          ".trellis",
+          ".cstl",
           ".runtime",
           "update-check-test-update-session.marker",
         ),
@@ -896,18 +896,18 @@ describe("regression: issue #252 polyrepo Git context", () => {
 
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-polyrepo-git-"));
-    const scriptsDir = path.join(tmpDir, ".trellis", "scripts");
+    const scriptsDir = path.join(tmpDir, ".cstl", "scripts");
     for (const [relativePath, content] of getAllScripts()) {
       const absPath = path.join(scriptsDir, relativePath);
       fs.mkdirSync(path.dirname(absPath), { recursive: true });
       fs.writeFileSync(absPath, content, "utf-8");
     }
-    fs.mkdirSync(path.join(tmpDir, ".trellis", "tasks"), { recursive: true });
-    fs.mkdirSync(path.join(tmpDir, ".trellis", "workspace", "test-dev"), {
+    fs.mkdirSync(path.join(tmpDir, ".cstl", "tasks"), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, ".cstl", "workspace", "test-dev"), {
       recursive: true,
     });
     fs.writeFileSync(
-      path.join(tmpDir, ".trellis", ".developer"),
+      path.join(tmpDir, ".cstl", ".developer"),
       "name=test-dev\n",
       "utf-8",
     );
@@ -919,7 +919,7 @@ describe("regression: issue #252 polyrepo Git context", () => {
 
   function writeConfigYaml(content: string): void {
     fs.writeFileSync(
-      path.join(tmpDir, ".trellis", "config.yaml"),
+      path.join(tmpDir, ".cstl", "config.yaml"),
       content,
       "utf-8",
     );
@@ -952,7 +952,7 @@ describe("regression: issue #252 polyrepo Git context", () => {
         "import json",
         "import sys",
         "from pathlib import Path",
-        "sys.path.insert(0, str(Path.cwd() / '.trellis' / 'scripts'))",
+        "sys.path.insert(0, str(Path.cwd() / '.cstl' / 'scripts'))",
         "from common import session_context",
         expression,
         "",

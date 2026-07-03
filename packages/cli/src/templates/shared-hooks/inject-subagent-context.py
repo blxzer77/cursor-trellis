@@ -26,7 +26,7 @@ if sys.platform.startswith("win"):
     elif hasattr(sys.stdout, "detach"):
         sys.stdout = _io.TextIOWrapper(sys.stdout.detach(), encoding="utf-8", errors="replace")  # type: ignore[union-attr]
 
-DIR_WORKFLOW = ".trellis"
+DIR_WORKFLOW = ".cstl"
 
 AGENT_IMPLEMENT = "cstl-implement"
 AGENT_CHECK = "cstl-check"

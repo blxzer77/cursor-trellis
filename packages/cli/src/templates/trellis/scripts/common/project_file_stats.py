@@ -12,7 +12,7 @@ DEFAULT_LARGE_PROJECT_THRESHOLD = 2000
 _SKIP_DIR_NAMES = frozenset(
     {
         ".git",
-        ".trellis",
+        ".cstl",
         ".venv",
         "venv",
         "node_modules",

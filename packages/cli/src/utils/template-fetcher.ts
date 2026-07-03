@@ -21,7 +21,7 @@ const TEMPLATE_REPO = "gh:mindfold-ai/marketplace";
 
 /** Map template type to installation path */
 const INSTALL_PATHS: Record<string, string> = {
-  spec: ".trellis/spec",
+  spec: ".cstl/spec",
   skill: ".agents/skills",
   command: ".claude/commands",
   full: ".", // Entire project root

@@ -20,13 +20,13 @@ Read the selected task artifacts in order:
 - `implement.md` if present
 
 ```bash
-python ./.trellis/scripts/get_context.py --mode packages
+python ./.cstl/scripts/get_context.py --mode packages
 ```
 
 For each changed package/layer, read the spec index and follow its **Quality Check** section:
 
 ```bash
-cat .trellis/spec/<package>/<layer>/index.md
+cat .cstl/spec/<package>/<layer>/index.md
 ```
 
 Read the specific guideline files referenced — the index is a pointer, not the goal.
@@ -56,12 +56,12 @@ Run the project's lint, type-check, and test commands. Fix any failures before p
 - [ ] `verify.md` contains exactly one token: `Learning decision: update-spec` | `no-update` | `unsure`
 - [ ] If `update-spec` or `unsure`: `research/learning-proposal.md` exists (or documented `N/A` with reason) and matches the decision
 - [ ] If `no-update`: includes `no durable learning` (or guide-equivalent) plus brief rationale
-- [ ] If `update-spec`: spec was written only after confirmation; `Spec update evidence:` points at `.trellis/spec/...`
-- [ ] No silent edits to `.trellis/spec/` without confirmation
+- [ ] If `update-spec`: spec was written only after confirmation; `Spec update evidence:` points at `.cstl/spec/...`
+- [ ] No silent edits to `.cstl/spec/` without confirmation
 
 ### Spec Sync
 
-- [ ] Does `.trellis/spec/` need updates? (route through semi-automatic flow: proposal → confirm → `cstl-update-spec`)
+- [ ] Does `.cstl/spec/` need updates? (route through semi-automatic flow: proposal → confirm → `cstl-update-spec`)
 
 > "If I fixed a bug or discovered something non-obvious, should I document it so future me won't hit the same issue?" → If YES, update the relevant spec doc.
 

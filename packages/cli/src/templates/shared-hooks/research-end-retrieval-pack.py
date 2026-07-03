@@ -31,7 +31,7 @@ if sys.platform.startswith("win"):
             sys.stdout.detach(), encoding="utf-8", errors="replace"
         )
 
-DIR_WORKFLOW = ".trellis"
+DIR_WORKFLOW = ".cstl"
 OUTPUT_BASENAME = "retrieval-pack-latest.json"
 MARKER = "<!-- cstl-research-end-pack -->"
 

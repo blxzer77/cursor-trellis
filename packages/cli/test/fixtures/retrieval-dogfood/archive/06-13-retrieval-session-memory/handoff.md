@@ -15,7 +15,7 @@ python .\.trellis\scripts\search_memory.py --query "retrieval ranking" --json
 Primary source:
 
 ```text
-.trellis/workspace/<developer>/journal-N.md
+.cstl/workspace/<developer>/journal-N.md
 ```
 
 Session boundary:
@@ -69,7 +69,7 @@ JSON payload shape:
       "summary": "Completed retrieval artifact index...",
       "matchedSections": ["Summary", "Next Steps"],
       "matchedFields": ["task"],
-      "path": ".trellis/workspace/blxzer77/journal-1.md",
+      "path": ".cstl/workspace/blxzer77/journal-1.md",
       "line": 25,
       "score": 16,
       "reason": "matched 'retrieval'; matched 'ranking'"

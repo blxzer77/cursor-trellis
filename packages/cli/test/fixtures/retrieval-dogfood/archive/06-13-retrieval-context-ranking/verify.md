@@ -6,12 +6,12 @@ Implemented additive retrieval recommendations in Trellis context loading.
 
 Validation Evidence: focused context-loading tests, combined retrieval regression tests, Python compile, typecheck, changed-file ESLint, whitespace check, task artifact validation, and manual code review passed.
 Final acceptance evidence: this child is ready for parent review using `verify.md`, `handoff.md`, and ref `working-tree-diff`.
-Durable Learning: no `.trellis/spec/` update is needed; existing Trellis Python template runtime, template generation, and validation specs already cover this pattern.
+Durable Learning: no `.cstl/spec/` update is needed; existing Trellis Python template runtime, template generation, and validation specs already cover this pattern.
 
 ## Changed Areas
 
 - Updated:
-  - `Trellis/.trellis/scripts/common/session_context.py`
+  - `Trellis/.cstl/scripts/common/session_context.py`
   - `Trellis/packages/cli/src/templates/trellis/scripts/common/session_context.py`
   - `Trellis/packages/cli/test/scripts/context-loading.integration.test.ts`
 - Added deterministic `retrievalGuide.recommendations` JSON output.

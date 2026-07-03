@@ -8,16 +8,16 @@
 // Directory names (can be renamed)
 export const DIR_NAMES = {
   /** Root workflow directory */
-  WORKFLOW: ".trellis",
-  /** Workspace directory (under .trellis/) - developer work areas */
+  WORKFLOW: ".cstl",
+  /** Workspace directory (under .cstl/) - developer work areas */
   WORKSPACE: "workspace",
-  /** Tasks directory (under .trellis/) - unified task storage */
+  /** Tasks directory (under .cstl/) - unified task storage */
   TASKS: "tasks",
   /** Archive directory (under tasks/) */
   ARCHIVE: "archive",
-  /** Spec/guidelines directory (under .trellis/) */
+  /** Spec/guidelines directory (under .cstl/) */
   SPEC: "spec",
-  /** Scripts directory (under .trellis/) */
+  /** Scripts directory (under .cstl/) */
   SCRIPTS: "scripts",
 } as const;
 
@@ -41,27 +41,27 @@ export const FILE_NAMES = {
 
 // Constructed paths (relative to project root)
 export const PATHS = {
-  /** .trellis/ */
+  /** .cstl/ */
   WORKFLOW: DIR_NAMES.WORKFLOW,
-  /** .trellis/workspace/ */
+  /** .cstl/workspace/ */
   WORKSPACE: `${DIR_NAMES.WORKFLOW}/${DIR_NAMES.WORKSPACE}`,
-  /** .trellis/tasks/ */
+  /** .cstl/tasks/ */
   TASKS: `${DIR_NAMES.WORKFLOW}/${DIR_NAMES.TASKS}`,
-  /** .trellis/spec/ */
+  /** .cstl/spec/ */
   SPEC: `${DIR_NAMES.WORKFLOW}/${DIR_NAMES.SPEC}`,
-  /** .trellis/scripts/ */
+  /** .cstl/scripts/ */
   SCRIPTS: `${DIR_NAMES.WORKFLOW}/${DIR_NAMES.SCRIPTS}`,
-  /** .trellis/.developer */
+  /** .cstl/.developer */
   DEVELOPER_FILE: `${DIR_NAMES.WORKFLOW}/${FILE_NAMES.DEVELOPER}`,
-  /** .trellis/.current-task */
+  /** .cstl/.current-task */
   CURRENT_TASK_FILE: `${DIR_NAMES.WORKFLOW}/${FILE_NAMES.CURRENT_TASK}`,
-  /** .trellis/workflow.md */
+  /** .cstl/workflow.md */
   WORKFLOW_GUIDE_FILE: `${DIR_NAMES.WORKFLOW}/${FILE_NAMES.WORKFLOW_GUIDE}`,
 } as const;
 
 /**
  * Get developer's workspace directory path
- * @example getWorkspaceDir("john") => ".trellis/workspace/john"
+ * @example getWorkspaceDir("john") => ".cstl/workspace/john"
  */
 export function getWorkspaceDir(developer: string): string {
   return `${PATHS.WORKSPACE}/${developer}`;
@@ -69,7 +69,7 @@ export function getWorkspaceDir(developer: string): string {
 
 /**
  * Get task directory path
- * @example getTaskDir("01-21-my-task") => ".trellis/tasks/01-21-my-task"
+ * @example getTaskDir("01-21-my-task") => ".cstl/tasks/01-21-my-task"
  */
 export function getTaskDir(taskName: string): string {
   return `${PATHS.TASKS}/${taskName}`;
@@ -77,7 +77,7 @@ export function getTaskDir(taskName: string): string {
 
 /**
  * Get archive directory path
- * @example getArchiveDir() => ".trellis/tasks/archive"
+ * @example getArchiveDir() => ".cstl/tasks/archive"
  */
 export function getArchiveDir(): string {
   return `${PATHS.TASKS}/${DIR_NAMES.ARCHIVE}`;

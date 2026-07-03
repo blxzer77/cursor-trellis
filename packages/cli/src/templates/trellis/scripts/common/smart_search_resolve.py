@@ -2,7 +2,7 @@
 """
 Resolve how to invoke the smart-search CLI (argv prefix for subprocess).
 
-No writes under .trellis/.runtime/. Optional per-machine override:
+No writes under .cstl/.runtime/. Optional per-machine override:
 TRELLIS_SMART_SEARCH_COMMAND or smart_search.command in config.yaml.
 """
 

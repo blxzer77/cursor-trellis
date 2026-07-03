@@ -12,13 +12,25 @@ npm install -g @blxzer/cursor-trellis
 
 需要 **Node.js ≥ 18.17**。生成项目的钩子在运行 Cursor 的机器上需要 **Python ≥ 3.9**。
 
+## 从 0.3.0 升级（v0.3.1）
+
+v0.3.1 将 cursor-trellis **运行时目录**从 `.trellis/` 迁至 **`.cstl/`**。
+
+```bash
+npm install -g @blxzer/cursor-trellis@latest
+cd /path/to/your-app
+cstl update --migrate
+```
+
+`--migrate` **必须**带上；历史通过目录 rename 保留。脚本路径为 `python ./.cstl/scripts/...`。
+
 ## 从 0.2.x 升级（v0.3.0）
 
 v0.3.0 为**硬切更名**：CLI 仅保留 **`cstl`**，`trellis` 与 `tl` 两个 bin 别名已移除。
 
 | 变了 | 没变 |
 | --- | --- |
-| CLI：`trellis` / `tl` → `cstl` | `.trellis/` 目录名 |
+| CLI：`trellis` / `tl` → `cstl` | （0.3.1+）运行时目录为 `.cstl/` |
 | skill / command / agent / rule：`trellis-*` → `cstl-*` | `trellis-task-models.json5` 文件名 |
 
 **迁移步骤**（每个项目执行一次）：
@@ -33,7 +45,7 @@ cstl update --migrate
 
 0.3.0 之后日常 CLI 小版本可用 `cstl upgrade`。升级到 0.3.0 后，旧的 `trellis upgrade` 命令已不存在。
 
-**Cursor++ BYOK**（可选，仅 `.trellis/local/cursor2plus/`）：将 `trellis-task-models.json5` 中的 `trellis-research/implement/check` 键改为 `cstl-research/implement/check`，然后重跑 `patch_wpelc8.py --apply`。可在 Agent 模式使用 `/cstl-cursor2plus-setup`。
+**Cursor++ BYOK**（可选，仅 `.cstl/local/cursor2plus/`）：将 `trellis-task-models.json5` 中的 `trellis-research/implement/check` 键改为 `cstl-research/implement/check`，然后重跑 `patch_wpelc8.py --apply`。可在 Agent 模式使用 `/cstl-cursor2plus-setup`。
 
 详见 [CHANGELOG](./CHANGELOG.md#030---2026-07-01)。
 
@@ -53,7 +65,7 @@ smart-search --version
 
 | 命令 | 用途 |
 | --- | --- |
-| `init` | 创建 `.trellis/` 与所选平台目录 |
+| `init` | 创建 `.cstl/` 与所选平台目录 |
 | `update` | 将模板同步到当前安装的 CLI 版本 |
 | `uninstall` | 从项目中移除 Trellis 管理文件 |
 | `upgrade` | 升级全局 CLI npm 包 |
@@ -94,14 +106,14 @@ cstl init --cursor
 | `-u, --user <name>` | 开发者身份 |
 | `--skip-readiness` | 跳过 smart-search / 能力项 readiness |
 | `--capability <id>` | 启用可选能力（可重复；`all` 表示全部可选） |
-| `--workflow <id>` | `.trellis/workflow.md` 工作流模板 |
+| `--workflow <id>` | `.cstl/workflow.md` 工作流模板 |
 | `-t, --template <name>` | 远程 spec 模板 |
 | `-r, --registry <source>` | 自定义模板 registry |
 | `--monorepo` / `--no-monorepo` | monorepo 检测覆盖 |
 
 ### 生成内容
 
-- `.trellis/` — workflow、spec、tasks、workspace、scripts、模板哈希
+- `.cstl/` — workflow、spec、tasks、workspace、scripts、模板哈希
 - `AGENTS.md` — 受管说明块
 - 平台目录 — Cursor 下为 `.cursor/commands`、`rules`、`agents`、`hooks`、`hooks.json`、`worktrees.json`
 
@@ -109,7 +121,7 @@ cstl init --cursor
 
 ## `cstl update`
 
-在已有 `.trellis/` 的项目根目录：
+在已有 `.cstl/` 的项目根目录：
 
 ```bash
 cstl update
@@ -149,7 +161,7 @@ cstl uninstall -y
 | `-y, --yes` | 跳过确认 |
 | `--dry-run` | 仅列出将删除/_scrub_ 的内容 |
 
-按哈希清单与结构化 scrubber 移除受管平台文件及 `.trellis/`。卸载前请**备份**自定义 workflow 或 rules。
+按哈希清单与结构化 scrubber 移除受管平台文件及 `.cstl/`。卸载前请**备份**自定义 workflow 或 rules。
 
 ---
 

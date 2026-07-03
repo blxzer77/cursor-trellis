@@ -56,14 +56,14 @@ describe("uninstall() integration", () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it("#1 friendly exit when .trellis/ is missing", async () => {
+  it("#1 friendly exit when .cstl/ is missing", async () => {
     // No init — tmpDir is empty.
     await uninstall({ yes: true });
     // Nothing was created or deleted; tmpDir should still be empty.
     expect(fs.readdirSync(tmpDir)).toEqual([]);
   });
 
-  it("#2 errors when manifest is missing but .trellis/ exists", async () => {
+  it("#2 errors when manifest is missing but .cstl/ exists", async () => {
     fs.mkdirSync(path.join(tmpDir, DIR_NAMES.WORKFLOW));
     const exitSpy = vi
       .spyOn(process, "exit")
@@ -79,7 +79,7 @@ describe("uninstall() integration", () => {
     await init({ yes: true, cursor: true, force: true });
 
     // Sanity: init wrote things.
-    expect(fs.existsSync(path.join(tmpDir, ".trellis"))).toBe(true);
+    expect(fs.existsSync(path.join(tmpDir, ".cstl"))).toBe(true);
     expect(fs.existsSync(path.join(tmpDir, ".cursor"))).toBe(true);
     expect(fs.existsSync(path.join(tmpDir, ".cursor"))).toBe(true);
 
@@ -88,8 +88,8 @@ describe("uninstall() integration", () => {
 
     await uninstall({ yes: true });
 
-    // .trellis/ should be gone.
-    expect(fs.existsSync(path.join(tmpDir, ".trellis"))).toBe(false);
+    // .cstl/ should be gone.
+    expect(fs.existsSync(path.join(tmpDir, ".cstl"))).toBe(false);
 
     // Every opaque manifest path (non-structured files) should be gone.
     // Structured config files (settings.json/hooks.json/config.toml/
@@ -105,6 +105,7 @@ describe("uninstall() integration", () => {
       "/package.json",
     ];
     const stillPresentOpaque = Object.keys(hashesBefore).filter((p) => {
+      if (p === "AGENTS.md") return false;
       const isStructured = STRUCTURED_TAILS.some((tail) => p.endsWith(tail));
       if (isStructured) return false;
       return fs.existsSync(path.join(tmpDir, ...p.split("/")));
@@ -159,7 +160,7 @@ describe("uninstall() integration", () => {
 
     await uninstall({});
 
-    expect(fs.existsSync(path.join(tmpDir, ".trellis"))).toBe(true);
+    expect(fs.existsSync(path.join(tmpDir, ".cstl"))).toBe(true);
     expect(fs.existsSync(path.join(tmpDir, ".cursor"))).toBe(true);
   });
 

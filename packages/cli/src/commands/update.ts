@@ -20,6 +20,12 @@ import type {
   MigrationAction,
   TemplateHashes,
 } from "../types/migration.js";
+import { assessCstlDirectoryMigrate } from "../utils/workflow-ownership.js";
+import {
+  isWorkflowInitialized,
+  resolveWorkflowDirName,
+  workflowPath,
+} from "../utils/workflow-dir.js";
 import {
   loadHashes,
   saveHashes,
@@ -91,7 +97,7 @@ function logCursor2plusCompatHint(cwd: string): void {
   }
   console.log(
     chalk.gray(
-      "\nCursor++ BYOK: after Cursor/Cursor++ upgrades, run `python .trellis/local/cursor2plus/patch_wpelc8.py --check-compat` before re-applying Method 2.5.",
+      "\nCursor++ BYOK: after Cursor/Cursor++ upgrades, run `python .cstl/local/cursor2plus/patch_wpelc8.py --check-compat` before re-applying Method 2.5.",
     ),
   );
 }
@@ -130,13 +136,11 @@ interface ChangeAnalysis {
 
 type ConflictAction = "overwrite" | "skip" | "create-new";
 
-const TRELLIS_BLOCK_START = "<!-- TRELLIS:START -->";
-const TRELLIS_BLOCK_END = "<!-- TRELLIS:END -->";
+const CSTL_BLOCK_START = "<!-- CSTL:START -->";
+const CSTL_BLOCK_END = "<!-- CSTL:END -->";
+const LEGACY_TRELLIS_BLOCK_START = "<!-- TRELLIS:START -->";
+const LEGACY_TRELLIS_BLOCK_END = "<!-- TRELLIS:END -->";
 const LEGACY_UNTRACKED_AGENTS_MD_BLOCK_HASHES = new Set<string>([
-  // v0.5.0-beta.17 and earlier wrote AGENTS.md but did not hash-track it.
-  // This hash is the pristine Trellis-managed block before the Subagents
-  // section was added, so old untouched projects can be updated without a
-  // false "modified by you" conflict.
   "c1f511b1cfc1902f2147da159f09cc51f380b0c9e341cdb3ac5dea5233f3e307",
 ]);
 
@@ -150,30 +154,50 @@ const PROTECTED_PATHS = [
   `${DIR_NAMES.WORKFLOW}/.current-task`,
 ];
 
+function getAgentsBlockMarkers(
+  content: string,
+): { start: string; end: string } | null {
+  if (content.includes(CSTL_BLOCK_START)) {
+    return { start: CSTL_BLOCK_START, end: CSTL_BLOCK_END };
+  }
+  if (content.includes(LEGACY_TRELLIS_BLOCK_START)) {
+    return {
+      start: LEGACY_TRELLIS_BLOCK_START,
+      end: LEGACY_TRELLIS_BLOCK_END,
+    };
+  }
+  return null;
+}
+
 function getTrellisManagedBlock(content: string): string | null {
-  const start = content.indexOf(TRELLIS_BLOCK_START);
-  if (start === -1) {
+  const markers = getAgentsBlockMarkers(content);
+  if (!markers) {
     return null;
   }
 
-  const end = content.indexOf(TRELLIS_BLOCK_END, start);
+  const start = content.indexOf(markers.start);
+  const end = content.indexOf(markers.end, start);
   if (end === -1) {
     return null;
   }
 
-  return content.slice(start, end + TRELLIS_BLOCK_END.length);
+  return content.slice(start, end + markers.end.length);
 }
 
 function replaceTrellisManagedBlock(
   existingContent: string,
   templateContent: string,
 ): string | null {
-  const existingStart = existingContent.indexOf(TRELLIS_BLOCK_START);
-  if (existingStart === -1) {
+  const existingMarkers = getAgentsBlockMarkers(existingContent);
+  if (!existingMarkers) {
     return null;
   }
 
-  const existingEnd = existingContent.indexOf(TRELLIS_BLOCK_END, existingStart);
+  const existingStart = existingContent.indexOf(existingMarkers.start);
+  const existingEnd = existingContent.indexOf(
+    existingMarkers.end,
+    existingStart,
+  );
   if (existingEnd === -1) {
     return null;
   }
@@ -186,8 +210,34 @@ function replaceTrellisManagedBlock(
   return (
     existingContent.slice(0, existingStart) +
     templateBlock +
-    existingContent.slice(existingEnd + TRELLIS_BLOCK_END.length)
+    existingContent.slice(existingEnd + existingMarkers.end.length)
   );
+}
+
+function includesCstlRuntimeDirRename(migrations: MigrationItem[]): boolean {
+  return migrations.some(
+    (item) =>
+      item.type === "rename-dir" &&
+      item.from === ".trellis" &&
+      item.to === ".cstl",
+  );
+}
+
+function upgradeAgentsMdToCstlMarkers(cwd: string): void {
+  const agentsPath = path.join(cwd, FILE_NAMES.AGENTS);
+  if (!fs.existsSync(agentsPath)) {
+    return;
+  }
+  const content = fs.readFileSync(agentsPath, "utf-8");
+  if (!content.includes(LEGACY_TRELLIS_BLOCK_START)) {
+    return;
+  }
+  const upgraded = content
+    .replace(LEGACY_TRELLIS_BLOCK_START, CSTL_BLOCK_START)
+    .replace(LEGACY_TRELLIS_BLOCK_END, CSTL_BLOCK_END)
+    .replace(/\.\/\.trellis\//g, "./.cstl/")
+    .replace(/(?<![A-Za-z0-9_])\.trellis\//g, ".cstl/");
+  fs.writeFileSync(agentsPath, upgraded, "utf-8");
 }
 
 function buildAgentsMdTemplate(cwd: string): string {
@@ -479,7 +529,7 @@ function executeSafeFileDeletes(
 }
 
 /**
- * Load update.skip paths from .trellis/config.yaml
+ * Load update.skip paths from .cstl/config.yaml
  *
  * Parses simple YAML structure:
  *   update:
@@ -490,8 +540,8 @@ function executeSafeFileDeletes(
  * @internal Exported for testing only
  */
 export function loadUpdateSkipPaths(cwd: string): string[] {
-  const configPath = path.join(cwd, DIR_NAMES.WORKFLOW, "config.yaml");
-  if (!fs.existsSync(configPath)) return [];
+  const configPath = workflowPath(cwd, "config.yaml");
+  if (!configPath || !fs.existsSync(configPath)) return [];
 
   try {
     const content = fs.readFileSync(configPath, "utf-8");
@@ -997,7 +1047,10 @@ async function promptConflictResolution(
  */
 function createBackupDirPath(cwd: string): string {
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-  return path.join(cwd, DIR_NAMES.WORKFLOW, `.backup-${timestamp}`);
+  const workflowRoot =
+    workflowPath(cwd, `.backup-${timestamp}`) ??
+    path.join(cwd, DIR_NAMES.WORKFLOW, `.backup-${timestamp}`);
+  return workflowRoot;
 }
 
 /**
@@ -1113,7 +1166,8 @@ function createFullBackup(cwd: string): string | null {
  * Update version file
  */
 function updateVersionFile(cwd: string): void {
-  const versionPath = path.join(cwd, DIR_NAMES.WORKFLOW, ".version");
+  const dirName = resolveWorkflowDirName(cwd) ?? DIR_NAMES.WORKFLOW;
+  const versionPath = path.join(cwd, dirName, ".version");
   fs.writeFileSync(versionPath, VERSION);
 }
 
@@ -1121,8 +1175,8 @@ function updateVersionFile(cwd: string): void {
  * Get current installed version
  */
 function getInstalledVersion(cwd: string): string {
-  const versionPath = path.join(cwd, DIR_NAMES.WORKFLOW, ".version");
-  if (fs.existsSync(versionPath)) {
+  const versionPath = workflowPath(cwd, ".version");
+  if (versionPath && fs.existsSync(versionPath)) {
     return fs.readFileSync(versionPath, "utf-8").trim();
   }
   return "unknown";
@@ -1281,7 +1335,7 @@ function classifyMigrations(
       continue;
     }
     // For non-rename types, also block writing TO protected paths
-    // rename/rename-dir are allowed to target protected paths (e.g., 0.2.0 renames into .trellis/workspace)
+    // rename/rename-dir are allowed to target protected paths (e.g., 0.2.0 renames into .cstl/workspace)
     if (
       item.to &&
       isProtectedPath(item.to) &&
@@ -1682,7 +1736,7 @@ async function executeMigrations(
 
     // For `backup-rename`, leave an inline .backup copy of the user's modified
     // original next to the new location (for rename) or in place (for delete).
-    // This is in addition to the full project snapshot at .trellis/.backup-*/;
+    // This is in addition to the full project snapshot at .cstl/.backup-*/;
     // the inline copy is more discoverable when the user wants to diff or merge
     // their customizations against the new template.
     if (item.type === "rename" && item.to) {
@@ -1713,7 +1767,7 @@ async function executeMigrations(
 
       if (action === "backup-rename") {
         // Keep a .backup copy in place before deletion so the user can recover
-        // inline without digging through .trellis/.backup-*/.
+        // inline without digging through .cstl/.backup-*/.
         fs.copyFileSync(filePath, filePath + ".backup");
       }
 
@@ -1896,8 +1950,8 @@ export async function update(options: UpdateOptions): Promise<void> {
     finishRollout(options, report);
   };
 
-  // Check if Trellis is initialized
-  if (!fs.existsSync(path.join(cwd, DIR_NAMES.WORKFLOW))) {
+  // Check if cursor-trellis is initialized (.cstl/ or legacy .trellis/)
+  if (!isWorkflowInitialized(cwd)) {
     console.log(chalk.red("Error: Trellis not initialized in this directory."));
     console.log(chalk.gray("Run 'cstl init' first."));
     emitEarly("blocked_not_initialized");
@@ -2446,15 +2500,32 @@ export async function update(options: UpdateOptions): Promise<void> {
 
   // Execute migrations if --migrate flag is set
   if (options.migrate && classifiedMigrations) {
+    const pendingRenameItems = [
+      ...classifiedMigrations.auto,
+      ...classifiedMigrations.confirm,
+      ...classifiedMigrations.conflict,
+    ];
+    if (includesCstlRuntimeDirRename(pendingRenameItems)) {
+      const assessment = assessCstlDirectoryMigrate(cwd);
+      if (!assessment.ok) {
+        console.error(chalk.red("Error:"), assessment.reason);
+        process.exit(1);
+      }
+    }
+
     migrationApplyResult = await executeMigrations(classifiedMigrations, cwd, {
       force: options.force,
       skipAll: options.skipAll,
     });
     printMigrationResult(migrationApplyResult);
 
+    if (includesCstlRuntimeDirRename(pendingRenameItems)) {
+      upgradeAgentsMdToCstlMarkers(cwd);
+    }
+
     // Hardcoded: Rename traces-*.md to journal-*.md in workspace directories
     // Why hardcoded: The migration system only supports fixed path renames, not pattern-based.
-    // traces-*.md files are in .trellis/workspace/{developer}/ with variable developer names
+    // traces-*.md files are in .cstl/workspace/{developer}/ with variable developer names
     // and variable file numbers (traces-1.md, traces-2.md, etc.), so we can't enumerate them
     // in the migration manifest. This is a one-time migration for the 0.2.0 naming redesign.
     const workspaceDir = path.join(cwd, PATHS.WORKSPACE);

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Standalone reader for .trellis/config.yaml.
+Standalone reader for .cstl/config.yaml.
 
 Mirrors a minimal subset of common.config so callers (hooks, workflow_phase)
 can read configuration without importing the full task/repo helpers. Returns
@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Optional
 
 
-CONFIG_REL_PATH = ".trellis/config.yaml"
+CONFIG_REL_PATH = ".cstl/config.yaml"
 
 
 def _unquote(value: str) -> str:
@@ -117,7 +117,7 @@ def parse_simple_yaml(content: str) -> dict:
 
 
 def read_trellis_config(repo_root: Optional[Path] = None) -> dict:
-    """Read .trellis/config.yaml. Returns {} on missing or malformed file."""
+    """Read .cstl/config.yaml. Returns {} on missing or malformed file."""
     root = repo_root or Path.cwd()
     config_file = root / CONFIG_REL_PATH
     try:

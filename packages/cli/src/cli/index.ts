@@ -15,9 +15,9 @@ import {
   runWorkflowCommand,
   WorkflowCommandError,
 } from "../commands/workflow.js";
-import { registerChannelCommand } from "../commands/channel/index.js";
+// import { registerChannelCommand } from "../commands/channel/index.js";
 import { runValidateRules } from "../commands/validate-rules.js";
-import { DIR_NAMES } from "../constants/paths.js";
+import { isWorkflowInitialized, workflowPath } from "../utils/workflow-dir.js";
 import { PACKAGE_NAME, VERSION } from "../constants/version.js";
 import { compareVersions } from "../utils/compare-versions.js";
 
@@ -28,9 +28,8 @@ export { VERSION, PACKAGE_NAME };
  * Check if a Trellis update is available (compare project version with CLI version)
  */
 function checkForUpdates(cwd: string): void {
-  const versionFile = path.join(cwd, DIR_NAMES.WORKFLOW, ".version");
-
-  if (!fs.existsSync(versionFile)) return;
+  const versionFile = workflowPath(cwd, ".version");
+  if (!versionFile || !fs.existsSync(versionFile)) return;
 
   const projectVersion = fs.readFileSync(versionFile, "utf-8").trim();
   const cliVersion = VERSION;
@@ -55,9 +54,9 @@ function checkForUpdates(cwd: string): void {
   }
 }
 
-// Check for updates at CLI startup (only if .trellis exists)
+// Check for updates at CLI startup when a workflow dir exists
 const cwd = process.cwd();
-if (fs.existsSync(path.join(cwd, DIR_NAMES.WORKFLOW))) {
+if (isWorkflowInitialized(cwd)) {
   checkForUpdates(cwd);
 }
 
@@ -79,7 +78,7 @@ program
   .option("-y, --yes", "Skip prompts and use defaults")
   .option(
     "--cursor2plus",
-    "Materialize Cursor++ BYOK local bundle (.trellis/local/cursor2plus/); ignored unless --cursor is also selected",
+    "Materialize Cursor++ BYOK local bundle (.cstl/local/cursor2plus/); ignored unless --cursor is also selected",
   )
   .option(
     "-u, --user <name>",
@@ -114,7 +113,7 @@ program
   )
   .option(
     "--workflow <id>",
-    "Workflow template id for .trellis/workflow.md (default: native; e.g., tdd, channel-driven-subagent-dispatch)",
+    "Workflow template id for .cstl/workflow.md (default: native; e.g., tdd, channel-driven-subagent-dispatch)",
   )
   .option(
     "--workflow-source <source>",
@@ -143,7 +142,7 @@ program
   .option("--json", "Emit machine-readable capability smoke output")
   .option(
     "--write-status",
-    "Write ready/failed status back to .trellis/capabilities.json and capabilities.md",
+    "Write ready/failed status back to .cstl/capabilities.json and capabilities.md",
   )
   .action(async (options: Record<string, unknown>) => {
     try {
@@ -221,7 +220,7 @@ program
   )
   .requiredOption(
     "-p, --project <path>",
-    "Project root with .trellis/ (repeatable)",
+    "Project root with .cstl/ (repeatable)",
     (val: string, prev: string[] | undefined) => [...(prev ?? []), val],
     [] as string[],
   )
@@ -291,7 +290,7 @@ program
 program
   .command("uninstall")
   .description(
-    "Remove all trellis files (managed platform files + .trellis/) from this project",
+    "Remove all trellis files (managed platform files + .cstl/) from this project",
   )
   .option("-y, --yes", "Skip confirmation prompt")
   .option("--dry-run", "List what would be removed without changing anything")
@@ -316,7 +315,7 @@ program
 program
   .command("workflow")
   .description(
-    "List or switch the project's .trellis/workflow.md template (native, tdd, channel-driven-subagent-dispatch, or marketplace)",
+    "List or switch the project's .cstl/workflow.md template (native, tdd, channel-driven-subagent-dispatch, or marketplace)",
   )
   .option(
     "-t, --template <id>",
@@ -330,7 +329,7 @@ program
   .option("-f, --force", "Overwrite a modified workflow.md without asking")
   .option(
     "-n, --create-new",
-    "Write .trellis/workflow.md.new instead of replacing the active workflow",
+    "Write .cstl/workflow.md.new instead of replacing the active workflow",
   )
   .action(async (options: Record<string, unknown>) => {
     try {
@@ -357,7 +356,8 @@ program
     }
   });
 
-registerChannelCommand(program);
+// Cursor-only product: multi-agent `channel` runtime is upstream Trellis scope; not registered.
+// registerChannelCommand(program);
 
 program
   .command("validate-rules")

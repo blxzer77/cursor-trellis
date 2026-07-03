@@ -3,24 +3,24 @@ Safe git-add helpers for Trellis-owned paths.
 
 Why this module exists
 ----------------------
-A real user incident: a project's `.gitignore` listed `.trellis/` (company-wide
+A real user incident: a project's `.gitignore` listed `.cstl/` (company-wide
 template / personal habit). When `add_session.py` and `task.py archive` ran
 their auto-commit and `git add` failed with `ignored by .gitignore`, the AI
 agent driving the workflow "fixed" it by retrying with
-`git add -f .trellis/` — which fan-out-included every ignored subtree
-(`.trellis/.backup-*/`, `.trellis/worktrees/`, `.trellis/.template-hashes.json`,
-`.trellis/.runtime/`), committing 548 files / 83474 lines of caches/backups.
+`git add -f .cstl/` — which fan-out-included every ignored subtree
+(`.cstl/.backup-*/`, `.cstl/worktrees/`, `.cstl/.template-hashes.json`,
+`.cstl/.runtime/`), committing 548 files / 83474 lines of caches/backups.
 
 Design
 ------
 - Scripts only stage SPECIFIC product paths (journal files, index.md, the
-  current task dir, the archive dir). Never the whole `.trellis/` tree.
+  current task dir, the archive dir). Never the whole `.cstl/` tree.
 - If plain `git add <specific>` fails with "ignored by", DO NOT retry with
-  ``-f``. The presence of `.trellis/` in `.gitignore` is treated as user
-  intent ("keep .trellis/ local-only"). The script warns and skips the
+  ``-f``. The presence of `.cstl/` in `.gitignore` is treated as user
+  intent ("keep .cstl/ local-only"). The script warns and skips the
   auto-commit; users who want auto-staging can either fix their `.gitignore`
   or set ``session_auto_commit: false`` and manage git themselves.
-- The warning includes a negative example: ``Do NOT use `git add -f .trellis/` ...``
+- The warning includes a negative example: ``Do NOT use `git add -f .cstl/` ...``
   so any AI rereading the log doesn't reinvent the bug.
 
 History note: 0.5.10 introduced an automatic ``git add -f`` retry on the
@@ -46,15 +46,15 @@ from .paths import (
 )
 
 
-# Paths under .trellis/ that must NEVER be auto-staged. Listed here so the
+# Paths under .cstl/ that must NEVER be auto-staged. Listed here so the
 # warning to the user can show concrete subpaths to ignore individually
-# instead of ignoring the whole `.trellis/` tree.
+# instead of ignoring the whole `.cstl/` tree.
 TRELLIS_IGNORED_SUBPATHS = (
-    ".trellis/.backup-*",
-    ".trellis/worktrees/",
-    ".trellis/.template-hashes.json",
-    ".trellis/.runtime/",
-    ".trellis/.cache/",
+    ".cstl/.backup-*",
+    ".cstl/worktrees/",
+    ".cstl/.template-hashes.json",
+    ".cstl/.runtime/",
+    ".cstl/.cache/",
 )
 
 
@@ -66,14 +66,14 @@ def safe_trellis_paths_to_add(repo_root: Path) -> list[str]:
     checking afterwards.
 
     Included:
-      - .trellis/workspace/<developer>/journal-*.md
-      - .trellis/workspace/<developer>/index.md
-      - .trellis/tasks/<task-dir>/   (every active task directory)
-      - .trellis/tasks/archive/      (whole archive subtree, if present)
+      - .cstl/workspace/<developer>/journal-*.md
+      - .cstl/workspace/<developer>/index.md
+      - .cstl/tasks/<task-dir>/   (every active task directory)
+      - .cstl/tasks/archive/      (whole archive subtree, if present)
 
     Excluded (intentionally — these must not be staged):
-      - .trellis/.backup-*, .trellis/worktrees/,
-        .trellis/.template-hashes.json, .trellis/.runtime/, .trellis/.cache/
+      - .cstl/.backup-*, .cstl/worktrees/,
+        .cstl/.template-hashes.json, .cstl/.runtime/, .cstl/.cache/
     """
     paths: list[str] = []
 
@@ -133,7 +133,7 @@ def safe_archive_paths_to_add(
     commit boundary.
 
     Backwards-compat: with no arguments, the function walks the whole
-    `.trellis/tasks/` subtree the old way (active tasks + archive). New
+    `.cstl/tasks/` subtree the old way (active tasks + archive). New
     callers should always pass `task_name`.
     """
     paths: list[str] = []
@@ -206,11 +206,11 @@ def print_gitignore_warning(paths: list[str]) -> None:
     """Explain to the user (and any AI reading the log) what to do.
 
     CRITICAL: includes the negative example
-    ``Do NOT use `git add -f .trellis/``` — agents reading the warning are
+    ``Do NOT use `git add -f .cstl/``` — agents reading the warning are
     known to invent that command, which fans out to ignored caches/backups.
     """
     print(
-        "[WARN] git add failed because .trellis/ paths are ignored by your .gitignore.",
+        "[WARN] git add failed because .cstl/ paths are ignored by your .gitignore.",
         file=sys.stderr,
     )
     print(
@@ -231,20 +231,20 @@ def print_gitignore_warning(paths: list[str]) -> None:
             print(f"[WARN]   {p}", file=sys.stderr)
     else:
         print(
-            "[WARN]   .trellis/workspace/<developer>/{journal-*.md,index.md}",
+            "[WARN]   .cstl/workspace/<developer>/{journal-*.md,index.md}",
             file=sys.stderr,
         )
         print(
-            "[WARN]   .trellis/tasks/<task-dir>/",
+            "[WARN]   .cstl/tasks/<task-dir>/",
             file=sys.stderr,
         )
         print(
-            "[WARN]   .trellis/tasks/archive/",
+            "[WARN]   .cstl/tasks/archive/",
             file=sys.stderr,
         )
     print("[WARN]", file=sys.stderr)
     print(
-        "[WARN] Recommended: change your .gitignore from `.trellis/` to specific",
+        "[WARN] Recommended: change your .gitignore from `.cstl/` to specific",
         file=sys.stderr,
     )
     print(
@@ -255,11 +255,11 @@ def print_gitignore_warning(paths: list[str]) -> None:
         print(f"[WARN]   {sub}", file=sys.stderr)
     print("[WARN]", file=sys.stderr)
     print(
-        "[WARN] Or, if you intentionally keep .trellis/ local-only, set in",
+        "[WARN] Or, if you intentionally keep .cstl/ local-only, set in",
         file=sys.stderr,
     )
     print(
-        "[WARN] .trellis/config.yaml:",
+        "[WARN] .cstl/config.yaml:",
         file=sys.stderr,
     )
     print(
@@ -276,7 +276,7 @@ def print_gitignore_warning(paths: list[str]) -> None:
     )
     print("[WARN]", file=sys.stderr)
     print(
-        "[WARN] Do NOT use `git add -f .trellis/` — it pulls in backups, worktrees,",
+        "[WARN] Do NOT use `git add -f .cstl/` — it pulls in backups, worktrees,",
         file=sys.stderr,
     )
     print(

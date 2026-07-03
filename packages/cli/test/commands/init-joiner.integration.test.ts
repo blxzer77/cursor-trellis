@@ -2,8 +2,8 @@
  * Integration tests for the joiner-onboarding branch of init().
  *
  * Covers the three-branch dispatch:
- *   no .trellis/                        → creator bootstrap task
- *   .trellis/ exists, .developer missing → joiner onboarding task
+ *   no .cstl/                        → creator bootstrap task
+ *   .cstl/ exists, .developer missing → joiner onboarding task
  *   both exist                           → no task created
  *
  * Uses the same fs-temp-dir + hoisted-mock approach as init.integration.test.ts.
@@ -62,7 +62,7 @@ describe("init() joiner onboarding", () => {
   });
 
   /**
-   * Helper: simulate a fresh clone of an existing Trellis project — `.trellis/`
+   * Helper: simulate a fresh clone of an existing Trellis project — `.cstl/`
    * committed (with at least one archived task indicating prior work),
    * `.developer` absent. Real fresh-clone state always has either an active or
    * archived bootstrap task; an empty `tasks/` indicates an aborted partial
@@ -83,7 +83,7 @@ describe("init() joiner onboarding", () => {
     fs.mkdirSync(path.join(workflow, DIR_NAMES.WORKSPACE), { recursive: true });
   }
 
-  /** Helper: simulate same-dev re-init — both `.trellis/` and `.developer` exist */
+  /** Helper: simulate same-dev re-init — both `.cstl/` and `.developer` exist */
   function simulateSameDevReinit(name: string): void {
     simulateExistingCheckout();
     fs.writeFileSync(
@@ -108,7 +108,7 @@ describe("init() joiner onboarding", () => {
     expect(fs.existsSync(joiner)).toBe(false);
   });
 
-  it("#2 existing .trellis/ + no .developer → joiner onboarding task created", async () => {
+  it("#2 existing .cstl/ + no .developer → joiner onboarding task created", async () => {
     simulateExistingCheckout();
 
     await init({ yes: true, user: "bob", force: true });
@@ -135,17 +135,17 @@ describe("init() joiner onboarding", () => {
     expect(prd).toContain("bob");
     expect(prd).toContain("You (the AI) are running this task");
     expect(prd).toContain("workflow.md");
-    expect(prd).toContain(".trellis/spec/");
+    expect(prd).toContain(".cstl/spec/");
     expect(prd).toContain("00-join-bob");
     // Fallback text for empty archive
     expect(prd).toContain("archive is empty");
     const expectedPythonCmd = process.platform === "win32" ? "python" : "python3";
     expect(prd).toContain(
-      `${expectedPythonCmd} ./.trellis/scripts/task.py list --assignee bob`,
+      `${expectedPythonCmd} ./.cstl/scripts/task.py list --assignee bob`,
     );
-    expect(prd).not.toContain(`${expectedPythonCmd} ./.trellis/scripts/task.py finish`);
+    expect(prd).not.toContain(`${expectedPythonCmd} ./.cstl/scripts/task.py finish`);
     expect(prd).toContain(
-      `${expectedPythonCmd} ./.trellis/scripts/task.py archive 00-join-bob`,
+      `${expectedPythonCmd} ./.cstl/scripts/task.py archive 00-join-bob`,
     );
 
     // init creates the joiner task but does not set repo-global current-task state.
@@ -159,9 +159,9 @@ describe("init() joiner onboarding", () => {
     ).toBe(false);
   });
 
-  it("#2b issue #204: existing .trellis/ but tasks/ empty → bootstrap fallback (--yes alone, no --force)", async () => {
+  it("#2b issue #204: existing .cstl/ but tasks/ empty → bootstrap fallback (--yes alone, no --force)", async () => {
     // Mirrors the exact reproduction in issue #204: first run aborted partway
-    // after writing the .trellis/ skeleton but before creating bootstrap;
+    // after writing the .cstl/ skeleton but before creating bootstrap;
     // second run uses `--yes` alone (no --force, no --skip-existing) to recover.
     // Without the empty-tasks early-bypass at init.ts:931, this command would
     // route through handleReinit and mis-create a joiner task.
@@ -199,7 +199,7 @@ describe("init() joiner onboarding", () => {
     ).toBe(false);
   });
 
-  it("#3 existing .trellis/ + .developer → no task created", async () => {
+  it("#3 existing .cstl/ + .developer → no task created", async () => {
     simulateSameDevReinit("carol");
 
     await init({ yes: true, user: "carol", force: true });
@@ -280,7 +280,7 @@ describe("init() joiner onboarding", () => {
   it("#6 joiner creation failure surfaces as warning, init does not crash", async () => {
     // Simulate "fresh clone" state, then set up conditions that make
     // writeTaskSkeleton's mkdirSync fail: writeFileSync for task.json can be
-    // thwarted by making .trellis/tasks read-only right before dispatch,
+    // thwarted by making .cstl/tasks read-only right before dispatch,
     // but that's fragile cross-platform. A simpler approach: spy on
     // fs.writeFileSync to throw for the joiner's task.json path, forcing
     // writeTaskSkeleton's catch block to return false, which in turn triggers
@@ -321,13 +321,13 @@ describe("init() joiner onboarding", () => {
     writeSpy.mockRestore();
   });
 
-  // Tests #7/#8 cover the handleReinit path — the default flow when .trellis/
+  // Tests #7/#8 cover the handleReinit path — the default flow when .cstl/
   // already exists and neither --force nor --skip-existing is passed. init()
   // routes through handleReinit() instead of the main dispatch, so joiner
   // creation is wired separately inside handleReinit's add-developer branch.
   // The earlier tests all pass force:true, which bypasses this path.
 
-  it("#7 handleReinit path: existing .trellis/ + no .developer → joiner task created", async () => {
+  it("#7 handleReinit path: existing .cstl/ + no .developer → joiner task created", async () => {
     simulateExistingCheckout();
 
     await init({ yes: true, user: "frank" });
@@ -346,7 +346,7 @@ describe("init() joiner onboarding", () => {
     );
   });
 
-  it("#8 handleReinit path: existing .trellis/ + .developer → no task created", async () => {
+  it("#8 handleReinit path: existing .cstl/ + .developer → no task created", async () => {
     simulateSameDevReinit("grace");
 
     await init({ yes: true, user: "grace" });

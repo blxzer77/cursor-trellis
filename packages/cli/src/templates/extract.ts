@@ -10,7 +10,7 @@ const __dirname = path.dirname(__filename);
 type TemplateCategory = "scripts" | "markdown" | "commands";
 
 /**
- * Get the path to the trellis templates directory (.trellis/ scaffolding).
+ * Get the path to the trellis templates directory (.cstl/ scaffolding).
  */
 export function getTrellisTemplatePath(): string {
   const templatePath = path.join(__dirname, "trellis");

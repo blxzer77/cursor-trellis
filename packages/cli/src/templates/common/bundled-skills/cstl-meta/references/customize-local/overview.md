@@ -1,6 +1,6 @@
 # Local Customization Overview
 
-This directory is for local AI working in a user project where Trellis was installed through npm and `cstl init` has already been run. The AI should modify generated `.trellis/` and platform directories inside the project, not Trellis CLI upstream source code.
+This directory is for local AI working in a user project where Trellis was installed through npm and `cstl init` has already been run. The AI should modify generated `.cstl/` and platform directories inside the project, not Trellis CLI upstream source code.
 
 ## First Determine What The User Actually Wants To Change
 
@@ -17,21 +17,21 @@ This directory is for local AI working in a user project where Trellis was insta
 
 ## General Operation Order
 
-1. **Confirm platform and directories**: inspect which directories exist; on a fresh `cstl init --cursor` only `.cursor/` and `.trellis/` are created.
-2. **Confirm the selected task**: run `python3 ./.trellis/scripts/task.py selected --source`.
-3. **Read the local source of truth**: prefer `.trellis/workflow.md`, `.trellis/config.yaml`, and relevant platform files.
+1. **Confirm platform and directories**: inspect which directories exist; on a fresh `cstl init --cursor` only `.cursor/` and `.cstl/` are created.
+2. **Confirm the selected task**: run `python3 ./.cstl/scripts/task.py selected --source`.
+3. **Read the local source of truth**: prefer `.cstl/workflow.md`, `.cstl/config.yaml`, and relevant platform files.
 4. **Modify narrowly**: edit only files related to the user's request.
-5. **Synchronize semantics**: if a shared flow changes, check whether platform entry points also need changes; if a platform entry changes, check whether `.trellis/workflow.md` still agrees.
+5. **Synchronize semantics**: if a shared flow changes, check whether platform entry points also need changes; if a platform entry changes, check whether `.cstl/workflow.md` still agrees.
 
 ## Local File Priority
 
 | Layer | Files |
 | --- | --- |
-| Workflow | `.trellis/workflow.md` |
-| Project configuration | `.trellis/config.yaml` |
-| Task material | `.trellis/tasks/<task>/` |
-| Project specs | `.trellis/spec/` |
-| Runtime scripts | `.trellis/scripts/` |
+| Workflow | `.cstl/workflow.md` |
+| Project configuration | `.cstl/config.yaml` |
+| Task material | `.cstl/tasks/<task>/` |
+| Project specs | `.cstl/spec/` |
+| Runtime scripts | `.cstl/scripts/` |
 | Platform integration | `.cursor/` plus legacy adapter directories preserved by `cstl update` |
 | Shared skill | `.agents/skills/` |
 
@@ -41,7 +41,7 @@ This directory is for local AI working in a user project where Trellis was insta
 - Do not edit `node_modules/@blxzer/cursor-trellis`.
 - Do not assume the user has the Trellis GitHub repository.
 - Do not overwrite local files already modified by the user with default templates.
-- Do not put team project rules into public `cstl-meta`; project rules belong in `.trellis/spec/` or a local skill.
+- Do not put team project rules into public `cstl-meta`; project rules belong in `.cstl/spec/` or a local skill.
 
 ## When To Inspect Upstream Source
 

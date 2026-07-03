@@ -55,7 +55,7 @@ Each `items[]` entry:
   "version": 1,
   "source": "smart-search",
   "kind": "external-evidence",
-  "reference": ".trellis/tasks/<task>/research/smart-search/<run>/manifest.json",
+  "reference": ".cstl/tasks/<task>/research/smart-search/<run>/manifest.json",
   "title": "React docs",
   "status": "ok",
   "trust": "high",
@@ -187,7 +187,7 @@ Upstream collectors remain responsible for producing Phase 2 payloads before sco
 
 ## Module Locations
 
-- Dogfood: `.trellis/scripts/common/retrieval_evidence.py`
+- Dogfood: `.cstl/scripts/common/retrieval_evidence.py`
 - Template: `packages/cli/src/templates/trellis/scripts/common/retrieval_evidence.py`
 
 ## Tests

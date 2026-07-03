@@ -3,7 +3,7 @@
 """
 Workflow Phase Extraction.
 
-Extracts step-level content from .trellis/workflow.md and optionally filters
+Extracts step-level content from .cstl/workflow.md and optionally filters
 platform-specific blocks.
 
 Platform marker syntax in workflow.md:

@@ -1,11 +1,11 @@
 # Local Task System
 
-The Trellis task system is stored entirely under `.trellis/tasks/` in the user project. Each task is a directory containing requirements, context, research, state, and relationship information.
+The Trellis task system is stored entirely under `.cstl/tasks/` in the user project. Each task is a directory containing requirements, context, research, state, and relationship information.
 
 ## Task Directory Structure
 
 ```text
-.trellis/tasks/
+.cstl/tasks/
 ├── 04-28-example-task/
 │   ├── task.json
 │   ├── prd.md
@@ -59,14 +59,14 @@ Use child tasks for deliverables that can move through planning, implementation,
 Create new children with:
 
 ```bash
-python3 ./.trellis/scripts/task.py create "<child title>" --slug <child-slug> --parent <parent-dir>
+python3 ./.cstl/scripts/task.py create "<child title>" --slug <child-slug> --parent <parent-dir>
 ```
 
 Link or unlink existing tasks with:
 
 ```bash
-python3 ./.trellis/scripts/task.py add-subtask <parent-dir> <child-dir>
-python3 ./.trellis/scripts/task.py remove-subtask <parent-dir> <child-dir>
+python3 ./.cstl/scripts/task.py add-subtask <parent-dir> <child-dir>
+python3 ./.cstl/scripts/task.py remove-subtask <parent-dir> <child-dir>
 ```
 
 `children` on the parent is a historical list. When a child is archived, Trellis keeps that child name in the parent so progress like `[2/3 done]` remains meaningful after completed children move to `archive/`.
@@ -78,7 +78,7 @@ The AI should not treat phase numbers as task status. Task progress is mainly de
 The user sees a "selected task," and Trellis stores that selection per live session.
 
 ```text
-.trellis/.runtime/sessions/<context-key>.json
+.cstl/.runtime/sessions/<context-key>.json
 ```
 
 `task.py select <task>` writes the task path into the runtime session file for the current session. `task.py selected --source` shows the selected task and where it came from. Different AI windows can point to different tasks without overwriting each other.
@@ -92,8 +92,8 @@ If the platform or shell environment has no stable session identity, `task.py se
 Format:
 
 ```jsonl
-{"file": ".trellis/spec/cli/backend/index.md", "reason": "Backend conventions"}
-{"file": ".trellis/tasks/04-28-example/research/api.md", "reason": "API research"}
+{"file": ".cstl/spec/cli/backend/index.md", "reason": "Backend conventions"}
+{"file": ".cstl/tasks/04-28-example/research/api.md", "reason": "API research"}
 ```
 
 Rules:
@@ -106,16 +106,16 @@ Rules:
 ## Common Commands
 
 ```bash
-python3 ./.trellis/scripts/task.py create "<title>" --slug <slug>
-python3 ./.trellis/scripts/task.py dashboard
-python3 ./.trellis/scripts/task.py select <task>
-python3 ./.trellis/scripts/task.py selected --source
-python3 ./.trellis/scripts/task.py start-execution <task> --check
-python3 ./.trellis/scripts/task.py start-execution <task> --approved
-python3 ./.trellis/scripts/task.py add-context <task> implement <file> <reason>
-python3 ./.trellis/scripts/task.py validate <task>
-python3 ./.trellis/scripts/task.py exit
-python3 ./.trellis/scripts/task.py archive <task>
+python3 ./.cstl/scripts/task.py create "<title>" --slug <slug>
+python3 ./.cstl/scripts/task.py dashboard
+python3 ./.cstl/scripts/task.py select <task>
+python3 ./.cstl/scripts/task.py selected --source
+python3 ./.cstl/scripts/task.py start-execution <task> --check
+python3 ./.cstl/scripts/task.py start-execution <task> --approved
+python3 ./.cstl/scripts/task.py add-context <task> implement <file> <reason>
+python3 ./.cstl/scripts/task.py validate <task>
+python3 ./.cstl/scripts/task.py exit
+python3 ./.cstl/scripts/task.py archive <task>
 ```
 
 When modifying the task system, the AI should prefer script commands to maintain structure. Edit JSON/Markdown directly only when scripts do not cover the need.
@@ -124,10 +124,10 @@ When modifying the task system, the AI should prefer script commands to maintain
 
 | Need | Edit location |
 | --- | --- |
-| Change the default task template | `.trellis/scripts/common/task_store.py` and task creation instructions. |
-| Change status semantics | `.trellis/workflow.md`, workflow-state hook logic, and task usage conventions. |
-| Add task lifecycle actions | `hooks.after_*` in `.trellis/config.yaml`. |
-| Change context rules | Planning artifact guidance in `.trellis/workflow.md` and related platform agent/hook instructions. |
-| Change archive policy | `.trellis/scripts/common/task_store.py` / `task_utils.py`. |
+| Change the default task template | `.cstl/scripts/common/task_store.py` and task creation instructions. |
+| Change status semantics | `.cstl/workflow.md`, workflow-state hook logic, and task usage conventions. |
+| Add task lifecycle actions | `hooks.after_*` in `.cstl/config.yaml`. |
+| Change context rules | Planning artifact guidance in `.cstl/workflow.md` and related platform agent/hook instructions. |
+| Change archive policy | `.cstl/scripts/common/task_store.py` / `task_utils.py`. |
 
 These are local files in the user project. Do not default to editing Trellis CLI source code unless the user wants to contribute upstream.

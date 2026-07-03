@@ -65,7 +65,7 @@ describe.skipIf(pythonCmd === null)("get_context.py --mode retrieval-pack", () =
   });
 
   it("works without a selected task and returns an explicit empty pack", () => {
-    fs.rmSync(path.join(tmpDir, ".trellis", ".runtime", "sessions"), {
+    fs.rmSync(path.join(tmpDir, ".cstl", ".runtime", "sessions"), {
       recursive: true,
       force: true,
     });

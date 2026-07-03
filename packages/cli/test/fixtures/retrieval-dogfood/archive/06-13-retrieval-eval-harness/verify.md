@@ -8,7 +8,7 @@ Final acceptance depends on both scoring and context-pack handoff contracts; thi
 
 Validation Evidence: focused eval/context-pack/scoring tests, template regression, related retrieval regression suite, typecheck, focused ESLint, Python compile, CLI wrapper smoke, and parent code review passed.
 Final acceptance evidence: parent review accepted this child after scoring and context-pack handoffs were both available; parent `task-map.md` marks the child integrated using ref `working-tree-diff`.
-Durable Learning: no `.trellis/spec/` update is needed; existing Trellis Python template runtime, template generation, and validation specs already cover this fixture-driven harness pattern.
+Durable Learning: no `.cstl/spec/` update is needed; existing Trellis Python template runtime, template generation, and validation specs already cover this fixture-driven harness pattern.
 
 ## Scope Delivered
 

@@ -8,9 +8,9 @@ Recommended fixture model:
 
 ```text
 temp project
-  .trellis/tasks/<task>/prd.md
-  .trellis/tasks/<task>/research/smart-search/<run>/manifest.json
-  .trellis/workspace/<developer>/journal-1.md
+  .cstl/tasks/<task>/prd.md
+  .cstl/tasks/<task>/research/smart-search/<run>/manifest.json
+  .cstl/workspace/<developer>/journal-1.md
   scored-evidence fixture payloads
 ```
 

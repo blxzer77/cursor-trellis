@@ -9,13 +9,13 @@ Implementation verified and ready for parent review.
 `run_smart_search.py` writes a compact manifest at:
 
 ```text
-.trellis/tasks/<task>/research/smart-search/<run-id>/manifest.json
+.cstl/tasks/<task>/research/smart-search/<run-id>/manifest.json
 ```
 
 When no selected or explicit task exists, it falls back to:
 
 ```text
-.trellis/workspace/smart-search/<run-id>/manifest.json
+.cstl/workspace/smart-search/<run-id>/manifest.json
 ```
 
 Manifest fields for `retrieval-context-ranking`:
@@ -27,9 +27,9 @@ Manifest fields for `retrieval-context-ranking`:
   "query": "React docs",
   "intent": "deep-research",
   "command": "smart-search research ... --format json --output ...",
-  "outputPath": ".trellis/tasks/<task>/research/smart-search/<run>/deep_research.json",
-  "evidenceDir": ".trellis/tasks/<task>/research/smart-search/<run>",
-  "manifestPath": ".trellis/tasks/<task>/research/smart-search/<run>/manifest.json",
+  "outputPath": ".cstl/tasks/<task>/research/smart-search/<run>/deep_research.json",
+  "evidenceDir": ".cstl/tasks/<task>/research/smart-search/<run>",
+  "manifestPath": ".cstl/tasks/<task>/research/smart-search/<run>/manifest.json",
   "status": "ok",
   "createdAt": "2026-06-13T00:00:00Z",
   "summary": "short normalized summary",

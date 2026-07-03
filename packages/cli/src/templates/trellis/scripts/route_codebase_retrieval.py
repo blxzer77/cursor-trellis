@@ -34,7 +34,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("query", nargs="?", default="", help="Natural-language retrieval question.")
     parser.add_argument(
         "--capabilities",
-        help="Path to .trellis/capabilities.json for optional adapter gating.",
+        help="Path to .cstl/capabilities.json for optional adapter gating.",
     )
     parser.add_argument(
         "--no-codebase-retrieval",

@@ -25,19 +25,29 @@ export interface MirrorCheckResult {
 
 const MIRROR_SUBDIRS = ["rules", "agents"] as const;
 
-const TRELLIS_BLOCK_START = "<!-- TRELLIS:START -->";
-const TRELLIS_BLOCK_END = "<!-- TRELLIS:END -->";
+const CSTL_BLOCK_START = "<!-- CSTL:START -->";
+const CSTL_BLOCK_END = "<!-- CSTL:END -->";
+const LEGACY_TRELLIS_BLOCK_START = "<!-- TRELLIS:START -->";
+const LEGACY_TRELLIS_BLOCK_END = "<!-- TRELLIS:END -->";
 
-/** Extract the Trellis-managed block for AGENTS.md mirror comparison. */
-export function extractTrellisManagedBlock(content: string): string {
-  const start = content.indexOf(TRELLIS_BLOCK_START);
-  const end = content.indexOf(TRELLIS_BLOCK_END);
-  if (start === -1 || end === -1 || end <= start) {
-    return normalizeText(content);
+/** Extract the cstl-managed block for AGENTS.md mirror comparison. */
+export function extractCstlManagedBlock(content: string): string {
+  for (const [start, end] of [
+    [CSTL_BLOCK_START, CSTL_BLOCK_END],
+    [LEGACY_TRELLIS_BLOCK_START, LEGACY_TRELLIS_BLOCK_END],
+  ] as const) {
+    const startIdx = content.indexOf(start);
+    const endIdx = content.indexOf(end);
+    if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+      return normalizeText(content.slice(startIdx, endIdx + end.length));
+    }
   }
-  return normalizeText(
-    content.slice(start, end + TRELLIS_BLOCK_END.length),
-  );
+  return normalizeText(content);
+}
+
+/** @deprecated Use {@link extractCstlManagedBlock} */
+export function extractTrellisManagedBlock(content: string): string {
+  return extractCstlManagedBlock(content);
 }
 
 function listRelativeFiles(root: string, subdir: string): string[] {
@@ -73,10 +83,10 @@ function compareFilePair(
   let dogfood: string;
   let template: string;
   if (relativePath === FILE_NAMES.AGENTS) {
-    dogfood = extractTrellisManagedBlock(
+    dogfood = extractCstlManagedBlock(
       fs.readFileSync(dogfoodPath, "utf-8"),
     );
-    template = extractTrellisManagedBlock(
+    template = extractCstlManagedBlock(
       fs.readFileSync(templatePath, "utf-8"),
     );
   } else {

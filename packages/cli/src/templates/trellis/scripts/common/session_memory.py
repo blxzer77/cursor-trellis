@@ -2,7 +2,7 @@
 """
 Search Trellis workspace session memory.
 
-This module parses `.trellis/workspace/<developer>/journal-*.md` files written
+This module parses `.cstl/workspace/<developer>/journal-*.md` files written
 by add_session.py and returns compact, explainable memory results.
 """
 
@@ -95,7 +95,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--until", help="Filter sessions on or before YYYY-MM-DD.")
     parser.add_argument("--limit", type=int, default=10, help="Maximum results. Use 0 for no limit.")
     parser.add_argument("--json", action="store_true", help="Emit stable JSON.")
-    parser.add_argument("--root", help="Repository root. Defaults to nearest parent with .trellis/.")
+    parser.add_argument("--root", help="Repository root. Defaults to nearest parent with .cstl/.")
     return parser.parse_args(argv)
 
 

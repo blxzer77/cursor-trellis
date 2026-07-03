@@ -6,13 +6,13 @@ Implemented a Trellis-owned Smart Search evidence handoff layer.
 
 Validation Evidence: focused Smart Search evidence wrapper tests, context-loading tests, template tests, Python compile, typecheck, ESLint, dogfood/template sync checks, and secret keyword scan all passed.
 Final acceptance evidence: this child is ready for parent review using `verify.md`, `handoff.md`, and ref `working-tree-diff`.
-Durable Learning: no additional `.trellis/spec/` update is needed; existing Trellis template-generation and capability/readiness specs already cover this pattern.
+Durable Learning: no additional `.cstl/spec/` update is needed; existing Trellis template-generation and capability/readiness specs already cover this pattern.
 
 ## Changed Areas
 
 - Added generated runtime scripts:
-  - `Trellis/.trellis/scripts/common/smart_search_evidence.py`
-  - `Trellis/.trellis/scripts/run_smart_search.py`
+  - `Trellis/.cstl/scripts/common/smart_search_evidence.py`
+  - `Trellis/.cstl/scripts/run_smart_search.py`
   - `Trellis/packages/cli/src/templates/trellis/scripts/common/smart_search_evidence.py`
   - `Trellis/packages/cli/src/templates/trellis/scripts/run_smart_search.py`
 - Registered new scripts in `Trellis/packages/cli/src/templates/trellis/index.ts`.

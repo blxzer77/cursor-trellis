@@ -13,7 +13,7 @@ Use this checklist before handing off a new or modified skill.
 
 - [ ] The skill owns one coherent workflow.
 - [ ] `When NOT To Use` or equivalent boundary guidance is present when triggers may overlap.
-- [ ] Project-private rules are in `.trellis/spec/` or a project-local skill, not in a public bundled skill.
+- [ ] Project-private rules are in `.cstl/spec/` or a project-local skill, not in a public bundled skill.
 - [ ] The skill distinguishes local project customization from upstream Trellis source changes.
 
 ## Entry File

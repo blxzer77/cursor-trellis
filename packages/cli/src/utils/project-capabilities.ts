@@ -77,8 +77,8 @@ interface StoredCapabilityState {
   readiness_status_detail?: string;
 }
 
-const CAPABILITIES_JSON_PATH = ".trellis/capabilities.json";
-const CAPABILITIES_MD_PATH = ".trellis/capabilities.md";
+const CAPABILITIES_JSON_PATH = ".cstl/capabilities.json";
+const CAPABILITIES_MD_PATH = ".cstl/capabilities.md";
 const CODEX_CAPABILITIES_START = "# TRELLIS:PROJECT-CAPABILITIES:START";
 const CODEX_CAPABILITIES_END = "# TRELLIS:PROJECT-CAPABILITIES:END";
 
@@ -177,7 +177,7 @@ export const PROJECT_CAPABILITIES: readonly ProjectCapability[] = [
       },
       {
         command:
-          'rg -i "storage default|sidecar|sqlite only" AGENTS.md "**/AGENTS.md" README.md CONTRIBUTING.md .trellis/spec',
+          'rg -i "storage default|sidecar|sqlite only" AGENTS.md "**/AGENTS.md" README.md CONTRIBUTING.md .cstl/spec',
         use: "For architecture, boundary, or storage/persistence policy questions (OpenClaw benchmark C-class, especially storage-policy queries), search project instruction and policy docs before implementation modules such as SQLite or state DB files.",
       },
       {
@@ -500,7 +500,7 @@ function appendPolicyDocumentRetrievalRouting(lines: string[]): void {
     "",
     "Evidence order for policy/document queries:",
     "",
-    "1. Root and nested `AGENTS.md`, then `.trellis/spec/**`, `README.md`, `CONTRIBUTING.md`, architecture or design docs, and package-level policy or contract instruction files.",
+    "1. Root and nested `AGENTS.md`, then `.cstl/spec/**`, `README.md`, `CONTRIBUTING.md`, architecture or design docs, and package-level policy or contract instruction files.",
     "2. Exact `rg` on policy phrases and boundary terms scoped to those paths (for example `Storage default: SQLite only`, `sidecar`, `SQLite only`, transport-only, import boundary).",
     "3. Read matched policy sections with direct source reads before ranking implementation files as Top-1.",
     "4. Use AST/CodeGraph or semantic recall only to corroborate policy claims or locate related implementation; do not let SQLite/state/cache modules outrank root policy docs when the question asks what is allowed or forbidden.",
@@ -677,7 +677,7 @@ export function renderCapabilitiesMarkdown(
     "- Unselected, unavailable, skipped, or uninvoked capabilities must not be reported as used.",
     "- Capability output that affects task decisions must be recorded in task research or verify evidence.",
     "- `codebase-retrieval` routes by retrieval role, not by tool brand: exact search, intent-gated policy/document-first routing for C-class questions, other intent-gated branches when the question class matches, AST/structure, definition/reference via codegraph on Cursor Agent, semantic recall by cursorEnv, then verification.",
-    "- Policy, architecture, boundary, and storage-policy questions must inspect `AGENTS.md`, `.trellis/spec/**`, and README/contributing/architecture docs before semantic implementation search.",
+    "- Policy, architecture, boundary, and storage-policy questions must inspect `AGENTS.md`, `.cstl/spec/**`, and README/contributing/architecture docs before semantic implementation search.",
     "- Intent-gated branches (policy/document, caller-chain, trap demotion, extension disambiguation, env/config literals) must not override exact-symbol or F/G protocol routes.",
     "- Exact `rg` search and direct source reads are the baseline for current-code claims.",
     "- CodeGraph output is structural guidance until index freshness and current source/Git evidence are confirmed.",

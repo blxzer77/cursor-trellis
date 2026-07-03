@@ -1,6 +1,6 @@
 /**
  * Integration tests for the init + uninstall data-loss fix
- * (.trellis/tasks/05-13-uninstall-overdelete-manifest-leak).
+ * (.cstl/tasks/05-13-uninstall-overdelete-manifest-leak).
  *
  * Reproduces GitHub Issue #221 (.cursor/user-data/ deletion) and PR #271 review
  * comment (pre-existing AGENTS.md deletion). Verifies:
@@ -232,17 +232,17 @@ describe("init + uninstall: manifest accuracy + homedir guard", () => {
     await init({ yes: true, cursor: true, force: true });
 
     // We can't easily fabricate a real migration entry in this test, but we
-    // CAN assert the prune behavior preserves .trellis/ entries which is the
+    // CAN assert the prune behavior preserves .cstl/ entries which is the
     // most common "not-in-collectTemplates-but-important" case. (Migration
     // paths share the same preservation logic in pruneOrphanManifestKeys.)
     const hashes = loadHashes(tmpDir);
-    hashes[".trellis/workflow.md"] = "ok";
+    hashes[".cstl/workflow.md"] = "ok";
     saveHashes(tmpDir, hashes);
 
     await update({});
 
-    // .trellis/* entries are kept.
-    expect(loadHashes(tmpDir)).toHaveProperty(".trellis/workflow.md");
+    // .cstl/* entries are kept.
+    expect(loadHashes(tmpDir)).toHaveProperty(".cstl/workflow.md");
   });
 
   // ----- R2: homedir guard -----
@@ -290,7 +290,7 @@ describe("init + uninstall: manifest accuracy + homedir guard", () => {
       expect(exitSpy).toHaveBeenCalledWith(1);
 
       // No .trellis dir was created.
-      expect(fs.existsSync(path.join(fakeHome, ".trellis"))).toBe(false);
+      expect(fs.existsSync(path.join(fakeHome, ".cstl"))).toBe(false);
     } finally {
       fs.rmSync(fakeHome, { recursive: true, force: true });
     }
@@ -314,7 +314,7 @@ describe("init + uninstall: manifest accuracy + homedir guard", () => {
     expect(exitSpy).toHaveBeenCalledWith(1);
 
     // Project is unchanged.
-    expect(fs.existsSync(path.join(tmpDir, ".trellis"))).toBe(true);
+    expect(fs.existsSync(path.join(tmpDir, ".cstl"))).toBe(true);
   });
 
   it("#R2.3 TRELLIS_ALLOW_HOMEDIR=1 bypasses the guard for init", async () => {
@@ -327,7 +327,7 @@ describe("init + uninstall: manifest accuracy + homedir guard", () => {
         await init({ yes: true, cursor: true, force: true });
       });
 
-      expect(fs.existsSync(path.join(fakeHome, ".trellis"))).toBe(true);
+      expect(fs.existsSync(path.join(fakeHome, ".cstl"))).toBe(true);
     } finally {
       fs.rmSync(fakeHome, { recursive: true, force: true });
     }
@@ -345,7 +345,7 @@ describe("init + uninstall: manifest accuracy + homedir guard", () => {
         await init({ yes: true, cursor: true, force: true });
       });
 
-      expect(fs.existsSync(path.join(subDir, ".trellis"))).toBe(true);
+      expect(fs.existsSync(path.join(subDir, ".cstl"))).toBe(true);
     } finally {
       fs.rmSync(fakeHome, { recursive: true, force: true });
     }

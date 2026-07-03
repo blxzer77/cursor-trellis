@@ -1,9 +1,9 @@
 /**
  * `cstl uninstall` — remove every file written by `cstl init` / `update`
- * from the current project, plus the `.trellis/` directory itself.
+ * from the current project, plus the `.cstl/` directory itself.
  *
  * The single source of truth for "what trellis wrote" is
- * `.trellis/.template-hashes.json`. Files outside that manifest are never
+ * `.cstl/.template-hashes.json`. Files outside that manifest are never
  * touched (e.g. user-added hooks under `.cursor/hooks/`).
  *
  * Manifest-listed files split into two groups:
@@ -14,7 +14,7 @@
  *      file is fully empty afterwards, we delete it.
  *
  * Whether the user has modified a manifest-listed file or not, it is removed
- * (per the PRD: "全删"). The `.trellis/` tree is removed unconditionally.
+ * (per the PRD: "全删"). The `.cstl/` tree is removed unconditionally.
  */
 
 import fs from "node:fs";
@@ -100,7 +100,7 @@ interface PlannedModification {
 interface UninstallPlan {
   deletions: PlannedDeletion[];
   modifications: PlannedModification[];
-  /** Whether `.trellis/` directory itself will be removed. */
+  /** Whether `.cstl/` directory itself will be removed. */
   removeTrellisDir: boolean;
 }
 
@@ -230,7 +230,7 @@ async function promptContinue(): Promise<boolean> {
 }
 
 /**
- * Execute the plan: write modifications, unlink deletions, remove `.trellis/`,
+ * Execute the plan: write modifications, unlink deletions, remove `.cstl/`,
  * then prune empty managed directories.
  *
  * Returns counts for the summary.
@@ -264,7 +264,7 @@ function executePlan(
     deletedDirCandidates.add(path.posix.dirname(del.posixPath));
   }
 
-  // 3. Drop `.trellis/` entirely.
+  // 3. Drop `.cstl/` entirely.
   let deletedDirs = 0;
   if (plan.removeTrellisDir) {
     const trellisDir = path.join(cwd, DIR_NAMES.WORKFLOW);
@@ -287,7 +287,7 @@ function executePlan(
   // `.agents/skills`, …) that is now empty. We deliberately handle this here
   // — `cleanupEmptyDirs` refuses to touch managed root dirs because in normal
   // `update` flow they must persist. During uninstall, an empty platform root
-  // has no purpose. `.trellis` is already gone (step 3), so we skip it.
+  // has no purpose. `.cstl` is already gone (step 3), so we skip it.
   // Process deepest-first so that nested managed dirs (e.g. `.agents/skills`)
   // are removed before their parents (`.agents`).
   const sortedManagedDirs = [...ALL_MANAGED_DIRS]
@@ -339,11 +339,11 @@ export async function uninstall(options: UninstallOptions = {}): Promise<void> {
   const cwd = process.cwd();
   const trellisDir = path.join(cwd, DIR_NAMES.WORKFLOW);
 
-  // Pre-check 1: must have a `.trellis/` directory.
+  // Pre-check 1: must have a `.cstl/` directory.
   if (!fs.existsSync(trellisDir)) {
     console.log(
       chalk.gray(
-        "Trellis is not installed in this project (no .trellis/ directory found).",
+        "Trellis is not installed in this project (no .cstl/ directory found).",
       ),
     );
     return;
@@ -356,7 +356,7 @@ export async function uninstall(options: UninstallOptions = {}): Promise<void> {
     console.error(
       chalk.red(
         "Trellis directory found but manifest is missing — cannot determine which platform files to remove. " +
-          "You can manually delete .trellis/ if needed.",
+          "You can manually delete .cstl/ if needed.",
       ),
     );
     process.exit(1);
@@ -370,7 +370,7 @@ export async function uninstall(options: UninstallOptions = {}): Promise<void> {
   // Dry-run: still compute the pruned hashes (so the plan reflects post-prune
   // reality) but pass `persist: false` so no disk write happens. The actual
   // disk write defers to executePlan time, where we'd be rewriting the
-  // manifest only to delete the whole .trellis/ dir anyway — but the
+  // manifest only to delete the whole .cstl/ dir anyway — but the
   // computation must remain to keep the rendered plan honest.
   const configuredPlatforms = getConfiguredPlatforms(cwd);
   const { pruned, hashes: prunedHashes } = pruneOrphanManifestKeys(

@@ -52,7 +52,7 @@ function writeFile(root: string, rel: string, content: string): void {
 }
 
 function writeTrellisScripts(root: string): void {
-  const scriptsDir = path.join(root, ".trellis", "scripts");
+  const scriptsDir = path.join(root, ".cstl", "scripts");
   for (const [rel, content] of getAllScripts()) {
     writeFile(scriptsDir, rel, content);
   }
@@ -64,7 +64,7 @@ function runScoreEvidence(
 ): { status: number | null; stdout: string; stderr: string } {
   const script = `
 import json, sys
-sys.path.insert(0, r"${path.join(root, ".trellis", "scripts").replace(/\\/g, "\\\\")}")
+sys.path.insert(0, r"${path.join(root, ".cstl", "scripts").replace(/\\/g, "\\\\")}")
 from common.retrieval_evidence import score_evidence_bundle
 print(json.dumps(score_evidence_bundle(json.loads(sys.stdin.read())), ensure_ascii=False))
 `;
@@ -87,7 +87,7 @@ const baseRecommendations = [
     confidence: "high",
     reason: "Selected task has local planning or evidence artifacts; read them first.",
     action: "Read selected task artifacts.",
-    reference: ".trellis/tasks/06-13-scoring",
+    reference: ".cstl/tasks/06-13-scoring",
   },
   {
     source: "artifact-search",
@@ -95,7 +95,7 @@ const baseRecommendations = [
     confidence: "high",
     reason: "Search durable Trellis artifacts.",
     action: "python search_artifacts.py",
-    reference: ".trellis/tasks/06-13-scoring",
+    reference: ".cstl/tasks/06-13-scoring",
   },
   {
     source: "session-memory",
@@ -103,7 +103,7 @@ const baseRecommendations = [
     confidence: "medium",
     reason: "Search local session history.",
     action: "python search_memory.py",
-    reference: ".trellis/workspace/",
+    reference: ".cstl/workspace/",
   },
   {
     source: "smart-search",
@@ -111,7 +111,7 @@ const baseRecommendations = [
     confidence: "medium",
     reason: "Capture explicit external evidence.",
     action: "python run_smart_search.py",
-    reference: ".trellis/tasks/06-13-scoring/research/smart-search/",
+    reference: ".cstl/tasks/06-13-scoring/research/smart-search/",
   },
   {
     source: "codebase-evidence",
@@ -146,7 +146,7 @@ describe.skipIf(pythonCmd === null)("retrieval_evidence.py", () => {
     const bundle = {
       recommendations: baseRecommendations,
       selectedTaskArtifacts: {
-        taskPath: ".trellis/tasks/06-13-scoring",
+        taskPath: ".cstl/tasks/06-13-scoring",
         prd: true,
         design: true,
         implement: false,
@@ -156,7 +156,7 @@ describe.skipIf(pythonCmd === null)("retrieval_evidence.py", () => {
       },
       artifactSearchResults: [
         {
-          path: ".trellis/spec/Trellis/framework/retrieval.md",
+          path: ".cstl/spec/Trellis/framework/retrieval.md",
           title: "Retrieval Framework",
           kind: "spec",
           category: "spec",
@@ -180,7 +180,7 @@ describe.skipIf(pythonCmd === null)("retrieval_evidence.py", () => {
           summary: "Implemented evidence scoring contract.",
           matchedSections: ["Summary"],
           matchedFields: ["task"],
-          path: ".trellis/workspace/test-dev/journal-1.md",
+          path: ".cstl/workspace/test-dev/journal-1.md",
           line: 25,
           score: 16,
           reason: "matched 'retrieval'",
@@ -194,10 +194,10 @@ describe.skipIf(pythonCmd === null)("retrieval_evidence.py", () => {
           intent: "deep-research",
           command: "smart-search research ...",
           outputPath:
-            ".trellis/tasks/06-13-scoring/research/smart-search/run/deep_research.json",
-          evidenceDir: ".trellis/tasks/06-13-scoring/research/smart-search/run",
+            ".cstl/tasks/06-13-scoring/research/smart-search/run/deep_research.json",
+          evidenceDir: ".cstl/tasks/06-13-scoring/research/smart-search/run",
           manifestPath:
-            ".trellis/tasks/06-13-scoring/research/smart-search/run/manifest.json",
+            ".cstl/tasks/06-13-scoring/research/smart-search/run/manifest.json",
           status: "ok",
           createdAt: "2026-06-13T00:00:00Z",
           summary: "short normalized summary",
@@ -251,8 +251,8 @@ describe.skipIf(pythonCmd === null)("retrieval_evidence.py", () => {
           version: 1,
           source: "smart-search",
           query: "missing credentials",
-          manifestPath: ".trellis/workspace/smart-search/failed/manifest.json",
-          evidenceDir: ".trellis/workspace/smart-search/failed",
+          manifestPath: ".cstl/workspace/smart-search/failed/manifest.json",
+          evidenceDir: ".cstl/workspace/smart-search/failed",
           status: "failed",
           createdAt: "2026-06-13T00:00:00Z",
           error: "provider auth failed",
@@ -267,8 +267,8 @@ describe.skipIf(pythonCmd === null)("retrieval_evidence.py", () => {
           version: 1,
           source: "smart-search",
           query: "not configured",
-          manifestPath: ".trellis/workspace/smart-search/none/manifest.json",
-          evidenceDir: ".trellis/workspace/smart-search/none",
+          manifestPath: ".cstl/workspace/smart-search/none/manifest.json",
+          evidenceDir: ".cstl/workspace/smart-search/none",
           status: "not_configured",
           createdAt: "2026-06-13T00:00:00Z",
           error: "smart-search CLI could not be resolved (PATH, config, or repo wrapper).",
@@ -283,8 +283,8 @@ describe.skipIf(pythonCmd === null)("retrieval_evidence.py", () => {
           version: 1,
           source: "smart-search",
           query: "degraded run",
-          manifestPath: ".trellis/workspace/smart-search/degraded/manifest.json",
-          evidenceDir: ".trellis/workspace/smart-search/degraded",
+          manifestPath: ".cstl/workspace/smart-search/degraded/manifest.json",
+          evidenceDir: ".cstl/workspace/smart-search/degraded",
           status: "degraded",
           createdAt: "2026-06-13T00:00:00Z",
           summary: "partial answer with gaps",
@@ -315,7 +315,7 @@ describe.skipIf(pythonCmd === null)("retrieval_evidence.py", () => {
     const bundle = {
       recommendations: baseRecommendations,
       selectedTaskArtifacts: {
-        taskPath: ".trellis/tasks/06-13-scoring",
+        taskPath: ".cstl/tasks/06-13-scoring",
         prd: false,
         design: false,
         implement: false,

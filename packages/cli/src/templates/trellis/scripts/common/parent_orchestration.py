@@ -41,14 +41,14 @@ Validation baseline:
 - Run typecheck when touching TypeScript.
 - Run ESLint for changed TypeScript test/source files when applicable.
 - Run Python compile checks when touching Python scripts/templates.
-- Run `python ./.trellis/scripts/task.py validate <your-child-task>` before handoff."""
+- Run `python ./.cstl/scripts/task.py validate <your-child-task>` before handoff."""
 
 _VALIDATION_BASELINE = """Validation baseline:
 - Run focused tests for touched behavior.
 - Run typecheck when touching TypeScript.
 - Run ESLint for changed TypeScript test/source files when applicable.
 - Run Python compile checks when touching Python scripts/templates.
-- Run `python ./.trellis/scripts/task.py validate <child-dir>` before handoff."""
+- Run `python ./.cstl/scripts/task.py validate <child-dir>` before handoff."""
 
 
 def _utc_now() -> str:
@@ -141,13 +141,13 @@ def _child_prompt_section(
     lines.append("### Suggested child worker commands")
     lines.append("")
     lines.append("```bash")
-    lines.append(f"python ./.trellis/scripts/task.py select {child_rel}")
+    lines.append(f"python ./.cstl/scripts/task.py select {child_rel}")
     lines.append(
-        f"python ./.trellis/scripts/task.py set-child-state {parent_rel} {child_rel} working --evidence implement.md"
+        f"python ./.cstl/scripts/task.py set-child-state {parent_rel} {child_rel} working --evidence implement.md"
     )
     lines.append("# ... implement ...")
     lines.append(
-        f"python ./.trellis/scripts/task.py set-child-state {parent_rel} {child_rel} review --evidence verify.md"
+        f"python ./.cstl/scripts/task.py set-child-state {parent_rel} {child_rel} review --evidence verify.md"
     )
     lines.append("```")
     lines.append("")
@@ -266,7 +266,7 @@ def build_child_prompt(
                 f"Selected task: {child_rel}",
                 "",
                 "Delivery mode: subagent (Cursor)",
-                "- **Default:** Parent session dispatches **Task** with `subagent_type=cstl-implement` and this prompt as the task description (writable sub-agent). Model under Cursor++ BYOK comes from `.trellis/local/cursor2plus/` routing (see `cursor-subagent-policy.md` Method 2.5/2.6).",
+                "- **Default:** Parent session dispatches **Task** with `subagent_type=cstl-implement` and this prompt as the task description (writable sub-agent). Model under Cursor++ BYOK comes from `.cstl/local/cursor2plus/` routing (see `cursor-subagent-policy.md` Method 2.5/2.6).",
                 "- **Exception:** If parent `child-prompts.md` or the user names this child for a **separate writable Agent chat**, open a new Agent session, pick the model manually, paste this prompt — do not use Task from Parent.",
                 "- Parent retains `review-child` / `integrate-child`. Child must not nest further `cstl-research` / `cstl-implement` / `cstl-check` Task dispatches.",
                 f"- Parent orchestration: `execution_topology={topo}`, `merge_limit={merge_lim}`.",
@@ -353,11 +353,11 @@ def build_parent_status(parent_dir: Path) -> str:
     lines.append("## Suggested parent commands")
     lines.append("")
     lines.append("```bash")
-    lines.append(f"python ./.trellis/scripts/task.py parent-status {parent_rel}")
-    lines.append(f"python ./.trellis/scripts/task.py generate-child-prompt {parent_rel} <child> --mode subagent")
-    lines.append(f"python ./.trellis/scripts/task.py generate-child-prompt {parent_rel} <child> --mode inline")
-    lines.append(f"python ./.trellis/scripts/task.py review-child {parent_rel} <child> --check")
-    lines.append(f"python ./.trellis/scripts/task.py review-child {parent_rel} <child> --decision accept --ref <ref>")
+    lines.append(f"python ./.cstl/scripts/task.py parent-status {parent_rel}")
+    lines.append(f"python ./.cstl/scripts/task.py generate-child-prompt {parent_rel} <child> --mode subagent")
+    lines.append(f"python ./.cstl/scripts/task.py generate-child-prompt {parent_rel} <child> --mode inline")
+    lines.append(f"python ./.cstl/scripts/task.py review-child {parent_rel} <child> --check")
+    lines.append(f"python ./.cstl/scripts/task.py review-child {parent_rel} <child> --decision accept --ref <ref>")
     lines.append("```")
     return "\n".join(lines)
 
@@ -421,10 +421,10 @@ def _learning_decision_review_lines(
         "Child verify.md has no grep-friendly durable-learning line yet. Pick one outcome:",
         "",
         "- `Durable learning decision: no durable learning` — routine scope, no reusable contract.",
-        "- `Spec update evidence: .trellis/spec/<path>` — after `/cstl:update-spec` with reviewer confirmation.",
+        "- `Spec update evidence: .cstl/spec/<path>` — after `/cstl:update-spec` with reviewer confirmation.",
         f"- `Learning artifact: {child_rel}/handoff.md` — handoff already captures the insight.",
         "",
-        f"Helper: `python ./.trellis/scripts/task.py prepare-archive-evidence {child_rel}`",
+        f"Helper: `python ./.cstl/scripts/task.py prepare-archive-evidence {child_rel}`",
         "",
     ]
 
@@ -524,7 +524,7 @@ def build_review_report(
                     "transition": "parent-accepted",
                     "optional": True,
                     "hint": (
-                        f"Optional audit: python ./.trellis/scripts/task.py record-gate {parent_dir.name} "
+                        f"Optional audit: python ./.cstl/scripts/task.py record-gate {parent_dir.name} "
                         f"--transition parent-accepted --gate code-review --result PASS "
                         f"--reviewer parent --evidence review-{child_name}.md"
                     ),
@@ -538,7 +538,7 @@ def build_review_report(
                         "transition": "child-review",
                         "optional": False,
                         "hint": (
-                            f"Required before accept: python ./.trellis/scripts/task.py record-gate {child_name} "
+                            f"Required before accept: python ./.cstl/scripts/task.py record-gate {child_name} "
                             f"--transition child-review --gate code-review --result PASS "
                             f"--reviewer parent --evidence verify.md"
                         ),
@@ -640,7 +640,7 @@ def build_review_report(
                     "transition": "parent-integrated",
                     "optional": False,
                     "hint": (
-                        f"Required before parent archive: python ./.trellis/scripts/task.py record-gate {parent_dir.name} "
+                        f"Required before parent archive: python ./.cstl/scripts/task.py record-gate {parent_dir.name} "
                         f"--transition parent-integrated --gate integration-review --result PASS "
                         f"--reviewer parent --evidence task-map.md"
                     ),

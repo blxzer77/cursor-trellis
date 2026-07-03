@@ -66,16 +66,16 @@ export interface WorkflowOptions {
   /** Package names that use remote templates (skip blank spec for these) */
   remoteSpecPackages?: Set<string>;
   /**
-   * Optional override for `.trellis/workflow.md` content. When omitted the
+   * Optional override for `.cstl/workflow.md` content. When omitted the
    * bundled native template is written. Set by `init --workflow` (or
    * `--workflow-source`) after the resolver has fetched marketplace content.
-   * Caller is still responsible for removing the `.trellis/workflow.md` hash
+   * Caller is still responsible for removing the `.cstl/workflow.md` hash
    * entry for non-native workflows so update.ts treats them as user-managed.
    */
   workflowMdOverride?: string;
   /**
    * Whether to materialize the Cursor++ BYOK local operator bundle
-   * (`.trellis/local/cursor2plus/`). Defaults to `false` from 1.1.0: only
+   * (`.cstl/local/cursor2plus/`). Defaults to `false` from 1.1.0: only
    * written when the user opts in during `cstl init` (interactive BYOK
    * question) or passes `--cursor2plus`. Native Cursor API users do not need
    * these assets. `cstl update` keeps existing bundles (detected by
@@ -87,7 +87,7 @@ export interface WorkflowOptions {
 /**
  * Create workflow structure based on project type
  *
- * This function creates the .trellis/ directory structure by:
+ * This function creates the .cstl/ directory structure by:
  * 1. Writing scripts/ from getAllScripts() (user-shipped subset only)
  * 2. Copying workflow.md and .gitignore (dogfooding)
  * 3. Creating workspace/ with index.md

@@ -33,8 +33,8 @@ quality_gates:
 
 ## Candidate Files
 
-- `Trellis/.trellis/scripts/common/context_pack.py`
-- `Trellis/.trellis/scripts/build_context_pack.py`
+- `Trellis/.cstl/scripts/common/context_pack.py`
+- `Trellis/.cstl/scripts/build_context_pack.py`
 - `Trellis/packages/cli/src/templates/trellis/scripts/common/context_pack.py`
 - `Trellis/packages/cli/src/templates/trellis/scripts/build_context_pack.py`
 - `Trellis/packages/cli/src/templates/trellis/index.ts`

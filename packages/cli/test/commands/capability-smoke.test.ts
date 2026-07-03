@@ -18,7 +18,7 @@ describe("capability-smoke command", () => {
 
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-cap-smoke-"));
-    fs.mkdirSync(path.join(tmpDir, ".trellis"), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, ".cstl"), { recursive: true });
   });
 
   afterEach(() => {
@@ -28,12 +28,12 @@ describe("capability-smoke command", () => {
 
   it("fails retrieval smoke when codegraph index is missing", async () => {
     fs.writeFileSync(
-      path.join(tmpDir, ".trellis", "capabilities.json"),
+      path.join(tmpDir, ".cstl", "capabilities.json"),
       renderCapabilitiesJson(["codebase-retrieval"]),
       "utf-8",
     );
     fs.writeFileSync(
-      path.join(tmpDir, ".trellis", "capabilities.md"),
+      path.join(tmpDir, ".cstl", "capabilities.md"),
       renderCapabilitiesMarkdown(["codebase-retrieval"]),
       "utf-8",
     );
@@ -44,7 +44,7 @@ describe("capability-smoke command", () => {
       writeStatus: true,
     });
     const updated = JSON.parse(
-      fs.readFileSync(path.join(tmpDir, ".trellis", "capabilities.json"), "utf-8"),
+      fs.readFileSync(path.join(tmpDir, ".cstl", "capabilities.json"), "utf-8"),
     ) as {
       capabilities: Record<string, { readiness_status?: string }>;
     };
@@ -58,12 +58,12 @@ describe("capability-smoke command", () => {
 
   it("marks retrieval ready when codegraph index exists", async () => {
     fs.writeFileSync(
-      path.join(tmpDir, ".trellis", "capabilities.json"),
+      path.join(tmpDir, ".cstl", "capabilities.json"),
       renderCapabilitiesJson(["codebase-retrieval"]),
       "utf-8",
     );
     fs.writeFileSync(
-      path.join(tmpDir, ".trellis", "capabilities.md"),
+      path.join(tmpDir, ".cstl", "capabilities.md"),
       renderCapabilitiesMarkdown(["codebase-retrieval"]),
       "utf-8",
     );
@@ -81,7 +81,7 @@ describe("capability-smoke command", () => {
       writeStatus: true,
     });
     const updatedMarkdown = fs.readFileSync(
-      path.join(tmpDir, ".trellis", "capabilities.md"),
+      path.join(tmpDir, ".cstl", "capabilities.md"),
       "utf-8",
     );
 
@@ -91,7 +91,7 @@ describe("capability-smoke command", () => {
 
   it("throws when capabilities file is missing", () => {
     expect(() => ensureCapabilitiesFileExists(tmpDir)).toThrow(
-      /No \.trellis\/capabilities\.json found/,
+      /No \.cstl\/capabilities\.json found/,
     );
   });
 });

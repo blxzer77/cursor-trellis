@@ -7,7 +7,7 @@ description: "Create or improve Trellis-compatible agent skills. Use when the us
 
 Create high-quality skills for Trellis-managed projects and Trellis bundled templates.
 
-This skill is the authoring and review guide for skill files. It is not the local Trellis architecture map. Use `cstl-meta` first when the user needs to understand or customize `.trellis/`, hooks, settings, commands, prompts, workflows, agents, or platform directory layout.
+This skill is the authoring and review guide for skill files. It is not the local Trellis architecture map. Use `cstl-meta` first when the user needs to understand or customize `.cstl/`, hooks, settings, commands, prompts, workflows, agents, or platform directory layout.
 
 ## Hard Constraints
 
@@ -39,6 +39,6 @@ This skill is the authoring and review guide for skill files. It is not the loca
 ## When NOT To Use
 
 - Do not use for general Trellis architecture discovery; use `cstl-meta`.
-- Do not use for project coding conventions that belong in `.trellis/spec/`.
+- Do not use for project coding conventions that belong in `.cstl/spec/`.
 - Do not use for one-off commands or prompts unless the user wants a durable auto-triggered capability.
 - Do not use for non-Trellis global skill installation or platform configuration unless the user explicitly asks for that scope.

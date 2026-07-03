@@ -3,7 +3,7 @@
  *
  * Uses `open(path, "wx")` (O_EXCL) for atomic creation across processes —
  * works correctly on local POSIX filesystems and macOS APFS / Linux ext4.
- * NFS is not a supported target (channels live in `~/.trellis/channels`).
+ * NFS is not a supported target (channels live in `~/.cstl/channels`).
  *
  * Each lockfile stores the holder's pid for forensic + stale-lock recovery.
  * If a lock file exists but the owning pid is no longer alive, the next

@@ -22,7 +22,7 @@ describe("createWorkflowStructure — cursor2plus opt-in (1.1.0)", () => {
     await createWorkflowStructure(tmpDir, { projectType: "fullstack" });
     const cursor2plusDir = path.join(
       tmpDir,
-      ".trellis",
+      ".cstl",
       "local",
       "cursor2plus",
     );
@@ -39,7 +39,7 @@ describe("createWorkflowStructure — cursor2plus opt-in (1.1.0)", () => {
     });
     const cursor2plusDir = path.join(
       tmpDir,
-      ".trellis",
+      ".cstl",
       "local",
       "cursor2plus",
     );
@@ -52,7 +52,7 @@ describe("createWorkflowStructure — cursor2plus opt-in (1.1.0)", () => {
       fs.existsSync(
         path.join(
           tmpDir,
-          ".trellis",
+          ".cstl",
           "local",
           "trellis-task-models.json5.example",
         ),
@@ -62,7 +62,7 @@ describe("createWorkflowStructure — cursor2plus opt-in (1.1.0)", () => {
 
   it("does NOT write maintainer-only scripts (probe, eval tools)", async () => {
     await createWorkflowStructure(tmpDir, { projectType: "fullstack" });
-    const scriptsDir = path.join(tmpDir, ".trellis", "scripts");
+    const scriptsDir = path.join(tmpDir, ".cstl", "scripts");
     expect(
       fs.existsSync(path.join(scriptsDir, "cursor_retrieval_probe.py")),
     ).toBe(false);
@@ -86,13 +86,13 @@ describe("createWorkflowStructure — cursor2plus opt-in (1.1.0)", () => {
       projectType: "fullstack",
       cursor2plus: false,
     });
-    expect(fs.existsSync(path.join(tmpDir, ".trellis"))).toBe(true);
+    expect(fs.existsSync(path.join(tmpDir, ".cstl"))).toBe(true);
     expect(
-      fs.existsSync(path.join(tmpDir, ".trellis", "scripts")),
+      fs.existsSync(path.join(tmpDir, ".cstl", "scripts")),
     ).toBe(true);
-    expect(fs.existsSync(path.join(tmpDir, ".trellis", "tasks"))).toBe(true);
+    expect(fs.existsSync(path.join(tmpDir, ".cstl", "tasks"))).toBe(true);
     expect(
-      fs.existsSync(path.join(tmpDir, ".trellis", "workflow.md")),
+      fs.existsSync(path.join(tmpDir, ".cstl", "workflow.md")),
     ).toBe(true);
   });
 });

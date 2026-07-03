@@ -7,14 +7,14 @@ Add a pure context-pack module or script that consumes already-scored evidence. 
 Candidate module:
 
 ```text
-.trellis/scripts/common/context_pack.py
+.cstl/scripts/common/context_pack.py
 packages/cli/src/templates/trellis/scripts/common/context_pack.py
 ```
 
 An optional command surface may be added only if it remains explicit:
 
 ```text
-.trellis/scripts/build_context_pack.py --input scored-evidence.json --max-items 8 --json
+.cstl/scripts/build_context_pack.py --input scored-evidence.json --max-items 8 --json
 ```
 
 ## Pack Contract
@@ -33,7 +33,7 @@ Recommended JSON shape:
   "selected": [
     {
       "source": "artifact-search",
-      "reference": ".trellis/tasks/example/prd.md",
+      "reference": ".cstl/tasks/example/prd.md",
       "score": 92,
       "estimatedTokens": 420,
       "reason": "highest trusted task artifact"
@@ -42,7 +42,7 @@ Recommended JSON shape:
   "omitted": [
     {
       "source": "session-memory",
-      "reference": ".trellis/workspace/dev/journal-1.md:42",
+      "reference": ".cstl/workspace/dev/journal-1.md:42",
       "score": 41,
       "reason": "outside budget after higher-ranked evidence"
     }

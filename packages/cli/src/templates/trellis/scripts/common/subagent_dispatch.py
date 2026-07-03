@@ -15,7 +15,7 @@ from typing import Literal
 from .io import read_json
 from .paths import FILE_TASK_JSON
 
-DIR_WORKFLOW = ".trellis"
+DIR_WORKFLOW = ".cstl"
 DIR_SPEC = "spec"
 
 AGENT_IMPLEMENT = "cstl-implement"
@@ -369,7 +369,7 @@ Conversations get compacted; files do not. Every research topic MUST be written 
 
 ## Write FORBIDDEN
 
-- Code, `.trellis/spec/`, platform config, git operations"""
+- Code, `.cstl/spec/`, platform config, git operations"""
 
 
 def _repo_relative(task_dir: Path, repo_root: Path) -> str:

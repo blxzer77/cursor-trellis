@@ -22,7 +22,7 @@ from pathlib import Path
 # =============================================================================
 
 # Directory names
-DIR_WORKFLOW = ".trellis"
+DIR_WORKFLOW = ".cstl"
 DIR_WORKSPACE = "workspace"
 DIR_TASKS = "tasks"
 DIR_ARCHIVE = "archive"
@@ -41,7 +41,7 @@ FILE_JOURNAL_PREFIX = "journal-"
 # =============================================================================
 
 def get_repo_root(start_path: Path | None = None) -> Path:
-    """Find the nearest directory containing .trellis/ folder.
+    """Find the nearest directory containing .cstl/ folder.
 
     This handles nested git repos correctly (e.g., test project inside another repo).
 
@@ -49,7 +49,7 @@ def get_repo_root(start_path: Path | None = None) -> Path:
         start_path: Starting directory to search from. Defaults to current directory.
 
     Returns:
-        Path to repository root, or current directory if no .trellis/ found.
+        Path to repository root, or current directory if no .cstl/ found.
     """
     current = (start_path or Path.cwd()).resolve()
 
@@ -58,7 +58,7 @@ def get_repo_root(start_path: Path | None = None) -> Path:
             return current
         current = current.parent
 
-    # Fallback to current directory if no .trellis/ found
+    # Fallback to current directory if no .cstl/ found
     return Path.cwd().resolve()
 
 
@@ -211,7 +211,7 @@ def normalize_task_ref(task_ref: str) -> str:
     """Normalize a task ref for stable runtime storage.
 
     Stored refs should prefer repo-relative POSIX paths like
-    `.trellis/tasks/03-27-my-task`, even on Windows. Absolute paths are preserved
+    `.cstl/tasks/03-27-my-task`, even on Windows. Absolute paths are preserved
     unless they can later be converted back to repo-relative form by callers.
     """
     normalized = task_ref.strip()
@@ -405,8 +405,8 @@ def generate_task_date_prefix() -> str:
 def get_spec_dir(package: str | None = None, repo_root: Path | None = None) -> Path:
     """Get the spec directory path.
 
-    Single-repo: .trellis/spec
-    Monorepo with package: .trellis/spec/<package>
+    Single-repo: .cstl/spec
+    Monorepo with package: .cstl/spec/<package>
 
     Uses lazy import to avoid circular dependency with config.py.
     """

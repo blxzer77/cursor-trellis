@@ -11,6 +11,25 @@ SemVer: [semver.org](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-07-03
+
+**Breaking (coexistence)**: cursor-trellis runtime directory moves from `.trellis/` to **`.cstl/`** so upstream [mindfold-ai/Trellis](https://github.com/mindfold-ai/Trellis) can keep `.trellis/` in the same repository while Cursor uses `cstl`.
+
+### Breaking
+
+- **feat(runtime)**: project runtime root `.trellis/` → **`.cstl/`** (`rename-dir` via `cstl update --migrate`; history preserved).
+- **feat(agents)**: AGENTS.md managed block uses `<!-- CSTL:START -->` / `<!-- CSTL:END -->` (legacy `TRELLIS:START` upgraded on migrate).
+- **chore(channel)**: `cstl channel` multi-agent CLI is **not registered** (Cursor-only product; upstream channel runtime out of scope).
+- **chore(config)**: removed default `channel.worker_guard` from `config.yaml` template.
+
+### Migration
+
+```bash
+npm install -g @blxzer/cursor-trellis@0.3.1
+cd /path/to/project
+cstl update --migrate
+```
+
 ## [0.3.0] - 2026-07-02
 
 **Breaking**: rename CLI command from `trellis`/`tl` to `cstl`. The `trellis` and `tl` bin aliases are **removed**. All skill, command, agent, and rule name prefixes renamed `trellis-*` → `cstl-*` (hard cut, no compatibility aliases).

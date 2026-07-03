@@ -22,9 +22,9 @@ Trellis originally supported multiple AI platforms (Claude Code, Codex, OpenCode
 
 1. User specified a platform other than Cursor: treat as a legacy adapter inspection — preserve existing files but do not extend new behavior there.
 2. User says "all platforms should do this": in Cursor-only world this is equivalent to "modify the Cursor path"; also mirror any dogfooded copy under `.cursor/` in `packages/cli/src/templates/cursor/` if applicable.
-3. User only says "my AI": inspect which directories actually exist in the project; on a fresh `cstl init` only `.cursor/` and `.trellis/` are created.
-4. User wants project rules: prefer `.trellis/spec/` or a project-local skill under `.cursor/skills/`.
-5. User wants Trellis behavior: edit `.trellis/workflow.md` plus `.cursor/hooks.json` / `.cursor/agents/` / `.cursor/skills/` / `.cursor/commands/`.
+3. User only says "my AI": inspect which directories actually exist in the project; on a fresh `cstl init` only `.cursor/` and `.cstl/` are created.
+4. User wants project rules: prefer `.cstl/spec/` or a project-local skill under `.cursor/skills/`.
+5. User wants Trellis behavior: edit `.cstl/workflow.md` plus `.cursor/hooks.json` / `.cursor/agents/` / `.cursor/skills/` / `.cursor/commands/`.
 
 ## When Paths Differ
 

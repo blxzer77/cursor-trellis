@@ -16,8 +16,8 @@ Non-git repo roots do **not** force `inline` for code Full tasks; they only affe
 ## Suggest (planning)
 
 ```bash
-python3 ./.trellis/scripts/task.py suggest-execution-strategy <task-dir>
-python3 ./.trellis/scripts/task.py suggest-execution-strategy <task-dir> --json
+python3 ./.cstl/scripts/task.py suggest-execution-strategy <task-dir>
+python3 ./.cstl/scripts/task.py suggest-execution-strategy <task-dir> --json
 ```
 
 Run during brainstorm / before finalizing the YAML block in `implement.md`. Reconcile suggestion with product intent; the contract in `implement.md` is authoritative after approval.
@@ -32,7 +32,7 @@ Run during brainstorm / before finalizing the YAML block in `implement.md`. Reco
 | Parent / has children | `inline` | `main-worktree` |
 | Child (`task.json` parent set) | `child-task` | `git-worktree` when git package root resolves; else `main-worktree` + WARN |
 
-`touches_code` is deterministic: code `optional_capabilities`, `package`/`scope` path segments (`src`, `packages`, `scripts`, …), or Full with `design.md` and non-doc-only capabilities. Rules live in `.trellis/config/execution-strategy-rules.json`.
+`touches_code` is deterministic: code `optional_capabilities`, `package`/`scope` path segments (`src`, `packages`, `scripts`, …), or Full with `design.md` and non-doc-only capabilities. Rules live in `.cstl/config/execution-strategy-rules.json`.
 
 ## Drift warning (preflight)
 

@@ -1,0 +1,32 @@
+{
+
+  "version": "0.3.1",
+
+  "description": "v0.3.1 — Isolate cursor-trellis runtime directory: .trellis/ -> .cstl/ for coexistence with upstream Trellis in the same repo.",
+
+  "breaking": true,
+
+  "recommendMigrate": true,
+
+  "changelog": "**@blxzer/cursor-trellis 0.3.1**\n\n### Breaking\n- feat(runtime): cursor-trellis project runtime moves from `.trellis/` to **`.cstl/`** so upstream [mindfold-ai/Trellis](https://github.com/mindfold-ai/Trellis) can keep `.trellis/` in the same repository.\n- feat(agents): AGENTS.md managed block uses `<!-- CSTL:START -->` markers (legacy `TRELLIS:START` upgraded on migrate).\n- chore(channel): `cstl channel` multi-agent CLI is **not registered** (Cursor-only product scope).\n\n### Upgrade\n\n```bash\nnpm install -g @blxzer/cursor-trellis@0.3.1\ncd /path/to/project\ncstl update --migrate\n```\n\n`--migrate` is **required**. History (tasks/archive, workspace, spec, local/cursor2plus) is preserved via directory rename, not delete-recreate.",
+
+  "aiInstructions": "When helping migrate to 0.3.1:\n1. Run `npm install -g @blxzer/cursor-trellis@0.3.1` then `cstl update --migrate` in each cursor-trellis project.\n2. The migration renames `.trellis/` -> `.cstl/` when cursor-trellis ownership is detected; aborts if upstream-only Trellis is detected without cstl fingerprints.\n3. Update script paths: `python ./.cstl/scripts/...` (not `./.trellis/scripts/`).\n4. AGENTS.md: user content preserved; managed block becomes `CSTL:START/END`.\n5. Upstream `.trellis/` in the same repo (other agents) is left untouched when only adding `.cstl/` via fresh init; rename migrate only applies to cursor-trellis-owned trees.",
+
+  "migrations": [
+
+    {
+
+      "type": "rename-dir",
+
+      "from": ".trellis",
+
+      "to": ".cstl",
+
+      "description": "v0.3.1: cursor-trellis runtime dir isolation (.trellis -> .cstl)"
+
+    }
+
+  ]
+
+}
+

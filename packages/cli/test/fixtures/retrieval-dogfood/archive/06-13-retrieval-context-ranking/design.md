@@ -32,8 +32,8 @@ Each recommendation is an additive JSON object:
   "priority": 90,
   "confidence": "high",
   "reason": "Selected task has planning artifacts; search durable Trellis context first.",
-  "action": "python3 ./.trellis/scripts/search_artifacts.py --query \"retrieval context ranking\" --json",
-  "reference": ".trellis/tasks/06-13-retrieval-context-ranking"
+  "action": "python3 ./.cstl/scripts/search_artifacts.py --query \"retrieval context ranking\" --json",
+  "reference": ".cstl/tasks/06-13-retrieval-context-ranking"
 }
 ```
 

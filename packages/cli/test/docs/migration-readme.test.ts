@@ -17,7 +17,7 @@ const MIGRATION_README_PATHS = [
 const REQUIRED_MIGRATION_PHRASES = [
   "npm install -g @blxzer/cursor-trellis@latest",
   "cstl update --migrate",
-  ".trellis/",
+  ".cstl/",
   "trellis-task-models.json5",
   "cstl-research/implement/check",
 ];

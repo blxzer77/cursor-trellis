@@ -14,13 +14,13 @@
 
 English | [简体中文](README.zh-CN.md)
 
-**Trellis** is a progressive context management system for AI coding agents. It structures agent instructions as `.trellis/` (workflow, specs, tasks, workspace) instead of a single large file, and generates platform-specific integration files (`.cursor/` for Cursor).
+**Trellis** is a progressive context management system for AI coding agents. It structures agent instructions as `.cstl/` (workflow, specs, tasks, workspace) instead of a single large file, and generates platform-specific integration files (`.cursor/` for Cursor).
 
 Based on the [Trellis framework by mindfold-ai](https://github.com/mindfold-ai/Trellis), this version is adapted for Cursor with rules, commands, agents, and hooks.
 
 ## What it does
 
-- Task artifacts (PRD, design, implementation plan) persist in `.trellis/tasks/`
+- Task artifacts (PRD, design, implementation plan) persist in `.cstl/tasks/`
 - Resume work across chat sessions with `/cstl-continue`
 - Load specs progressively based on files being edited
 - Route requests through structured workflow: triage → plan → gate → execute → verify
@@ -39,7 +39,7 @@ cd examples/minimal-agent-app
 ./demo.sh          # or demo.ps1 on Windows
 ```
 
-The script runs `cstl init --cursor -y` → `cstl validate-rules` → lists `.trellis/` and `.cursor/`. Details: [examples/minimal-agent-app/README.md](examples/minimal-agent-app/README.md). Agent tooling narrative (CLI / MCP / Hook / Rule): [docs/agent-tooling-narrative.zh-CN.md](docs/agent-tooling-narrative.zh-CN.md).
+The script runs `cstl init --cursor -y` → `cstl validate-rules` → lists `.cstl/` and `.cursor/`. Details: [examples/minimal-agent-app/README.md](examples/minimal-agent-app/README.md). Agent tooling narrative (CLI / MCP / Hook / Rule): [docs/agent-tooling-narrative.zh-CN.md](docs/agent-tooling-narrative.zh-CN.md).
 
 ## Quick start (Cursor)
 
@@ -61,13 +61,25 @@ cstl init --cursor
 
 Optional: `cstl init --cursor --cursor2plus` materializes a **per-repo** Cursor++ BYOK bundle (not a global either/or choice). Native and BYOK can coexist across projects on one machine — see [Native and BYOK coexistence](docs/cursor.md#native-and-byok-coexistence-not-eitheror).
 
+## Upgrade from 0.3.0 (v0.3.1)
+
+v0.3.1 moves the cursor-trellis **runtime directory** from `.trellis/` to **`.cstl/`** so upstream [mindfold-ai/Trellis](https://github.com/mindfold-ai/Trellis) can keep `.trellis/` in the same repository. AGENTS.md managed blocks use `<!-- CSTL:START -->` markers.
+
+```bash
+npm install -g @blxzer/cursor-trellis@latest
+cd /path/to/your-app
+cstl update --migrate
+```
+
+`--migrate` is **required** — history is preserved via directory rename, not delete-recreate. Script paths become `python ./.cstl/scripts/...`.
+
 ## Upgrade from 0.2.x (v0.3.0)
 
 v0.3.0 is a **breaking rename**. The CLI is **`cstl` only** — the `trellis` and `tl` bin aliases are removed.
 
 | Changed | Unchanged |
 | --- | --- |
-| CLI: `trellis` / `tl` → `cstl` | `.trellis/` directory name |
+| CLI: `trellis` / `tl` → `cstl` | (0.3.1+) runtime dir is `.cstl/` |
 | Skills, commands, agents, rules: `trellis-*` → `cstl-*` | `trellis-task-models.json5` filename |
 
 **Migration steps** (run in each project):
@@ -82,7 +94,7 @@ cstl update --migrate
 
 After 0.3.0, routine CLI bumps can use `cstl upgrade`. The old `trellis upgrade` command no longer exists once you are on 0.3.0.
 
-**Cursor++ BYOK** (optional, `.trellis/local/cursor2plus/` only): update `trellis-task-models.json5` keys from `trellis-research/implement/check` to `cstl-research/implement/check`, then re-run `patch_wpelc8.py --apply`. Use `/cstl-cursor2plus-setup` in Agent mode.
+**Cursor++ BYOK** (optional, `.cstl/local/cursor2plus/` only): update `trellis-task-models.json5` keys from `trellis-research/implement/check` to `cstl-research/implement/check`, then re-run `patch_wpelc8.py --apply`. Use `/cstl-cursor2plus-setup` in Agent mode.
 
 Details: [CHANGELOG](packages/cli/CHANGELOG.md#030---2026-07-01).
 
@@ -90,7 +102,7 @@ Details: [CHANGELOG](packages/cli/CHANGELOG.md#030---2026-07-01).
 
 ```text
 your-app/
-  .trellis/          workflow, spec, tasks, workspace, scripts
+  .cstl/          workflow, spec, tasks, workspace, scripts
   AGENTS.md          Trellis-managed agent entry
   .cursor/           commands, rules, agents, hooks (Cursor)
 ```
@@ -101,10 +113,10 @@ Details: [Cursor integration](docs/cursor.md).
 
 | Path | Role |
 | --- | --- |
-| `.trellis/workflow.md` | Lifecycle: triage, plan, execute, finish, learning |
-| `.trellis/spec/` | Layer/package coding guidelines |
-| `.trellis/tasks/` | PRD, design, implement, verify artifacts |
-| `.trellis/workspace/` | Developer journals and session traces |
+| `.cstl/workflow.md` | Lifecycle: triage, plan, execute, finish, learning |
+| `.cstl/spec/` | Layer/package coding guidelines |
+| `.cstl/tasks/` | PRD, design, implement, verify artifacts |
+| `.cstl/workspace/` | Developer journals and session traces |
 
 ## Workflow (summary)
 
@@ -158,7 +170,7 @@ The workflow routes external fact queries to smart-search when available. See th
 
 | Command | Purpose |
 | --- | --- |
-| `cstl init --cursor` | Create `.trellis/` + `.cursor/` in the current project |
+| `cstl init --cursor` | Create `.cstl/` + `.cursor/` in the current project |
 | `cstl update` | Refresh templates from the installed CLI version |
 | `cstl uninstall` | Remove Trellis-managed files from the project |
 

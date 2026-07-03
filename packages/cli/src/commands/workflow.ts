@@ -1,10 +1,10 @@
 /**
- * `trellis workflow` command — list and switch the active `.trellis/workflow.md`.
+ * `trellis workflow` command — list and switch the active `.cstl/workflow.md`.
  *
  * Behavior contracts:
  *
  * - Hash boundary: after writing native content, refresh the
- *   `.trellis/workflow.md` entry in `.template-hashes.json`. After writing
+ *   `.cstl/workflow.md` entry in `.template-hashes.json`. After writing
  *   any non-native content, remove that entry. This prevents `trellis update`
  *   from silently restoring native bytes over a user-selected variant
  *   (see design.md "Durable-state contract").
@@ -14,8 +14,8 @@
  *   interactive runs prompt; non-interactive runs fail unless `--force` or
  *   `--create-new` was passed.
  *
- * - `--create-new`: never touches `.trellis/workflow.md`; writes
- *   `.trellis/workflow.md.new` and leaves the hash file alone.
+ * - `--create-new`: never touches `.cstl/workflow.md`; writes
+ *   `.cstl/workflow.md.new` and leaves the hash file alone.
  */
 
 import fs from "node:fs";
@@ -24,6 +24,7 @@ import chalk from "chalk";
 import inquirer from "inquirer";
 
 import { DIR_NAMES, PATHS } from "../constants/paths.js";
+import { isWorkflowInitialized } from "../utils/workflow-dir.js";
 import { replacePythonCommandLiterals } from "../configurators/shared.js";
 import {
   computeHash,
@@ -126,11 +127,11 @@ async function confirmOverwriteInteractively(): Promise<
       type: "list",
       name: "action",
       message:
-        "Your .trellis/workflow.md has local edits. What do you want to do?",
+        "Your .cstl/workflow.md has local edits. What do you want to do?",
       choices: [
         { name: "Overwrite (replace local edits)", value: "overwrite" },
         {
-          name: "Write to .trellis/workflow.md.new and keep current",
+          name: "Write to .cstl/workflow.md.new and keep current",
           value: "create-new",
         },
         { name: "Skip (no changes)", value: "skip" },
@@ -241,9 +242,9 @@ export async function runWorkflowCommand(
   options: WorkflowCommandOptions,
 ): Promise<void> {
   const cwd = process.cwd();
-  if (!fs.existsSync(path.join(cwd, DIR_NAMES.WORKFLOW))) {
+  if (!isWorkflowInitialized(cwd)) {
     throw new WorkflowCommandError(
-      "No .trellis/ directory found. Run `trellis init` first.",
+      "No .cstl/ directory found. Run `cstl init` first.",
     );
   }
 

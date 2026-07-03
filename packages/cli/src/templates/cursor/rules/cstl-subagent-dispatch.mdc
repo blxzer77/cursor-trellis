@@ -14,7 +14,7 @@ Before calling `Task(subagent_type="cstl-research|cstl-implement|cstl-check", ..
 1. Generate a complete dispatch prompt via CLI:
 
    ```powershell
-   python ./.trellis/scripts/generate_dispatch_prompt.py --agent <research|implement|check> --task "<task-path>" --repo-root "<repo-root>"
+   python ./.cstl/scripts/generate_dispatch_prompt.py --agent <research|implement|check> --task "<task-path>" --repo-root "<repo-root>"
    ```
 
 2. Use the CLI output as the `prompt` parameter value for `Task(...)`.
@@ -27,7 +27,7 @@ The generated prompt carries role identity ("You are the Trellis Research/Implem
 
 ## Auto-detection
 
-If `--task` is omitted, the script resolves the currently selected task. If `--repo-root` is omitted, it auto-detects via `.trellis` or `.git` upward search.
+If `--task` is omitted, the script resolves the currently selected task. If `--repo-root` is omitted, it auto-detects via `.cstl` or `.git` upward search.
 
 ## Exception
 

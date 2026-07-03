@@ -7,7 +7,7 @@ Improve Trellis session memory search, ranking, and reusable decision context wi
 ## Requirements
 
 - Confirmed evidence from Trellis:
-  - Workspace journals live under `.trellis/workspace/<developer>/journal-N.md`.
+  - Workspace journals live under `.cstl/workspace/<developer>/journal-N.md`.
   - `add_session.py` appends structured session records and updates workspace `index.md`.
   - `session_context.py` reports the active journal file and line count.
   - Phase 1 artifact search already indexes `workspace` artifacts, but there is no dedicated session-memory query layer or decision-oriented result contract.

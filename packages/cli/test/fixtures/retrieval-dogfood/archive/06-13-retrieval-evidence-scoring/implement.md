@@ -36,7 +36,7 @@ quality_gates:
 
 ## Candidate Files
 
-- `Trellis/.trellis/scripts/common/retrieval_evidence.py`
+- `Trellis/.cstl/scripts/common/retrieval_evidence.py`
 - `Trellis/packages/cli/src/templates/trellis/scripts/common/retrieval_evidence.py`
 - `Trellis/packages/cli/src/templates/trellis/index.ts`
 - `Trellis/packages/cli/test/scripts/retrieval-evidence.integration.test.ts`

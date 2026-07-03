@@ -1,10 +1,10 @@
 # Platform Files Overview
 
-Trellis connects the same local architecture to **Cursor**. `.trellis/` stores the shared runtime; `.cursor/` stores adapter files that define how Cursor enters Trellis.
+Trellis connects the same local architecture to **Cursor**. `.cstl/` stores the shared runtime; `.cursor/` stores adapter files that define how Cursor enters Trellis.
 
 When a local AI modifies Trellis, it should distinguish two file categories first:
 
-- **Shared files**: `.trellis/workflow.md`, `.trellis/tasks/`, `.trellis/spec/`, `.trellis/scripts/`.
+- **Shared files**: `.cstl/workflow.md`, `.cstl/tasks/`, `.cstl/spec/`, `.cstl/scripts/`.
 - **Platform files**: `.cursor/` (settings, hooks, agents, skills, commands, rules).
 
 Platform files do not store business state. They let Cursor read Trellis state, call Trellis scripts, and load Trellis skills/agents/hooks.
@@ -36,10 +36,10 @@ To change "when the AI knows what," inspect `.cursor/hooks.json` and `.cursor/ru
 
 When the user asks to customize behavior:
 
-1. Read `.trellis/workflow.md` to confirm the shared flow.
+1. Read `.cstl/workflow.md` to confirm the shared flow.
 2. Read `.cursor/hooks.json` to see which hooks are registered.
 3. Read the relevant `.cursor/agents/*.md`, `.cursor/skills/*/SKILL.md`, `.cursor/commands/*.md`, and `.cursor/rules/*.mdc`.
 4. Modify the local file closest to the user's need.
-5. If the change affects the shared flow, synchronize `.trellis/workflow.md` or `.trellis/spec/`.
+5. If the change affects the shared flow, synchronize `.cstl/workflow.md` or `.cstl/spec/`.
 
-Do not modify only platform files and forget the shared workflow. Do not modify only `.trellis/workflow.md` and forget that platform entry points may still contain old descriptions.
+Do not modify only platform files and forget the shared workflow. Do not modify only `.cstl/workflow.md` and forget that platform entry points may still contain old descriptions.

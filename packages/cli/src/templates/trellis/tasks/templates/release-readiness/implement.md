@@ -15,13 +15,13 @@ quality_gates:
 
 ## Steps
 
-1. Read product release spec (e.g. `.trellis/spec/**/release*.md`) and recent integrated task handoffs.
+1. Read product release spec (e.g. `.cstl/spec/**/release*.md`) and recent integrated task handoffs.
 2. Record current versions from `package.json` (and lockstep packages).
 3. Draft version recommendation and changelog.
 4. Run non-mutating guards and validation (manifest, build, focused tests, typecheck, pack dry-run).
 5. Fill `verify.md` using the evidence contract in `design.md`.
 6. Write `handoff.md` with **Ready to publish**, **Not published**, and **Blockers** tables.
-7. Run `python ./.trellis/scripts/task.py validate <this-task>` and `archive --check` when finishing.
+7. Run `python ./.cstl/scripts/task.py validate <this-task>` and `archive --check` when finishing.
 
 ## Validation
 

@@ -1,10 +1,10 @@
 # Local Workflow System
 
-`.trellis/workflow.md` is the Trellis workflow source of truth inside the user project. An AI does not need Trellis source code to understand how the current project should move tasks forward; this file is enough.
+`.cstl/workflow.md` is the Trellis workflow source of truth inside the user project. An AI does not need Trellis source code to understand how the current project should move tasks forward; this file is enough.
 
 ## File Responsibilities
 
-`.trellis/workflow.md` has three responsibilities:
+`.cstl/workflow.md` has three responsibilities:
 
 1. **Explain workflow phases**: Plan, Execute, Finish.
 2. **Define skill routing**: which skill or agent the AI should use when the user expresses a certain intent.
@@ -62,7 +62,7 @@ Common changes:
 | Change the wrap-up flow | Update Phase 3 and `finish-work` related descriptions. Note the current split: Phase 3.4 = AI-driven code commits (batched, user-confirmed), Phase 3.5 = `/finish-work` (archive + record session). `/finish-work` refuses to run if the working tree is dirty. |
 | Change platform differences | Update routing descriptions grouped by platform. |
 
-After editing, make the AI reread `.trellis/workflow.md`; do not assume the flow from the old conversation is still valid.
+After editing, make the AI reread `.cstl/workflow.md`; do not assume the flow from the old conversation is still valid.
 
 ## Relationship To Platform Files
 

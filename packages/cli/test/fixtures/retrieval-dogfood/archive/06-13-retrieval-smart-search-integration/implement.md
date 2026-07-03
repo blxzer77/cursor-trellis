@@ -33,8 +33,8 @@ quality_gates:
 
 ## Candidate Files
 
-- `Trellis/.trellis/scripts/` for local Trellis runtime scripts.
-- `Trellis/.trellis/scripts/common/` for reusable manifest parsing helpers.
+- `Trellis/.cstl/scripts/` for local Trellis runtime scripts.
+- `Trellis/.cstl/scripts/common/` for reusable manifest parsing helpers.
 - `Trellis/packages/cli/src/templates/trellis/scripts/` for scaffolded copies.
 - `Trellis/packages/cli/src/templates/trellis/index.ts` if a new script is added to templates.
 - `Trellis/packages/cli/test/scripts/` for integration tests.

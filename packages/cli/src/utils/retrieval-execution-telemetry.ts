@@ -662,7 +662,7 @@ export const RETRIEVAL_TELEMETRY_EXAMPLES = {
     rg_candidate_count: 0,
     rg_corrob_status: "none",
     trap_only: false,
-    corroborated_files: [".trellis/spec/guides/retrieval-daily-guide.md"],
+    corroborated_files: [".cstl/spec/guides/retrieval-daily-guide.md"],
     adapter_errors: [],
     candidate_pool_recall: null,
     final_top_k_recall: null,

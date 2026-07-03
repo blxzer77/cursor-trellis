@@ -7,7 +7,7 @@ Phase 3 parent integration completed. All three child tasks were reviewed, accep
 Validation Evidence: child focused tests, combined retrieval regression suite, template tests, typecheck, focused ESLint, Python compile, CLI wrapper smoke, dogfood/template sync checks, parent task validation, and code review passed.
 Acceptance Evidence: parent accepted all child `verify.md` and `handoff.md` artifacts and integrated refs `7e7ba725` and `fe60b0b5`.
 Final Integration Evidence: parent `task-map.md` marks `06-13-retrieval-evidence-scoring`, `06-13-retrieval-context-pack-builder`, and `06-13-retrieval-eval-harness` as `integrated`.
-Durable Learning: no `.trellis/spec/` update is needed; existing Trellis Python template runtime, template generation, and validation specs cover the generated-runtime and fixture-driven harness patterns used here.
+Durable Learning: no `.cstl/spec/` update is needed; existing Trellis Python template runtime, template generation, and validation specs cover the generated-runtime and fixture-driven harness patterns used here.
 
 ## Integrated Children
 

@@ -2,7 +2,7 @@
 """
 Trellis configuration reader.
 
-Reads settings from .trellis/config.yaml with sensible defaults.
+Reads settings from .cstl/config.yaml with sensible defaults.
 """
 
 from __future__ import annotations
@@ -219,7 +219,7 @@ def get_session_auto_commit(repo_root: Path | None = None) -> bool:
     ``task_store.py:_auto_commit_archive``.
 
     Default: ``True`` (existing behavior — auto-stage + auto-commit).
-    Set ``session_auto_commit: false`` in ``.trellis/config.yaml`` to skip
+    Set ``session_auto_commit: false`` in ``.cstl/config.yaml`` to skip
     auto-staging entirely; the journal/archive files are still written to
     disk, but the user manages ``git add`` / ``git commit`` themselves.
 
@@ -370,7 +370,7 @@ def is_monorepo(repo_root: Path | None = None) -> bool:
 
 
 def get_spec_base(package: str | None = None, repo_root: Path | None = None) -> str:
-    """Get the spec directory base path relative to .trellis/.
+    """Get the spec directory base path relative to .cstl/.
 
     Single-repo: returns "spec"
     Monorepo with package: returns "spec/<package>"
