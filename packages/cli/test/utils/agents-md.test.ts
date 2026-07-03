@@ -8,6 +8,7 @@ import {
   insertCstlManagedBlock,
   hasCstlBlock,
   hasLegacyTrellisBlock,
+  removeCstlManagedBlock,
 } from "../../src/utils/agents-md.js";
 
 const CSTL_BLOCK = `${CSTL_BLOCK_START}\n# cursor-trellis managed\n${CSTL_BLOCK_END}`;
@@ -81,5 +82,46 @@ describe("hasCstlBlock / hasLegacyTrellisBlock", () => {
   it("detects legacy trellis block", () => {
     expect(hasLegacyTrellisBlock(TRELLIS_BLOCK)).toBe(true);
     expect(hasLegacyTrellisBlock(CSTL_BLOCK)).toBe(false);
+  });
+});
+
+describe("removeCstlManagedBlock", () => {
+  it("coexistence: strips CSTL block, keeps TRELLIS block + user content", () => {
+    const existing = `# Project\n\n${TRELLIS_BLOCK}\n\n${CSTL_BLOCK}\n\n# User footer`;
+    const result = removeCstlManagedBlock(existing);
+    expect(hasCstlBlock(result)).toBe(false);
+    // Upstream TRELLIS block untouched.
+    expect(hasLegacyTrellisBlock(result)).toBe(true);
+    expect(result).toContain("# upstream trellis managed");
+    // User content untouched.
+    expect(result).toContain("# Project");
+    expect(result).toContain("# User footer");
+  });
+
+  it("pure cursor-trellis (only CSTL block + header) → keeps header", () => {
+    const existing = `# My project\n\n${CSTL_BLOCK}\n`;
+    const result = removeCstlManagedBlock(existing);
+    expect(hasCstlBlock(result)).toBe(false);
+    expect(result).toContain("# My project");
+    expect(result.trim()).toBe("# My project");
+  });
+
+  it("template-only AGENTS.md (entire file is the CSTL block) → empty after strip", () => {
+    const existing = `${CSTL_BLOCK}\n`;
+    const result = removeCstlManagedBlock(existing);
+    expect(hasCstlBlock(result)).toBe(false);
+    expect(result.trim()).toBe("");
+  });
+
+  it("no CSTL block → returned unchanged", () => {
+    const existing = `# Project\n\n${TRELLIS_BLOCK}\n\n# Footer`;
+    expect(removeCstlManagedBlock(existing)).toBe(existing);
+  });
+
+  it("does not touch a lone TRELLIS block", () => {
+    const existing = `# Header\n\n${TRELLIS_BLOCK}\n`;
+    const result = removeCstlManagedBlock(existing);
+    expect(result).toBe(existing);
+    expect(hasLegacyTrellisBlock(result)).toBe(true);
   });
 });

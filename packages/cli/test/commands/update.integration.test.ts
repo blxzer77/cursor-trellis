@@ -43,6 +43,11 @@ import { update } from "../../src/commands/update.js";
 import { VERSION } from "../../src/constants/version.js";
 import { DIR_NAMES, FILE_NAMES, PATHS } from "../../src/constants/paths.js";
 import { computeHash } from "../../src/utils/template-hash.js";
+import {
+  CSTL_BLOCK_END,
+  CSTL_BLOCK_START,
+  extractBlock,
+} from "../../src/utils/agents-md.js";
 import { workflowMdTemplate } from "../../src/templates/trellis/index.js";
 import { replacePythonCommandLiterals } from "../../src/configurators/shared.js";
 import { compareVersions } from "../../src/utils/compare-versions.js";
@@ -634,8 +639,14 @@ describe("update() integration", () => {
     await runUpdate({});
 
     expect(fs.readFileSync(targetFull, "utf-8")).toBe(expectedContent);
+    const expectedBlock = extractBlock(
+      expectedContent,
+      CSTL_BLOCK_START,
+      CSTL_BLOCK_END,
+    );
+    expect(expectedBlock).not.toBeNull();
     expect(readHashesV2(hashFile)[targetRelative]).toBe(
-      computeHash(expectedContent),
+      computeHash(expectedBlock!),
     );
   });
 

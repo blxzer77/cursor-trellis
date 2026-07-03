@@ -11,6 +11,21 @@ SemVer: [semver.org](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-07-04
+
+Follow-up polish after 0.3.2 coexistence release: closes known limitations from the runtime-isolation task.
+
+### Added
+
+- **feat(uninstall)**: `cstl uninstall` strips the `<!-- CSTL:START -->` managed block from `AGENTS.md` while preserving an upstream `<!-- TRELLIS:START -->` block and user content (`removeCstlManagedBlock`).
+- **feat(hash)**: `.template-hashes.json` tracks **CSTL block hash only** for `AGENTS.md` — upstream TRELLIS block or out-of-block user edits no longer false-positive as "modified" on `cstl update` in coexistence repos.
+- **docs(spec)**: `.cstl/spec/guides/cursor-trellis-release-coexistence-guide.md` — npm publish runbook (`publish-packages.js`), `cstl-v*` tag convention, coexistence scenario matrix.
+- **ci**: `.github/workflows/publish.yml` — publish on `cstl-v*` tag push (requires `NPM_TOKEN` secret).
+
+### Changed
+
+- **docs(maintainers)**: release index points at the spec guide + `cstl-v*` / CI publish notes.
+
 ## [0.3.2] - 2026-07-04
 
 > **0.3.1 was withdrawn** shortly after publish: the initial `npm publish` did not rewrite the `workspace:*` dependency on `@blxzer/cursor-trellis-core` (and core@0.3.1 was not published alongside), so 0.3.1 was uninstallable (`EUNSUPPORTEDPROTOCOL`). 0.3.2 reissues the same content via the proper `pnpm publish` orchestration (`publish-packages.js` publishes core first, then cli, rewriting `workspace:*` to the resolved version).

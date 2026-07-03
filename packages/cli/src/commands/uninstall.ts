@@ -23,7 +23,7 @@ import readline from "node:readline";
 import chalk from "chalk";
 import inquirer from "inquirer";
 
-import { DIR_NAMES } from "../constants/paths.js";
+import { DIR_NAMES, FILE_NAMES } from "../constants/paths.js";
 import { loadHashes } from "../utils/template-hash.js";
 import { cleanupEmptyDirs } from "./update.js";
 import {
@@ -31,6 +31,10 @@ import {
   getConfiguredPlatforms,
 } from "../configurators/index.js";
 import { pruneOrphanManifestKeys } from "../utils/manifest-prune.js";
+import {
+  hasCstlBlock,
+  removeCstlManagedBlock,
+} from "../utils/agents-md.js";
 import {
   isCwdHomedir,
   homedirGuardMessage,
@@ -102,6 +106,44 @@ interface UninstallPlan {
   modifications: PlannedModification[];
   /** Whether `.cstl/` directory itself will be removed. */
   removeTrellisDir: boolean;
+  /**
+   * Action for the root `AGENTS.md`. It is pruned from the manifest (see
+   * `pruneOrphanManifestKeys`) so the deletion loop never sees it; we handle
+   * it explicitly so a coexistence repo ends up with only the upstream
+   * TRELLIS block + user content after cursor-trellis is removed.
+   */
+  agentsMd: AgentsMdAction;
+}
+
+/**
+ * What uninstall will do with the root `AGENTS.md`:
+   - `none`   — no CSTL block present (or file missing), leave it alone.
+   - `strip`  — remove the CSTL block, keep TRELLIS block + user content.
+   - `delete` — after stripping the CSTL block the file is empty, so remove it.
+ */
+type AgentsMdAction =
+  | { kind: "none" }
+  | { kind: "delete"; absPath: string }
+  | { kind: "strip"; absPath: string; strippedContent: string };
+
+/**
+ * Decide the uninstall action for the root `AGENTS.md`. Independent of the
+ * manifest because AGENTS.md is pruned from it (see `pruneOrphanManifestKeys`).
+ */
+function planAgentsMdAction(cwd: string): AgentsMdAction {
+  const absPath = path.join(cwd, FILE_NAMES.AGENTS);
+  if (!fs.existsSync(absPath)) {
+    return { kind: "none" };
+  }
+  const content = fs.readFileSync(absPath, "utf-8");
+  if (!hasCstlBlock(content)) {
+    return { kind: "none" };
+  }
+  const stripped = removeCstlManagedBlock(content);
+  if (stripped.trim() === "") {
+    return { kind: "delete", absPath };
+  }
+  return { kind: "strip", absPath, strippedContent: stripped };
 }
 
 /**
@@ -117,6 +159,13 @@ function buildPlan(cwd: string, hashes: Record<string, string>): UninstallPlan {
   const modifications: PlannedModification[] = [];
 
   for (const posixPath of allPosixPaths) {
+    // AGENTS.md is handled by `plan.agentsMd` (strip CSTL block, preserve any
+    // upstream TRELLIS block + user content). Skip it here so the manifest
+    // loop never deletes the whole file — that would drop the upstream block
+    // and user content in a coexistence repo.
+    if (posixPath === FILE_NAMES.AGENTS) {
+      continue;
+    }
     const absPath = path.join(cwd, ...posixPath.split("/"));
     const spec = structured.get(posixPath);
 
@@ -155,6 +204,7 @@ function buildPlan(cwd: string, hashes: Record<string, string>): UninstallPlan {
     deletions,
     modifications,
     removeTrellisDir: true,
+    agentsMd: planAgentsMdAction(cwd),
   };
 }
 
@@ -169,14 +219,23 @@ function renderPlan(cwd: string, plan: UninstallPlan): void {
   const deletePaths = plan.deletions
     .filter((d) => !d.missing)
     .map((d) => d.posixPath);
+  const agentsDelete = plan.agentsMd.kind === "delete";
+  const cstlDirShown = plan.removeTrellisDir && fs.existsSync(trellisDir);
+  const deleteCount =
+    deletePaths.length + (cstlDirShown ? 1 : 0) + (agentsDelete ? 1 : 0);
 
-  console.log(
-    chalk.red.bold(`Will be deleted (${deletePaths.length + 1} entries):`),
-  );
+  console.log(chalk.red.bold(`Will be deleted (${deleteCount} entries):`));
   for (const p of deletePaths) {
     console.log(`  ${chalk.red("-")} ${p}`);
   }
-  if (plan.removeTrellisDir && fs.existsSync(trellisDir)) {
+  if (agentsDelete) {
+    console.log(
+      `  ${chalk.red("-")} ${FILE_NAMES.AGENTS}  ${chalk.gray(
+        "(only the cursor-trellis managed block was present)",
+      )}`,
+    );
+  }
+  if (cstlDirShown) {
     console.log(
       `  ${chalk.red("-")} ${DIR_NAMES.WORKFLOW}/  ${chalk.gray(
         "(entire directory, including tasks/runtime/config)",
@@ -184,16 +243,23 @@ function renderPlan(cwd: string, plan: UninstallPlan): void {
     );
   }
 
-  if (plan.modifications.length > 0) {
+  const agentsStrip = plan.agentsMd.kind === "strip";
+  const modCount = plan.modifications.length + (agentsStrip ? 1 : 0);
+  if (modCount > 0) {
     console.log();
     console.log(
-      chalk.yellow.bold(
-        `Will be modified (${plan.modifications.length} files):`,
-      ),
+      chalk.yellow.bold(`Will be modified (${modCount} files):`),
     );
     for (const m of plan.modifications) {
       console.log(
         `  ${chalk.yellow("~")} ${m.posixPath}  ${chalk.gray(`(${m.reason})`)}`,
+      );
+    }
+    if (agentsStrip) {
+      console.log(
+        `  ${chalk.yellow("~")} ${FILE_NAMES.AGENTS}  ${chalk.gray(
+          "(strip cursor-trellis managed block; keep upstream + user content)",
+        )}`,
       );
     }
   }
@@ -246,6 +312,20 @@ function executePlan(
   for (const mod of plan.modifications) {
     fs.writeFileSync(mod.absPath, mod.result.content);
     modifiedFiles += 1;
+  }
+
+  // 1b. AGENTS.md CSTL-block strip (or delete if only the block was present).
+  // Handled outside the manifest loop because AGENTS.md is pruned from it.
+  if (plan.agentsMd.kind === "strip") {
+    fs.writeFileSync(plan.agentsMd.absPath, plan.agentsMd.strippedContent);
+    modifiedFiles += 1;
+  } else if (plan.agentsMd.kind === "delete") {
+    try {
+      fs.unlinkSync(plan.agentsMd.absPath);
+      deletedFiles += 1;
+    } catch {
+      // Best-effort; a missing/locked file is reported via summary mismatch.
+    }
   }
 
   // 2. Deletions (skip already-missing entries).

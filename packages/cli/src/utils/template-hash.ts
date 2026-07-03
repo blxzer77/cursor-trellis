@@ -21,6 +21,11 @@ import { DIR_NAMES, FILE_NAMES } from "../constants/paths.js";
 import type { TemplateHashes } from "../types/migration.js";
 import { toPosix } from "./posix.js";
 import { resolveWorkflowDirName } from "./workflow-dir.js";
+import {
+  CSTL_BLOCK_END,
+  CSTL_BLOCK_START,
+  extractBlock,
+} from "./agents-md.js";
 
 /** File name for storing template hashes */
 const HASHES_FILE = ".template-hashes.json";
@@ -43,6 +48,24 @@ interface StoredHashesV2 {
 export function computeHash(content: string): string {
   const normalized = content.replace(/\r\n/g, "\n");
   return createHash("sha256").update(normalized, "utf-8").digest("hex");
+}
+
+/**
+ * Hash content for a tracked path. AGENTS.md is hashed at the CSTL managed
+ * block level (not the whole file) so that in a coexistence repo, upstream
+ * edits to the TRELLIS block or user content outside the CSTL block do NOT
+ * register as "cursor-trellis template modified" (which would prompt the
+ * user on every `cstl update`). Files without a CSTL block (or non-AGENTS
+ * paths) hash the whole content.
+ */
+function hashContentForPath(relativePath: string, content: string): string {
+  if (toPosix(relativePath) === FILE_NAMES.AGENTS) {
+    const block = extractBlock(content, CSTL_BLOCK_START, CSTL_BLOCK_END);
+    if (block !== null) {
+      return computeHash(block);
+    }
+  }
+  return computeHash(content);
 }
 
 /**
@@ -128,7 +151,7 @@ export function updateHashes(cwd: string, files: Map<string, string>): void {
   const hashes = loadHashes(cwd);
 
   for (const [relativePath, content] of files) {
-    hashes[toPosix(relativePath)] = computeHash(content);
+    hashes[toPosix(relativePath)] = hashContentForPath(relativePath, content);
   }
 
   saveHashes(cwd, hashes);
@@ -145,7 +168,7 @@ export function updateHashFromFile(cwd: string, relativePath: string): void {
 
   const content = fs.readFileSync(fullPath, "utf-8");
   const hashes = loadHashes(cwd);
-  hashes[toPosix(relativePath)] = computeHash(content);
+  hashes[toPosix(relativePath)] = hashContentForPath(relativePath, content);
   saveHashes(cwd, hashes);
 }
 
@@ -206,11 +229,25 @@ export function isTemplateModified(
     return true;
   }
 
-  // Compare current content hash with stored hash
+  // Compare current content hash with stored hash. AGENTS.md is compared at
+  // the CSTL block level (see hashContentForPath). Legacy grace: pre-0.3.3
+  // manifests stored a WHOLE-FILE hash for AGENTS.md, so the first 0.3.3
+  // update would see a block-hash mismatch. If the whole file still matches
+  // the legacy stored hash, treat it as unmodified — the upcoming write will
+  // re-store the block hash. This avoids a one-time false "modified" prompt
+  // for every existing user on upgrade.
   const currentContent = fs.readFileSync(fullPath, "utf-8");
-  const currentHash = computeHash(currentContent);
-
-  return currentHash !== storedHash;
+  const currentHash = hashContentForPath(relativePath, currentContent);
+  if (currentHash === storedHash) {
+    return false;
+  }
+  if (
+    toPosix(relativePath) === FILE_NAMES.AGENTS &&
+    computeHash(currentContent) === storedHash
+  ) {
+    return false;
+  }
+  return true;
 }
 
 /**
@@ -374,7 +411,7 @@ export function initializeHashes(
       if (!fs.existsSync(fullPath)) continue;
       try {
         const content = fs.readFileSync(fullPath, "utf-8");
-        hashes[toPosix(relativePath)] = computeHash(content);
+        hashes[toPosix(relativePath)] = hashContentForPath(relativePath, content);
       } catch {
         // Skip files that can't be read (binary, etc.)
       }
@@ -390,7 +427,7 @@ export function initializeHashes(
     const fullPath = path.join(cwd, relativePath);
     try {
       const content = fs.readFileSync(fullPath, "utf-8");
-      hashes[relativePath] = computeHash(content);
+      hashes[relativePath] = hashContentForPath(relativePath, content);
     } catch {
       // Skip files that can't be read (binary, etc.)
     }
@@ -407,7 +444,7 @@ export function initializeHashes(
       if (!fs.existsSync(fullPath)) continue;
       try {
         const content = fs.readFileSync(fullPath, "utf-8");
-        hashes[toPosix(relativePath)] = computeHash(content);
+        hashes[toPosix(relativePath)] = hashContentForPath(relativePath, content);
       } catch {
         // Skip
       }

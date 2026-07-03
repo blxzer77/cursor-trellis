@@ -1,0 +1,12 @@
+feat(uninstall): strip CSTL AGENTS block; block-level hash; release guide
+
+- uninstall: strip <!-- CSTL:START --> from AGENTS.md on uninstall;
+  preserve upstream TRELLIS block + user content (coexistence repos)
+- template-hash: hash AGENTS.md at CSTL block level only so upstream
+  TRELLIS edits do not false-positive "modified" on cstl update
+- agents-md: removeCstlManagedBlock helper + tests
+- spec: cursor-trellis-release-coexistence-guide (publish runbook,
+  cstl-v* tags, coexistence matrix) in .cstl/spec + init template
+- ci: publish.yml on cstl-v* tag push (NPM_TOKEN required)
+- docs: maintainers.md release index updated
+- followup-development-roadmap.md in archived task dir
