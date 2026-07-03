@@ -31,14 +31,15 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Test
-        run: pnpm test
-
-      - name: Sync dogfood .cursor for mirror-check
+      - name: Materialize dogfood for tests
         run: |
-          mkdir -p .cursor/rules .cursor/agents
+          mkdir -p .cursor/rules .cursor/agents .trellis/scripts
           cp packages/cli/src/templates/cursor/rules/* .cursor/rules/
           cp packages/cli/src/templates/cursor/agents/* .cursor/agents/
+          cp -r packages/cli/src/templates/trellis/scripts/* .trellis/scripts/
+
+      - name: Test
+        run: pnpm test
 
       - name: Mirror-check
         run: pnpm mirror-check
