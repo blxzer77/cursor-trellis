@@ -69,7 +69,7 @@ After 0.3.0, routine CLI bumps can use `cstl upgrade`. The old `trellis upgrade`
 
 **Cursor++ BYOK** (optional, `.trellis/local/cursor2plus/` only): update `trellis-task-models.json5` keys from `trellis-research/implement/check` to `cstl-research/implement/check`, then re-run `patch_wpelc8.py --apply`. Use `/cstl-cursor2plus-setup` in Agent mode.
 
-Details: [CHANGELOG](./CHANGELOG.md#030---2026-07-01).
+Details: [CHANGELOG](packages/cli/CHANGELOG.md#030---2026-07-01).
 
 ## After init: what appears
 
