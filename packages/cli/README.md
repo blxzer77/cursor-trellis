@@ -1,6 +1,9 @@
 # cursor-trellis
 
 <p>
+  <a href="https://github.com/blxzer77/cursor-trellis/actions/workflows/ci.yml">
+    <img src="https://github.com/blxzer77/cursor-trellis/actions/workflows/ci.yml/badge.svg" alt="CI">
+  </a>
   <a href="https://www.npmjs.com/package/@blxzer/cursor-trellis">
     <img src="https://img.shields.io/npm/v/@blxzer/cursor-trellis?label=npm%20latest" alt="npm latest">
   </a>
@@ -15,7 +18,14 @@ English | [简体中文](README.zh-CN.md)
 
 Based on the [Trellis framework by mindfold-ai](https://github.com/mindfold-ai/Trellis), this version is adapted for Cursor with rules, commands, agents, and hooks.
 
-**Why `cstl` and `.cstl/`?** The CLI is `cstl` (not `trellis`) and the runtime directory is `.cstl/` (not `.trellis/`) so this fork can coexist with upstream Trellis in the same repository. See the [repository README](../../README.md#why-cstl-and-cstl).
+## Why `cstl` and `.cstl/`?
+
+To avoid clashing with upstream [mindfold-ai/Trellis](https://github.com/mindfold-ai/Trellis) in the same repo or on the same machine:
+
+- **CLI command `cstl`** (since v0.3.0) — replaces the `trellis` / `tl` bins so you can install and run cursor-trellis alongside upstream Trellis tooling.
+- **Runtime directory `.cstl/`** (since v0.3.1) — holds workflow, spec, tasks, and scripts. Upstream Trellis keeps **`.trellis/`**; both trees can coexist in one repository without overwriting each other.
+
+Fresh installs use `.cstl/` directly. Projects on 0.3.0 run `cstl update --migrate` to rename `.trellis/` → `.cstl/` (history preserved).
 
 ## What it does
 
@@ -27,6 +37,18 @@ Based on the [Trellis framework by mindfold-ai](https://github.com/mindfold-ai/T
 - **Retrieval compliance** — BYOK/Native split with conservative `unknown` routing; LSP overpromises softened to codegraph + Read; telemetry separates planned vs executed semantic
 - **Cursor++ safety** — Method 2.5 patch requires explicit `--approve`; `--check-compat` pre-flight; `smoke.py` health check (no secrets)
 - **Evidence pack** — finish/check cite `retrieval-pack-latest.json` when present; research prompts include provider relevance caveats
+
+## Quick demo (~5 min)
+
+Try Trellis on an empty app directory without touching this source tree:
+
+```bash
+npm install -g @blxzer/cursor-trellis
+cd examples/minimal-agent-app
+./demo.sh          # or demo.ps1 on Windows
+```
+
+The script runs `cstl init --cursor -y` → `cstl validate-rules` → lists `.cstl/` and `.cursor/`. Details: [examples/minimal-agent-app/README.md](examples/minimal-agent-app/README.md). Agent tooling narrative (CLI / MCP / Hook / Rule): [docs/agent-tooling-narrative.zh-CN.md](docs/agent-tooling-narrative.zh-CN.md).
 
 ## Quick start (Cursor)
 
@@ -50,7 +72,7 @@ Optional: `cstl init --cursor --cursor2plus` materializes a **per-repo** Cursor+
 
 ## Upgrade from 0.3.0 (v0.3.1)
 
-v0.3.1 moves the cursor-trellis **runtime directory** from `.trellis/` to **`.cstl/`** so upstream Trellis can keep `.trellis/` in the same repository.
+v0.3.1 moves the cursor-trellis **runtime directory** from `.trellis/` to **`.cstl/`** so upstream [mindfold-ai/Trellis](https://github.com/mindfold-ai/Trellis) can keep `.trellis/` in the same repository. AGENTS.md managed blocks use `<!-- CSTL:START -->` markers.
 
 ```bash
 npm install -g @blxzer/cursor-trellis@latest
@@ -58,7 +80,7 @@ cd /path/to/your-app
 cstl update --migrate
 ```
 
-`--migrate` is **required** — history is preserved via directory rename. Script paths become `python ./.cstl/scripts/...`.
+`--migrate` is **required** — history is preserved via directory rename, not delete-recreate. Script paths become `python ./.cstl/scripts/...`.
 
 ## Upgrade from 0.2.x (v0.3.0)
 
@@ -181,7 +203,10 @@ Contributors working on **this** repository:
 pnpm install
 pnpm build
 pnpm test
+pnpm mirror-check   # dogfood .cursor vs templates (contributors)
 ```
+
+CI runs the same pipeline on push/PR (see badge above).
 
 Package-level detail: [packages/cli/README.md](packages/cli/README.md). Agent-oriented codebase guide: [AGENTS.md](AGENTS.md).
 
@@ -200,6 +225,8 @@ Local harness layout (`D:\MyHarness`), Git remote policy, release/publish, and d
 | [docs/architecture.md](docs/architecture.md) | High-level structure + smart-search |
 | [docs/skills.md](docs/skills.md) | Internal skills reference |
 | [docs/subagents.md](docs/subagents.md) | Subagent dispatch design |
+| [docs/agent-tooling-narrative.zh-CN.md](docs/agent-tooling-narrative.zh-CN.md) | CLI / MCP / Hook / Rule layering (ZH) |
+| [examples/minimal-agent-app/](examples/minimal-agent-app/) | 5-minute init demo |
 | [docs/spec-system.md](docs/spec-system.md) | Progressive spec system |
 | [docs/task-system.md](docs/task-system.md) | Task artifacts, gates, Parent/Child |
 | [packages/cli/README.md](packages/cli/README.md) | CLI / npm reference |
