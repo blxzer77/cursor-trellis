@@ -6,7 +6,7 @@
 
 ## Trellis 解决的问题
 
-单一的巨型 `AGENTS.md` / `CLAUDE.md` / `.cursorrules` 难以扩展：Agent 要么漏规则，要么为加载全部内容耗尽上下文。Trellis 将 **workflow**、**spec**、**tasks**、**workspace** 拆到 `.trellis/`，并为平台生成适配层（在 Cursor 上为 `.cursor/`）。
+单一的巨型 `AGENTS.md` / `CLAUDE.md` / `.cursorrules` 难以扩展：Agent 要么漏规则，要么为加载全部内容耗尽上下文。Trellis 将 **workflow**、**spec**、**tasks**、**workspace** 拆到 `.cstl/`，并为平台生成适配层（在 Cursor 上为 `.cursor/`）。
 
 ## Monorepo 结构
 
@@ -44,7 +44,7 @@ flowchart LR
   end
   subgraph user["你的项目仓库"]
     INIT["cstl init --cursor"]
-    TRELLIS[".trellis/"]
+    TRELLIS[".cstl/"]
     CURSOR[".cursor/"]
     AGENTS["AGENTS.md"]
   end
@@ -52,7 +52,7 @@ flowchart LR
     RULES[".cursor/rules"]
     CMDS[".cursor/commands"]
     HOOKS["hooks.json → .py"]
-    WF[".trellis/workflow.md + tasks/"]
+    WF[".cstl/workflow.md + tasks/"]
   end
   CLI --> INIT
   INIT --> TPL
@@ -65,7 +65,7 @@ flowchart LR
   WF --> runtime
 ```
 
-1. 在用户项目中执行 **`cstl init --cursor`**，写入 `.trellis/` 并调用 `configureCursor()`（`packages/cli/src/configurators/cursor.ts`）。
+1. 在用户项目中执行 **`cstl init --cursor`**，写入 `.cstl/` 并调用 `configureCursor()`（`packages/cli/src/configurators/cursor.ts`）。
 2. **模板**位于 `packages/cli/src/templates/cursor/`，构建时拷贝到 `dist/` 并做占位符替换（Python 路径、`/cstl-` 前缀等）。
 3. 用户项目中的 **哈希跟踪** 支持 **`cstl update`** 安全刷新模板与可选 **迁移**。
 4. 对话时 **rules** 与 **AGENTS.md** 承载策略；**hooks** 补充会话/终端/子 Agent 上下文（`sessionStart` 注入在 Cursor 上有限制，见 [cursor.zh-CN.md](cursor.zh-CN.md)）。

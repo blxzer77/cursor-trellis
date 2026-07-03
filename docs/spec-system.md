@@ -2,11 +2,11 @@
 
 English | [简体中文](spec-system.zh-CN.md)
 
-This document covers the design of `.trellis/spec/`: the **progressive specification system** that holds project-specific engineering conventions, how it is loaded into agent context, and the two skills (`cstl-spec-bootstrap` and `cstl-update-spec`) that manage its lifecycle.
+This document covers the design of `.cstl/spec/`: the **progressive specification system** that holds project-specific engineering conventions, how it is loaded into agent context, and the two skills (`cstl-spec-bootstrap` and `cstl-update-spec`) that manage its lifecycle.
 
-## What `.trellis/spec/` is
+## What `.cstl/spec/` is
 
-Agents that memorize conventions get them wrong. Trellis injects relevant specs — or requires the agent to read them — at the right time, instead of front-loading everything into one giant file. `.trellis/spec/` is the user's project-specific engineering spec library: executable contracts about how this codebase is built, not generic best practices.
+Agents that memorize conventions get them wrong. Trellis injects relevant specs — or requires the agent to read them — at the right time, instead of front-loading everything into one giant file. `.cstl/spec/` is the user's project-specific engineering spec library: executable contracts about how this codebase is built, not generic best practices.
 
 The key property is **progressive loading**: the agent reads the spec slices relevant to the files it is about to edit, not the whole tree. This is enforced by the `cstl-before-dev` skill and the `implement.jsonl` / `check.jsonl` manifests.
 
@@ -15,7 +15,7 @@ The key property is **progressive loading**: the agent reads the spec slices rel
 ### Single-repository
 
 ```text
-.trellis/spec/
+.cstl/spec/
 ├── backend/
 │   ├── index.md
 │   └── ...
@@ -30,7 +30,7 @@ The key property is **progressive loading**: the agent reads the spec slices rel
 ### Monorepo
 
 ```text
-.trellis/spec/
+.cstl/spec/
 ├── cli/
 │   ├── backend/
 │   │   ├── index.md
@@ -51,7 +51,7 @@ The key property is **progressive loading**: the agent reads the spec slices rel
 
 ## Package configuration
 
-`.trellis/config.yaml` declares packages:
+`.cstl/config.yaml` declares packages:
 
 ```yaml
 packages:
@@ -66,7 +66,7 @@ default_package: cli
 Discover packages and spec layers at runtime:
 
 ```bash
-python ./.trellis/scripts/get_context.py --mode packages
+python ./.cstl/scripts/get_context.py --mode packages
 ```
 
 This command lists packages and their spec layers for the current project. It is the reference when configuring `implement.jsonl` / `check.jsonl` manifests.
@@ -76,8 +76,8 @@ This command lists packages and their spec layers for the current project. It is
 Before a task enters implementation, planning may write relevant specs into `implement.jsonl` (for the implementer) and `check.jsonl` (for the checker):
 
 ```jsonl
-{"file": ".trellis/spec/cli/backend/index.md", "reason": "CLI backend conventions"}
-{"file": ".trellis/spec/cli/unit-test/conventions.md", "reason": "Test expectations"}
+{"file": ".cstl/spec/cli/backend/index.md", "reason": "CLI backend conventions"}
+{"file": ".cstl/spec/cli/unit-test/conventions.md", "reason": "Test expectations"}
 ```
 
 Subagents read these manifests on dispatch. If the `<!-- cstl-hook-injected -->` marker is present, the listed files are already auto-loaded above; otherwise the agent reads them from the dispatch prompt's `Selected task: <path>` line. See [subagents.md](subagents.md) for the context loading protocol.
@@ -111,7 +111,7 @@ Specs hold executable engineering conventions for the project, not generic best 
 - Cases that require tests
 - Project-specific pitfalls and how to avoid them
 
-When the agent learns a new rule during implementation or debugging, it should update `.trellis/spec/` (via `cstl-update-spec`) rather than only summarizing it in chat.
+When the agent learns a new rule during implementation or debugging, it should update `.cstl/spec/` (via `cstl-update-spec`) rather than only summarizing it in chat.
 
 ## Lifecycle: `cstl-spec-bootstrap` (creation)
 
@@ -131,9 +131,9 @@ The `cstl-update-spec` skill is the semi-automatic flow for sinking durable lear
 **Flow** (required — silent spec edits are forbidden):
 
 1. **Detect** — did this task produce reusable code-spec or guide-worthy learning?
-2. **Proposal** — write `{TASK}/research/learning-proposal.md` with target spec paths and draft bullets. **Do not edit `.trellis/spec/` yet.**
+2. **Proposal** — write `{TASK}/research/learning-proposal.md` with target spec paths and draft bullets. **Do not edit `.cstl/spec/` yet.**
 3. **Confirm** — user explicitly approves; `Learning decision: update-spec` appears in `verify.md`
-4. **Write** — only then edit spec files; add `Spec update evidence: .trellis/spec/...` to `verify.md`
+4. **Write** — only then edit spec files; add `Spec update evidence: .cstl/spec/...` to `verify.md`
 
 **Forbidden**: silent spec edits; writing spec when decision is `no-update` or `unsure` without follow-up; auto-updating spec from hooks or check alone.
 
@@ -155,15 +155,15 @@ Mandatory triggers: new/changed command or API signature, cross-layer request/re
 
 | Need | Edit location |
 | --- | --- |
-| Add a new spec layer | `.trellis/spec/<package>/<layer>/index.md` + guideline files |
-| Change monorepo spec mapping | `packages` / `default_package` / `spec_scope` in `.trellis/config.yaml` |
+| Add a new spec layer | `.cstl/spec/<package>/<layer>/index.md` + guideline files |
+| Change monorepo spec mapping | `packages` / `default_package` / `spec_scope` in `.cstl/config.yaml` |
 | Change which specs the implementer reads | the task's `implement.jsonl` |
 | Change which specs the checker reads | the task's `check.jsonl` |
-| Change when specs should be updated | Phase 3.3 in `.trellis/workflow.md` and the `cstl-update-spec` skill |
+| Change when specs should be updated | Phase 3.3 in `.cstl/workflow.md` and the `cstl-update-spec` skill |
 
 ## Boundaries
 
-`.trellis/spec/` is the user's project specification, **not** a permanent copy of Trellis built-in templates. The agent encourages the user to update it according to the actual project code, instead of treating Trellis default templates as immutable documents. The bootstrap skill extracts real patterns; the update skill sinks new learning; neither freezes the tree.
+`.cstl/spec/` is the user's project specification, **not** a permanent copy of Trellis built-in templates. The agent encourages the user to update it according to the actual project code, instead of treating Trellis default templates as immutable documents. The bootstrap skill extracts real patterns; the update skill sinks new learning; neither freezes the tree.
 
 ## See also
 

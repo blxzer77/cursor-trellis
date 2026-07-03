@@ -169,7 +169,7 @@ Native vs BYOK split: Parts 2 and 3 below.
 cstl init --cursor
 ```
 
-Confirm `.trellis/workflow.md`, `.cursor/rules/cstl-triage.mdc`, `.cursor/agents/cstl-*.md`.
+Confirm `.cstl/workflow.md`, `.cursor/rules/cstl-triage.mdc`, `.cursor/agents/cstl-*.md`.
 
 **B. Triage**
 
@@ -178,7 +178,7 @@ Rules require a classification line at the start of replies; do not rely on hook
 **C. Dispatch subtasks (critical)**
 
 ```bash
-python ./.trellis/scripts/generate_dispatch_prompt.py --agent research --task ".trellis/tasks/your-task-dir"
+python ./.cstl/scripts/generate_dispatch_prompt.py --agent research --task ".cstl/tasks/your-task-dir"
 ```
 
 Use `--agent implement` or `check`. Copy the **full** output; in Cursor Task set `subagent_type` to `cstl-research` (etc.) and paste into `prompt`.  
@@ -191,7 +191,7 @@ Add `model: <id>` to the agent file frontmatter, dispatch, then remove the line 
 **E. External facts**
 
 ```bash
-python ./.trellis/scripts/run_smart_search.py "your question" --intent deep-research --json
+python ./.cstl/scripts/run_smart_search.py "your question" --intent deep-research --json
 ```
 
 Use other web search only when smart-search is unavailable.
@@ -216,9 +216,9 @@ Use other web search only when smart-search is unavailable.
 | --- | --- |
 | Env detection | `TRELLIS_CURSOR_BYOK` or `~/.ccursor/routes.json` |
 | BYOK semantic | Retrieval plans use **fast-context MCP** (`fast_context_search`), not built-in semantic |
-| Optional bundle | `cstl init --cursor --cursor2plus` → `.trellis/local/cursor2plus/` |
+| Optional bundle | `cstl init --cursor --cursor2plus` → `.cstl/local/cursor2plus/` |
 | Subtask context | Same as Native: CLI dispatch prompt is primary |
-| Mapping files | `~/.ccursor/trellis-task-models.json5` or `.trellis/local/subagent-models.json` |
+| Mapping files | `~/.ccursor/trellis-task-models.json5` or `.cstl/local/subagent-models.json` |
 | Optional patch | `patch_wpelc8.py` only with your explicit consent |
 
 ### 3.3 Recommended steps (BYOK)
@@ -244,7 +244,7 @@ Edit `~/.ccursor/trellis-task-models.json5` (slugs from `providers.json` `id` fi
 ```
 
 ```bash
-cd .trellis/local/cursor2plus
+cd .cstl/local/cursor2plus
 python patch_wpelc8.py --print-map
 ```
 

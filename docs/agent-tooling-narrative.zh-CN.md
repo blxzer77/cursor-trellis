@@ -6,7 +6,7 @@
 
 ## 一句话定位
 
-**cursor-trellis** 是基于 [mindfold-ai/Trellis](https://github.com/mindfold-ai/Trellis) 的 Cursor 适配 fork：把 Agent 工作流结构化为 `.trellis/` 工件，并生成 `.cursor/` 集成面（rules、commands、agents、hooks）。npm 包 `@blxzer/cursor-trellis`（`cstl`）是**安装与模板分发**入口，不是业务应用本身。
+**cursor-trellis** 是基于 [mindfold-ai/Trellis](https://github.com/mindfold-ai/Trellis) 的 Cursor 适配 fork：把 Agent 工作流结构化为 `.cstl/` 工件，并生成 `.cursor/` 集成面（rules、commands、agents、hooks）。npm 包 `@blxzer/cursor-trellis`（`cstl`）是**安装与模板分发**入口，不是业务应用本身。
 
 ## 四层对照
 
@@ -27,7 +27,7 @@
 
 | 命令/脚本 | 作用 |
 | --- | --- |
-| `cstl init --cursor` | 写入 `.trellis/` + `.cursor/` + `AGENTS.md` |
+| `cstl init --cursor` | 写入 `.cstl/` + `.cursor/` + `AGENTS.md` |
 | `cstl validate-rules` | `.cursor/rules` 与模板清单硬比对 |
 | `pnpm mirror-check` | 贡献者侧：dogfood `.cursor` 与模板不漂移 |
 | `task.py` 族 | 任务创建、执行门禁、Parent/Child、gate 记录 |
@@ -62,7 +62,7 @@ Trellis **不内置**所有 MCP；`init` 可选勾选项目能力（codegraph、
 **外部/Web 事实**统一路由到 **smart-search**（`@blxzer/smart-search`，随 cursor-trellis 依赖安装）：
 
 ```bash
-python ./.trellis/scripts/run_smart_search.py "<question>" --intent deep-research --json
+python ./.cstl/scripts/run_smart_search.py "<question>" --intent deep-research --json
 ```
 
 这与「RAG 项目里的 @Tool」叙事对齐：**Agent 选工具 → 证据回写工件**，而非把 Trellis 说成向量库产品。
@@ -84,7 +84,7 @@ cd examples/minimal-agent-app
 ./demo.sh    # 或 demo.ps1
 ```
 
-链：`init` → `validate-rules` → 浏览 `.trellis/` / `.cursor/`。完整生命周期见 [workflow.zh-CN.md](workflow.zh-CN.md)。
+链：`init` → `validate-rules` → 浏览 `.cstl/` / `.cursor/`。完整生命周期见 [workflow.zh-CN.md](workflow.zh-CN.md)。
 
 ## 与「热门技术栈」话术的对齐
 
@@ -92,7 +92,7 @@ cd examples/minimal-agent-app
 | --- | --- |
 | Multi-Agent | 三角色 + Parent/Child 任务树；非任意 Agent 群聊 |
 | Tool Calling | CLI 脚本、MCP、smart-search、Bash；检索路由即工具策略 |
-| Context Engineering | `.trellis/tasks` 工件 + 渐进式 spec + dispatch prompt |
+| Context Engineering | `.cstl/tasks` 工件 + 渐进式 spec + dispatch prompt |
 | 质量门禁 | Triage、start-execution、validate-rules、mirror-check、Vitest |
 
 **不是**：Java Spring 业务、LLM 训练、自研向量数据库。若是全栈岗，把本仓库讲成 **Agent 工程化 CLI + Cursor 平台适配** 即可。

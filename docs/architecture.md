@@ -6,7 +6,7 @@ This document is a **public, high-level** map of the `cursor-trellis` monorepo a
 
 ## What Trellis does
 
-Single giant `AGENTS.md` or `.cursorrules` files do not scale: agents either miss rules or burn context loading everything. Trellis provides a **progressive context management system** that splits workflow, specs, tasks, and workspace memory into structured files under `.trellis/`, then generates **platform adapters** (on Cursor: `.cursor/`) for deep integration.
+Single giant `AGENTS.md` or `.cursorrules` files do not scale: agents either miss rules or burn context loading everything. Trellis provides a **progressive context management system** that splits workflow, specs, tasks, and workspace memory into structured files under `.cstl/`, then generates **platform adapters** (on Cursor: `.cursor/`) for deep integration.
 
 This is a **Cursor-optimized adaptation** of the original [Trellis framework by mindfold-ai](https://github.com/mindfold-ai/Trellis), focused on individual developers working with AI agents in Cursor.
 
@@ -45,7 +45,7 @@ flowchart LR
   end
   subgraph user["Your project repo"]
     INIT["cstl init --cursor"]
-    TRELLIS[".trellis/"]
+    TRELLIS[".cstl/"]
     CURSOR[".cursor/"]
     AGENTS["AGENTS.md"]
   end
@@ -53,7 +53,7 @@ flowchart LR
     RULES[".cursor/rules"]
     CMDS[".cursor/commands"]
     HOOKS["hooks.json → .py"]
-    WF[".trellis/workflow.md + tasks/"]
+    WF[".cstl/workflow.md + tasks/"]
   end
   CLI --> INIT
   INIT --> TPL
@@ -66,9 +66,9 @@ flowchart LR
   WF --> runtime
 ```
 
-1. **`cstl init --cursor`** (in the user project) detects options, writes `.trellis/` skeleton, then calls `configureCursor()` (`packages/cli/src/configurators/cursor.ts`).
+1. **`cstl init --cursor`** (in the user project) detects options, writes `.cstl/` skeleton, then calls `configureCursor()` (`packages/cli/src/configurators/cursor.ts`).
 2. **Templates** under `packages/cli/src/templates/cursor/` are read at build time, copied into `dist/`, and rendered with placeholders (Python command path, command prefix `/cstl-`, etc.).
-3. **Hash tracking** (`.trellis/template-hashes.json` in the user project) lets **`cstl update`** apply safe template refreshes and optional **migrations** without blindly overwriting customized files.
+3. **Hash tracking** (`.cstl/.template-hashes.json` in the user project) lets **`cstl update`** apply safe template refreshes and optional **migrations** without blindly overwriting customized files.
 4. At chat time, **rules** and **AGENTS.md** carry policy; **hooks** add session/shell/subagent context (with Cursor-specific limits on `sessionStart` injection—see [cursor.md](cursor.md)).
 
 ## Retrieval layer and context injection
@@ -120,7 +120,7 @@ smart-search --version
 
 **Technical details:**
 - **Dependency**: `@blxzer/cursor-trellis` depends on `@blxzer/smart-search@^0.1.0`
-- **Workflow routing**: `.trellis/workflow.md` and generated agent rules route external fact queries to smart-search first when healthy
+- **Workflow routing**: `.cstl/workflow.md` and generated agent rules route external fact queries to smart-search first when healthy
 - **Readiness validation**: Project readiness checks run on `init`/`update` (skip with `--skip-readiness`)
 - **Not an MCP server**: Agents invoke the shell command directly (via workflow + project policy on Cursor)
 

@@ -6,7 +6,7 @@ This document covers the **Trellis task system**: durable task artifacts, the De
 
 ## What Trellis tasks are
 
-A Trellis task is a set of **durable artifacts** on disk under `.trellis/tasks/<MM-DD-slug>/`. Conversations compact; files do not. When the main session loses context, the task artifacts are the source of truth — the next session reads `prd.md`, `design.md`, `implement.md`, and resume from the recorded phase.
+A Trellis task is a set of **durable artifacts** on disk under `.cstl/tasks/<MM-DD-slug>/`. Conversations compact; files do not. When the main session loses context, the task artifacts are the source of truth — the next session reads `prd.md`, `design.md`, `implement.md`, and resume from the recorded phase.
 
 Tasks are created only after **Request Triage** classifies a turn into a work-capable mode (Lite / Full / Parent) and the user gives **task-creation consent**. Consent to create a task is not consent to start coding — planning happens first. See [workflow.md](workflow.md) for the Triage decision tree.
 
@@ -75,13 +75,13 @@ See [subagents.md](subagents.md) for the full dispatch contract. `task.py start-
 Before you freeze the contract in `implement.md`, run:
 
 ```bash
-python ./.trellis/scripts/task.py suggest-execution-strategy <task-dir>
-python ./.trellis/scripts/task.py suggest-execution-strategy <task-dir> --json
+python ./.cstl/scripts/task.py suggest-execution-strategy <task-dir>
+python ./.cstl/scripts/task.py suggest-execution-strategy <task-dir> --json
 ```
 
-Heuristics are data-driven from `.trellis/config/execution-strategy-rules.json` (code capabilities, path segments, parent/child signals). **Full tasks that touch code** default to `worker` + `main-worktree`; **documentation-only** Full tasks default to `inline`. The YAML in `implement.md` remains authoritative after user approval.
+Heuristics are data-driven from `.cstl/config/execution-strategy-rules.json` (code capabilities, path segments, parent/child signals). **Full tasks that touch code** default to `worker` + `main-worktree`; **documentation-only** Full tasks default to `inline`. The YAML in `implement.md` remains authoritative after user approval.
 
-`start-execution --check` prints `[execution-strategy] WARN` when the approved contract drifts from a fresh suggestion (advisory; does not fail the gate). See `.trellis/spec/guides/execution-strategy.md` and `workflow.md` Phase 2.1 / 2.2 for dispatch alignment.
+`start-execution --check` prints `[execution-strategy] WARN` when the approved contract drifts from a fresh suggestion (advisory; does not fail the gate). See `.cstl/spec/guides/execution-strategy.md` and `workflow.md` Phase 2.1 / 2.2 for dispatch alignment.
 
 ## Verification profiles and default gates
 
@@ -98,8 +98,8 @@ Gate set source: `PROFILE_DEFAULT_GATES` in `task_gates.py`. `strict` adds rigor
 ### Start-execution gate (Phase 1.4)
 
 ```bash
-python ./.trellis/scripts/task.py start-execution <task> --check        # non-mutating preflight
-python ./.trellis/scripts/task.py start-execution <task> --approved     # flip status → in_progress
+python ./.cstl/scripts/task.py start-execution <task> --check        # non-mutating preflight
+python ./.cstl/scripts/task.py start-execution <task> --approved     # flip status → in_progress
 ```
 
 `--check` validates the contract, artifacts, and required gates without mutating. Planning gates (`requirements-review`, `architecture-review` when enabled) auto-record on `--approved` when artifacts pass CLI checks. Requires explicit user approval before `--approved`.
@@ -107,7 +107,7 @@ python ./.trellis/scripts/task.py start-execution <task> --approved     # flip s
 ### Manual gate recording
 
 ```bash
-python ./.trellis/scripts/task.py record-gate <task> \
+python ./.cstl/scripts/task.py record-gate <task> \
   --transition full-task-complete \
   --gate code-review \
   --result PASS \
@@ -172,9 +172,9 @@ Use a Parent task when one request contains several independently verifiable del
 Create children:
 
 ```bash
-python ./.trellis/scripts/task.py create "<title>" --slug <name> --parent <parent-dir>
-python ./.trellis/scripts/task.py add-subtask <parent> <child>      # link existing
-python ./.trellis/scripts/task.py remove-subtask <parent> <child>   # unlink mistake
+python ./.cstl/scripts/task.py create "<title>" --slug <name> --parent <parent-dir>
+python ./.cstl/scripts/task.py add-subtask <parent> <child>      # link existing
+python ./.cstl/scripts/task.py remove-subtask <parent> <child>   # unlink mistake
 ```
 
 Parent/Child is **not** a dependency system. If one child must wait for another, write that ordering in the child `prd.md` / `implement.md` and keep each child's acceptance criteria testable.
@@ -182,14 +182,14 @@ Parent/Child is **not** a dependency system. If one child must wait for another,
 ### Child states (Child-controlled)
 
 ```bash
-python ./.trellis/scripts/task.py set-child-state <parent> <child> open|working|blocked|review --evidence <ref>
+python ./.cstl/scripts/task.py set-child-state <parent> <child> open|working|blocked|review --evidence <ref>
 ```
 
 ### Integration states (Parent-controlled)
 
 ```bash
-python ./.trellis/scripts/task.py prepare-child-worktree <parent> <child> --branch <branch>
-python ./.trellis/scripts/task.py integrate-child <parent> <child> changes|accepted|integrating|integrated|cancelled --evidence <ref>
+python ./.cstl/scripts/task.py prepare-child-worktree <parent> <child> --branch <branch>
+python ./.cstl/scripts/task.py integrate-child <parent> <child> changes|accepted|integrating|integrated|cancelled --evidence <ref>
 ```
 
 - `merge_limit: 1` blocks more than one Child from being `integrating` simultaneously
@@ -199,11 +199,11 @@ python ./.trellis/scripts/task.py integrate-child <parent> <child> changes|accep
 ### Parent reviewer orchestration
 
 ```bash
-python ./.trellis/scripts/task.py parent-status <parent-task>
-python ./.trellis/scripts/task.py generate-child-prompt <parent-task> <child-task> --mode inline
-python ./.trellis/scripts/task.py review-child <parent-task> <child-task> --check
-python ./.trellis/scripts/task.py review-child <parent-task> <child-task> --decision accept --ref <child-ref>
-python ./.trellis/scripts/task.py review-child <parent-task> <child-task> --decision integrate-through --ref <child-ref>
+python ./.cstl/scripts/task.py parent-status <parent-task>
+python ./.cstl/scripts/task.py generate-child-prompt <parent-task> <child-task> --mode inline
+python ./.cstl/scripts/task.py review-child <parent-task> <child-task> --check
+python ./.cstl/scripts/task.py review-child <parent-task> <child-task> --decision accept --ref <child-ref>
+python ./.cstl/scripts/task.py review-child <parent-task> <child-task> --decision integrate-through --ref <child-ref>
 ```
 
 `review-child` summarizes child `verify.md` / `handoff.md`, appends notes to parent `verify.md`, and can advance `accepted` → `integrating` → `integrated` in one flow (`--decision integrate-through`) using the same Stage 0 integration guards as `integrate-child`.
@@ -217,8 +217,8 @@ Reviewer quality gates are **not** auto-recorded. CLI enforces them at transitio
 ## Archive gate
 
 ```bash
-python ./.trellis/scripts/task.py archive <task> --check    # non-mutating preflight
-python ./.trellis/scripts/task.py archive <task>            # archive (moves to archive/2026-MM/)
+python ./.cstl/scripts/task.py archive <task> --check    # non-mutating preflight
+python ./.cstl/scripts/task.py archive <task>            # archive (moves to archive/2026-MM/)
 ```
 
 Archive requires `verify.md` evidence lines (grep-friendly):

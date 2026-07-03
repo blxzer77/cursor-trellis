@@ -6,7 +6,7 @@
 
 ## Trellis task 是什么
 
-Trellis task 是 `.trellis/tasks/<MM-DD-slug>/` 下一组**持久工件**。对话压缩,文件不丢。主会话失忆时,任务工件是唯一真相 —— 下一会话读 `prd.md`、`design.md`、`implement.md`,从记录的 phase 恢复。
+Trellis task 是 `.cstl/tasks/<MM-DD-slug>/` 下一组**持久工件**。对话压缩,文件不丢。主会话失忆时,任务工件是唯一真相 —— 下一会话读 `prd.md`、`design.md`、`implement.md`,从记录的 phase 恢复。
 
 任务仅在 **Request Triage** 把回合分类为可工作模式(Lite / Full / Parent)且用户**同意建任务**后创建。同意建任务不等于同意写码 —— 规划先行。Triage 决策树见 [workflow.zh-CN.md](workflow.zh-CN.md)。
 
@@ -75,13 +75,13 @@ quality_gates:
 定稿 `implement.md` 里的合约前,先运行:
 
 ```bash
-python ./.trellis/scripts/task.py suggest-execution-strategy <task-dir>
-python ./.trellis/scripts/task.py suggest-execution-strategy <task-dir> --json
+python ./.cstl/scripts/task.py suggest-execution-strategy <task-dir>
+python ./.cstl/scripts/task.py suggest-execution-strategy <task-dir> --json
 ```
 
-规则来自 `.trellis/config/execution-strategy-rules.json`(能力、路径段、父子任务信号)。**触及代码的 Full 任务**默认建议 `worker` + `main-worktree`;**仅文档**的 Full 任务默认 `inline`。用户批准后仍以 `implement.md` 中的 YAML 为准。
+规则来自 `.cstl/config/execution-strategy-rules.json`(能力、路径段、父子任务信号)。**触及代码的 Full 任务**默认建议 `worker` + `main-worktree`;**仅文档**的 Full 任务默认 `inline`。用户批准后仍以 `implement.md` 中的 YAML 为准。
 
-`start-execution --check` 会在合约与最新建议不一致时输出 `[execution-strategy] WARN`(仅提示,不导致门禁失败)。派发约定见 `.trellis/spec/guides/execution-strategy.md` 与 `workflow.md` Phase 2.1 / 2.2。
+`start-execution --check` 会在合约与最新建议不一致时输出 `[execution-strategy] WARN`(仅提示,不导致门禁失败)。派发约定见 `.cstl/spec/guides/execution-strategy.md` 与 `workflow.md` Phase 2.1 / 2.2。
 
 ## verification_profile 与默认 gate
 
@@ -98,8 +98,8 @@ gate 集来源:`task_gates.py` 的 `PROFILE_DEFAULT_GATES`。`strict` 通过证�
 ### Start-execution 门禁(Phase 1.4)
 
 ```bash
-python ./.trellis/scripts/task.py start-execution <task> --check        # 非破坏性预检
-python ./.trellis/scripts/task.py start-execution <task> --approved     # 翻转 status → in_progress
+python ./.cstl/scripts/task.py start-execution <task> --check        # 非破坏性预检
+python ./.cstl/scripts/task.py start-execution <task> --approved     # 翻转 status → in_progress
 ```
 
 `--check` 校验 contract、工件、必需 gate,不修改。规划 gate(`requirements-review`、启用时的 `architecture-review`)在 `--approved` 且工件过 CLI 校验时自动记录。需用户显式批准后才 `--approved`。
@@ -107,7 +107,7 @@ python ./.trellis/scripts/task.py start-execution <task> --approved     # 翻转
 ### 手动记录 gate
 
 ```bash
-python ./.trellis/scripts/task.py record-gate <task> \
+python ./.cstl/scripts/task.py record-gate <task> \
   --transition full-task-complete \
   --gate code-review \
   --result PASS \
@@ -172,9 +172,9 @@ Status 从 `--approved` 起保持 `in_progress`,直到 `task.py archive` 才翻�
 创建 child:
 
 ```bash
-python ./.trellis/scripts/task.py create "<title>" --slug <name> --parent <parent-dir>
-python ./.trellis/scripts/task.py add-subtask <parent> <child>      # 链接已有
-python ./.trellis/scripts/task.py remove-subtask <parent> <child>   # 解链错误
+python ./.cstl/scripts/task.py create "<title>" --slug <name> --parent <parent-dir>
+python ./.cstl/scripts/task.py add-subtask <parent> <child>      # 链接已有
+python ./.cstl/scripts/task.py remove-subtask <parent> <child>   # 解链错误
 ```
 
 Parent/Child **不是**依赖系统。若一个 child 必须等另一个,把顺序写进 child `prd.md` / `implement.md`,每个 child 验收标准可独立测试。
@@ -182,14 +182,14 @@ Parent/Child **不是**依赖系统。若一个 child 必须等另一个,把顺�
 ### Child 状态(Child 控制)
 
 ```bash
-python ./.trellis/scripts/task.py set-child-state <parent> <child> open|working|blocked|review --evidence <ref>
+python ./.cstl/scripts/task.py set-child-state <parent> <child> open|working|blocked|review --evidence <ref>
 ```
 
 ### 集成状态(Parent 控制)
 
 ```bash
-python ./.trellis/scripts/task.py prepare-child-worktree <parent> <child> --branch <branch>
-python ./.trellis/scripts/task.py integrate-child <parent> <child> changes|accepted|integrating|integrated|cancelled --evidence <ref>
+python ./.cstl/scripts/task.py prepare-child-worktree <parent> <child> --branch <branch>
+python ./.cstl/scripts/task.py integrate-child <parent> <child> changes|accepted|integrating|integrated|cancelled --evidence <ref>
 ```
 
 - `merge_limit: 1` 阻止多于一个 Child 同时 `integrating`
@@ -199,11 +199,11 @@ python ./.trellis/scripts/task.py integrate-child <parent> <child> changes|accep
 ### Parent 审查编排
 
 ```bash
-python ./.trellis/scripts/task.py parent-status <parent-task>
-python ./.trellis/scripts/task.py generate-child-prompt <parent-task> <child-task> --mode inline
-python ./.trellis/scripts/task.py review-child <parent-task> <child-task> --check
-python ./.trellis/scripts/task.py review-child <parent-task> <child-task> --decision accept --ref <child-ref>
-python ./.trellis/scripts/task.py review-child <parent-task> <child-task> --decision integrate-through --ref <child-ref>
+python ./.cstl/scripts/task.py parent-status <parent-task>
+python ./.cstl/scripts/task.py generate-child-prompt <parent-task> <child-task> --mode inline
+python ./.cstl/scripts/task.py review-child <parent-task> <child-task> --check
+python ./.cstl/scripts/task.py review-child <parent-task> <child-task> --decision accept --ref <child-ref>
+python ./.cstl/scripts/task.py review-child <parent-task> <child-task> --decision integrate-through --ref <child-ref>
 ```
 
 `review-child` 汇总 child `verify.md` / `handoff.md`,把备注追加到 parent `verify.md`,可一流推进 `accepted` → `integrating` → `integrated`(`--decision integrate-through`),用与 `integrate-child` 相同的 Stage 0 集成守卫。
@@ -217,8 +217,8 @@ python ./.trellis/scripts/task.py review-child <parent-task> <child-task> --deci
 ## 归档门禁
 
 ```bash
-python ./.trellis/scripts/task.py archive <task> --check    # 非破坏性预检
-python ./.trellis/scripts/task.py archive <task>            # 归档(移到 archive/2026-MM/)
+python ./.cstl/scripts/task.py archive <task> --check    # 非破坏性预检
+python ./.cstl/scripts/task.py archive <task>            # 归档(移到 archive/2026-MM/)
 ```
 
 归档需 `verify.md` 证据行(grep 友好):

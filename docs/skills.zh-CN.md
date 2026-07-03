@@ -8,7 +8,7 @@
 
 Trellis 内部技能是角色限定的指令束,在工作流匹配器判定适配时**自动激活** —— Agent 按需加载,用户不通过 `/` 调用。它们承载 Trellis 生命周期的程序性部分:规划访谈、开发前阅读、质量检查、bug 回溯、spec 更新、元定制、web 研究。
 
-规范自动触发清单在 `AGENTS.md`(由模板树 `markdown/agents.md` 生成)。在 Cursor 上,`commands-only` 策略意味着**内部技能刻意不写入 `.cursor/skills/`** —— `/` 面板保持精简(只出现 `/cstl-continue` 等用户可调命令),技能语义通过 `.cursor/rules` + `AGENTS.md` + `.trellis/workflow.md` 传递。这是产品取舍:单平台深度集成胜过臃肿的技能面板。
+规范自动触发清单在 `AGENTS.md`(由模板树 `markdown/agents.md` 生成)。在 Cursor 上,`commands-only` 策略意味着**内部技能刻意不写入 `.cursor/skills/`** —— `/` 面板保持精简(只出现 `/cstl-continue` 等用户可调命令),技能语义通过 `.cursor/rules` + `AGENTS.md` + `.cstl/workflow.md` 传递。这是产品取舍:单平台深度集成胜过臃肿的技能面板。
 
 ## Skill vs Agent vs Command
 
@@ -65,7 +65,7 @@ Trellis 定义三种不同角色面。混淆它们是最常见的误解。
 | --- | --- |
 | **定义** | `templates/common/skills/break-loop.md` |
 | **触发** | 反复调试同一 bug;`cstl-start` 路由"卡住/同一 bug 修多次" |
-| **角色** | 深度 bug 分析,打破"修 bug → 忘 → 重复"循环。五维度:**1 根因分类**(A 缺 spec / B 跨层契约 / C 变更传播失败 / D 测试覆盖缺口 / E 隐式假设)、**2 修复为何失败**(表面修/范围不全/工具限制/心智模型)、**3 预防机制**(文档/架构/编译期/运行时/测试/审查)、**4 系统性扩展**(类似问题/设计缺陷/流程缺陷/知识缺口)、**5 知识捕获**(更新 `.trellis/spec/guides/` 思考指南) |
+| **角色** | 深度 bug 分析,打破"修 bug → 忘 → 重复"循环。五维度:**1 根因分类**(A 缺 spec / B 跨层契约 / C 变更传播失败 / D 测试覆盖缺口 / E 隐式假设)、**2 修复为何失败**(表面修/范围不全/工具限制/心智模型)、**3 预防机制**(文档/架构/编译期/运行时/测试/审查)、**4 系统性扩展**(类似问题/设计缺陷/流程缺陷/知识缺口)、**5 知识捕获**(更新 `.cstl/spec/guides/` 思考指南) |
 | **边界** | 理念:"30 分钟分析省 30 小时未来调试"。分析后必须立即更新 spec/guides 并同步模板 —— 分析留在 chat 里一文不值 |
 
 #### `cstl-update-spec`
@@ -93,7 +93,7 @@ Trellis 定义三种不同角色面。混淆它们是最常见的误解。
 | | |
 | --- | --- |
 | **定义** | `bundled-skills/cstl-meta/SKILL.md` + `references/`(local-architecture、platform-files、customize-local) |
-| **触发** | 用户要改或理解本地 `.trellis/` 架构、平台 hooks/agents/skills/commands/workflows |
+| **触发** | 用户要改或理解本地 `.cstl/` 架构、平台 hooks/agents/skills/commands/workflows |
 | **角色** | 本地 Trellis 架构地图与定制入口路由。三层参考:**local-architecture**(context 注入、生成文件、spec 系统、task 系统、workflow、workspace memory)、**platform-files**(agents、hooks-and-settings、overview、platform-map、skills-and-commands)、**customize-local**(change-agents、change-context-loading、change-hooks、change-skills-or-commands、change-spec-structure、change-task-lifecycle、change-workflow) |
 | **边界** | 只改用户项目本地文件,不动上游源码树。详细 skill 编写规则路由到 `cstl-skill-creator` |
 
@@ -102,7 +102,7 @@ Trellis 定义三种不同角色面。混淆它们是最常见的误解。
 | | |
 | --- | --- |
 | **定义** | `bundled-skills/cstl-spec-bootstrap/SKILL.md` + `references/`(mcp-setup、repository-analysis、spec-task-planning) |
-| **触发** | 创建或刷新 `.trellis/spec/`;`cstl init` 后 spec 树为空或需重构 |
+| **触发** | 创建或刷新 `.cstl/spec/`;`cstl init` 后 spec 树为空或需重构 |
 | **角色** | 单 owner 全流程:分析仓库 → 解耦 spec 边界 → 用**真实代码模式**填充(非模板套话)→ 验证无 placeholder。用 GitNexus/ABCoder/源码分析提取实际约定 |
 | **边界** | 无模板套话;一个 owner 负责整个 bootstrap;结果结构见 [spec-system.zh-CN.md](spec-system.zh-CN.md) |
 
@@ -165,7 +165,7 @@ Trellis 定义三种不同角色面。混淆它们是最常见的误解。
 
 Trellis 技能可在三层定制:
 
-1. **项目本地 skill** —— 把 `SKILL.md`(或单文件 `.md`)放项目 `.trellis/` 或 `.agents/skills/` 树。工作流匹配器与 bundled skill 一起加载。
+1. **项目本地 skill** —— 把 `SKILL.md`(或单文件 `.md`)放项目 `.cstl/` 或 `.agents/skills/` 树。工作流匹配器与 bundled skill 一起加载。
 2. **共享 skill** —— 行为跨同平台多项目时放共享 `.agents/skills/` 路径。
 3. **上游 bundled skill** —— `@blxzer/cursor-trellis` 自带;定制靠本地复制覆盖,不编辑已安装包。
 

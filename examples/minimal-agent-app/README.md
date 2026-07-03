@@ -34,13 +34,13 @@ cd examples/minimal-agent-app
 1. Creates a clean `_demo-workspace/` directory (gitignored).
 2. Runs `cstl init --cursor -y`.
 3. Runs `cstl validate-rules` (templates + installed `.cursor/rules`).
-4. Lists `.trellis/`, `.cursor/`, and `AGENTS.md`.
+4. Lists `.cstl/`, `.cursor/`, and `AGENTS.md`.
 
 Expected output ends with a tree similar to:
 
 ```text
 _demo-workspace/
-  .trellis/          workflow, spec, tasks, scripts
+  .cstl/          workflow, spec, tasks, scripts
   .cursor/           rules, commands, agents, hooks
   AGENTS.md
 ```
@@ -48,7 +48,7 @@ _demo-workspace/
 ## Next steps (manual, in Cursor)
 
 1. Open `_demo-workspace/` in Cursor Agent mode.
-2. Create a task: `python .trellis/scripts/task.py create "Hello Trellis" --slug hello`.
+2. Create a task: `python .cstl/scripts/task.py create "Hello Trellis" --slug hello`.
 3. Use `/cstl-continue` to resume; Request Triage is enforced via `.cursor/rules/cstl-triage.mdc`.
 
 See [docs/workflow.md](../../docs/workflow.md) and [docs/cursor.md](../../docs/cursor.md).

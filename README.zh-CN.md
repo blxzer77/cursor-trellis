@@ -18,6 +18,15 @@
 
 基于 [mindfold-ai 的 Trellis 框架](https://github.com/mindfold-ai/Trellis)，本版本针对 Cursor 适配，包含 rules、commands、agents、hooks。
 
+## 为何使用 `cstl` 与 `.cstl/`？
+
+为避免与上游 [mindfold-ai/Trellis](https://github.com/mindfold-ai/Trellis) 在同一仓库或同一台机器上冲突：
+
+- **CLI 命令 `cstl`**（自 v0.3.0）— 取代 `trellis` / `tl` 可执行名，便于与上游 Trellis 工具链并存安装。
+- **运行时目录 `.cstl/`**（自 v0.3.1）— 存放 workflow、spec、tasks、scripts。上游 Trellis 仍使用 **`.trellis/`**；两套目录可在同一仓库中并行存在、互不覆盖。
+
+新装项目直接使用 `.cstl/`。仍在 0.3.0 的项目执行 `cstl update --migrate`，将 `.trellis/` 重命名为 `.cstl/`（历史保留）。
+
 ## 功能
 
 - 任务工件（PRD、设计、实现计划）持久化在 `.cstl/tasks/`

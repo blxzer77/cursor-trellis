@@ -23,7 +23,7 @@ import path from "node:path";
 import chalk from "chalk";
 import inquirer from "inquirer";
 
-import { DIR_NAMES, PATHS } from "../constants/paths.js";
+import { PATHS } from "../constants/paths.js";
 import { isWorkflowInitialized } from "../utils/workflow-dir.js";
 import { replacePythonCommandLiterals } from "../configurators/shared.js";
 import {

@@ -2,11 +2,11 @@
 
 [English](spec-system.md) | 简体中文
 
-本文讲述 `.trellis/spec/` 的设计:**渐进式规范系统**,承载项目特定的工程约定,如何加载进 Agent 上下文,以及管理其生命周期的两个技能(`cstl-spec-bootstrap` 与 `cstl-update-spec`)。
+本文讲述 `.cstl/spec/` 的设计:**渐进式规范系统**,承载项目特定的工程约定,如何加载进 Agent 上下文,以及管理其生命周期的两个技能(`cstl-spec-bootstrap` 与 `cstl-update-spec`)。
 
-## `.trellis/spec/` 是什么
+## `.cstl/spec/` 是什么
 
-靠记忆约定的 Agent 一定会记错。Trellis 在合适时机注入相关 spec —— 或要求 Agent 读取 —— 不把所有东西前置塞进一个巨型文件。`.trellis/spec/` 是用户项目特定的工程规范库:关于这个代码库如何构建的可执行契约,不是泛泛最佳实践。
+靠记忆约定的 Agent 一定会记错。Trellis 在合适时机注入相关 spec —— 或要求 Agent 读取 —— 不把所有东西前置塞进一个巨型文件。`.cstl/spec/` 是用户项目特定的工程规范库:关于这个代码库如何构建的可执行契约,不是泛泛最佳实践。
 
 关键属性是**渐进式加载**:Agent 只读即将编辑文件相关的 spec 切片,不读整棵树。这由 `cstl-before-dev` 技能与 `implement.jsonl` / `check.jsonl` manifest 强制。
 
@@ -15,7 +15,7 @@
 ### 单仓库
 
 ```text
-.trellis/spec/
+.cstl/spec/
 ├── backend/
 │   ├── index.md
 │   └── ...
@@ -30,7 +30,7 @@
 ### Monorepo
 
 ```text
-.trellis/spec/
+.cstl/spec/
 ├── cli/
 │   ├── backend/
 │   │   ├── index.md
@@ -51,7 +51,7 @@
 
 ## 包配置
 
-`.trellis/config.yaml` 声明包:
+`.cstl/config.yaml` 声明包:
 
 ```yaml
 packages:
@@ -66,7 +66,7 @@ default_package: cli
 运行时发现包与 spec 层:
 
 ```bash
-python ./.trellis/scripts/get_context.py --mode packages
+python ./.cstl/scripts/get_context.py --mode packages
 ```
 
 此命令列出当前项目的包与 spec 层。配置 `implement.jsonl` / `check.jsonl` manifest 时以此为参考。
@@ -76,8 +76,8 @@ python ./.trellis/scripts/get_context.py --mode packages
 任务进入实现前,规划可把相关 spec 写进 `implement.jsonl`(给实现者)和 `check.jsonl`(给审查者):
 
 ```jsonl
-{"file": ".trellis/spec/cli/backend/index.md", "reason": "CLI backend conventions"}
-{"file": ".trellis/spec/cli/unit-test/conventions.md", "reason": "Test expectations"}
+{"file": ".cstl/spec/cli/backend/index.md", "reason": "CLI backend conventions"}
+{"file": ".cstl/spec/cli/unit-test/conventions.md", "reason": "Test expectations"}
 ```
 
 子 Agent 派发时读这些 manifest。若 `<!-- cstl-hook-injected -->` 标记存在,所列文件已自动加载;否则 Agent 从派发 prompt 的 `Selected task: <path>` 行读取。上下文加载协议见 [subagents.zh-CN.md](subagents.zh-CN.md)。
@@ -111,7 +111,7 @@ Spec 承载项目可执行工程约定,非泛泛最佳实践:
 - 需要测试的场景
 - 项目特定坑与规避
 
-Agent 在实现或调试中学到新规则时,应更新 `.trellis/spec/`(经 `cstl-update-spec`),而非只在 chat 里总结。
+Agent 在实现或调试中学到新规则时,应更新 `.cstl/spec/`(经 `cstl-update-spec`),而非只在 chat 里总结。
 
 ## 生命周期:`cstl-spec-bootstrap`(创建)
 
@@ -131,9 +131,9 @@ Agent 在实现或调试中学到新规则时,应更新 `.trellis/spec/`(经 `cs
 **流程**(必须 —— 禁止静默 spec 编辑):
 
 1. **Detect** —— 此任务是否产出可复用 code-spec 或 guide-worthy 学习?
-2. **Proposal** —— 写 `{TASK}/research/learning-proposal.md`,含目标 spec 路径与草稿要点。**不编辑 `.trellis/spec/`。**
+2. **Proposal** —— 写 `{TASK}/research/learning-proposal.md`,含目标 spec 路径与草稿要点。**不编辑 `.cstl/spec/`。**
 3. **Confirm** —— 用户显式批准;`verify.md` 出现 `Learning decision: update-spec`
-4. **Write** —— 此时才编辑 spec 文件;`verify.md` 加 `Spec update evidence: .trellis/spec/...`
+4. **Write** —— 此时才编辑 spec 文件;`verify.md` 加 `Spec update evidence: .cstl/spec/...`
 
 **禁止**:静默 spec 编辑;决策为 `no-update`/`unsure` 时写 spec 无后续;仅从 hook 或 check 自动更新。
 
@@ -155,15 +155,15 @@ infra 或跨层契约变更时,`cstl-update-spec` 强制 7 段:
 
 | 需求 | 编辑位置 |
 | --- | --- |
-| 加新 spec 层 | `.trellis/spec/<package>/<layer>/index.md` + guideline 文件 |
-| 改 monorepo spec 映射 | `.trellis/config.yaml` 的 `packages` / `default_package` / `spec_scope` |
+| 加新 spec 层 | `.cstl/spec/<package>/<layer>/index.md` + guideline 文件 |
+| 改 monorepo spec 映射 | `.cstl/config.yaml` 的 `packages` / `default_package` / `spec_scope` |
 | 改实现者读哪些 spec | 任务的 `implement.jsonl` |
 | 改审查者读哪些 spec | 任务的 `check.jsonl` |
-| 改 spec 何时更新 | `.trellis/workflow.md` 的 Phase 3.3 与 `cstl-update-spec` 技能 |
+| 改 spec 何时更新 | `.cstl/workflow.md` 的 Phase 3.3 与 `cstl-update-spec` 技能 |
 
 ## 边界
 
-`.trellis/spec/` 是用户项目规范,**不是** Trellis 内置模板的永久副本。Agent 鼓励用户按实际项目代码更新它,而非把 Trellis 默认模板当不可变文档。bootstrap 技能提取真实模式;update 技能回写新学习;两者都不冻结 spec 树。
+`.cstl/spec/` 是用户项目规范,**不是** Trellis 内置模板的永久副本。Agent 鼓励用户按实际项目代码更新它,而非把 Trellis 默认模板当不可变文档。bootstrap 技能提取真实模式;update 技能回写新学习;两者都不冻结 spec 树。
 
 ## 延伸阅读
 

@@ -116,11 +116,11 @@ When a Parent task orchestrates Child tasks, dispatch authority is split:
 - **Reviewer orchestration** — Parent sessions can productize child dispatch and review inline:
 
   ```bash
-  python ./.trellis/scripts/task.py parent-status <parent-task>
-  python ./.trellis/scripts/task.py generate-child-prompt <parent-task> <child-task> --mode inline
-  python ./.trellis/scripts/task.py review-child <parent-task> <child-task> --check
-  python ./.trellis/scripts/task.py review-child <parent-task> <child-task> --decision accept --ref <child-ref>
-  python ./.trellis/scripts/task.py review-child <parent-task> <child-task> --decision integrate-through --ref <child-ref>
+  python ./.cstl/scripts/task.py parent-status <parent-task>
+  python ./.cstl/scripts/task.py generate-child-prompt <parent-task> <child-task> --mode inline
+  python ./.cstl/scripts/task.py review-child <parent-task> <child-task> --check
+  python ./.cstl/scripts/task.py review-child <parent-task> <child-task> --decision accept --ref <child-ref>
+  python ./.cstl/scripts/task.py review-child <parent-task> <child-task> --decision integrate-through --ref <child-ref>
   ```
 
   `--mode subagent` is only a delivery hint when the platform can spawn subagents; inline mode is the portable default.

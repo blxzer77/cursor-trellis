@@ -46,13 +46,13 @@ The Trellis CLI source repo often sits inside the **D:\MyHarness** harness: the 
 
 Trellis is a **team AI coding harness** — it turns monolithic `AGENTS.md` / `.cursorrules` into a progressive wiki of specs, tasks, workflows, and journals that agents load only when needed.
 
-Published as npm package `@blxzer/cursor-trellis` with core SDK `@blxzer/cursor-trellis-core`. **Init and public docs are Cursor-only**; generated output is `.cursor/` (commands, rules, agents, hooks) plus `.trellis/`.
+Published as npm package `@blxzer/cursor-trellis` with core SDK `@blxzer/cursor-trellis-core`. **Init and public docs are Cursor-only**; generated output is `.cursor/` (commands, rules, agents, hooks) plus `.cstl/`.
 
 **Key concepts delivered to user projects**:
-- `.trellis/spec/` — Team coding standards
-- `.trellis/tasks/` — PRDs, context, status, acceptance criteria
-- `.trellis/workspace/` — Developer journals and session continuity
-- `.trellis/workflow.md` — Shared lifecycle: plan, build, check, finish, learn
+- `.cstl/spec/` — Team coding standards
+- `.cstl/tasks/` — PRDs, context, status, acceptance criteria
+- `.cstl/workspace/` — Developer journals and session continuity
+- `.cstl/workflow.md` — Shared lifecycle: plan, build, check, finish, learn
 - Cursor adapter — Generated `.cursor/` tree
 
 ---
@@ -66,7 +66,7 @@ Trellis/
     cli/               # @blxzer/cursor-trellis - CLI tool
   drafts/
   assets/
-  .trellis/            # Self-dogfooding Trellis workspace
+  .cstl/            # Self-dogfooding Trellis workspace
   .cursor/
   package.json
   pnpm-workspace.yaml
@@ -172,8 +172,8 @@ Cursor-only fork: active platforms are **cursor** (first-class) and **cursor2plu
 ### Configurators — `configurators/`
 
 - `configureCursor()` — `.cursor/` commands, rules, agents, hooks
-- `configureCursor2plus()` — `.trellis/local/cursor2plus/` BYOK maps
-- `configureWorkflow()` — `.trellis/` structure creation
+- `configureCursor2plus()` — `.cstl/local/cursor2plus/` BYOK maps
+- `configureWorkflow()` — `.cstl/` structure creation
 
 Key helpers: `replacePythonCommandLiterals()`, `resolvePlaceholders()`.
 
@@ -181,11 +181,11 @@ Key helpers: `replacePythonCommandLiterals()`, `resolvePlaceholders()`.
 
 Templates are **TypeScript string constants** in `src/templates/`, not disk files.
 
-**The Mirror Rule (critical)**: When modifying `.trellis/` or `.cursor/` in project root (dogfooding), MUST also update `src/templates/`. Project files are self-consumed; templates go to user projects.
+**The Mirror Rule (critical)**: When modifying `.cstl/` or `.cursor/` in project root (dogfooding), MUST also update `src/templates/`. Project files are self-consumed; templates go to user projects.
 
 ### Template hash tracking — `utils/template-hash.ts`
 
-SHA-256 in `.trellis/.template-hashes`: Unchanged (auto-update), Modified (conflict), New (safe write), Deleted (user removed).
+SHA-256 in `.cstl/.template-hashes`: Unchanged (auto-update), Modified (conflict), New (safe write), Deleted (user removed).
 
 ---
 
@@ -202,7 +202,7 @@ API: `getMigrationsForVersion()`, `getAllMigrations()`, `hasPendingMigrations()`
 Runtime: `@blxzer/smart-search` npm package (installed as a dependency of `@blxzer/cursor-trellis`).
 Bin: `smart-search` → `./bin/smart-search.js` forwards to `node_modules/@blxzer/smart-search`.
 Bundled skill template: `packages/cli/src/templates/common/bundled-skills/smart-search-cli/` (synced from the smart-search repo; written to `.agents/skills/` on non-Cursor platforms only — **not** `.cursor/skills/`).
-Cursor entrypoint: `./.trellis/scripts/run_smart_search.py` + `.cursor/rules/retrieval-routing.mdc` + `AGENTS.md`.
+Cursor entrypoint: `./.cstl/scripts/run_smart_search.py` + `.cursor/rules/retrieval-routing.mdc` + `AGENTS.md`.
 
 ---
 
@@ -254,7 +254,7 @@ Modes: force, skip, create-new. `startRecordingWrites()`/`stopRecordingWrites()`
 
 ## 10. Dogfooding
 
-`.trellis/` in project root. Changes MUST mirror to `src/templates/`.
+`.cstl/` in project root. Changes MUST mirror to `src/templates/`.
 
 ---
 
@@ -266,9 +266,9 @@ Modes: force, skip, create-new. `startRecordingWrites()`/`stopRecordingWrites()`
 
 **New migration**: `src/migrations/manifests/{version}.json` -> regression test -> `check-manifest-continuity.js`
 
-**Modify workflow.md**: Edit `src/templates/trellis/workflow.md` -> mirror `.trellis/workflow.md` -> template tests
+**Modify workflow.md**: Edit `src/templates/trellis/workflow.md` -> mirror `.cstl/workflow.md` -> template tests
 
-**Modify AGENTS.md template**: Edit `src/templates/markdown/index.ts` (user projects) or root `AGENTS.md` (self). Never edit inside TRELLIS:START/END block.
+**Modify AGENTS.md template**: Edit `src/templates/markdown/index.ts` (user projects) or root `AGENTS.md` (self). Never edit inside CSTL:START/END block.
 
 **Sync smart-search bundled skill**: Update `smart-search/skills/smart-search-cli/` → copy into `packages/cli/src/templates/common/bundled-skills/smart-search-cli/` (does not change Cursor `.cursor/skills/` policy).
 
@@ -279,7 +279,7 @@ Modes: force, skip, create-new. `startRecordingWrites()`/`stopRecordingWrites()`
 ## 12. Path Constants — `constants/paths.ts`
 
 ```
-DIR_NAMES: .trellis, workspace, tasks, archive, spec, scripts
+DIR_NAMES: .cstl, workspace, tasks, archive, spec, scripts
 FILE_NAMES: AGENTS.md, .developer, .current-task, task.json, prd.md, workflow.md, journal-
 Helpers: getWorkspaceDir(dev), getTaskDir(name), getArchiveDir()
 ```

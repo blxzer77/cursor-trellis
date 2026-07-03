@@ -309,7 +309,7 @@ describe.skipIf(pythonCmd === null)("run_smart_search.py", () => {
     writeTrellisScripts(repoRoot);
 
     const result = spawnSync(
-      pythonCmd!,
+      pythonCmd as string,
       [
         "-c",
         [
@@ -330,7 +330,7 @@ describe.skipIf(pythonCmd === null)("run_smart_search.py", () => {
     expect(result.status).toBe(0);
     const argv = JSON.parse(result.stdout.trim()) as string[] | null;
     expect(argv).not.toBeNull();
-    expect(argv!.join(" ")).toContain("cursor-trellis");
-    expect(argv!.join(" ")).toContain("smart-search.js");
+    expect(argv?.join(" ")).toContain("cursor-trellis");
+    expect(argv?.join(" ")).toContain("smart-search.js");
   });
 });
