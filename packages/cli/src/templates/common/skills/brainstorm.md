@@ -47,7 +47,7 @@ Use this skill only after task-creation consent has been given and the user is r
 If no task exists yet, create one:
 
 ```bash
-TASK_DIR=$(python ./.trellis/scripts/task.py create "<short task title>" --slug <slug>)
+TASK_DIR=$(python ./.cstl/scripts/task.py create "<short task title>" --slug <slug>)
 ```
 
 Use a concise title from the user's request. Use a slug without a date prefix. `task.py create` adds the `MM-DD-` directory prefix automatically.
@@ -72,12 +72,12 @@ Run **before** any user interview questions.
 Inspect and record in `prd.md` (sections: **Confirmed facts**, initial **Out of scope**, draft **Goal**):
 
 1. **Code & tests** — relevant modules, fixtures, configs, error paths.
-2. **Specs** — `.trellis/spec/` indexes and layer guides for touched packages.
+2. **Specs** — `.cstl/spec/` indexes and layer guides for touched packages.
 3. **History** — archived tasks, active task research, developer journal when useful.
-4. **Platform** — project platform hooks, agents, and skills (see `.trellis/spec/guides/cursor-subagent-policy.md` when using Cursor); shared `.agents/skills/` when behavior spans platforms.
+4. **Platform** — project platform hooks, agents, and skills (see `.cstl/spec/guides/cursor-subagent-policy.md` when using Cursor); shared `.agents/skills/` when behavior spans platforms.
 5. **Parent/Child** — if multiple independent deliverables, note child split early in `prd.md`.
 
-Use retrieval per `.trellis/spec/guides/retrieval-daily-guide.md` (rg for literals, codegraph for structure, fast-context for semantic sweep).
+Use retrieval per `.cstl/spec/guides/retrieval-daily-guide.md` (rg for literals, codegraph for structure, fast-context for semantic sweep).
 
 Dispatch **`cstl-research`** (writable Agent) when a topic needs a dedicated `{TASK}/research/<topic>.md` file; do **not** use a subagent for PRD Grill itself.
 
@@ -163,7 +163,7 @@ Your recommended answer defaults to Occam's Razor: the **minimal sufficient** op
 - ordered implementation checklist
 - validation commands
 - risky files or rollback points
-- **Development Strategy Contract** (`execution_mode`, `isolation`, …): before finalizing, run `python3 ./.trellis/scripts/task.py suggest-execution-strategy <task-dir>` (or `--json`); reconcile suggestion with scope, then paste the approved YAML block into `implement.md`
+- **Development Strategy Contract** (`execution_mode`, `isolation`, …): before finalizing, run `python3 ./.cstl/scripts/task.py suggest-execution-strategy <task-dir>` (or `--json`); reconcile suggestion with scope, then paste the approved YAML block into `implement.md`
 - follow-up checks before `task.py start-execution --check`
 
 Lightweight tasks may have only `prd.md`. Complex tasks must have `prd.md`, `design.md`, and `implement.md` before `task.py start-execution --check`.

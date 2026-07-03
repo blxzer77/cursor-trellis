@@ -176,7 +176,7 @@ def resolve_task_dir(target_dir: str, repo_root: Path) -> Path:
 
     Supports:
     - Absolute path: /path/to/task
-    - Relative path: .trellis/tasks/01-31-my-task
+    - Relative path: .cstl/tasks/01-31-my-task
     - Task name: my-task (uses find_task_by_name for lookup)
 
     Args:
@@ -198,7 +198,7 @@ def resolve_task_dir(target_dir: str, repo_root: Path) -> Path:
         return Path(target_dir)
 
     # Relative path (contains path separator or starts with .trellis)
-    if "/" in normalized or normalized.startswith(".trellis"):
+    if "/" in normalized or normalized.startswith(".cstl"):
         return repo_root / Path(normalized)
 
     # Task name - try to find in tasks directory
@@ -270,5 +270,5 @@ if __name__ == "__main__":
     tasks = get_tasks_dir(repo)
 
     print(f"Tasks dir: {tasks}")
-    print(f"is_safe_task_path('.trellis/tasks/test'): {is_safe_task_path('.trellis/tasks/test', repo)}")
+    print(f"is_safe_task_path('.cstl/tasks/test'): {is_safe_task_path('.cstl/tasks/test', repo)}")
     print(f"is_safe_task_path('../test'): {is_safe_task_path('../test', repo)}")

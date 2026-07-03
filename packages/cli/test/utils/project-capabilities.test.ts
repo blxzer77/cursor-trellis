@@ -43,9 +43,9 @@ describe("project capabilities", () => {
       path.join(os.tmpdir(), "trellis-capabilities-"),
     );
     try {
-      fs.mkdirSync(path.join(tmpDir, ".trellis"), { recursive: true });
+      fs.mkdirSync(path.join(tmpDir, ".cstl"), { recursive: true });
       fs.writeFileSync(
-        path.join(tmpDir, ".trellis", "capabilities.json"),
+        path.join(tmpDir, ".cstl", "capabilities.json"),
         JSON.stringify({
           selected: [
             "fast-context-mcp",
@@ -178,7 +178,7 @@ describe("project capabilities", () => {
         }),
         expect.objectContaining({
           command:
-            'rg -i "storage default|sidecar|sqlite only" AGENTS.md "**/AGENTS.md" README.md CONTRIBUTING.md .trellis/spec',
+            'rg -i "storage default|sidecar|sqlite only" AGENTS.md "**/AGENTS.md" README.md CONTRIBUTING.md .cstl/spec',
           use: expect.stringContaining("before implementation"),
         }),
         expect.objectContaining({
@@ -242,10 +242,10 @@ describe("project capabilities", () => {
       ["cursor"],
     );
 
-    expect(files.get(".trellis/capabilities.json")).toContain(
+    expect(files.get(".cstl/capabilities.json")).toContain(
       '"codebase-retrieval"',
     );
-    expect(files.get(".trellis/capabilities.md")).toContain(
+    expect(files.get(".cstl/capabilities.md")).toContain(
       "## Fallback Guidance",
     );
     expect(files.get(".cursor/mcp.json")).toContain('"playwright"');
@@ -264,7 +264,7 @@ describe("project capabilities", () => {
       "## Policy and Document-First Routing (intent-gated)",
     );
     expect(capabilitiesMd).toContain(
-      "inspect `AGENTS.md`, `.trellis/spec/**`, and README/contributing/architecture docs before semantic implementation search",
+      "inspect `AGENTS.md`, `.cstl/spec/**`, and README/contributing/architecture docs before semantic implementation search",
     );
     expect(capabilitiesMd).toContain(
       "### Storage and persistence policy (benchmark C03 pattern)",
@@ -349,14 +349,14 @@ describe("project capabilities", () => {
       path.join(os.tmpdir(), "trellis-capability-status-"),
     );
     try {
-      fs.mkdirSync(path.join(tmpDir, ".trellis"), { recursive: true });
+      fs.mkdirSync(path.join(tmpDir, ".cstl"), { recursive: true });
       fs.writeFileSync(
-        path.join(tmpDir, ".trellis", "capabilities.json"),
+        path.join(tmpDir, ".cstl", "capabilities.json"),
         renderCapabilitiesJson(["codebase-retrieval", "github-mcp"]),
         "utf-8",
       );
       fs.writeFileSync(
-        path.join(tmpDir, ".trellis", "capabilities.md"),
+        path.join(tmpDir, ".cstl", "capabilities.md"),
         renderCapabilitiesMarkdown(["codebase-retrieval", "github-mcp"]),
         "utf-8",
       );
@@ -370,7 +370,7 @@ describe("project capabilities", () => {
 
       const parsed = JSON.parse(
         fs.readFileSync(
-          path.join(tmpDir, ".trellis", "capabilities.json"),
+          path.join(tmpDir, ".cstl", "capabilities.json"),
           "utf-8",
         ),
       ) as {
@@ -384,7 +384,7 @@ describe("project capabilities", () => {
         >;
       };
       const capabilitiesMd = fs.readFileSync(
-        path.join(tmpDir, ".trellis", "capabilities.md"),
+        path.join(tmpDir, ".cstl", "capabilities.md"),
         "utf-8",
       );
 
@@ -409,14 +409,14 @@ describe("project capabilities", () => {
       path.join(os.tmpdir(), "trellis-capability-preserve-"),
     );
     try {
-      fs.mkdirSync(path.join(tmpDir, ".trellis"), { recursive: true });
+      fs.mkdirSync(path.join(tmpDir, ".cstl"), { recursive: true });
       fs.writeFileSync(
-        path.join(tmpDir, ".trellis", "capabilities.json"),
+        path.join(tmpDir, ".cstl", "capabilities.json"),
         renderCapabilitiesJson(["codebase-retrieval"]),
         "utf-8",
       );
       fs.writeFileSync(
-        path.join(tmpDir, ".trellis", "capabilities.md"),
+        path.join(tmpDir, ".cstl", "capabilities.md"),
         renderCapabilitiesMarkdown(["codebase-retrieval"]),
         "utf-8",
       );
@@ -429,7 +429,7 @@ describe("project capabilities", () => {
         loadStoredCapabilityStates(tmpDir),
       );
       const rebuilt = JSON.parse(
-        templates.get(".trellis/capabilities.json") ?? "{}",
+        templates.get(".cstl/capabilities.json") ?? "{}",
       ) as {
         capabilities: Record<string, { readiness_status?: string }>;
       };

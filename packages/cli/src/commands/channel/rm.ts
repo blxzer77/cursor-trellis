@@ -1,6 +1,6 @@
 /**
  * `trellis channel rm <name>` — kill any live workers, then remove the
- * channel directory under `~/.trellis/channels/`.
+ * channel directory under `~/.cstl/channels/`.
  *
  * `trellis channel prune [--all | --idle <duration> | --empty]` — bulk
  * cleanup matching criteria.

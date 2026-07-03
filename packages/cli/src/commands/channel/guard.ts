@@ -67,7 +67,7 @@ export interface ResolveGuardOptions {
  * Resolve the effective guard policy. Precedence:
  *   1. CLI flag (`flag*Ms` / `flagMaxLiveWorkers`)
  *   2. environment variable
- *   3. `.trellis/config.yaml` `channel.worker_guard`
+ *   3. `.cstl/config.yaml` `channel.worker_guard`
  *   4. built-in default constant
  */
 export function resolveWorkerGuardConfig(
@@ -151,7 +151,7 @@ interface ProjectGuardConfig {
 }
 
 /**
- * Parse the `channel.worker_guard` section out of `.trellis/config.yaml`.
+ * Parse the `channel.worker_guard` section out of `.cstl/config.yaml`.
  * Mirrors the lightweight line-scanner used elsewhere in update.ts so we
  * don't pull in a YAML dependency just for this two-field section.
  */
@@ -637,7 +637,7 @@ export function formatBudgetOverflowError(args: {
     `  trellis channel kill <channel> --as <worker>`,
     "Or override per spawn:",
     `  trellis channel spawn ... --max-live-workers ${live.length + 1}`,
-    "Or raise the default in .trellis/config.yaml under channel.worker_guard.max_live_workers.",
+    "Or raise the default in .cstl/config.yaml under channel.worker_guard.max_live_workers.",
   ].join("\n");
   return [header, rows, hint].join("\n");
 }

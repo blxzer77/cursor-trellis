@@ -62,7 +62,7 @@ describe.skipIf(pythonCmd === null)("retrieval_pack.py", () => {
 
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-retrieval-pack-"));
 
-    const scriptsDir = path.join(tmpDir, ".trellis", "scripts");
+    const scriptsDir = path.join(tmpDir, ".cstl", "scripts");
 
     for (const [rel, content] of getAllScripts()) {
 

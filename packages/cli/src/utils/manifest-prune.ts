@@ -14,8 +14,8 @@
  * self-correct on the next routine command.
  *
  * Rules:
- *   - `.trellis/*` entries are ALWAYS kept. `trellis uninstall` removes
- *     `.trellis/` wholesale via `fs.rmSync(..., { recursive: true })`, so
+ *   - `.cstl/*` entries are ALWAYS kept. `trellis uninstall` removes
+ *     `.cstl/` wholesale via `fs.rmSync(..., { recursive: true })`, so
  *     manifest accuracy there doesn't affect uninstall data-loss. `update`
  *     also relies on these entries to detect user-modified workflow files.
  *   - Root-level `AGENTS.md` is kept only when it still looks Trellis-managed
@@ -135,10 +135,10 @@ export function pruneOrphanManifestKeys(
 
   for (const [rawKey, value] of Object.entries(hashes)) {
     const key = toPosix(rawKey);
-    // Always preserve .trellis/ entries — they're for the workflow tree
+    // Always preserve .cstl/ entries — they're for the workflow tree
     // which uninstall removes wholesale and which update needs for
     // modified-file detection.
-    if (key.startsWith(".trellis/") || key === ".trellis") {
+    if (key.startsWith(".cstl/") || key === ".cstl") {
       kept[key] = value;
       continue;
     }

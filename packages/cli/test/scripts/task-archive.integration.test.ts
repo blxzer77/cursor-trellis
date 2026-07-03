@@ -54,13 +54,13 @@ function setupRepo(tmp: string): void {
   git(tmp, "config", "user.name", "Test");
 
   // Stamp the real templates into the test repo.
-  const scriptsDest = path.join(tmp, ".trellis", "scripts");
+  const scriptsDest = path.join(tmp, ".cstl", "scripts");
   fs.mkdirSync(scriptsDest, { recursive: true });
   fs.cpSync(TEMPLATE_SCRIPTS, scriptsDest, { recursive: true });
 
   // session_auto_commit must be enabled for the archive to commit.
   fs.writeFileSync(
-    path.join(tmp, ".trellis", "config.yaml"),
+    path.join(tmp, ".cstl", "config.yaml"),
     "session_auto_commit: true\n",
   );
 }
@@ -76,7 +76,7 @@ function minimalVerifyMd(): string {
 }
 
 function makeTask(repo: string, name: string, prdBody: string): void {
-  const dir = path.join(repo, ".trellis", "tasks", name);
+  const dir = path.join(repo, ".cstl", "tasks", name);
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, "prd.md"), prdBody);
   fs.writeFileSync(path.join(dir, "verify.md"), minimalVerifyMd());
@@ -102,7 +102,7 @@ function makeTask(repo: string, name: string, prdBody: string): void {
 function runArchive(repo: string, taskName: string): void {
   const r = spawnSync(
     "python3",
-    [".trellis/scripts/task.py", "archive", taskName],
+    [".cstl/scripts/task.py", "archive", taskName],
     { cwd: repo, encoding: "utf-8" },
   );
   if (r.status !== 0) {
@@ -132,7 +132,7 @@ describe.skipIf(!hasPython())(
 
       // Dirty edit in task-b BEFORE archiving task-a.
       fs.appendFileSync(
-        path.join(tmp, ".trellis", "tasks", "task-b", "prd.md"),
+        path.join(tmp, ".cstl", "tasks", "task-b", "prd.md"),
         "DIRTY EDIT IN TASK-B SHOULD NOT BE COMMITTED\n",
       );
 
@@ -167,7 +167,7 @@ describe.skipIf(!hasPython())(
         // surfaced the bug.
         const researchDir = path.join(
           tmp,
-          ".trellis",
+          ".cstl",
           "tasks",
           "big",
           "research",
@@ -207,7 +207,7 @@ describe.skipIf(!hasPython())(
           .filter(Boolean);
         expect(deletes.length).toBeGreaterThan(0);
         expect(
-          deletes.every((p) => p.startsWith(".trellis/tasks/big/")),
+          deletes.every((p) => p.startsWith(".cstl/tasks/big/")),
         ).toBe(true);
       },
       30_000, // python startup + 100-file ops can be slow
@@ -230,7 +230,7 @@ describe.skipIf(!hasPython())(
 
       const r = spawnSync(
         "python3",
-        [".trellis/scripts/task.py", "archive", "tracked"],
+        [".cstl/scripts/task.py", "archive", "tracked"],
         { cwd: tmp, encoding: "utf-8" },
       );
 
@@ -239,8 +239,8 @@ describe.skipIf(!hasPython())(
       expect(r.stderr).toContain("Auto-commit failed");
 
       const status = git(tmp, "status", "--porcelain");
-      expect(status).toContain(".trellis/tasks/tracked/");
-      expect(status).toContain(".trellis/tasks/archive/");
+      expect(status).toContain(".cstl/tasks/tracked/");
+      expect(status).toContain(".cstl/tasks/archive/");
     });
   },
 );

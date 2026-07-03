@@ -1,6 +1,6 @@
 /**
  * Unit tests for pruneOrphanManifestKeys + isCwdHomedir
- * (.trellis/tasks/05-13-uninstall-overdelete-manifest-leak).
+ * (.cstl/tasks/05-13-uninstall-overdelete-manifest-leak).
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
@@ -21,18 +21,18 @@ describe("pruneOrphanManifestKeys", () => {
 
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-prune-"));
-    fs.mkdirSync(path.join(tmpDir, ".trellis"), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, ".cstl"), { recursive: true });
   });
 
   afterEach(() => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it("preserves every .trellis/* entry regardless of platform-collect output", () => {
+  it("preserves every .cstl/* entry regardless of platform-collect output", () => {
     const hashes = {
-      ".trellis/workflow.md": "h1",
-      ".trellis/scripts/task.py": "h2",
-      ".trellis/config.yaml": "h3",
+      ".cstl/workflow.md": "h1",
+      ".cstl/scripts/task.py": "h2",
+      ".cstl/config.yaml": "h3",
     };
     saveHashes(tmpDir, hashes);
 
@@ -115,7 +115,7 @@ describe("pruneOrphanManifestKeys", () => {
 
   it("persists pruned manifest to disk by default", () => {
     const hashes = {
-      ".trellis/workflow.md": "h1",
+      ".cstl/workflow.md": "h1",
       ".codex/sessions/user.jsonl": "orphan",
     };
     saveHashes(tmpDir, hashes);
@@ -125,12 +125,12 @@ describe("pruneOrphanManifestKeys", () => {
     expect(pruned).toEqual([".codex/sessions/user.jsonl"]);
     // Disk should reflect the prune.
     expect(loadHashes(tmpDir)).not.toHaveProperty(".codex/sessions/user.jsonl");
-    expect(loadHashes(tmpDir)).toHaveProperty(".trellis/workflow.md");
+    expect(loadHashes(tmpDir)).toHaveProperty(".cstl/workflow.md");
   });
 
   it("does NOT write disk when persist=false", () => {
     const hashes = {
-      ".trellis/workflow.md": "h1",
+      ".cstl/workflow.md": "h1",
       ".codex/sessions/user.jsonl": "orphan",
     };
     saveHashes(tmpDir, hashes);
@@ -142,10 +142,10 @@ describe("pruneOrphanManifestKeys", () => {
   });
 
   it("does NOT rewrite disk when nothing was pruned", () => {
-    const hashes = { ".trellis/workflow.md": "h1" };
+    const hashes = { ".cstl/workflow.md": "h1" };
     saveHashes(tmpDir, hashes);
 
-    const hashFile = path.join(tmpDir, ".trellis", ".template-hashes.json");
+    const hashFile = path.join(tmpDir, ".cstl", ".template-hashes.json");
     const mtimeBefore = fs.statSync(hashFile).mtimeMs;
 
     // Wait a tick so mtime would visibly differ if a write happened.

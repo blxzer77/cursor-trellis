@@ -18,13 +18,13 @@ If the user message or Trellis context contains a block starting with `## 代码
 Generate a fresh plan when needed:
 
 ```powershell
-python ./.trellis/scripts/route_codebase_retrieval.py "<question>" --instructions
+python ./.cstl/scripts/route_codebase_retrieval.py "<question>" --instructions
 ```
 
 JSON (includes `agentInstructions`):
 
 ```powershell
-python ./.trellis/scripts/route_codebase_retrieval.py "<question>" --json
+python ./.cstl/scripts/route_codebase_retrieval.py "<question>" --json
 ```
 
 ## Default tool order (no plan block)
@@ -36,7 +36,7 @@ python ./.trellis/scripts/route_codebase_retrieval.py "<question>" --json
 | Same name across packages (trap) | **codegraph_search** / **codegraph_explore** → Grep |
 | Extension symbols | **codegraph_search** under `extensions/` |
 | Conceptual / how does X work | **Native:** built-in `@codebase` / semantic search. **BYOK:** **fast_context_search** (fast-context MCP). Plans show `cursorEnv`. |
-| Policy / architecture / boundaries / storage rules | **Grep** on `AGENTS.md`, `**/AGENTS.md`, `.trellis/spec/**`, `README.md` (router `policy-docs-rg`) before implementation modules |
+| Policy / architecture / boundaries / storage rules | **Grep** on `AGENTS.md`, `**/AGENTS.md`, `.cstl/spec/**`, `README.md` (router `policy-docs-rg`) before implementation modules |
 | Definition jump | **codegraph_node** / **codegraph_search**, then **Read** (Agent does not expose GO_TO_DEFINITION / LSP) |
 | Wide cross-cutting explore | **Native:** DEEP_SEARCH or Explore subagent. **BYOK:** **Task explore** subagent, then Grep/codegraph/Read |
 
@@ -56,4 +56,4 @@ Use codegraph for **call chains**, **cross-package trap disambiguation**, **exte
 
 ## External facts
 
-Web/current events: **smart-search** first per `.trellis/spec/guides/retrieval-daily-guide.md`.
+Web/current events: **smart-search** first per `.cstl/spec/guides/retrieval-daily-guide.md`.

@@ -11,7 +11,7 @@ Note:
     ``cmd_init_context`` was removed in v0.5.0-beta.12. JSONL context files
     are now seeded at ``task.py create`` time with a self-describing
     ``_example`` line; the AI agent curates real entries during planning when
-    the task needs sub-agent/spec context. See ``.trellis/workflow.md`` for the
+    the task needs sub-agent/spec context. See ``.cstl/workflow.md`` for the
     current planning artifact contract.
 """
 

@@ -159,7 +159,7 @@ describe.skipIf(pythonCmd === null)("retrieval eval harness - scoring", () => {
 
   it("does not mutate project files while scoring in-memory bundles", () => {
     const before = listProjectFiles(tmpDir);
-    const journalPath = `.trellis/workspace/eval-dev/journal-1.md`;
+    const journalPath = `.cstl/workspace/eval-dev/journal-1.md`;
     const manifestPath = `${EVAL_TASK_PATH}/research/smart-search/ok-run/manifest.json`;
     const journalMtime = readFileMtime(tmpDir, journalPath);
     const manifestMtime = readFileMtime(tmpDir, manifestPath);

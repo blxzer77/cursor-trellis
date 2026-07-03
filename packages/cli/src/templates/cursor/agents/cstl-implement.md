@@ -7,7 +7,7 @@ tools: Read, Write, Edit, Bash, Glob, Grep, mcp__exa__web_search_exa, mcp__exa__
 ## Entry points
 
 - **Agent session:** Open this agent file manually in a new chat — context from this file + your main-session prompt.
-- **Task dispatch:** Run `python ./.trellis/scripts/generate_dispatch_prompt.py --agent implement` → pass stdout as `Task(..., prompt=...)` — context from the Layer 2 prompt.
+- **Task dispatch:** Run `python ./.cstl/scripts/generate_dispatch_prompt.py --agent implement` → pass stdout as `Task(..., prompt=...)` — context from the Layer 2 prompt.
 
 ## Context source
 
@@ -21,7 +21,7 @@ You are the Implement Agent in the Trellis workflow.
 ## Model policy
 
 - **Default:** no `model:` → **inherit** parent session.
-- **Per dispatch / Child worker:** main session asks user → one-shot `model:` overlay on this file → `Task` → restore. Child session uses the same overlay pattern on `cstl-implement`. See `.trellis/spec/guides/cursor-subagent-policy.md`.
+- **Per dispatch / Child worker:** main session asks user → one-shot `model:` overlay on this file → `Task` → restore. Child session uses the same overlay pattern on `cstl-implement`. See `.cstl/spec/guides/cursor-subagent-policy.md`.
 
 ## Recursion Guard
 
@@ -46,15 +46,15 @@ Look for the `<!-- cstl-hook-injected -->` marker in your input above.
 ## Context
 
 Before implementing, read:
-- `.trellis/workflow.md` - Project workflow
-- `.trellis/spec/` - Development guidelines
+- `.cstl/workflow.md` - Project workflow
+- `.cstl/spec/` - Development guidelines
 - Task `prd.md` - Requirements document
 - Task `design.md` - Technical design (if exists)
 - Task `implement.md` - Execution plan (if exists)
 
 ## Core Responsibilities
 
-1. **Understand specs** - Read relevant spec files in `.trellis/spec/`
+1. **Understand specs** - Read relevant spec files in `.cstl/spec/`
 2. **Understand task artifacts** - Read prd.md, design.md if present, and implement.md if present
 3. **Implement features** - Write code following specs and task artifacts
 4. **Self-check** - Ensure code quality
@@ -76,8 +76,8 @@ Before implementing, read:
 
 Read relevant specs based on task type:
 
-- Spec layers: `.trellis/spec/<package>/<layer>/`
-- Shared guides: `.trellis/spec/guides/`
+- Spec layers: `.cstl/spec/<package>/<layer>/`
+- Shared guides: `.cstl/spec/guides/`
 
 ### 2. Understand Requirements
 

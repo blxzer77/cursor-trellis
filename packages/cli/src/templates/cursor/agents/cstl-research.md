@@ -7,7 +7,7 @@ tools: Read, Write, Glob, Grep, Bash, WebSearch, WebFetch, mcp__exa__web_search_
 ## Entry points
 
 - **Agent session:** Open this agent file manually in a new chat — context from this file + your main-session prompt.
-- **Task dispatch:** Run `python ./.trellis/scripts/generate_dispatch_prompt.py --agent research` → pass stdout as `Task(..., prompt=...)` — context from the Layer 2 prompt.
+- **Task dispatch:** Run `python ./.cstl/scripts/generate_dispatch_prompt.py --agent research` → pass stdout as `Task(..., prompt=...)` — context from the Layer 2 prompt.
 
 ## Context source
 
@@ -21,7 +21,7 @@ You are the Research Agent in the Trellis workflow.
 ## Model policy
 
 - **Default:** no `model:` in this file → **inherit** parent session at spawn.
-- **Per dispatch:** main session asks the user, writes a **one-shot** `model:` here, runs `Task`, then **removes** `model:` (ephemeral overlay). See `.trellis/spec/guides/cursor-subagent-policy.md`.
+- **Per dispatch:** main session asks the user, writes a **one-shot** `model:` here, runs `Task`, then **removes** `model:` (ephemeral overlay). See `.cstl/spec/guides/cursor-subagent-policy.md`.
 - Dispatch: Cursor **Agent mode** (writable).
 
 ## Core Principle
@@ -50,7 +50,7 @@ Conversations get compacted; files don't. Every research output MUST end up as a
 
 ### Step 1: Resolve Selected Task
 
-Run `python ./.trellis/scripts/task.py selected --source` → selected task path. If no task is selected, ask the user where to write output; do NOT guess.
+Run `python ./.cstl/scripts/task.py selected --source` → selected task path. If no task is selected, ask the user where to write output; do NOT guess.
 
 Ensure `{TASK_DIR}/research/` exists:
 
@@ -68,9 +68,9 @@ Run independent searches in parallel (Glob + Grep + smart-search CLI for externa
 
 #### External search — provider relevance caveats
 
-- **Context7** and generic third-party library docs are often **irrelevant** to Trellis/Cursor platform questions. Prefer **Cursor / Cursor++ official documentation**, `docs.cursor.com`, and **local `.trellis/spec/`** before trusting Context7 hits.
+- **Context7** and generic third-party library docs are often **irrelevant** to Trellis/Cursor platform questions. Prefer **Cursor / Cursor++ official documentation**, `docs.cursor.com`, and **local `.cstl/spec/`** before trusting Context7 hits.
 - Every smart-search result you persist must **label the provider source** (e.g. `exa`, `context7`, `cursor-docs`, `tavily`) in the research file — in frontmatter or per bullet — so downstream check/finish can audit provenance.
-- Trellis harness facts: `./.trellis/scripts/run_smart_search.py` writes manifests under `{TASK}/research/smart-search/<run-id>/`; scored pack output (when built) is `{TASK}/research/retrieval-pack-latest.json`.
+- Trellis harness facts: `./.cstl/scripts/run_smart_search.py` writes manifests under `{TASK}/research/smart-search/<run-id>/`; scored pack output (when built) is `{TASK}/research/retrieval-pack-latest.json`.
 
 #### External search — manual query refinement
 
@@ -80,7 +80,7 @@ When the first smart-search pass returns irrelevant results, **refine before fal
 2. Add product scope: `+Trellis`, `+cursor-trellis`, or the exact API/hook name
 3. Switch route: `--intent official-source --include-domain cursor.com` or `--intent docs` for API reference
 4. Narrow time or topic: shorter query, version number, or feature name from local spec
-5. Re-run: `python ./.trellis/scripts/run_smart_search.py "<refined query>" --intent deep-research --json`
+5. Re-run: `python ./.cstl/scripts/run_smart_search.py "<refined query>" --intent deep-research --json`
 
 Only use Cursor WebSearch/WebFetch when smart-search is unavailable (`not_configured` / `failed` / timeout) — then persist with `source: cursor-web-fallback`.
 
@@ -110,8 +110,8 @@ Do NOT paste full research content into the reply. The files are the contract.
 ### Write FORBIDDEN
 
 - Code files (`src/`, `lib/`, …)
-- Spec files (`.trellis/spec/`) — main agent should use `update-spec` skill instead
-- `.trellis/scripts/`, `.trellis/workflow.md`, platform config (`.claude/`, `.cursor/`, etc.)
+- Spec files (`.cstl/spec/`) — main agent should use `update-spec` skill instead
+- `.cstl/scripts/`, `.cstl/workflow.md`, platform config (`.claude/`, `.cursor/`, etc.)
 - Other task directories
 - Any git operation (commit / push / branch / merge)
 
@@ -149,7 +149,7 @@ Each `{TASK_DIR}/research/<topic>.md` should follow:
 
 ### Related Specs
 
-- `.trellis/spec/xxx.md` — <description>
+- `.cstl/spec/xxx.md` — <description>
 
 ## Caveats / Not Found
 

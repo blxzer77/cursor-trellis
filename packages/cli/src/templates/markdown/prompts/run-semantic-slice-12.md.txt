@@ -7,7 +7,7 @@
 For each query in `queries-semantic-slice.jsonl`:
 
 ```powershell
-python .trellis/scripts/route_codebase_retrieval.py "<question>" --json
+python .cstl/scripts/route_codebase_retrieval.py "<question>" --json
 ```
 
 Record `semantic_in_plan` / route list from the envelope.

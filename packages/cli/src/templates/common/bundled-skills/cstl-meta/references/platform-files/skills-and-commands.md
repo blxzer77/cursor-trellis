@@ -22,7 +22,7 @@ Bundled skills are installed as directories and may include nested `agents/`, `e
 
 `smart-search-cli` is CLI-backed source retrieval. The Trellis package exposes the `smart-search` executable through its runtime wrapper; the skill documents how agents should use that CLI and cite retrieved sources.
 
-`cstl-spec-bootstrap` bootstraps project-specific `.trellis/spec/` guidance from the real repository.
+`cstl-spec-bootstrap` bootstraps project-specific `.cstl/spec/` guidance from the real repository.
 
 `cstl-skill-creator` is the authoring and review guide for Trellis-compatible skills. Use it when creating or improving project-local skills under `.cursor/skills/`, the shared `.agents/skills/` directory (industry skill-sharing, kept but not extended by new Trellis behavior), or upstream bundled skills. Keep `cstl-meta` focused on architecture and routing.
 
@@ -76,11 +76,11 @@ References hold longer explanations so the entry file does not contain everythin
 Commands, prompts, and workflows are usually single files. Their content should include:
 
 - When to use it.
-- Which `.trellis/` files to read.
+- Which `.cstl/` files to read.
 - Which scripts to run.
 - How to report after completion.
 
-They should not store task state; task state belongs in `.trellis/tasks/` and `.trellis/.runtime/`.
+They should not store task state; task state belongs in `.cstl/tasks/` and `.cstl/.runtime/`.
 
 Task selection uses `selected_task`, not legacy current/active task commands. The current command chain is:
 
@@ -106,7 +106,7 @@ Do not reintroduce `task.py start`, `task.py current`, or `task.py finish` into 
 
 1. **Keep entry files short; references carry long content**. This matters especially for multi-file skills like `cstl-meta` and `cstl-skill-creator`.
 2. **Make trigger descriptions specific**. A description that is too broad can mis-trigger; one that is too narrow may not trigger.
-3. **Keep behavior descriptions consistent with the shared `.trellis/` runtime**. Format may differ per file type, but semantics should match the shared workflow.
+3. **Keep behavior descriptions consistent with the shared `.cstl/` runtime**. Format may differ per file type, but semantics should match the shared workflow.
 4. **Put project-specific capabilities in local skills**. Do not put team-private flows into public `cstl-meta`.
 
-If the user only wants local AI to know one more project rule, usually create a project-local skill under `.cursor/skills/` or update `.trellis/spec/` instead of changing a Trellis built-in workflow skill.
+If the user only wants local AI to know one more project rule, usually create a project-local skill under `.cursor/skills/` or update `.cstl/spec/` instead of changing a Trellis built-in workflow skill.

@@ -37,7 +37,7 @@ export interface MigrationItem {
  * substring (live or commented), the section is treated as already present.
  */
 export interface ConfigSectionAdded {
-  /** Target file relative to project root (e.g. `.trellis/config.yaml`). */
+  /** Target file relative to project root (e.g. `.cstl/config.yaml`). */
   file: string;
   /**
    * Substring whose presence in the user file means this section already

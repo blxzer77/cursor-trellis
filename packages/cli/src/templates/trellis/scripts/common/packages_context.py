@@ -195,7 +195,7 @@ def get_context_packages_text(repo_root: Path | None = None) -> str:
         if pkg["specLayers"]:
             lines.append(f"Spec layers: {', '.join(pkg['specLayers'])}")
             for layer in pkg["specLayers"]:
-                lines.append(f"  - .trellis/spec/{pkg['name']}/{layer}/index.md")
+                lines.append(f"  - .cstl/spec/{pkg['name']}/{layer}/index.md")
         else:
             lines.append("Spec: not configured")
         lines.append("")
@@ -204,7 +204,7 @@ def get_context_packages_text(repo_root: Path | None = None) -> str:
     guides_dir = repo_root / DIR_WORKFLOW / DIR_SPEC / "guides"
     if guides_dir.is_dir():
         lines.append("### Shared Guides (always included)")
-        lines.append("Path: .trellis/spec/guides/index.md")
+        lines.append("Path: .cstl/spec/guides/index.md")
         lines.append("")
 
     return "\n".join(lines)

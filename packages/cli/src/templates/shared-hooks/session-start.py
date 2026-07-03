@@ -308,7 +308,7 @@ def _normalize_task_ref(task_ref: str) -> str:
         normalized = normalized[2:]
 
     if normalized.startswith("tasks/"):
-        return f".trellis/{normalized}"
+        return f".cstl/{normalized}"
 
     return normalized
 
@@ -318,7 +318,7 @@ def _resolve_task_dir(trellis_dir: Path, task_ref: str) -> Path:
     path_obj = Path(normalized)
     if path_obj.is_absolute():
         return path_obj
-    if normalized.startswith(".trellis/"):
+    if normalized.startswith(".cstl/"):
         return trellis_dir.parent / path_obj
     return trellis_dir / "tasks" / path_obj
 
@@ -341,7 +341,7 @@ def _get_task_status(trellis_dir: Path, input_data: dict) -> str:
         return (
             f"Trellis framework: active\nSelected task: {task_ref}\n"
             "Status: STALE SELECTION\n"
-            f"Next-Action: Run `{_PYTHON_CMD} ./.trellis/scripts/task.py exit` to clear the stale selection, "
+            f"Next-Action: Run `{_PYTHON_CMD} ./.cstl/scripts/task.py exit` to clear the stale selection, "
             "then ask the user what to work on next."
         )
 
@@ -570,7 +570,7 @@ def _collect_spec_index_paths(trellis_dir: Path, allowed_pkgs: set | None) -> li
     paths: list[str] = []
     guides_index = trellis_dir / "spec" / "guides" / "index.md"
     if guides_index.is_file():
-        paths.append(".trellis/spec/guides/index.md")
+        paths.append(".cstl/spec/guides/index.md")
 
     spec_dir = trellis_dir / "spec"
     if not spec_dir.is_dir():
@@ -582,7 +582,7 @@ def _collect_spec_index_paths(trellis_dir: Path, allowed_pkgs: set | None) -> li
 
         index_file = sub / "index.md"
         if index_file.is_file():
-            paths.append(f".trellis/spec/{sub.name}/index.md")
+            paths.append(f".cstl/spec/{sub.name}/index.md")
             continue
 
         if allowed_pkgs is not None and sub.name not in allowed_pkgs:
@@ -592,7 +592,7 @@ def _collect_spec_index_paths(trellis_dir: Path, allowed_pkgs: set | None) -> li
                 continue
             nested_index = nested / "index.md"
             if nested_index.is_file():
-                paths.append(f".trellis/spec/{sub.name}/{nested.name}/index.md")
+                paths.append(f".cstl/spec/{sub.name}/{nested.name}/index.md")
 
     return paths
 
@@ -641,7 +641,7 @@ def _build_compact_current_state(
         try:
             task_count = sum(1 for _ in iter_active_tasks(get_tasks_dir(repo_root)))
             lines.append(
-                f"Active tasks: {task_count} total. Use the Task Dashboard for routing; use `{_PYTHON_CMD} ./.trellis/scripts/task.py list --mine` only for raw inspection."
+                f"Active tasks: {task_count} total. Use the Task Dashboard for routing; use `{_PYTHON_CMD} ./.cstl/scripts/task.py list --mine` only for raw inspection."
             )
         except Exception:
             pass
@@ -672,7 +672,7 @@ def _build_task_dashboard(trellis_dir: Path, input_data: dict) -> str:
             _detect_platform(input_data),
         )
     except Exception:
-        return f"Task Dashboard unavailable. Run: {_PYTHON_CMD} ./.trellis/scripts/task.py dashboard"
+        return f"Task Dashboard unavailable. Run: {_PYTHON_CMD} ./.cstl/scripts/task.py dashboard"
 
 
 def _extract_range(content: str, start_header: str, end_header: str) -> str:
@@ -739,7 +739,7 @@ def _build_workflow_overview(workflow_path: Path) -> str:
 
     out_lines = [
         "# Development Workflow - Session Summary",
-        f"Full guide: .trellis/workflow.md. Step detail: `{_PYTHON_CMD} ./.trellis/scripts/get_context.py --mode phase --step <X.Y>`.",
+        f"Full guide: .cstl/workflow.md. Step detail: `{_PYTHON_CMD} ./.cstl/scripts/get_context.py --mode phase --step <X.Y>`.",
         "",
     ]
 
@@ -781,7 +781,7 @@ def main():
     if project_dir is None:
         project_dir = Path(_normalize_windows_shell_path(hook_input.get("cwd", "."))).resolve()
 
-    trellis_dir = project_dir / ".trellis"
+    trellis_dir = project_dir / ".cstl"
     context_key = _resolve_context_key(trellis_dir, hook_input)
     _persist_context_key_for_bash(context_key)
 
@@ -836,17 +836,17 @@ Trellis compact SessionStart context. Use it to orient the session; load details
 
     output.write(
         "Discover more via: "
-        f"`{_PYTHON_CMD} ./.trellis/scripts/get_context.py --mode packages`\n"
+        f"`{_PYTHON_CMD} ./.cstl/scripts/get_context.py --mode packages`\n"
     )
     if _detect_platform(hook_input) == "cursor":
         output.write(
             "\n**External web research (Cursor):** run "
-            f"`{_PYTHON_CMD} ./.trellis/scripts/run_smart_search.py \"<question>\" "
+            f"`{_PYTHON_CMD} ./.cstl/scripts/run_smart_search.py \"<question>\" "
             "--intent deep-research --json` first (Trellis evidence wrapper → "
             "`smart-search` CLI). CLI discovery: `TRELLIS_SMART_SEARCH_COMMAND` / "
             "`smart_search.command`, then PATH `smart-search`, then project "
             "`node_modules/.bin/smart-search`, then optional repo-local layouts "
-            "(see `.trellis/spec/guides/retrieval-daily-guide.md`). "
+            "(see `.cstl/spec/guides/retrieval-daily-guide.md`). "
             "`smart-search-cli` is an internal workflow skill name — not a file under `.cursor/skills/` on Cursor. "
             "If `run_smart_search.py` status is `not_configured` or `failed` (incl. timeout), "
             "use **WebSearch/WebFetch**, persist `{TASK}/research/*.md` with "

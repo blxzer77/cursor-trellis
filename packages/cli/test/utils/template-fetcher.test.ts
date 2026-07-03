@@ -28,7 +28,7 @@ function normalizeLineEndings(content: string): string {
 describe("getInstallPath", () => {
   it("returns spec path for 'spec' type", () => {
     const result = getInstallPath("/project", "spec");
-    expect(result).toBe(path.join("/project", ".trellis/spec"));
+    expect(result).toBe(path.join("/project", ".cstl/spec"));
   });
 
   it("returns skill path for 'skill' type", () => {
@@ -48,12 +48,12 @@ describe("getInstallPath", () => {
 
   it("falls back to spec path for unknown type", () => {
     const result = getInstallPath("/project", "unknown-type");
-    expect(result).toBe(path.join("/project", ".trellis/spec"));
+    expect(result).toBe(path.join("/project", ".cstl/spec"));
   });
 
   it("works with different cwd values", () => {
     const result = getInstallPath("/home/user/my-project", "spec");
-    expect(result).toBe(path.join("/home/user/my-project", ".trellis/spec"));
+    expect(result).toBe(path.join("/home/user/my-project", ".cstl/spec"));
   });
 });
 
@@ -668,7 +668,7 @@ gitDescribe("git-backed registry backend", () => {
         expect(
           normalizeLineEndings(
             fs.readFileSync(
-              path.join(cwd, ".trellis", "spec", "rules.md"),
+              path.join(cwd, ".cstl", "spec", "rules.md"),
               "utf-8",
             ),
           ),
@@ -724,7 +724,7 @@ gitDescribe("git-backed registry backend", () => {
         expect(
           normalizeLineEndings(
             fs.readFileSync(
-              path.join(cwd, ".trellis", "spec", "rules.md"),
+              path.join(cwd, ".cstl", "spec", "rules.md"),
               "utf-8",
             ),
           ),
@@ -749,7 +749,7 @@ gitDescribe("git-backed registry backend", () => {
         expect(probe.isNotFound).toBe(true);
 
         const cwd = path.join(tmpDir, "project");
-        const specDir = path.join(cwd, ".trellis", "spec");
+        const specDir = path.join(cwd, ".cstl", "spec");
         fs.mkdirSync(specDir, { recursive: true });
         fs.writeFileSync(path.join(specDir, "keep.md"), "local keep\n");
 

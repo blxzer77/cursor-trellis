@@ -8,7 +8,7 @@ Enter or refresh the Trellis Framework Context. This is a dashboard entry surfac
 Identity, git status, selected task, Task Dashboard, journal location.
 
 ```bash
-{{PYTHON_CMD}} ./.trellis/scripts/get_context.py
+{{PYTHON_CMD}} ./.cstl/scripts/get_context.py
 ```
 
 If this output includes a line beginning `Trellis update available:`, copy the full line verbatim when summarizing session context. Do not shorten operational command hints.
@@ -17,18 +17,18 @@ If this output includes a line beginning `Trellis update available:`, copy the f
 Compact Phase Index, request triage rules, planning artifact contract, and the step-detail command.
 
 ```bash
-{{PYTHON_CMD}} ./.trellis/scripts/get_context.py --mode phase
+{{PYTHON_CMD}} ./.cstl/scripts/get_context.py --mode phase
 ```
 
-Full guide in `.trellis/workflow.md` (read on demand).
+Full guide in `.cstl/workflow.md` (read on demand).
 
 ## Step 3: Guideline indexes
 Discover packages + spec layers, then read each relevant index file.
 
 ```bash
-{{PYTHON_CMD}} ./.trellis/scripts/get_context.py --mode packages
-cat .trellis/spec/guides/index.md
-cat .trellis/spec/<package>/<layer>/index.md   # for each relevant layer
+{{PYTHON_CMD}} ./.cstl/scripts/get_context.py --mode packages
+cat .cstl/spec/guides/index.md
+cat .cstl/spec/<package>/<layer>/index.md   # for each relevant layer
 ```
 
 Index files list the specific guideline docs to read when you actually start coding.
@@ -47,7 +47,7 @@ If a task is selected, check the task directory:
 - **Selected task status `planning` + `prd.md` exists** → stay in Planning / Execution Gate. Lightweight tasks can be PRD-only; complex tasks need `design.md` + `implement.md`. Run `task.py start-execution <task> --check` and request explicit execution approval before execution.
 - **Selected task status `in_progress`** → Phase 2 step 2.1. Load the step detail:
   ```bash
-  {{PYTHON_CMD}} ./.trellis/scripts/get_context.py --mode phase --step 2.1 --platform {{CLI_FLAG}}
+  {{PYTHON_CMD}} ./.cstl/scripts/get_context.py --mode phase --step 2.1 --platform {{CLI_FLAG}}
   ```
 - **No selected task** → use dashboard routing. Do not auto-select an existing task.
 
@@ -66,4 +66,4 @@ If a task is selected, check the task directory:
 | Stuck / fixed same bug multiple times | `cstl-break-loop` |
 | Learned something worth capturing | `cstl-update-spec` |
 
-Full rules + anti-rationalization table in `.trellis/workflow.md`.
+Full rules + anti-rationalization table in `.cstl/workflow.md`.

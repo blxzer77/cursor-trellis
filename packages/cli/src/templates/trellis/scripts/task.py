@@ -117,7 +117,7 @@ def _repo_relative(path, repo_root) -> str:
 def _print_select_dispatch_fallback_tip() -> None:
     print(
         "Tip: if no session identity, use "
-        "'python ./.trellis/scripts/generate_dispatch_prompt.py --task <path>' "
+        "'python ./.cstl/scripts/generate_dispatch_prompt.py --task <path>' "
         "to dispatch directly.",
         file=sys.stderr,
     )
@@ -127,7 +127,7 @@ def _resolve_existing_task(task_input: str, repo_root):
     full_path = resolve_task_dir(task_input, repo_root)
     if not full_path.is_dir():
         print(colored(f"Error: Task not found: {task_input}", Colors.RED), file=sys.stderr)
-        print("Hint: Use task name (e.g., 'my-task') or full path (e.g., '.trellis/tasks/01-31-my-task')", file=sys.stderr)
+        print("Hint: Use task name (e.g., 'my-task') or full path (e.g., '.cstl/tasks/01-31-my-task')", file=sys.stderr)
         return None
     return full_path
 
@@ -177,15 +177,15 @@ def _print_no_selected_task_guidance() -> None:
     print(colored("No task selected for this live session.", Colors.YELLOW), file=sys.stderr)
     print("Next actions:", file=sys.stderr)
     print(
-        "  - Route work: python ./.trellis/scripts/task.py dashboard",
+        "  - Route work: python ./.cstl/scripts/task.py dashboard",
         file=sys.stderr,
     )
     print(
-        "  - Select a task: python ./.trellis/scripts/task.py select <task-dir>",
+        "  - Select a task: python ./.cstl/scripts/task.py select <task-dir>",
         file=sys.stderr,
     )
     print(
-        "  - List active tasks: python ./.trellis/scripts/task.py list",
+        "  - List active tasks: python ./.cstl/scripts/task.py list",
         file=sys.stderr,
     )
     print(
@@ -553,15 +553,15 @@ List options:
 Examples:
   python task.py create "Add login feature" --slug add-login
   python task.py create "Add login feature" --slug add-login --package cli
-  python task.py create "Child task" --slug child --parent .trellis/tasks/01-21-parent
-  python task.py add-context <dir> implement .trellis/spec/cli/backend/auth.md "Auth guidelines"
+  python task.py create "Child task" --slug child --parent .cstl/tasks/01-21-parent
+  python task.py add-context <dir> implement .cstl/spec/cli/backend/auth.md "Auth guidelines"
   python task.py set-branch <dir> task/add-login
   python task.py dashboard
-  python task.py select .trellis/tasks/01-21-add-login
+  python task.py select .cstl/tasks/01-21-add-login
   python task.py selected --source
-  python task.py start-execution .trellis/tasks/01-21-add-login --check
-  python task.py start-execution .trellis/tasks/01-21-add-login --approved
-  python task.py record-gate .trellis/tasks/01-21-add-login --transition full-task-complete --gate code-review --result FAIL --reviewer codex --evidence verify.md --issue-fingerprint auth-branch-1 --root-cause implementation-defect
+  python task.py start-execution .cstl/tasks/01-21-add-login --check
+  python task.py start-execution .cstl/tasks/01-21-add-login --approved
+  python task.py record-gate .cstl/tasks/01-21-add-login --transition full-task-complete --gate code-review --result FAIL --reviewer codex --evidence verify.md --issue-fingerprint auth-branch-1 --root-cause implementation-defect
   python task.py exit
   python task.py archive add-login --check
   python task.py archive add-login
@@ -606,9 +606,9 @@ def main() -> int:
             "sub-agent-capable platforms and curated by the AI during planning when needed.",
             file=sys.stderr,
         )
-        print("See .trellis/workflow.md planning artifact guidance or run:", file=sys.stderr)
+        print("See .cstl/workflow.md planning artifact guidance or run:", file=sys.stderr)
         print(
-            "  python ./.trellis/scripts/get_context.py --mode phase --step 1",
+            "  python ./.cstl/scripts/get_context.py --mode phase --step 1",
             file=sys.stderr,
         )
         print(
@@ -758,7 +758,7 @@ def main() -> int:
     p_prepare_worktree.add_argument("child_dir", help="Child task directory")
     p_prepare_worktree.add_argument("--branch", required=True, help="Child git branch to create or checkout")
     p_prepare_worktree.add_argument("--base", help="Base ref for a new Child branch")
-    p_prepare_worktree.add_argument("--path", help="Worktree path under .trellis/worktrees/")
+    p_prepare_worktree.add_argument("--path", help="Worktree path under .cstl/worktrees/")
     p_prepare_worktree.add_argument("--check", action="store_true", help="Run non-mutating worktree readiness check")
 
     # set-child-state

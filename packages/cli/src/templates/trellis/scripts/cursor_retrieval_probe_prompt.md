@@ -32,7 +32,7 @@ the **codegraph_search** MCP tool to answer.
 
 Task: Call `codegraph_search` with the query `patch_wpelc8` and report:
 1. The file path(s) returned (expected to contain `patch_wpelc8.py` under
-   `.trellis/local/cursor2plus/`).
+   `.cstl/local/cursor2plus/`).
 2. The symbol kind (expected: `function`).
 3. The exact tool name you invoked (from your tool-use record).
 
@@ -57,7 +57,7 @@ the **codegraph_callers** MCP tool to answer.
 Task: Call `codegraph_callers` with the symbol `route_codebase_retrieval` and
 report:
 1. The list of caller sites returned (expected: at least one caller in
-   `route_codebase_retrieval.py` under `.trellis/scripts/`).
+   `route_codebase_retrieval.py` under `.cstl/scripts/`).
 2. The count of callers.
 3. The exact tool name you invoked.
 
@@ -85,7 +85,7 @@ Task: Call the fast-context semantic search with the query:
 Report:
 1. Whether the tool returned any results.
 2. If so, the top file path (expected to contain something under
-   `.trellis/local/cursor2plus/` or `.trellis/spec/guides/cursor-subagent-policy.md`).
+   `.cstl/local/cursor2plus/` or `.cstl/spec/guides/cursor-subagent-policy.md`).
 3. The exact tool name you invoked.
 
 Reply in this exact format:
@@ -111,7 +111,7 @@ concept recall** (not Grep on a known string). Do **not** invoke tools yet — l
 your **available tool table / MCP list** only.
 
 Also run locally (or ask the user to confirm):
-`python .\.trellis\scripts\cursor_retrieval_probe.py --json` and note `env.env`,
+`python .\.cstl\scripts\cursor_retrieval_probe.py --json` and note `env.env`,
 `mcp_config.fast_context_configured`, and auto `D-01` status.
 
 Reply in this exact format:
@@ -153,10 +153,10 @@ Semantic question:
 > the official cloud?"
 
 Expected answer (for verification, do NOT reveal this to the solver path):
-the relevant logic lives in `.trellis/local/cursor2plus/patch_wpelc8.py` (the
+the relevant logic lives in `.cstl/local/cursor2plus/patch_wpelc8.py` (the
 `WPeLc8` function patch) and is documented in
-`.trellis/spec/guides/cursor-subagent-policy.md` and
-`.trellis/spec/guides/cursor-subagent-reverse-engineering-report.md`.
+`.cstl/spec/guides/cursor-subagent-policy.md` and
+`.cstl/spec/guides/cursor-subagent-reverse-engineering-report.md`.
 
 Reply in this exact format:
 
@@ -192,8 +192,8 @@ Semantic question (same as P-08 — no literal file/symbol/path clues in your qu
 > the official cloud?"
 
 Expected (for verification only — do not paste paths into fast_context_search query):
-Top hits should include `.trellis/local/cursor2plus/patch_wpelc8.py` and/or
-`.trellis/spec/guides/cursor-subagent-policy.md`.
+Top hits should include `.cstl/local/cursor2plus/patch_wpelc8.py` and/or
+`.cstl/spec/guides/cursor-subagent-policy.md`.
 
 Reply in this exact format:
 
@@ -231,7 +231,7 @@ Semantic question (no literal clues):
 Expected (for verification only): the answer should weave together
 `.cursor/hooks/inject-retrieval-plan.py` (beforeSubmitPrompt injection),
 `.cursor/rules/retrieval-routing.mdc` (alwaysApply policy), and the
-`sessionStart` bug #158452 noted in `.trellis/spec/guides/cursor-context-injection-guide.md`.
+`sessionStart` bug #158452 noted in `.cstl/spec/guides/cursor-context-injection-guide.md`.
 
 Reply in this exact format:
 
@@ -263,7 +263,7 @@ confirm line numbers after codegraph returns a definition.
 
 Task: Locate the **definition** of `route_codebase_retrieval` (Python function).
 
-Expected: definition in `.trellis/scripts/common/codebase_retrieval_router.py`
+Expected: definition in `.cstl/scripts/common/codebase_retrieval_router.py`
 (`def route_codebase_retrieval(`).
 
 Reply in this exact format:

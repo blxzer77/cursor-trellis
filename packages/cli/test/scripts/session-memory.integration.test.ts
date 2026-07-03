@@ -53,7 +53,7 @@ function writeFile(root: string, rel: string, content: string): void {
 }
 
 function writeTrellisScripts(root: string): void {
-  const scriptsDir = path.join(root, ".trellis", "scripts");
+  const scriptsDir = path.join(root, ".cstl", "scripts");
   for (const [rel, content] of getAllScripts()) {
     writeFile(scriptsDir, rel, content);
   }
@@ -61,10 +61,10 @@ function writeTrellisScripts(root: string): void {
 
 function seedProject(root: string): void {
   writeTrellisScripts(root);
-  writeFile(root, ".trellis/.developer", "name=test-dev\n");
+  writeFile(root, ".cstl/.developer", "name=test-dev\n");
   writeFile(
     root,
-    ".trellis/workspace/test-dev/journal-1.md",
+    ".cstl/workspace/test-dev/journal-1.md",
     [
       "# Journal - test-dev (Part 1)",
       "",
@@ -120,7 +120,7 @@ function runSearchMemory(
 ): { status: number | null; stdout: string; stderr: string } {
   const result = spawnSync(
     pythonCmd as string,
-    [path.join(root, ".trellis", "scripts", "search_memory.py"), ...args],
+    [path.join(root, ".cstl", "scripts", "search_memory.py"), ...args],
     { cwd: root, encoding: "utf-8" },
   );
   return {
@@ -167,7 +167,7 @@ describe.skipIf(pythonCmd === null)("search_memory.py", () => {
       package: "Trellis",
       branch: "feature/retrieval",
       commits: ["abc1234"],
-      path: ".trellis/workspace/test-dev/journal-1.md",
+      path: ".cstl/workspace/test-dev/journal-1.md",
     });
     expect(memory.summary).toContain("Smart Search manifest handoff");
     expect(memory.matchedSections).toContain("Summary");

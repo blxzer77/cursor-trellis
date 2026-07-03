@@ -350,7 +350,7 @@ def _verification_for_intents(intents: list[dict[str, object]]) -> list[dict[str
                 "id": "policy-doc-top1",
                 "requirement": (
                     "For policy/document intents, confirm Top-1 policy evidence from "
-                    "AGENTS.md or .trellis/spec before ranking implementation modules first."
+                    "AGENTS.md or .cstl/spec before ranking implementation modules first."
                 ),
                 "appliesToRoles": ["exact", "semantic"],
             },
@@ -561,7 +561,7 @@ def _ordered_routes(
                 "sourceFamily": "policy-docs",
                 "commands": [
                     'rg -i "storage default|sidecar|sqlite only" AGENTS.md "**/AGENTS.md" '
-                    "README.md CONTRIBUTING.md .trellis/spec"
+                    "README.md CONTRIBUTING.md .cstl/spec"
                 ],
                 "rationale": "Policy/document intent: search instruction and spec docs first.",
             })
@@ -589,7 +589,7 @@ def _ordered_routes(
             "sourceFamily": "policy-docs",
             "commands": [
                 'rg -i "storage default|sidecar|sqlite only" AGENTS.md "**/AGENTS.md" '
-                "README.md CONTRIBUTING.md .trellis/spec"
+                "README.md CONTRIBUTING.md .cstl/spec"
             ],
             "rationale": "Policy/document intent: search instruction and spec docs first.",
         })
@@ -615,7 +615,7 @@ def _ordered_routes(
                 "sourceFamily": "policy-docs",
                 "commands": [
                     'rg -i "storage default|sidecar|sqlite only" AGENTS.md "**/AGENTS.md" '
-                    "README.md CONTRIBUTING.md .trellis/spec"
+                    "README.md CONTRIBUTING.md .cstl/spec"
                 ],
                 "rationale": "Policy/document branch after exact-primary when both intents match.",
             })
@@ -733,7 +733,7 @@ def _fallback_hints(
     if any(str(item["id"]) == INTENT_POLICY for item in intents):
         hints.append({
             "when": "semantic Top-1 is implementation-only for policy query",
-            "action": "Fall back to policy-doc rg and AGENTS.md/.trellis/spec reads.",
+            "action": "Fall back to policy-doc rg and AGENTS.md/.cstl/spec reads.",
             "replacesRole": "semantic",
         })
     semantic_route = next(
@@ -861,7 +861,7 @@ def codebase_retrieval_selected_from_capabilities(
 def load_capabilities_json(repo_root: Path | None) -> dict[str, Any] | None:
     if repo_root is None:
         return None
-    path = repo_root / ".trellis" / "capabilities.json"
+    path = repo_root / ".cstl" / "capabilities.json"
     if not path.is_file():
         return None
     try:

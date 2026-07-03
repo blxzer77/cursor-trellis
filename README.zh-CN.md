@@ -14,13 +14,13 @@
 
 [English](README.md) | 简体中文
 
-**Trellis** 是面向 AI 编程 Agent 的渐进式上下文管理系统。它将 Agent 指令结构化为 `.trellis/`（workflow、spec、tasks、workspace）而非单一大文件，并生成平台特定的集成文件（Cursor 为 `.cursor/`）。
+**Trellis** 是面向 AI 编程 Agent 的渐进式上下文管理系统。它将 Agent 指令结构化为 `.cstl/`（workflow、spec、tasks、workspace）而非单一大文件，并生成平台特定的集成文件（Cursor 为 `.cursor/`）。
 
 基于 [mindfold-ai 的 Trellis 框架](https://github.com/mindfold-ai/Trellis)，本版本针对 Cursor 适配，包含 rules、commands、agents、hooks。
 
 ## 功能
 
-- 任务工件（PRD、设计、实现计划）持久化在 `.trellis/tasks/`
+- 任务工件（PRD、设计、实现计划）持久化在 `.cstl/tasks/`
 - 通过 `/cstl-continue` 跨会话恢复工作
 - 根据正在编辑的文件渐进式加载规范
 - 结构化工作流路由请求：triage → plan → gate → execute → verify
@@ -33,7 +33,7 @@
 
 | 命令 | 用途 |
 | --- | --- |
-| `cstl init --cursor` | 在当前项目创建 `.trellis/` + `.cursor/` |
+| `cstl init --cursor` | 在当前项目创建 `.cstl/` + `.cursor/` |
 | `cstl update` | 按已安装 CLI 版本刷新模板 |
 | `cstl uninstall` | 从项目中移除 Trellis 管理文件 |
 
@@ -59,7 +59,7 @@ cd examples/minimal-agent-app
 ./demo.sh          # Windows 用 demo.ps1
 ```
 
-脚本执行 `cstl init --cursor -y` → `cstl validate-rules` → 列出 `.trellis/` 与 `.cursor/`。详见 [examples/minimal-agent-app/README.md](examples/minimal-agent-app/README.md)。Agent 工具层叙事（CLI / MCP / Hook / Rule）：[docs/agent-tooling-narrative.zh-CN.md](docs/agent-tooling-narrative.zh-CN.md)。
+脚本执行 `cstl init --cursor -y` → `cstl validate-rules` → 列出 `.cstl/` 与 `.cursor/`。详见 [examples/minimal-agent-app/README.md](examples/minimal-agent-app/README.md)。Agent 工具层叙事（CLI / MCP / Hook / Rule）：[docs/agent-tooling-narrative.zh-CN.md](docs/agent-tooling-narrative.zh-CN.md)。
 
 ## 快速体验（约 5 分钟）
 
@@ -71,7 +71,7 @@ cd examples/minimal-agent-app
 ./demo.sh          # Windows 用 demo.ps1
 ```
 
-脚本执行 `cstl init --cursor -y` → `cstl validate-rules` → 列出 `.trellis/` 与 `.cursor/`。详见 [examples/minimal-agent-app/README.md](examples/minimal-agent-app/README.md)。Agent 工具层叙事（CLI / MCP / Hook / Rule）：[docs/agent-tooling-narrative.zh-CN.md](docs/agent-tooling-narrative.zh-CN.md)。
+脚本执行 `cstl init --cursor -y` → `cstl validate-rules` → 列出 `.cstl/` 与 `.cursor/`。详见 [examples/minimal-agent-app/README.md](examples/minimal-agent-app/README.md)。Agent 工具层叙事（CLI / MCP / Hook / Rule）：[docs/agent-tooling-narrative.zh-CN.md](docs/agent-tooling-narrative.zh-CN.md)。
 
 ## 快速开始（Cursor）
 
@@ -93,13 +93,25 @@ cstl init --cursor
 
 可选：`cstl init --cursor --cursor2plus` 物化**按仓库**的 Cursor++ BYOK 包（非全局二选一）。同一机器上 Native 与 BYOK 可并存 —— 见 [Native 与 BYOK 并存](docs/cursor.zh-CN.md#native-与-byok-并存非二选一)。
 
+## 从 0.3.0 升级（v0.3.1）
+
+v0.3.1 将 cursor-trellis **运行时目录**从 `.trellis/` 迁至 **`.cstl/`**，以便与上游 Trellis 的 `.trellis/` 在同一仓库共存。
+
+```bash
+npm install -g @blxzer/cursor-trellis@latest
+cd /path/to/your-app
+cstl update --migrate
+```
+
+`--migrate` **必须**带上；历史通过目录 rename 保留，脚本路径改为 `python ./.cstl/scripts/...`。
+
 ## 从 0.2.x 升级（v0.3.0）
 
 v0.3.0 为**硬切更名**：CLI 仅保留 **`cstl`**，`trellis` 与 `tl` 两个 bin 别名已移除。
 
 | 变了 | 没变 |
 | --- | --- |
-| CLI：`trellis` / `tl` → `cstl` | `.trellis/` 目录名 |
+| CLI：`trellis` / `tl` → `cstl` | （0.3.1+）运行时目录为 `.cstl/` |
 | skill / command / agent / rule：`trellis-*` → `cstl-*` | `trellis-task-models.json5` 文件名 |
 
 **迁移步骤**（每个项目执行一次）：
@@ -114,7 +126,7 @@ cstl update --migrate
 
 0.3.0 之后日常 CLI 小版本可用 `cstl upgrade`。升级到 0.3.0 后，旧的 `trellis upgrade` 命令已不存在。
 
-**Cursor++ BYOK**（可选，仅 `.trellis/local/cursor2plus/`）：将 `trellis-task-models.json5` 中的 `trellis-research/implement/check` 键改为 `cstl-research/implement/check`，然后重跑 `patch_wpelc8.py --apply`。可在 Agent 模式使用 `/cstl-cursor2plus-setup`。
+**Cursor++ BYOK**（可选，仅 `.cstl/local/cursor2plus/`）：将 `trellis-task-models.json5` 中的 `trellis-research/implement/check` 键改为 `cstl-research/implement/check`，然后重跑 `patch_wpelc8.py --apply`。可在 Agent 模式使用 `/cstl-cursor2plus-setup`。
 
 详见 [CHANGELOG](packages/cli/CHANGELOG.md#030---2026-07-01)。
 
@@ -122,7 +134,7 @@ cstl update --migrate
 
 ```text
 your-app/
-  .trellis/          workflow、spec、tasks、workspace、scripts
+  .cstl/          workflow、spec、tasks、workspace、scripts
   AGENTS.md          Trellis 管理的 Agent 入口
   .cursor/           commands、rules、agents、hooks（Cursor）
 ```
@@ -133,10 +145,10 @@ your-app/
 
 | 路径 | 作用 |
 | --- | --- |
-| `.trellis/workflow.md` | 生命周期：triage、规划、执行、收尾、学习 |
-| `.trellis/spec/` | 分层/分包编码规范 |
-| `.trellis/tasks/` | PRD、design、implement、verify 工件 |
-| `.trellis/workspace/` | 开发者日志与会话延续 |
+| `.cstl/workflow.md` | 生命周期：triage、规划、执行、收尾、学习 |
+| `.cstl/spec/` | 分层/分包编码规范 |
+| `.cstl/tasks/` | PRD、design、implement、verify 工件 |
+| `.cstl/workspace/` | 开发者日志与会话延续 |
 
 ## 工作流（摘要）
 

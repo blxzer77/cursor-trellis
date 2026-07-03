@@ -1,10 +1,10 @@
 # Change Local Workflow
 
-When the user wants to change Trellis phases, next-action hints, whether to create tasks, whether to use sub-agents, or when to check/wrap up, edit `.trellis/workflow.md` first.
+When the user wants to change Trellis phases, next-action hints, whether to create tasks, whether to use sub-agents, or when to check/wrap up, edit `.cstl/workflow.md` first.
 
 ## Read These Files First
 
-1. `.trellis/workflow.md`
+1. `.cstl/workflow.md`
 2. Entry files for the current platform, such as skills/commands/prompts/workflows
 3. The selected task's `task.json` and `prd.md`
 
@@ -21,11 +21,11 @@ When the user wants to change Trellis phases, next-action hints, whether to crea
 
 ## Modification Steps
 
-1. Find the relevant section in `.trellis/workflow.md`.
+1. Find the relevant section in `.cstl/workflow.md`.
 2. When changing rules, keep explicit trigger conditions and next actions.
 3. If adding or renaming a skill/agent, synchronize the corresponding files in platform directories.
-4. Workflow-state changes only need an edit to the `[workflow-state:STATUS]` block in `.trellis/workflow.md`. The hook is parser-only — it reads whatever you put in the block. Keep the opening and closing tags' STATUS strings identical (`[workflow-state:foo]…[/workflow-state:foo]`); mismatched STATUS pairs are silently dropped.
-5. Make the AI reread `.trellis/workflow.md`; do not keep using rules from the old conversation.
+4. Workflow-state changes only need an edit to the `[workflow-state:STATUS]` block in `.cstl/workflow.md`. The hook is parser-only — it reads whatever you put in the block. Keep the opening and closing tags' STATUS strings identical (`[workflow-state:foo]…[/workflow-state:foo]`); mismatched STATUS pairs are silently dropped.
+5. Make the AI reread `.cstl/workflow.md`; do not keep using rules from the old conversation.
 
 ## Example: Relax Task Creation Requirements
 
@@ -58,8 +58,8 @@ If the user wants only one platform to avoid sub-agents, first confirm whether t
 | `in_progress` | check passed | Phase 3.1 (verify quality + spec update) |
 | `completed` | task is still in active tree | Phase 3.5 (run `cstl-finish-work` to archive) |
 
-When you add a custom status (e.g. `in-review`), add a `[workflow-state:in-review]` block in `.trellis/workflow.md` for the per-turn breadcrumb AND extend this route table — usually by editing the `cstl-continue` skill (`.cursor/skills/cstl-continue/` or the equivalent command file) to add a row that decides where to resume from. Without the route entry, the resume flow will fall through to a default branch and the user will not land on the step you intended.
+When you add a custom status (e.g. `in-review`), add a `[workflow-state:in-review]` block in `.cstl/workflow.md` for the per-turn breadcrumb AND extend this route table — usually by editing the `cstl-continue` skill (`.cursor/skills/cstl-continue/` or the equivalent command file) to add a row that decides where to resume from. Without the route entry, the resume flow will fall through to a default branch and the user will not land on the step you intended.
 
 ## Notes
 
-`.trellis/workflow.md` is the local project workflow, not an immutable template. The user can adapt it to team habits. After editing it, platform entry files may still contain old descriptions, so inspect them too.
+`.cstl/workflow.md` is the local project workflow, not an immutable template. The user can adapt it to team habits. After editing it, platform entry files may still contain old descriptions, so inspect them too.

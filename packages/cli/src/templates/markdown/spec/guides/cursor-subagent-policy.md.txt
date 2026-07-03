@@ -98,14 +98,14 @@ When research is purely **codebase exploration** (no external web search, no fil
 
 **What it is:** A reversible patch to Cursor++ `extension.js` resolver `WPeLc8` that maps `subagentType` → BYOK catalog **slug** (`model-xxxxx`), evaluated **before** the inherit-parent branch. Verified 2026-06-18 (Cursor++ v0.0.11).
 
-**Trellis ships (every `cstl init` / `cstl update`, strategy C):** `.trellis/local/cursor2plus/` — `patch_wpelc8.py`, `README.md`, `config.local.json.example`. Native Cursor API users can ignore this directory.
+**Trellis ships (every `cstl init` / `cstl update`, strategy C):** `.cstl/local/cursor2plus/` — `patch_wpelc8.py`, `README.md`, `config.local.json.example`. Native Cursor API users can ignore this directory.
 
 **Operator workflow (Cursor++ BYOK only):**
 
 1. Fill **`~/.ccursor/trellis-task-models.json`** (user-wide) with `subagent_type` → slug from **`~/.ccursor/providers.json`** `id` fields.
-2. Optionally override per repo: **`.trellis/local/subagent-models.json`** (project wins on same key).
+2. Optionally override per repo: **`.cstl/local/subagent-models.json`** (project wins on same key).
 3. If paths are not auto-detected: copy `config.local.json.example` → `config.local.json`, or run `python patch_wpelc8.py --bootstrap`, or set `TRELLIS_CCURSOR_HOME` / `TRELLIS_CURSOR2PLUS_EXTENSION`.
-4. From `.trellis/local/cursor2plus/`: `python patch_wpelc8.py --print-map` → `python patch_wpelc8.py` → **Developer: Reload Window**.
+4. From `.cstl/local/cursor2plus/`: `python patch_wpelc8.py --print-map` → `python patch_wpelc8.py` → **Developer: Reload Window**.
 5. **Verify:** `taskToolCall dispatching` → `resolvedModelId` matches slug.
 
 **Revert:** `python patch_wpelc8.py --revert`; Reload Window. Re-run patch after Cursor / Cursor++ upgrades.
@@ -117,7 +117,7 @@ When research is purely **codebase exploration** (no external web search, no fil
 For rare per-dispatch models on the Task channel without changing global slots:
 
 1. Add `.cursor/agents/cstl-worker-<id>.md` (role prompt only; no committed `model:`).
-2. Add `"cstl-worker-<id>": "model-xxxxx"` to **project** `.trellis/local/subagent-models.json`.
+2. Add `"cstl-worker-<id>": "model-xxxxx"` to **project** `.cstl/local/subagent-models.json`.
 3. Re-run `patch_wpelc8.py`; dispatch `Task(subagent_type=cstl-worker-<id>)`.
 4. Remove agent file and JSON key when done.
 
@@ -128,7 +128,7 @@ Parent/Child **default** does not use 2.6 — it uses `cstl-implement` from the 
 When a custom Task subagent (`cstl-research`, `cstl-implement`, `cstl-check`) needs a **different model** than the parent under BYOK **and Method 2.5 is not available**:
 
 1. **Main session prepares the dispatch prompt** — full text with:
-   - First line: Selected task: <path> (e.g. .trellis/tasks/06-17-my-task)
+   - First line: Selected task: <path> (e.g. .cstl/tasks/06-17-my-task)
    - Task context from inject-subagent-context.py content (PRD, design, implement docs)
    - Agent role instructions (from the corresponding .cursor/agents/cstl-<role>.md)
    - Specific work assignment
@@ -217,14 +217,14 @@ Operational contract between the Trellis task ladder and Cursor++ BYOK.
 | Layer | Picks model for… | Mechanism |
 | ----- | ---------------- | --------- |
 | **You (operator)** | Main orchestration chat | Cursor model picker (parent BYOK route) |
-| **You (operator)** | `cstl-research` / `cstl-implement` / `cstl-check` (+ optional built-in Task types) | **Method 2.5 / 2.6** JSON maps + `.trellis/local/cursor2plus/patch_wpelc8.py` — **not** repo agent files |
+| **You (operator)** | `cstl-research` / `cstl-implement` / `cstl-check` (+ optional built-in Task types) | **Method 2.5 / 2.6** JSON maps + `.cstl/local/cursor2plus/patch_wpelc8.py` — **not** repo agent files |
 | **You (operator)** | `explore` | Cursor++ panel |
 | **Main Agent session** | When to spawn which agent | `workflow.md`, skills, scene matrix |
 | **Hooks** | Never | `inject-subagent-context.py` — task context only |
 
 ### Normal Full / Lite task flow
 
-1. **Select task** — `task.py select`; dispatch prompts include `Selected task: .trellis/tasks/<id>` when hooks need it.
+1. **Select task** — `task.py select`; dispatch prompts include `Selected task: .cstl/tasks/<id>` when hooks need it.
 2. **Main session model** — your choice for planning and orchestration.
 3. **Research** — Task `subagent_type=cstl-research` → mapped research slug (Method 2.5).
 4. **Implement** — after `start-execution --approved`, Task `cstl-implement` → mapped implement slug.
@@ -252,7 +252,7 @@ No model field in dispatch prompt under Method 2.5. Task `model: fast` does **no
 
 1. Resolve slugs in `~/.ccursor/providers.json` (or path in `config.local.json`).
 2. Edit user and/or project JSON maps; include `generalPurpose`, `shell`, `best-of-n-runner` if you use those Task types.
-3. Run `patch_wpelc8.py` from `.trellis/local/cursor2plus/` → Reload Window.
+3. Run `patch_wpelc8.py` from `.cstl/local/cursor2plus/` → Reload Window.
 4. Re-apply after Cursor / Cursor++ upgrades.
 
 ### What stays in the Trellis repo
@@ -317,7 +317,7 @@ trellis_task_subagents:
 If a dispatched subagent cannot answer from `prd.md` / jsonl (empty or generic replies):
 
 1. Confirm the main session used **CLI Layer 2** before `Task(...)` (workflow Phase 2.1 / 2.2).
-2. **Manual fallback (Method 3):** run `python ./.trellis/scripts/task.py generate-dispatch-prompt <task-dir> <role> [--scope "..."]`, paste stdout into `Task(subagent_type=..., prompt=...)`.
+2. **Manual fallback (Method 3):** run `python ./.cstl/scripts/task.py generate-dispatch-prompt <task-dir> <role> [--scope "..."]`, paste stdout into `Task(subagent_type=..., prompt=...)`.
 3. Hook-only injection is best-effort on Cursor; do not treat `preToolUse` as the sole source.
 
 This command is **Agent-facing** — not listed in user README or slash command surface.
@@ -387,7 +387,7 @@ For multi-package workspaces, list all install commands needed after a fresh che
 - `.cursor/agents/cstl-research.md`, `cstl-implement.md`, `cstl-check.md`
 - `.cursor/agents/.trellis-model-overlay.local.md` — optional overlay audit stub (native API)
 - Reference `patch_wpelc8.py` in task `06-18-byok-manual-dispatch-automation/research/` — copy locally; not a runtime git dependency
-- `.trellis/workflow.md` — Task Ladder + Parent orchestration
+- `.cstl/workflow.md` — Task Ladder + Parent orchestration
 - [Cursor Subagents](https://cursor.com/docs/subagents) — `model: inherit | <id>`
 - [Cursor Multitask changelog](https://cursor.com/changelog/04-24-26) — `/multitask`, Worktrees, Multi-root Workspaces
 - `.cursor/worktrees.json` — Cursor native worktree setup configuration

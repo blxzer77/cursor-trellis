@@ -35,18 +35,23 @@ function listRelativeFiles(root, subdir) {
     .map((name) => path.posix.join(subdir, name));
 }
 
-const TRELLIS_BLOCK_START = "<!-- TRELLIS:START -->";
-const TRELLIS_BLOCK_END = "<!-- TRELLIS:END -->";
+const CSTL_BLOCK_START = "<!-- CSTL:START -->";
+const CSTL_BLOCK_END = "<!-- CSTL:END -->";
+const LEGACY_TRELLIS_BLOCK_START = "<!-- TRELLIS:START -->";
+const LEGACY_TRELLIS_BLOCK_END = "<!-- TRELLIS:END -->";
 
-function extractTrellisManagedBlock(content) {
-  const start = content.indexOf(TRELLIS_BLOCK_START);
-  const end = content.indexOf(TRELLIS_BLOCK_END);
-  if (start === -1 || end === -1 || end <= start) {
-    return normalizeText(content);
+function extractManagedBlock(content) {
+  for (const [start, end] of [
+    [CSTL_BLOCK_START, CSTL_BLOCK_END],
+    [LEGACY_TRELLIS_BLOCK_START, LEGACY_TRELLIS_BLOCK_END],
+  ]) {
+    const startIdx = content.indexOf(start);
+    const endIdx = content.indexOf(end);
+    if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+      return normalizeText(content.slice(startIdx, endIdx + end.length));
+    }
   }
-  return normalizeText(
-    content.slice(start, end + TRELLIS_BLOCK_END.length),
-  );
+  return normalizeText(content);
 }
 
 function comparePair(relativePath, dogfoodPath, templatePath, diffs) {
@@ -66,10 +71,10 @@ function comparePair(relativePath, dogfoodPath, templatePath, diffs) {
   let dogfood;
   let template;
   if (relativePath === "AGENTS.md") {
-    dogfood = extractTrellisManagedBlock(
+    dogfood = extractManagedBlock(
       fs.readFileSync(dogfoodPath, "utf-8"),
     );
-    template = extractTrellisManagedBlock(
+    template = extractManagedBlock(
       fs.readFileSync(templatePath, "utf-8"),
     );
   } else {

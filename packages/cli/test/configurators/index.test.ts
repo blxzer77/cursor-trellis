@@ -38,12 +38,12 @@ describe("CONFIG_DIRS", () => {
 
 describe("ALL_MANAGED_DIRS", () => {
   it("starts with .trellis", () => {
-    expect(ALL_MANAGED_DIRS[0]).toBe(".trellis");
+    expect(ALL_MANAGED_DIRS[0]).toBe(".cstl");
   });
 
   it("contains .trellis plus all managed dirs", () => {
     expect(ALL_MANAGED_DIRS).toEqual([
-      ".trellis",
+      ".cstl",
       ...new Set(PLATFORM_MANAGED_DIRS),
     ]);
   });
@@ -62,12 +62,12 @@ describe("isManagedPath", () => {
 
   it("matches exact managed directory names", () => {
     expect(isManagedPath(".cursor")).toBe(true);
-    expect(isManagedPath(".trellis")).toBe(true);
+    expect(isManagedPath(".cstl")).toBe(true);
   });
 
   it("matches .trellis sub-paths", () => {
-    expect(isManagedPath(".trellis/spec")).toBe(true);
-    expect(isManagedPath(".trellis/tasks/some-task")).toBe(true);
+    expect(isManagedPath(".cstl/spec")).toBe(true);
+    expect(isManagedPath(".cstl/tasks/some-task")).toBe(true);
   });
 
   it("rejects legacy platform paths not in registry", () => {
@@ -87,7 +87,7 @@ describe("isManagedPath", () => {
 
   it("rejects path traversal", () => {
     expect(isManagedPath("../.cursor")).toBe(false);
-    expect(isManagedPath("../.trellis/spec")).toBe(false);
+    expect(isManagedPath("../.cstl/spec")).toBe(false);
   });
 
   it("rejects unrelated directories", () => {
@@ -98,7 +98,7 @@ describe("isManagedPath", () => {
 
   it("matches Windows-style backslash paths for cursor", () => {
     expect(isManagedPath(".cursor\\commands\\foo.md")).toBe(true);
-    expect(isManagedPath(".trellis\\spec\\backend")).toBe(true);
+    expect(isManagedPath(".cstl\\spec\\backend")).toBe(true);
   });
 });
 
@@ -108,12 +108,12 @@ describe("isManagedRootDir", () => {
   });
 
   it("matches .trellis", () => {
-    expect(isManagedRootDir(".trellis")).toBe(true);
+    expect(isManagedRootDir(".cstl")).toBe(true);
   });
 
   it("rejects sub-paths (not a root dir)", () => {
     expect(isManagedRootDir(".cursor/commands")).toBe(false);
-    expect(isManagedRootDir(".trellis/spec")).toBe(false);
+    expect(isManagedRootDir(".cstl/spec")).toBe(false);
   });
 
   it("rejects unrelated directories", () => {

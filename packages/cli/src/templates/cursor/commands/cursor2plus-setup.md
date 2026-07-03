@@ -10,15 +10,15 @@ Native Cursor API (no Cursor++): stop — this does not apply; agent frontmatter
 
 Confirm the Cursor++ data directory exists:
 
-- `~/.ccursor/providers.json` (or a custom path in `.trellis/local/cursor2plus/config.local.json`)
+- `~/.ccursor/providers.json` (or a custom path in `.cstl/local/cursor2plus/config.local.json`)
 
 If missing, Cursor++ is not set up — ask the user to install/configure it first.
 
 ## Step 2: List available models + roles
 
 ```bash
-python ./.trellis/local/cursor2plus/patch_wpelc8.py --list-models
-python ./.trellis/local/cursor2plus/patch_wpelc8.py --explain
+python ./.cstl/local/cursor2plus/patch_wpelc8.py --list-models
+python ./.cstl/local/cursor2plus/patch_wpelc8.py --explain
 ```
 
 `--list-models` shows the model catalog (apiModel / displayName / slug / provider) from `providers.json`.
@@ -35,7 +35,7 @@ The user may skip types they don't use — omit those from the map.
 
 ## Step 4: Write the routing map
 
-Write `~/.ccursor/trellis-task-models.json5` (or `~/.ccursor/` on Unix) using the structure from `.trellis/local/trellis-task-models.json5.example`:
+Write `~/.ccursor/trellis-task-models.json5` (or `~/.ccursor/` on Unix) using the structure from `.cstl/local/trellis-task-models.json5.example`:
 
 ```json5
 // Trellis + Cursor++ BYOK — per-subagent-type model routing
@@ -49,13 +49,13 @@ Write `~/.ccursor/trellis-task-models.json5` (or `~/.ccursor/` on Unix) using th
 }
 ```
 
-Project-level override (optional, wins on same key): `.trellis/local/subagent-models.json5`.
+Project-level override (optional, wins on same key): `.cstl/local/subagent-models.json5`.
 
 ## Step 5: Apply the patch + verify
 
 ```bash
-python ./.trellis/local/cursor2plus/patch_wpelc8.py --print-map
-python ./.trellis/local/cursor2plus/patch_wpelc8.py
+python ./.cstl/local/cursor2plus/patch_wpelc8.py --print-map
+python ./.cstl/local/cursor2plus/patch_wpelc8.py
 ```
 
 Then tell the user: **Developer: Reload Window** in Cursor (required once per patch for the resolver change to take effect).
@@ -76,7 +76,7 @@ Then tell the user: **Developer: Reload Window** in Cursor (required once per pa
 
 - User catalog: `~/.ccursor/providers.json`
 - User routing doc: `~/.ccursor/trellis-task-models.json5` (machine-local, gitignored)
-- Project override (optional): `.trellis/local/subagent-models.json5`
-- Patch bundle: `.trellis/local/cursor2plus/`
+- Project override (optional): `.cstl/local/subagent-models.json5`
+- Patch bundle: `.cstl/local/cursor2plus/`
 
-Policy: `.trellis/spec/guides/cursor-subagent-policy.md` (Method 2.5 / 2.6).
+Policy: `.cstl/spec/guides/cursor-subagent-policy.md` (Method 2.5 / 2.6).

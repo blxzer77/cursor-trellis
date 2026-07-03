@@ -4,18 +4,18 @@
 Syncs task events to Linear via the `linearis` CLI.
 
 Usage (called automatically by task.py hooks):
-    python3 .trellis/scripts/hooks/linear_sync.py create
-    python3 .trellis/scripts/hooks/linear_sync.py start
-    python3 .trellis/scripts/hooks/linear_sync.py archive
+    python3 .cstl/scripts/hooks/linear_sync.py create
+    python3 .cstl/scripts/hooks/linear_sync.py start
+    python3 .cstl/scripts/hooks/linear_sync.py archive
 
 Manual usage:
-    TASK_JSON_PATH=.trellis/tasks/<name>/task.json python3 .trellis/scripts/hooks/linear_sync.py sync
+    TASK_JSON_PATH=.cstl/tasks/<name>/task.json python3 .cstl/scripts/hooks/linear_sync.py sync
 
 Environment:
     TASK_JSON_PATH  - Absolute path to task.json (set by task.py)
 
 Configuration:
-    .trellis/hooks.local.json  - Local config (gitignored), example:
+    .cstl/hooks.local.json  - Local config (gitignored), example:
     {
       "linear": {
         "team": "TEAM_KEY",
@@ -46,13 +46,13 @@ STATUS_DONE = "Done"
 
 
 def _load_config() -> dict:
-    """Load local hook config from .trellis/hooks.local.json."""
+    """Load local hook config from .cstl/hooks.local.json."""
     task_json_path = os.environ.get("TASK_JSON_PATH", "")
     if task_json_path:
-        # Walk up from task.json to find .trellis/
+        # Walk up from task.json to find .cstl/
         trellis_dir = Path(task_json_path).parent.parent.parent
     else:
-        trellis_dir = Path(".trellis")
+        trellis_dir = Path(".cstl")
 
     config_path = trellis_dir / "hooks.local.json"
     try:

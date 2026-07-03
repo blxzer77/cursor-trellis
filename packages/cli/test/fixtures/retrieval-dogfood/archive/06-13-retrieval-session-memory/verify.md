@@ -6,13 +6,13 @@ Implemented a Trellis-owned session memory retrieval layer over local workspace 
 
 Validation Evidence: focused Session Memory integration tests, combined retrieval/context/template regression tests, Python compile, typecheck, changed-file ESLint, dogfood/template sync checks, and ASCII scan all passed.
 Final acceptance evidence: this child is ready for parent review using `verify.md`, `handoff.md`, and ref `working-tree-diff`.
-Durable Learning: no `.trellis/spec/` update is needed; existing Trellis Python template runtime, template generation, and validation specs already cover this pattern.
+Durable Learning: no `.cstl/spec/` update is needed; existing Trellis Python template runtime, template generation, and validation specs already cover this pattern.
 
 ## Changed Areas
 
 - Added generated runtime scripts:
-  - `Trellis/.trellis/scripts/common/session_memory.py`
-  - `Trellis/.trellis/scripts/search_memory.py`
+  - `Trellis/.cstl/scripts/common/session_memory.py`
+  - `Trellis/.cstl/scripts/search_memory.py`
   - `Trellis/packages/cli/src/templates/trellis/scripts/common/session_memory.py`
   - `Trellis/packages/cli/src/templates/trellis/scripts/search_memory.py`
 - Registered the new scripts in `Trellis/packages/cli/src/templates/trellis/index.ts`.
@@ -78,7 +78,7 @@ Additional checks:
 ## Compatibility
 
 - No changes were made to `add_session.py`; journal write and rotation behavior remain unchanged.
-- Retrieval is local-only over `.trellis/workspace/<developer>/journal-N.md`.
+- Retrieval is local-only over `.cstl/workspace/<developer>/journal-N.md`.
 - No Smart Search, network, credential, or MCP dependency was added.
 - JSON context changes are additive through `retrievalGuide.sessionMemory`.
 - The current workspace root `D:\MyHarness\.trellis` is not part of the Trellis package repo and was not auto-upgraded by this child; after package commit/update, that runtime can be synchronized separately if the live workspace should expose `search_memory.py`.

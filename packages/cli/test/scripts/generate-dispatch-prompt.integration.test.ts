@@ -52,7 +52,7 @@ function runPython(cwd: string, script: string, args: string[] = []): {
 
 function stampRepo(tmp: string): void {
   fs.mkdirSync(tmp, { recursive: true });
-  fs.cpSync(TEMPLATE_SCRIPTS, path.join(tmp, ".trellis", "scripts"), {
+  fs.cpSync(TEMPLATE_SCRIPTS, path.join(tmp, ".cstl", "scripts"), {
     recursive: true,
   });
   fs.mkdirSync(path.join(tmp, ".cursor", "hooks"), { recursive: true });
@@ -80,7 +80,7 @@ describe("generate-dispatch-prompt integration", () => {
   it("stdout includes marker and prd title for in_progress implement task", () => {
     if (!hasPython()) return;
 
-    const taskDir = path.join(tmp, ".trellis", "tasks", "06-22-fixture");
+    const taskDir = path.join(tmp, ".cstl", "tasks", "06-22-fixture");
     fs.mkdirSync(taskDir, { recursive: true });
     fs.writeFileSync(
       path.join(taskDir, "task.json"),
@@ -95,8 +95,8 @@ describe("generate-dispatch-prompt integration", () => {
       '{"_example": "seed"}\n',
     );
 
-    const relTask = ".trellis/tasks/06-22-fixture";
-    const { status, stdout, stderr } = runPython(tmp, ".trellis/scripts/task.py", [
+    const relTask = ".cstl/tasks/06-22-fixture";
+    const { status, stdout, stderr } = runPython(tmp, ".cstl/scripts/task.py", [
       "generate-dispatch-prompt",
       relTask,
       "implement",
@@ -114,7 +114,7 @@ describe("generate-dispatch-prompt integration", () => {
   it("fails implement when task is not in_progress", () => {
     if (!hasPython()) return;
 
-    const taskDir = path.join(tmp, ".trellis", "tasks", "06-22-planning");
+    const taskDir = path.join(tmp, ".cstl", "tasks", "06-22-planning");
     fs.mkdirSync(taskDir, { recursive: true });
     fs.writeFileSync(
       path.join(taskDir, "task.json"),
@@ -122,9 +122,9 @@ describe("generate-dispatch-prompt integration", () => {
     );
     fs.writeFileSync(path.join(taskDir, "prd.md"), "# Planning\n");
 
-    const { status, stderr } = runPython(tmp, ".trellis/scripts/task.py", [
+    const { status, stderr } = runPython(tmp, ".cstl/scripts/task.py", [
       "generate-dispatch-prompt",
-      ".trellis/tasks/06-22-planning",
+      ".cstl/tasks/06-22-planning",
       "implement",
     ]);
 
@@ -157,7 +157,7 @@ describe("generate-dispatch-prompt integration", () => {
   it("hook and CLI share the same builder output shape", () => {
     if (!hasPython()) return;
 
-    const taskDir = path.join(tmp, ".trellis", "tasks", "06-22-shared");
+    const taskDir = path.join(tmp, ".cstl", "tasks", "06-22-shared");
     fs.mkdirSync(taskDir, { recursive: true });
     fs.writeFileSync(
       path.join(taskDir, "task.json"),
@@ -166,8 +166,8 @@ describe("generate-dispatch-prompt integration", () => {
     fs.writeFileSync(path.join(taskDir, "prd.md"), "# Shared Builder\n");
     fs.writeFileSync(path.join(taskDir, "implement.jsonl"), '{"_example": "seed"}\n');
 
-    const relTask = ".trellis/tasks/06-22-shared";
-    const cli = runPython(tmp, ".trellis/scripts/task.py", [
+    const relTask = ".cstl/tasks/06-22-shared";
+    const cli = runPython(tmp, ".cstl/scripts/task.py", [
       "generate-dispatch-prompt",
       relTask,
       "implement",

@@ -6,7 +6,7 @@ Implementation verified locally. Ready for parent review. No parent integration 
 
 Validation Evidence: focused scoring/template tests, typecheck, focused ESLint, Python compile, dogfood/template sync check, related retrieval regression tests, and parent code review passed.
 Final acceptance evidence: parent review accepted this child using `verify.md`, `handoff.md`, and ref `working-tree-diff`; parent `task-map.md` marks the child integrated.
-Durable Learning: no `.trellis/spec/` update is needed; existing Trellis Python template runtime, template generation, and validation specs already cover this pattern.
+Durable Learning: no `.cstl/spec/` update is needed; existing Trellis Python template runtime, template generation, and validation specs already cover this pattern.
 
 Review watchpoint: `status: missing` items are availability or omission signals even when their score is high. Downstream pack builder and eval harness must filter by `status` / `validationState` before treating an item as body evidence.
 

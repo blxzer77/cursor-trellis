@@ -25,7 +25,7 @@ pack = build_context_pack(scored, max_items=8, max_estimated_tokens=4000)
 Explicit CLI:
 
 ```bash
-python ./.trellis/scripts/build_context_pack.py --input scored.json --max-items 8 --json
+python ./.cstl/scripts/build_context_pack.py --input scored.json --max-items 8 --json
 ```
 
 ## Context Pack JSON Contract
@@ -43,7 +43,7 @@ python ./.trellis/scripts/build_context_pack.py --input scored.json --max-items 
   "selected": [
     {
       "source": "task-artifacts",
-      "reference": ".trellis/tasks/example/prd.md",
+      "reference": ".cstl/tasks/example/prd.md",
       "title": "Example PRD",
       "score": 92,
       "status": "ok",
@@ -56,7 +56,7 @@ python ./.trellis/scripts/build_context_pack.py --input scored.json --max-items 
   "omitted": [
     {
       "source": "session-memory",
-      "reference": ".trellis/workspace/dev/journal-1.md:42",
+      "reference": ".cstl/workspace/dev/journal-1.md:42",
       "title": "Prior session note",
       "score": 41,
       "status": "ok",
@@ -124,7 +124,7 @@ Pack building is read-only over in-memory scored evidence:
 
 ## Module Locations
 
-- Dogfood: `.trellis/scripts/common/context_pack.py`, `.trellis/scripts/build_context_pack.py`
+- Dogfood: `.cstl/scripts/common/context_pack.py`, `.cstl/scripts/build_context_pack.py`
 - Template: `packages/cli/src/templates/trellis/scripts/common/context_pack.py`, `packages/cli/src/templates/trellis/scripts/build_context_pack.py`
 
 ## Tests

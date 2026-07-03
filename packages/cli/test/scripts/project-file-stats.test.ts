@@ -10,7 +10,7 @@ const cliRoot = path.resolve(
   "../..",
 );
 const trellisRoot = path.resolve(cliRoot, "../..");
-const scriptsDir = path.join(trellisRoot, ".trellis/scripts");
+const scriptsDir = path.join(trellisRoot, ".cstl/scripts");
 const templateScriptsDir = path.join(
   cliRoot,
   "src/templates/trellis/scripts",

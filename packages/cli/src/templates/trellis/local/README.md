@@ -20,7 +20,7 @@ User-wide model doc: `~/.ccursor/trellis-task-models.json5` (see `../trellis-tas
 
 ## Compatibility window
 
-- **Verified:** Cursor **3.7.27** / Cursor++ **v0.0.11** (see `.trellis/spec/guides/cursor-subagent-policy.md`, 2026-06-18)
+- **Verified:** Cursor **3.7.27** / Cursor++ **v0.0.11** (see `.cstl/spec/guides/cursor-subagent-policy.md`, 2026-06-18)
 - **Re-verify** after any Cursor or Cursor++ upgrade: `python patch_wpelc8.py --check-compat`
 - If `--check-compat` reports `fail` or `unknown`, treat the patch as stale until you re-apply or revert
 
@@ -38,7 +38,7 @@ Agent-led setup: run skill **`cstl-cursor2plus-setup`** in Cursor Agent (lists m
 ## Revert recipe
 
 ```bash
-cd .trellis/local/cursor2plus
+cd .cstl/local/cursor2plus
 python patch_wpelc8.py --revert
 ```
 
@@ -82,4 +82,4 @@ python smoke.py                             # env + patch_status smoke
 
 Each role: `{ "primary": "<name>", "fallback": "<name>" }`. Names: **apiModel** or **displayName** from Cursor++ (`--list-models`). **Explore** is not in this file — use the Cursor++ panel.
 
-Policy: `.trellis/spec/guides/cursor-subagent-policy.md` (Method 2.5 / 2.6).
+Policy: `.cstl/spec/guides/cursor-subagent-policy.md` (Method 2.5 / 2.6).

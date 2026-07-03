@@ -117,10 +117,10 @@
     "degraded_capabilities": ["P-08", "P-09"],
     "probed_at": "2026-06-23",
     "probe_evidence_files": [
-      ".trellis/tasks/06-23-06-23-cursor-retrieval-byok-lsp-fastcontext/research/01-byok-retrieval-role-matrix.md",
-      ".trellis/tasks/06-23-06-23-cursor-retrieval-byok-lsp-fastcontext/research/02-lsp-via-codegraph-decision.md",
-      ".trellis/tasks/06-23-06-23-cursor-retrieval-byok-lsp-fastcontext/research/04-semantic-search-target-directories.md",
-      ".trellis/tasks/06-23-experiment-d-byok-semanticsearch-drop/research/01-semanticsearch-drop-byok.md"
+      ".cstl/tasks/06-23-06-23-cursor-retrieval-byok-lsp-fastcontext/research/01-byok-retrieval-role-matrix.md",
+      ".cstl/tasks/06-23-06-23-cursor-retrieval-byok-lsp-fastcontext/research/02-lsp-via-codegraph-decision.md",
+      ".cstl/tasks/06-23-06-23-cursor-retrieval-byok-lsp-fastcontext/research/04-semantic-search-target-directories.md",
+      ".cstl/tasks/06-23-experiment-d-byok-semanticsearch-drop/research/01-semanticsearch-drop-byok.md"
     ]
   }
 }

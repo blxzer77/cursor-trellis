@@ -43,7 +43,7 @@ function writeFile(root: string, rel: string, content: string): void {
 }
 
 function writeTrellisScripts(root: string): void {
-  const scriptsDir = path.join(root, ".trellis", "scripts");
+  const scriptsDir = path.join(root, ".cstl", "scripts");
   for (const [rel, content] of getAllScripts()) {
     writeFile(path.join(scriptsDir), rel, content);
   }
@@ -53,7 +53,7 @@ function seedArtifacts(root: string): void {
   writeTrellisScripts(root);
   writeFile(
     root,
-    ".trellis/spec/backend/index.md",
+    ".cstl/spec/backend/index.md",
     [
       "# Backend Guidelines",
       "",
@@ -63,7 +63,7 @@ function seedArtifacts(root: string): void {
   );
   writeFile(
     root,
-    ".trellis/tasks/06-13-plain/prd.md",
+    ".cstl/tasks/06-13-plain/prd.md",
     [
       "# Plain Requirement",
       "",
@@ -73,7 +73,7 @@ function seedArtifacts(root: string): void {
   );
   writeFile(
     root,
-    ".trellis/tasks/06-13-search/research/retrieval.md",
+    ".cstl/tasks/06-13-search/research/retrieval.md",
     [
       "---",
       "title: Retrieval Research",
@@ -93,7 +93,7 @@ function seedArtifacts(root: string): void {
   );
   writeFile(
     root,
-    ".trellis/tasks/06-13-search/verify.md",
+    ".cstl/tasks/06-13-search/verify.md",
     [
       "# Verify",
       "",
@@ -103,7 +103,7 @@ function seedArtifacts(root: string): void {
   );
   writeFile(
     root,
-    ".trellis/workspace/test-dev/journal-1.md",
+    ".cstl/workspace/test-dev/journal-1.md",
     [
       "# Journal",
       "",
@@ -116,7 +116,7 @@ function seedArtifacts(root: string): void {
 function runSearch(root: string, args: string[]): { status: number | null; stdout: string; stderr: string } {
   const result = spawnSync(
     pythonCmd as string,
-    [path.join(root, ".trellis", "scripts", "search_artifacts.py"), ...args],
+    [path.join(root, ".cstl", "scripts", "search_artifacts.py"), ...args],
     { cwd: root, encoding: "utf-8" },
   );
   return {
@@ -189,7 +189,7 @@ describe.skipIf(pythonCmd === null)("search_artifacts.py", () => {
     const payload = parseJson(result.stdout);
     expect(payload.total).toBe(1);
     expect(payload.results[0]?.path).toBe(
-      ".trellis/tasks/06-13-search/research/retrieval.md",
+      ".cstl/tasks/06-13-search/research/retrieval.md",
     );
     expect(payload.results[0]?.matched_fields).toEqual([
       "frontmatter.related_files",
@@ -200,12 +200,12 @@ describe.skipIf(pythonCmd === null)("search_artifacts.py", () => {
   it("uses deterministic path ordering after score ties and honors limit", () => {
     writeFile(
       tmpDir,
-      ".trellis/tasks/06-13-tie-a/design.md",
+      ".cstl/tasks/06-13-tie-a/design.md",
       "# Tie A\n\nDeterministic needle text.\n",
     );
     writeFile(
       tmpDir,
-      ".trellis/tasks/06-13-tie-b/design.md",
+      ".cstl/tasks/06-13-tie-b/design.md",
       "# Tie B\n\nDeterministic needle text.\n",
     );
 
@@ -223,7 +223,7 @@ describe.skipIf(pythonCmd === null)("search_artifacts.py", () => {
     const payload = parseJson(result.stdout);
     expect(payload.total).toBe(1);
     expect(payload.results[0]?.path).toBe(
-      ".trellis/tasks/06-13-tie-a/design.md",
+      ".cstl/tasks/06-13-tie-a/design.md",
     );
   });
 

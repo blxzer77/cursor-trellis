@@ -6,7 +6,7 @@ Implementation verified locally. Ready for parent review. No parent integration 
 
 Validation Evidence: focused context-pack/template tests, eval harness regression, related retrieval regression suite, typecheck, focused ESLint, Python compile, CLI wrapper smoke, dogfood/template sync check, and parent code review passed.
 Final acceptance evidence: parent review accepted this child using `verify.md`, `handoff.md`, and ref `working-tree-diff`; parent `task-map.md` marks the child integrated.
-Durable Learning: no `.trellis/spec/` update is needed; existing Trellis Python template runtime, template generation, and validation specs already cover this pattern.
+Durable Learning: no `.cstl/spec/` update is needed; existing Trellis Python template runtime, template generation, and validation specs already cover this pattern.
 
 Review watchpoint: `build_context_pack()` consumes `score_evidence_bundle()` output order. Callers should not pass unsorted raw candidates if they expect source/reference tie-break semantics.
 

@@ -18,7 +18,7 @@ Implementation verified and ready for parent review.
         "confidence": "high",
         "reason": "Selected task has local planning or evidence artifacts; read them first.",
         "action": "Read selected task prd.md, design.md, implement.md, research/*.md, and verify.md as present.",
-        "reference": ".trellis/tasks/06-13-context"
+        "reference": ".cstl/tasks/06-13-context"
       }
     ]
   }

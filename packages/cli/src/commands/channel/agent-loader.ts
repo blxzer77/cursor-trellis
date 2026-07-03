@@ -1,5 +1,5 @@
 /**
- * Load a Trellis agent definition from `.trellis/agents/<name>.md`.
+ * Load a Trellis agent definition from `.cstl/agents/<name>.md`.
  *
  * Format: YAML frontmatter (between `---` fences) + markdown body.
  *   The body becomes the system prompt injected into the worker.
@@ -45,7 +45,7 @@ export function findAgentFile(name: string, cwd: string): string | null {
       `Agent name '${name}' is not allowed (must match ${SAFE_AGENT_NAME.source})`,
     );
   }
-  const agentsRoot = path.resolve(cwd, ".trellis", "agents");
+  const agentsRoot = path.resolve(cwd, ".cstl", "agents");
   const candidates = [
     path.join(agentsRoot, `${name}.md`),
     path.join(agentsRoot, name, "AGENT.md"),
@@ -69,8 +69,8 @@ export function loadAgent(
   if (!file) {
     throw new Error(
       `Agent '${name}' not found. Looked in:\n  ${[
-        path.join(cwd, ".trellis", "agents", `${name}.md`),
-        path.join(cwd, ".trellis", "agents", name, "AGENT.md"),
+        path.join(cwd, ".cstl", "agents", `${name}.md`),
+        path.join(cwd, ".cstl", "agents", name, "AGENT.md"),
       ].join("\n  ")}`,
     );
   }

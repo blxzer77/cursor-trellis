@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Any
 
 
-DIR_WORKFLOW = ".trellis"
+DIR_WORKFLOW = ".cstl"
 DIR_RUNTIME = ".runtime"
 DIR_CURSOR_SHELL = "cursor-shell"
 SESSION_SUBCOMMANDS = {"select", "selected", "exit"}

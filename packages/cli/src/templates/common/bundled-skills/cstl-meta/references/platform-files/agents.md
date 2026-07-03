@@ -38,7 +38,7 @@ The Cursor hook (`inject-subagent-context.py`, registered in `.cursor/hooks.json
 
 The agent file instructs the agent to read after startup:
 
-- `python3 ./.trellis/scripts/task.py selected --source`
+- `python3 ./.cstl/scripts/task.py selected --source`
 - `implement.jsonl` or `check.jsonl`
 - spec/research files referenced by JSONL
 - selected task `prd.md`
@@ -52,7 +52,7 @@ This mode fits cases where the hook cannot reliably rewrite the sub-agent prompt
 | User need | Edit location |
 | --- | --- |
 | Implement agent must follow extra restrictions | `.cursor/agents/cstl-implement.md`. |
-| Check agent must run project-specific commands | `.cursor/agents/cstl-check.md`, and `.trellis/spec/` if needed. |
+| Check agent must run project-specific commands | `.cursor/agents/cstl-check.md`, and `.cstl/spec/` if needed. |
 | Research agent must output a fixed format | `.cursor/agents/cstl-research.md`. |
 | Agent cannot read task context | Agent prelude in the agent file, or the `inject-subagent-context` hook registration in `.cursor/hooks.json`. |
 | Add a project-specific agent | `.cursor/agents/` + related skill/command entry point that invokes it. |

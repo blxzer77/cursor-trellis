@@ -203,7 +203,7 @@ def _non_trellis_dirty_paths(repo_root: Path) -> list[str]:
         if " -> " in path:
             path = path.split(" -> ", 1)[1].strip()
         path = path.replace("\\", "/").strip('"')
-        if path and path != ".trellis" and not path.startswith(".trellis/"):
+        if path and path != ".cstl" and not path.startswith(".cstl/"):
             dirty.append(path)
     return dirty
 
@@ -252,7 +252,7 @@ _SUBAGENT_CONFIG_DIRS: tuple[str, ...] = (
 _SEED_EXAMPLE = (
     "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. "
     "Put spec/research files only — no code paths. "
-    "Run `python .trellis/scripts/get_context.py --mode packages` to list available specs. "
+    "Run `python .cstl/scripts/get_context.py --mode packages` to list available specs. "
     "Delete this line once real entries are added."
 )
 
@@ -460,7 +460,7 @@ def cmd_create(args: argparse.Namespace) -> int:
     print("", file=sys.stderr)
     print(colored("Next steps:", Colors.BLUE), file=sys.stderr)
     print("  - Fill prd.md with requirements and acceptance criteria", file=sys.stderr)
-    print(f"  - Select it when ready: python ./.trellis/scripts/task.py select {DIR_WORKFLOW}/{DIR_TASKS}/{dir_name}", file=sys.stderr)
+    print(f"  - Select it when ready: python ./.cstl/scripts/task.py select {DIR_WORKFLOW}/{DIR_TASKS}/{dir_name}", file=sys.stderr)
     print("  - Lightweight task: PRD-only is valid", file=sys.stderr)
     print("  - Complex task: add design.md and implement.md before task.py start-execution --check", file=sys.stderr)
     if seeded_jsonl:
@@ -806,10 +806,10 @@ def _auto_commit_archive(
 
     If ``.gitignore`` blocks the paths, we warn + skip — we do NOT
     retry with ``git add -f``. The warning explicitly forbids
-    ``git add -f .trellis/`` (which would fan out to caches/backups)
+    ``git add -f .cstl/`` (which would fan out to caches/backups)
     and points users at ``session_auto_commit: false``.
 
-    Honors ``session_auto_commit`` in ``.trellis/config.yaml``: when
+    Honors ``session_auto_commit`` in ``.cstl/config.yaml``: when
     set to ``false``, this function returns immediately without
     touching git (the archive directory move on disk is unaffected).
     """

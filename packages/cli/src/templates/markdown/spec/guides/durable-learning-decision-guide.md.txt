@@ -1,8 +1,8 @@
 ﻿# Durable Learning Decision Guide
 
-> **Purpose**: Decide whether a completed task should update `.trellis/spec/` or can archive with an explicit **no durable learning** line.
+> **Purpose**: Decide whether a completed task should update `.cstl/spec/` or can archive with an explicit **no durable learning** line.
 
-This guide is a **thinking checklist**. It does not replace code-spec files under `.trellis/spec/<layer>/`.
+This guide is a **thinking checklist**. It does not replace code-spec files under `.cstl/spec/<layer>/`.
 
 ---
 
@@ -13,9 +13,9 @@ Pick **one** grep-friendly line before `archive --check`:
 | Outcome | Example line in `verify.md` |
 | --- | --- |
 | No reusable insight | `Durable learning decision: no durable learning` (or any line containing `no durable learning`) |
-| Spec was updated | `Spec update evidence: .trellis/spec/Trellis/framework/index.md` |
-| Insight already documented | `Learning artifact: .trellis/tasks/<task>/handoff.md` |
-| Retrospective captured | `Learning artifact: .trellis/workspace/...` or `retrospective.md: <path>` |
+| Spec was updated | `Spec update evidence: .cstl/spec/Trellis/framework/index.md` |
+| Insight already documented | `Learning artifact: .cstl/tasks/<task>/handoff.md` |
+| Retrospective captured | `Learning artifact: .cstl/workspace/...` or `retrospective.md: <path>` |
 
 Optional planning note (not sufficient alone): `Spec update needed: <reason>` — still record **spec update evidence** after `/cstl:update-spec`.
 
@@ -47,13 +47,13 @@ Optional planning note (not sufficient alone): `Spec update needed: <reason>` �
 
 ```bash
 # Draft missing archive sections (append-only)
-python ./.trellis/scripts/task.py prepare-archive-evidence .trellis/tasks/<task>
+python ./.cstl/scripts/task.py prepare-archive-evidence .cstl/tasks/<task>
 
 # Print spec-capture checklist (stdout only; does not edit specs)
-python ./.trellis/scripts/task.py prepare-learning-scaffold .trellis/tasks/<task> --trigger "parent review changes"
+python ./.cstl/scripts/task.py prepare-learning-scaffold .cstl/tasks/<task> --trigger "parent review changes"
 
 # Parent review surfaces missing child learning lines
-python ./.trellis/scripts/task.py review-child <parent> <child> --check
+python ./.cstl/scripts/task.py review-child <parent> <child> --check
 ```
 
 ---

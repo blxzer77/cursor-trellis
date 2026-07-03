@@ -12,7 +12,7 @@ Invariant strategy:
      Rationale: TS and Python differ by language so byte-comparison is
      inappropriate; behavior-level fixtures confirm semantic parity.
 
-Eval .trellis copies are NOT checked here (cross-repo CI is out of scope).
+Eval .cstl copies are NOT checked here (cross-repo CI is out of scope).
 See verify.md for manual smoke steps.
 
 Usage:
@@ -47,13 +47,13 @@ CLI_TEMPLATE_PY = (
 )
 WORKSPACE_PY = (
     TRELLIS_ROOT
-    / ".trellis"
+    / ".cstl"
     / "scripts"
     / "common"
     / "codebase_retrieval_router.py"
 )
 
-WORKSPACE_LAUNCHER = TRELLIS_ROOT / ".trellis" / "scripts" / "route_codebase_retrieval.py"
+WORKSPACE_LAUNCHER = TRELLIS_ROOT / ".cstl" / "scripts" / "route_codebase_retrieval.py"
 CLI_TEMPLATE_LAUNCHER = (
     TRELLIS_ROOT
     / "packages"

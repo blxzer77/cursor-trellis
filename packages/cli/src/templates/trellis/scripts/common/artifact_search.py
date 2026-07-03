@@ -90,7 +90,7 @@ class SearchResult:
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Search local .trellis markdown artifacts.",
+        description="Search local .cstl markdown artifacts.",
     )
     parser.add_argument(
         "--query",
@@ -131,7 +131,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--root",
-        help="Repository root. Defaults to nearest parent containing .trellis/.",
+        help="Repository root. Defaults to nearest parent containing .cstl/.",
     )
     return parser.parse_args(argv)
 

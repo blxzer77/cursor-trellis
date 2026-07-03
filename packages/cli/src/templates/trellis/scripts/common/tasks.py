@@ -226,6 +226,6 @@ def parent_archive_child_followup_hint(
     return (
         f"Integrated child task dirs still active: {names}. "
         "Archive each child when ready: "
-        f"python ./.trellis/scripts/task.py archive <child> "
+        f"python ./.cstl/scripts/task.py archive <child> "
         "(or parent archive with --archive-integrated-children after archive --check passes for each)."
     )

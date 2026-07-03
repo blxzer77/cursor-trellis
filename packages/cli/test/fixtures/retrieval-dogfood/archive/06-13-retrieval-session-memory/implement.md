@@ -21,7 +21,7 @@ quality_gates:
 - `scope`: local Trellis session memory retrieval only
 - `parallel_eligibility`: may run in parallel with `06-13-retrieval-smart-search-integration` in a prepared child worktree or separate session
 - `dependency`: none for implementation; must publish a handoff contract for `06-13-retrieval-context-ranking`
-- `boundary`: parse `.trellis/workspace/` journals and indexes; do not call Smart Search
+- `boundary`: parse `.cstl/workspace/` journals and indexes; do not call Smart Search
 - `safety`: read-only retrieval over workspace memory, no changes to journal write behavior unless explicitly justified in planning
 - `quality_bar`:
   - no implementation before `task.py start-execution --check` passes and the user explicitly approves execution;
@@ -32,8 +32,8 @@ quality_gates:
 
 ## Candidate Files
 
-- `Trellis/.trellis/scripts/common/session_memory.py` for parser/search helper.
-- `Trellis/.trellis/scripts/search_memory.py` for user/agent-facing command.
+- `Trellis/.cstl/scripts/common/session_memory.py` for parser/search helper.
+- `Trellis/.cstl/scripts/search_memory.py` for user/agent-facing command.
 - `Trellis/packages/cli/src/templates/trellis/scripts/common/session_memory.py` for scaffolded copy.
 - `Trellis/packages/cli/src/templates/trellis/scripts/search_memory.py` for scaffolded copy.
 - `Trellis/packages/cli/src/templates/trellis/index.ts` for template registration.

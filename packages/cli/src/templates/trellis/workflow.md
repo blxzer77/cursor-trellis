@@ -19,96 +19,96 @@
 On first use, initialize your identity:
 
 ```bash
-python3 ./.trellis/scripts/init_developer.py <your-name>
+python3 ./.cstl/scripts/init_developer.py <your-name>
 ```
 
-Creates `.trellis/.developer` (gitignored) + `.trellis/workspace/<your-name>/`.
+Creates `.cstl/.developer` (gitignored) + `.cstl/workspace/<your-name>/`.
 
 ### Spec System
 
-`.trellis/spec/` holds coding guidelines organized by package and layer.
+`.cstl/spec/` holds coding guidelines organized by package and layer.
 
-- `.trellis/spec/<package>/<layer>/index.md` — entry point with **Pre-Development Checklist** + **Quality Check**. Actual guidelines live in the `.md` files it points to.
-- `.trellis/spec/guides/index.md` — cross-package thinking guides.
+- `.cstl/spec/<package>/<layer>/index.md` — entry point with **Pre-Development Checklist** + **Quality Check**. Actual guidelines live in the `.md` files it points to.
+- `.cstl/spec/guides/index.md` — cross-package thinking guides.
 
 ```bash
-python3 ./.trellis/scripts/get_context.py --mode packages   # list packages / layers
+python3 ./.cstl/scripts/get_context.py --mode packages   # list packages / layers
 ```
 
 **When to update spec**: new pattern/convention found · bug-fix prevention to codify · new technical decision.
 
 ### Task System
 
-Every task has its own directory under `.trellis/tasks/{MM-DD-name}/` holding `task.json`, `prd.md`, optional `design.md`, optional `implement.md`, optional `research/`, and context manifests (`implement.jsonl`, `check.jsonl`) for Cursor (sub-agent dispatch).
+Every task has its own directory under `.cstl/tasks/{MM-DD-name}/` holding `task.json`, `prd.md`, optional `design.md`, optional `implement.md`, optional `research/`, and context manifests (`implement.jsonl`, `check.jsonl`) for Cursor (sub-agent dispatch).
 
 ```bash
 # Task lifecycle
-python3 ./.trellis/scripts/task.py create "<title>" [--slug <name>] [--parent <dir>]
-python3 ./.trellis/scripts/task.py dashboard             # show Task Dashboard without mutating state
-python3 ./.trellis/scripts/task.py select <name>         # select task for this live session
-python3 ./.trellis/scripts/task.py selected --source     # show selected task and source
-python3 ./.trellis/scripts/task.py start-execution <name> --check
-python3 ./.trellis/scripts/task.py start-execution <name> --approved
-python3 ./.trellis/scripts/task.py exit                  # clear selected task without changing status
-python3 ./.trellis/scripts/task.py archive <name>        # move to archive/{year-month}/
-python3 ./.trellis/scripts/task.py list [--mine] [--status <s>]
-python3 ./.trellis/scripts/task.py list-archive
-python3 ./.trellis/scripts/task.py add-subtask <parent> <child>
-python3 ./.trellis/scripts/task.py set-child-state <parent> <child> review --evidence verify.md
-python3 ./.trellis/scripts/task.py prepare-child-worktree <parent> <child> --branch <child-branch>
-python3 ./.trellis/scripts/task.py integrate-child <parent> <child> accepted --evidence handoff.md --ref <child-ref>
+python3 ./.cstl/scripts/task.py create "<title>" [--slug <name>] [--parent <dir>]
+python3 ./.cstl/scripts/task.py dashboard             # show Task Dashboard without mutating state
+python3 ./.cstl/scripts/task.py select <name>         # select task for this live session
+python3 ./.cstl/scripts/task.py selected --source     # show selected task and source
+python3 ./.cstl/scripts/task.py start-execution <name> --check
+python3 ./.cstl/scripts/task.py start-execution <name> --approved
+python3 ./.cstl/scripts/task.py exit                  # clear selected task without changing status
+python3 ./.cstl/scripts/task.py archive <name>        # move to archive/{year-month}/
+python3 ./.cstl/scripts/task.py list [--mine] [--status <s>]
+python3 ./.cstl/scripts/task.py list-archive
+python3 ./.cstl/scripts/task.py add-subtask <parent> <child>
+python3 ./.cstl/scripts/task.py set-child-state <parent> <child> review --evidence verify.md
+python3 ./.cstl/scripts/task.py prepare-child-worktree <parent> <child> --branch <child-branch>
+python3 ./.cstl/scripts/task.py integrate-child <parent> <child> accepted --evidence handoff.md --ref <child-ref>
 
 # Code-spec context (injected into implement/check agents via JSONL).
 # `implement.jsonl` / `check.jsonl` are seeded on `task create` for sub-agent-capable
 # platforms; the AI curates real spec + research entries during planning when needed.
-python3 ./.trellis/scripts/task.py add-context <name> <action> <file> <reason>
-python3 ./.trellis/scripts/task.py list-context <name> [action]
-python3 ./.trellis/scripts/task.py validate <name>
+python3 ./.cstl/scripts/task.py add-context <name> <action> <file> <reason>
+python3 ./.cstl/scripts/task.py list-context <name> [action]
+python3 ./.cstl/scripts/task.py validate <name>
 
 # Task metadata
-python3 ./.trellis/scripts/task.py set-branch <name> <branch>
-python3 ./.trellis/scripts/task.py set-base-branch <name> <branch>    # PR target
-python3 ./.trellis/scripts/task.py set-scope <name> <scope>
+python3 ./.cstl/scripts/task.py set-branch <name> <branch>
+python3 ./.cstl/scripts/task.py set-base-branch <name> <branch>    # PR target
+python3 ./.cstl/scripts/task.py set-scope <name> <scope>
 
 # Hierarchy (parent/child)
-python3 ./.trellis/scripts/task.py add-subtask <parent> <child>
-python3 ./.trellis/scripts/task.py remove-subtask <parent> <child>
+python3 ./.cstl/scripts/task.py add-subtask <parent> <child>
+python3 ./.cstl/scripts/task.py remove-subtask <parent> <child>
 
 # PR creation
-python3 ./.trellis/scripts/task.py create-pr [name] [--dry-run]
+python3 ./.cstl/scripts/task.py create-pr [name] [--dry-run]
 ```
 
-> Run `python3 ./.trellis/scripts/task.py --help` to see the authoritative, up-to-date list.
+> Run `python3 ./.cstl/scripts/task.py --help` to see the authoritative, up-to-date list.
 
 **Selected-task mechanism**: entering a Trellis project activates framework context, but every new live session starts with `Selected task: none`. `task.py create` creates artifacts only. `task.py select <task>` writes a per-session `selected_task` pointer without changing `task.json.status`. `task.py selected --source` reports that pointer. `task.py exit` clears it without changing status. `task.py start-execution <task> --check` verifies execution readiness without mutation; `task.py start-execution <task> --approved` is the explicit execution boundary and may flip `planning` to `in_progress`. `task.py archive <task>` writes `status=completed`, moves the directory to `archive/`, and deletes runtime session files that still point at the archived task.
 
 ### Workspace System
 
-Records every AI session for cross-session tracking under `.trellis/workspace/<developer>/`.
+Records every AI session for cross-session tracking under `.cstl/workspace/<developer>/`.
 
 - `journal-N.md` — session log. **Max 2000 lines per file**; a new `journal-(N+1).md` is auto-created when exceeded.
 - `index.md` — personal index (total sessions, last active).
 
 ```bash
-python3 ./.trellis/scripts/add_session.py --title "Title" --commit "hash" --summary "Summary"
+python3 ./.cstl/scripts/add_session.py --title "Title" --commit "hash" --summary "Summary"
 ```
 
 ### Context Script
 
 ```bash
-python3 ./.trellis/scripts/get_context.py                            # full session runtime
-python3 ./.trellis/scripts/get_context.py --mode packages            # available packages + spec layers
-python3 ./.trellis/scripts/get_context.py --mode phase --step <X.Y>  # detailed guide for a workflow step
-python3 ./.trellis/scripts/get_context.py --mode retrieval-pack --json --input <evidence.json>  # score collected evidence (not default --json)
+python3 ./.cstl/scripts/get_context.py                            # full session runtime
+python3 ./.cstl/scripts/get_context.py --mode packages            # available packages + spec layers
+python3 ./.cstl/scripts/get_context.py --mode phase --step <X.Y>  # detailed guide for a workflow step
+python3 ./.cstl/scripts/get_context.py --mode retrieval-pack --json --input <evidence.json>  # score collected evidence (not default --json)
 ```
 
 **Evidence scoring:** default `--json` returns `retrievalGuide` only. After collecting artifact search, session memory, smart-search manifests under `{TASK}/research/smart-search/`, or codebase candidates, run **`--mode retrieval-pack`** with `--input` or stdin JSON. See `research/evidence-scoring-integration.md` in the active task or archived `06-15-child-phase2-evidence-scoring`.
 
 **Research-end hook (Cursor `stop`):** when the selected task has `{TASK}/research/*.md` or `research/smart-search/`, `.cursor/hooks/research-end-retrieval-pack.py` may write `{TASK}/research/retrieval-pack-latest.json` via `get_context --mode retrieval-pack`. Default session JSON is unchanged; use the file when closing research or before Phase 3.1.
 
-**Retrieval daily guide:** `.trellis/spec/guides/retrieval-daily-guide.md` — when to use rg, codegraph, fast-context-mcp, smart-search-cli (and Cursor web fallback), artifact/session memory, codebase router (suggest-only), and explicit retrieval-pack scoring.
+**Retrieval daily guide:** `.cstl/spec/guides/retrieval-daily-guide.md` — when to use rg, codegraph, fast-context-mcp, smart-search-cli (and Cursor web fallback), artifact/session memory, codebase router (suggest-only), and explicit retrieval-pack scoring.
 
-**Cursor subagent dispatch:** `.trellis/spec/guides/cursor-subagent-policy.md` — `cstl-research` / `cstl-implement` / `cstl-check`; Parent child default **Task** `cstl-implement` from Parent session (`generate-child-prompt --mode subagent`). **Cursor++ BYOK:** per-type models via `.trellis/local/cursor2plus/` + user/project JSON maps (not committed slugs). **Native Cursor API:** frontmatter `model:` on agents still works. PRD Grill stays in `cstl-brainstorm`, not a subagent. **Cursor++:** compatible v0.0.11+ (SubAgent readonly bug fixed).
+**Cursor subagent dispatch:** `.cstl/spec/guides/cursor-subagent-policy.md` — `cstl-research` / `cstl-implement` / `cstl-check`; Parent child default **Task** `cstl-implement` from Parent session (`generate-child-prompt --mode subagent`). **Cursor++ BYOK:** per-type models via `.cstl/local/cursor2plus/` + user/project JSON maps (not committed slugs). **Native Cursor API:** frontmatter `model:` on agents still works. PRD Grill stays in `cstl-brainstorm`, not a subagent. **Cursor++:** compatible v0.0.11+ (SubAgent readonly bug fixed).
 
 ---
 
@@ -151,7 +151,7 @@ python3 ./.trellis/scripts/get_context.py --mode retrieval-pack --json --input <
     - Run `cstl update` after editing to push the new bodies to
       downstream user projects (block-level managed replacement)
     - Full runtime contract:
-      .trellis/spec/cli/backend/workflow-state-contract.md
+      .cstl/spec/cli/backend/workflow-state-contract.md
 -->
 
 ## Phase Index
@@ -223,7 +223,7 @@ Before executing an upgrade that creates artifacts, changes task mode, adds gate
 | No selected task + need dashboard | `cstl-start` |
 | Selected task + resume step | `cstl-continue` |
 | Planning / PRD | `cstl-brainstorm` |
-| Parent with parallel children | `generate-child-prompt --mode subagent`; writable Agent; see `.trellis/spec/guides/cursor-subagent-policy.md` |
+| Parent with parallel children | `generate-child-prompt --mode subagent`; writable Agent; see `.cstl/spec/guides/cursor-subagent-policy.md` |
 
 Details: archived `06-15-child-phase3-task-ladder` → `research/task-ladder-iteration.md`.
 
@@ -254,11 +254,11 @@ Integration is Parent/Child-only. Ordinary Lite and Full Tasks skip Integration 
 Parent sessions can productize child dispatch and review without a new agent runtime:
 
 ```bash
-python3 ./.trellis/scripts/task.py parent-status <parent-task>
-python3 ./.trellis/scripts/task.py generate-child-prompt <parent-task> <child-task> --mode inline
-python3 ./.trellis/scripts/task.py review-child <parent-task> <child-task> --check --decision accept --ref <child-ref>
-python3 ./.trellis/scripts/task.py review-child <parent-task> <child-task> --decision accept --ref <child-ref>
-python3 ./.trellis/scripts/task.py review-child <parent-task> <child-task> --decision integrate-through --ref <child-ref>
+python3 ./.cstl/scripts/task.py parent-status <parent-task>
+python3 ./.cstl/scripts/task.py generate-child-prompt <parent-task> <child-task> --mode inline
+python3 ./.cstl/scripts/task.py review-child <parent-task> <child-task> --check --decision accept --ref <child-ref>
+python3 ./.cstl/scripts/task.py review-child <parent-task> <child-task> --decision accept --ref <child-ref>
+python3 ./.cstl/scripts/task.py review-child <parent-task> <child-task> --decision integrate-through --ref <child-ref>
 ```
 
 - `generate-child-prompt` reads parent `task-map.md` for `depends_on` and `touches`, child artifacts, and optional parent `child-prompts.md`. Use `--mode subagent` only as a delivery hint when the platform can spawn subagents; inline mode remains the portable default.
@@ -380,8 +380,8 @@ Implementation defects inside the already approved contract route back to Execut
 At each step, run this to fetch detailed guidance:
 
 ```bash
-python3 ./.trellis/scripts/get_context.py --mode phase --step <step>
-# e.g. python3 ./.trellis/scripts/get_context.py --mode phase --step 1.1
+python3 ./.cstl/scripts/get_context.py --mode phase --step <step>
+# e.g. python3 ./.cstl/scripts/get_context.py --mode phase --step 1.1
 ```
 
 ---
@@ -395,7 +395,7 @@ Goal: classify the request, get task-creation consent when a task is needed, and
 Create the task directory only after task-creation consent. The command sets status to `planning`, writes `task.json`, and creates a default `prd.md`. It does not select the task, start execution, or approve execution:
 
 ```bash
-python3 ./.trellis/scripts/task.py create "<task title>" --slug <name>
+python3 ./.cstl/scripts/task.py create "<task title>" --slug <name>
 ```
 
 `--slug` is the human-readable name only. Do **not** include the `MM-DD-` date prefix; `task.py create` adds that prefix automatically.
@@ -405,14 +405,14 @@ For task trees, create the parent task first and then create each child with `--
 After creation, select the task only when the user has chosen it for this live session:
 
 ```bash
-python3 ./.trellis/scripts/task.py select <task-dir>
+python3 ./.cstl/scripts/task.py select <task-dir>
 ```
 
 After selection, the per-turn breadcrumb switches to `[workflow-state:planning]`, telling the AI to stay in planning.
 
 Run only `create` and, when appropriate, `select` here. Do not run `start-execution --approved` until step 1.4 passes its non-mutating `--check` and the user gives explicit execution approval.
 
-Skip when the user has already explicitly selected an appropriate task with `python3 ./.trellis/scripts/task.py select <task>`.
+Skip when the user has already explicitly selected an appropriate task with `python3 ./.cstl/scripts/task.py select <task>`.
 
 #### 1.1 Requirement exploration `[required · repeatable]`
 
@@ -450,7 +450,7 @@ Spawn the research sub-agent:
 
 
 **Retrieval during research**:
-- Use `python3 ./.trellis/scripts/search_artifacts.py --query "<topic>" --json` to find durable Trellis specs, prior tasks, research, verification notes, and workspace journals before re-discovering framework context.
+- Use `python3 ./.cstl/scripts/search_artifacts.py --query "<topic>" --json` to find durable Trellis specs, prior tasks, research, verification notes, and workspace journals before re-discovering framework context.
 - Use `codebase-retrieval` evidence levels for source-code questions: adapter output is candidate evidence until current source, Git, or validation confirms it.
 - Persist useful exploratory retrieval chains, adapter availability, and competing hypotheses under `{TASK_DIR}/research/`.
 
@@ -486,7 +486,7 @@ Curate `implement.jsonl` and `check.jsonl` so the Phase 2 sub-agents get the rig
 **Format**: one JSON object per line — `{"file": "<path>", "reason": "<why>"}`. Paths are repo-root relative.
 
 **What to put in**:
-- **Spec files** — `.trellis/spec/<package>/<layer>/index.md` and any specific guideline files (`error-handling.md`, `conventions.md`, etc.) relevant to this task
+- **Spec files** — `.cstl/spec/<package>/<layer>/index.md` and any specific guideline files (`error-handling.md`, `conventions.md`, etc.) relevant to this task
 - **Research files** — `{TASK_DIR}/research/*.md` that the sub-agent will need to consult
 
 **What NOT to put in**:
@@ -502,7 +502,7 @@ These manifests do not replace `implement.md`. `implement.md` is the human-reada
 **How to discover relevant specs**:
 
 ```bash
-python3 ./.trellis/scripts/get_context.py --mode packages
+python3 ./.cstl/scripts/get_context.py --mode packages
 ```
 
 Lists every package + its spec layers with paths. Pick the entries that match this task's domain.
@@ -510,7 +510,7 @@ Lists every package + its spec layers with paths. Pick the entries that match th
 Use artifact search when prior task/research evidence is likely relevant:
 
 ```bash
-python3 ./.trellis/scripts/search_artifacts.py --query "<topic>" --json
+python3 ./.cstl/scripts/search_artifacts.py --query "<topic>" --json
 ```
 
 Add any reusable `{TASK_DIR}/research/*.md` files you discovered when sub-agents need them.
@@ -520,8 +520,8 @@ Add any reusable `{TASK_DIR}/research/*.md` files you discovered when sub-agents
 Either edit the jsonl file directly in your editor, or use:
 
 ```bash
-python3 ./.trellis/scripts/task.py add-context "$TASK_DIR" implement "<path>" "<reason>"
-python3 ./.trellis/scripts/task.py add-context "$TASK_DIR" check "<path>" "<reason>"
+python3 ./.cstl/scripts/task.py add-context "$TASK_DIR" implement "<path>" "<reason>"
+python3 ./.cstl/scripts/task.py add-context "$TASK_DIR" check "<path>" "<reason>"
 ```
 
 Delete the seed `_example` line once real entries exist (optional — it's skipped automatically by consumers).
@@ -535,7 +535,7 @@ Skip when: `implement.jsonl` and `check.jsonl` have agent-curated entries (the s
 After artifact review, run the non-mutating execution preflight:
 
 ```bash
-python3 ./.trellis/scripts/task.py start-execution <task-dir> --check
+python3 ./.cstl/scripts/task.py start-execution <task-dir> --check
 ```
 
 For lightweight tasks, `prd.md` can be enough. For complex tasks, `prd.md`, `design.md`, and `implement.md` must exist and be reviewed before execution approval. On Cursor (sub-agent dispatch), curate jsonl manifests when extra spec or research context is needed; seed-only manifests are tolerated by consumers.
@@ -545,7 +545,7 @@ If `--check` passes, report that artifact gates are ready and include the task n
 Only after the user approves execution in that context, run:
 
 ```bash
-python3 ./.trellis/scripts/task.py start-execution <task-dir> --approved
+python3 ./.cstl/scripts/task.py start-execution <task-dir> --approved
 ```
 
 After this command succeeds, the breadcrumb switches to `[workflow-state:in_progress]`, and the rest of Phase 2 / 3 follows.
@@ -581,7 +581,7 @@ Implementation defects inside the approved contract remain Execution work: fix t
 #### 2.1 Implement `[required · repeatable]`
 
 Use retrieval layers before and during implementation when context is incomplete:
-- `python3 ./.trellis/scripts/search_artifacts.py --query "<topic>" --json` for durable Trellis specs, prior task artifacts, research, verification notes, and journals.
+- `python3 ./.cstl/scripts/search_artifacts.py --query "<topic>" --json` for durable Trellis specs, prior task artifacts, research, verification notes, and journals.
 - `codebase-retrieval` evidence levels for source claims: candidate -> corroborated candidate -> verified claim; unresolved or unavailable adapters must be reported instead of treated as proof.
 - Record exploratory chains in `{TASK_DIR}/research/` and final source/Git/test proof in `verify.md`.
 
@@ -629,7 +629,7 @@ Goal: ensure code quality, capture lessons, record the work.
 
 For **complex** tasks, optionally before 3.1 when you have collected retrieval evidence JSON (e.g. after Phase 1.2 smart-search manifests in `{TASK}/research/smart-search/`):
 
-`python3 ./.trellis/scripts/get_context.py --mode retrieval-pack --json --input <path-to-evidence.json>`
+`python3 ./.cstl/scripts/get_context.py --mode retrieval-pack --json --input <path-to-evidence.json>`
 
 Use `contextPack.selected` / `scoredEvidence` to order citations in `verify.md`. Do **not** expect scoring in default `get_context --json`.
 
@@ -663,7 +663,7 @@ Review whether this task produced durable learning worth recording:
 - requirement drift, architecture decisions, reusable conventions, or toolchain pitfalls;
 - new project-local patterns that should affect future work.
 
-If durable learning exists, load `cstl-update-spec` and update `.trellis/spec/` or write a focused `retrospective.md`, then link that evidence from `verify.md`.
+If durable learning exists, load `cstl-update-spec` and update `.cstl/spec/` or write a focused `retrospective.md`, then link that evidence from `verify.md`.
 
 If no durable learning exists, write an explicit `No durable learning` decision in `verify.md`. Do not run a spec update only to satisfy ceremony.
 
@@ -801,5 +801,5 @@ Supported events: `after_create / after_start / after_archive`. Use `after_archi
 
 For the workflow state machine's runtime contract, the locations of all status writers, pseudo-statuses (`no_task` / `stale_<source_type>`), the hook reachability matrix, and other deep details, see:
 
-- `.trellis/spec/cli/backend/workflow-state-contract.md` — runtime contract + writer table + test invariants
-- `.trellis/scripts/inject-workflow-state.py` — actual parser (reads workflow.md only, no embedded text)
+- `.cstl/spec/cli/backend/workflow-state-contract.md` — runtime contract + writer table + test invariants
+- `.cstl/scripts/inject-workflow-state.py` — actual parser (reads workflow.md only, no embedded text)

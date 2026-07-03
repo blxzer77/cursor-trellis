@@ -323,10 +323,10 @@ def _auto_commit_workspace(repo_root: Path) -> None:
 
     Path scope is restricted to specific products (journal files, index.md,
     selected task dirs, the archive subtree). We never `git add` the whole
-    `.trellis/` tree, and if `.gitignore` blocks the specific paths we
+    `.cstl/` tree, and if `.gitignore` blocks the specific paths we
     warn + skip — never retry with ``-f``.
 
-    Honors ``session_auto_commit`` in ``.trellis/config.yaml``: when set to
+    Honors ``session_auto_commit`` in ``.cstl/config.yaml``: when set to
     ``false``, this function returns immediately without touching git
     (journal/index files are still written to disk by the caller).
     """

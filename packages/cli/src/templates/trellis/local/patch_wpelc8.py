@@ -23,7 +23,7 @@ INJECT_NEEDLE = "});return!UbAQWn||"
 def _repo_root(start: Path) -> Path:
     cur = start.resolve()
     for _ in range(12):
-        if (cur / ".trellis").is_dir():
+        if (cur / ".cstl").is_dir():
             return cur
         if cur.parent == cur:
             break
@@ -94,8 +94,8 @@ def resolve_project_models_path(bundle_dir: Path, config: dict) -> Path | None:
         p = Path(config["projectModelsJson"].strip()).expanduser()
         return p if p.is_file() else None
     return _first_existing(
-        root / ".trellis" / "local" / "subagent-models.json5",
-        root / ".trellis" / "local" / "subagent-models.json",
+        root / ".cstl" / "local" / "subagent-models.json5",
+        root / ".cstl" / "local" / "subagent-models.json",
     )
 
 
@@ -167,7 +167,7 @@ def build_inject_block(model_map: dict[str, str]) -> str:
     if not model_map:
         raise SystemExit(
             "model map empty — use skill cstl-cursor2plus-setup or write "
-            "~/.ccursor/trellis-task-models.json5 (see .trellis/local/trellis-task-models.json5.example)"
+            "~/.ccursor/trellis-task-models.json5 (see .cstl/local/trellis-task-models.json5.example)"
         )
     pairs = ",".join(f'"{k}":"{v}"' for k, v in sorted(model_map.items()))
     return (

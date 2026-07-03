@@ -134,6 +134,23 @@ describe("update() integration", () => {
     return projectFile(`${DIR_NAMES.WORKFLOW}/.version`);
   }
 
+  async function runUpdate(
+    opts: Parameters<typeof update>[0] = {},
+  ): Promise<void> {
+    const versionPath = versionFilePath();
+    const projectVersion = fs.existsSync(versionPath)
+      ? fs.readFileSync(versionPath, "utf-8").trim()
+      : "unknown";
+    const upgrading =
+      projectVersion !== "unknown" &&
+      compareVersions(VERSION, projectVersion) > 0;
+    await update({
+      skipReadiness: true,
+      ...(upgrading && !opts.migrate && !opts.dryRun ? { migrate: true } : {}),
+      ...opts,
+    });
+  }
+
   function readProjectFile(relativePath: string): string {
     return fs.readFileSync(projectFile(relativePath), "utf-8");
   }
@@ -224,6 +241,7 @@ describe("update() integration", () => {
 
   it("#1 same version update is a true no-op (zero file changes, no backup)", async () => {
     await setupProject();
+    await runUpdate({});
 
     // Full snapshot before update
     const snapshotBefore = new Map<string, string>();
@@ -240,7 +258,7 @@ describe("update() integration", () => {
     };
     walk(tmpDir);
 
-    await update({});
+    await runUpdate({});
 
     // Full snapshot after update
     const snapshotAfter = new Map<string, string>();
@@ -285,7 +303,7 @@ describe("update() integration", () => {
     await setupProject();
     vi.mocked(execSync).mockClear();
 
-    await update({});
+    await runUpdate({ skipReadiness: false });
 
     expect(execSync).toHaveBeenCalledWith(
       "smart-search doctor --format json",
@@ -339,7 +357,7 @@ describe("update() integration", () => {
 
     vi.mocked(execSync).mockClear();
 
-    await update({ force: true, skipReadiness: true });
+    await runUpdate({ force: true, skipReadiness: true });
 
     const calls = vi.mocked(execSync).mock.calls;
     expect(
@@ -373,7 +391,7 @@ describe("update() integration", () => {
       ]),
     );
 
-    await update({});
+    await runUpdate({});
 
     expect(execSync).toHaveBeenCalledWith(
       capabilityLookupCommand("rg"),
@@ -500,7 +518,7 @@ describe("update() integration", () => {
       .spyOn(process.stdout, "write")
       .mockImplementation(() => true);
 
-    await update({ dryRun: true, json: true, skipReadiness: true });
+    await runUpdate({ dryRun: true, json: true, skipReadiness: true });
 
     expect(fs.existsSync(target)).toBe(false);
     const jsonLine = stdoutSpy.mock.calls
@@ -539,7 +557,7 @@ describe("update() integration", () => {
     writeHashesV2(hashFile, hashes);
     fs.unlinkSync(target);
 
-    await update({ dryRun: true });
+    await runUpdate({ dryRun: true });
 
     // File should still be missing (dry run didn't recreate it)
     expect(fs.existsSync(target)).toBe(false);
@@ -558,7 +576,7 @@ describe("update() integration", () => {
     fs.unlinkSync(target);
     expect(fs.existsSync(target)).toBe(false);
 
-    await update({ force: true });
+    await runUpdate({ force: true });
 
     // File should NOT be re-created (user deleted it, hash still exists)
     expect(fs.existsSync(target)).toBe(false);
@@ -584,7 +602,7 @@ describe("update() integration", () => {
     hashes[targetRelative] = computeHash(oldContent);
     writeHashesV2(hashFile, hashes);
 
-    await update({ force: true });
+    await runUpdate({ force: true });
 
     // File should be auto-updated back to current template
     expect(fs.readFileSync(targetFull, "utf-8")).toBe(templateContent);
@@ -613,7 +631,7 @@ describe("update() integration", () => {
     ) as Record<string, string>;
     writeHashesV2(hashFile, hashes);
 
-    await update({});
+    await runUpdate({});
 
     expect(fs.readFileSync(targetFull, "utf-8")).toBe(expectedContent);
     expect(readHashesV2(hashFile)[targetRelative]).toBe(
@@ -644,7 +662,7 @@ describe("update() integration", () => {
     ) as Record<string, string>;
     writeHashesV2(hashFile, hashes);
 
-    await update({ skipAll: true });
+    await runUpdate({ skipAll: true });
 
     expect(fs.readFileSync(targetFull, "utf-8")).toBe(modifiedOldContent);
   });
@@ -662,16 +680,16 @@ describe("update() integration", () => {
     const userContent = "# Project notes\n\nThings the team agreed on.\n";
     fs.writeFileSync(targetFull, userContent);
 
-    await update({ force: true });
+    await runUpdate({ force: true });
 
     const result = fs.readFileSync(targetFull, "utf-8");
     expect(result).toContain("# Project notes");
     expect(result).toContain("Things the team agreed on.");
-    expect(result).toContain("<!-- TRELLIS:START -->");
-    expect(result).toContain("<!-- TRELLIS:END -->");
+    expect(result).toContain("<!-- CSTL:START -->");
+    expect(result).toContain("<!-- CSTL:END -->");
     // Managed block should sit AFTER the user content, not replace it.
     expect(result.indexOf("# Project notes")).toBeLessThan(
-      result.indexOf("<!-- TRELLIS:START -->"),
+      result.indexOf("<!-- CSTL:START -->"),
     );
     // Tail equals the canonical template (force-applied managed block).
     expect(result.endsWith(templateContent.trimEnd() + "\n")).toBe(true);
@@ -686,7 +704,7 @@ describe("update() integration", () => {
     // User modifies file (hash won't match)
     fs.writeFileSync(targetFull, "user customized content");
 
-    await update({ force: true });
+    await runUpdate({ force: true });
 
     expect(fs.readFileSync(targetFull, "utf-8")).toBe(templateContent);
   });
@@ -698,7 +716,7 @@ describe("update() integration", () => {
     fs.writeFileSync(targetFull, "user customized content");
     vi.mocked(inquirer.prompt).mockClear();
 
-    await update({ force: true });
+    await runUpdate({ force: true });
 
     expect(inquirer.prompt).not.toHaveBeenCalled();
   });
@@ -709,7 +727,7 @@ describe("update() integration", () => {
     const targetFull = path.join(tmpDir, MANAGED_FILE);
     fs.writeFileSync(targetFull, "user customized content");
 
-    await update({ skipAll: true });
+    await runUpdate({ skipAll: true });
 
     expect(fs.readFileSync(targetFull, "utf-8")).toBe(
       "user customized content",
@@ -723,7 +741,7 @@ describe("update() integration", () => {
     const templateContent = fs.readFileSync(targetFull, "utf-8");
     fs.writeFileSync(targetFull, "user customized content");
 
-    await update({ createNew: true });
+    await runUpdate({ createNew: true });
 
     // Original preserved
     expect(fs.readFileSync(targetFull, "utf-8")).toBe(
@@ -742,7 +760,7 @@ describe("update() integration", () => {
     const versionPath = path.join(tmpDir, DIR_NAMES.WORKFLOW, ".version");
     fs.writeFileSync(versionPath, "0.0.1");
 
-    await update({ force: true });
+    await runUpdate({ force: true });
 
     // Version is updated even when no file changes are needed
     expect(fs.readFileSync(versionPath, "utf-8")).toBe(VERSION);
@@ -765,7 +783,7 @@ describe("update() integration", () => {
     hashes[MANAGED_FILE] = computeHash(oldContent);
     writeHashesV2(hashFile, hashes);
 
-    await update({ force: true });
+    await runUpdate({ force: true });
 
     const entries = fs.readdirSync(path.join(tmpDir, DIR_NAMES.WORKFLOW));
     const backupDirs = entries.filter((e) => e.startsWith(".backup-"));
@@ -779,7 +797,7 @@ describe("update() integration", () => {
     const versionPath = path.join(tmpDir, DIR_NAMES.WORKFLOW, ".version");
     fs.writeFileSync(versionPath, "99.99.99");
 
-    await update({});
+    await runUpdate({});
 
     // Version should NOT be changed
     expect(fs.readFileSync(versionPath, "utf-8")).toBe("99.99.99");
@@ -805,7 +823,7 @@ describe("update() integration", () => {
     writeHashesV2(hashFile, hashes);
     fs.unlinkSync(target);
 
-    await update({ allowDowngrade: true, force: true });
+    await runUpdate({ allowDowngrade: true, force: true });
 
     // File recreated (truly new — no stored hash)
     expect(fs.existsSync(target)).toBe(true);
@@ -820,7 +838,7 @@ describe("update() integration", () => {
     const versionPath = versionFilePath();
     fs.writeFileSync(versionPath, "0.0.3-rc.6");
 
-    await update({});
+    await runUpdate({});
 
     // .version must be updated to the current CLI version
     expect(fs.readFileSync(versionPath, "utf-8")).toBe(VERSION);
@@ -859,7 +877,7 @@ describe("update() integration", () => {
       },
     });
 
-    await update({ skipAll: true });
+    await runUpdate({ skipAll: true });
 
     expect(fs.readFileSync(versionFilePath(), "utf-8")).toBe(VERSION);
 
@@ -909,7 +927,7 @@ describe("update() integration", () => {
     const customContent = "# My Custom Guides\n\nEdited by user.\n";
     fs.writeFileSync(guidesIndex, customContent);
 
-    await update({ force: true });
+    await runUpdate({ force: true });
 
     // User's customized content must be preserved (update should not touch spec/)
     expect(fs.readFileSync(guidesIndex, "utf-8")).toBe(customContent);
@@ -923,7 +941,7 @@ describe("update() integration", () => {
     fs.rmSync(specDir, { recursive: true, force: true });
     expect(fs.existsSync(specDir)).toBe(false);
 
-    await update({ force: true });
+    await runUpdate({ force: true });
 
     // spec/ directory should NOT be recreated by update
     expect(fs.existsSync(specDir)).toBe(false);
@@ -949,7 +967,7 @@ describe("update() integration", () => {
     fs.unlinkSync(targetPath);
 
     // Run update
-    await update({ force: true });
+    await runUpdate({ force: true });
 
     // File SHOULD be created (no hash = truly new)
     expect(fs.existsSync(targetPath)).toBe(true);
@@ -973,7 +991,7 @@ describe("update() integration", () => {
     fs.writeFileSync(targetPath, "# modified by user\n");
 
     // Run update
-    await update({ force: true });
+    await runUpdate({ force: true });
 
     // File should NOT be overwritten (it's in skip list)
     expect(fs.readFileSync(targetPath, "utf-8")).toBe("# modified by user\n");
@@ -997,7 +1015,7 @@ describe("update() integration", () => {
     fs.writeFileSync(targetPath, "# user modified paths.py\n");
 
     // Run update
-    await update({ force: true });
+    await runUpdate({ force: true });
 
     // File should NOT be overwritten (its directory is in skip list)
     expect(fs.readFileSync(targetPath, "utf-8")).toBe(
@@ -1021,7 +1039,7 @@ describe("update() integration", () => {
         "# My customized before-backend-dev command\nUser edited this.\n";
       fs.writeFileSync(deprecatedFile, userContent);
 
-      await update({ force: true });
+      await runUpdate({ force: true });
 
       // File should be preserved (hash doesn't match allowed_hashes)
       expect(fs.existsSync(deprecatedFile)).toBe(true);
@@ -1045,7 +1063,7 @@ describe("update() integration", () => {
       fs.writeFileSync(versionPath, "0.0.3.7");
 
       // This should complete without errors even though deprecated files don't exist
-      await update({ force: true });
+      await runUpdate({ force: true });
 
       // Version updated successfully
       expect(fs.readFileSync(versionPath, "utf-8")).toBe(VERSION);
@@ -1055,7 +1073,7 @@ describe("update() integration", () => {
   });
 
   // Original template content for check-backend.md (deleted in 0.4.0-beta.1).
-  // Hash: 4e81a28d681ea770f780df55a212fd504ce21ee49b44ba16023b74b5c243cef3
+  // Hash: 4e81a28d681ea770f780df55a212fd504ce21ee49b44ba16023b74b5c243cef3 (.trellis paths — legacy manifest)
   const ORIGINAL_CHECK_BACKEND_CONTENT = [
     "Check if the code you just wrote follows the backend development guidelines.",
     "",
@@ -1100,7 +1118,7 @@ describe("update() integration", () => {
       configContent + `\nupdate:\n  skip:\n    - .claude/commands/trellis/\n`,
     );
 
-    await update({ force: true });
+    await runUpdate({ force: true });
 
     // File should be preserved (directory is in update.skip, overriding safe-file-delete)
     expect(fs.existsSync(deprecatedFile)).toBe(true);
@@ -1130,7 +1148,7 @@ describe("update() integration", () => {
     const deprecatedFile = path.join(deprecatedDir, "check-backend.md");
     fs.writeFileSync(deprecatedFile, ORIGINAL_CHECK_BACKEND_CONTENT);
 
-    await update({ force: true });
+    await runUpdate({ force: true });
 
     // File should be DELETED (hash matched allowed_hashes, no update.skip protection)
     expect(fs.existsSync(deprecatedFile)).toBe(false);
@@ -1171,7 +1189,7 @@ describe("update() integration", () => {
       .spyOn(process, "exit")
       .mockImplementation(() => undefined as never);
 
-    await update({});
+    await runUpdate({});
 
     expect(exitSpy).toHaveBeenCalledWith(1);
     },
@@ -1187,7 +1205,7 @@ describe("update() integration", () => {
       .spyOn(process, "exit")
       .mockImplementation(() => undefined as never);
 
-    await update({ dryRun: true });
+    await runUpdate({ dryRun: true });
 
     // Gate must not fire for preview mode (users need to inspect before migrating)
     expect(exitSpy).not.toHaveBeenCalled();
@@ -1204,7 +1222,7 @@ describe("update() integration", () => {
       .spyOn(process, "exit")
       .mockImplementation(() => undefined as never);
 
-    await update({ migrate: true, force: true });
+    await runUpdate({ migrate: true, force: true });
 
     // Gate passes when --migrate is present; update proceeds to completion
     expect(exitSpy).not.toHaveBeenCalled();
@@ -1217,7 +1235,7 @@ describe("update() integration", () => {
   // The [b] Backup-rename path in the confirm prompt promises "keeps a .backup
   // copy". Previously it was identical to [r] (both relied on the full project
   // snapshot). We now write an INLINE .backup next to the new path so users can
-  // diff/merge their customizations without digging through .trellis/.backup-*/.
+  // diff/merge their customizations without digging through .cstl/.backup-*/.
   /** Install a mock that returns a specific migration choice for the per-file prompt
    *  and {proceed: true} for the top-level confirm. Resolves the flakiness of
    *  matching on `name` field in the dynamic import path. */
@@ -1236,7 +1254,7 @@ describe("update() integration", () => {
   // The [b] Backup-rename path in the confirm prompt promises "keeps a .backup
   // copy". Previously it was identical to [r] (both relied on the full project
   // snapshot). We now write an INLINE .backup next to the new path so users can
-  // diff/merge their customizations without digging through .trellis/.backup-*/.
+  // diff/merge their customizations without digging through .cstl/.backup-*/.
   it.skipIf(!breakingMigrationGateApplies)(
     "#25 backup-rename leaves inline <new-path>.backup with original content",
     async () => {
@@ -1254,7 +1272,7 @@ describe("update() integration", () => {
 
     await installChoiceMock("backup-rename");
 
-    await update({ migrate: true });
+    await runUpdate({ migrate: true });
 
     // After migration:
     //   - new-path exists (rename completed)
@@ -1286,14 +1304,14 @@ describe("update() integration", () => {
 
     await installChoiceMock("rename");
 
-    await update({ migrate: true });
+    await runUpdate({ migrate: true });
 
     const newPath = path.join(
       tmpDir,
       ".claude/skills/trellis-before-dev/SKILL.md",
     );
     expect(fs.existsSync(newPath)).toBe(true);
-    // No inline .backup — the full-project snapshot under .trellis/.backup-*
+    // No inline .backup — the full-project snapshot under .cstl/.backup-*
     // is the single source of recovery for this mode.
     expect(fs.existsSync(newPath + ".backup")).toBe(false);
     },
@@ -1315,7 +1333,7 @@ describe("update() integration", () => {
     const targetFull = path.join(tmpDir, MANAGED_FILE);
     fs.writeFileSync(targetFull, "user customized content");
 
-    await update({ force: true });
+    await runUpdate({ force: true });
 
     const entries = fs.readdirSync(path.join(tmpDir, DIR_NAMES.WORKFLOW));
     const backupDirs = entries.filter((e) => e.startsWith(".backup-"));
@@ -1362,7 +1380,7 @@ describe("update() integration", () => {
     hashes[PATHS.WORKFLOW_GUIDE_FILE] = computeHash(staleWorkflow);
     writeHashesV2(hashFile, hashes);
 
-    await update({ force: true });
+    await runUpdate({ force: true });
 
     const updated = fs.readFileSync(workflowPath, "utf-8");
     expect(updated).toBe(replacePythonCommandLiterals(workflowMdTemplate));
@@ -1412,7 +1430,7 @@ describe("update() integration", () => {
     });
 
     // --force is explicit consent; must not hit the TTY guard.
-    await update({ force: true, skipReadiness: true });
+    await runUpdate({ force: true, skipReadiness: true });
     expect(fs.readFileSync(targetFull, "utf-8")).toBe(pristine);
   });
 
@@ -1459,7 +1477,7 @@ describe("update() integration", () => {
 
       expect(fs.existsSync(skillFile)).toBe(true);
 
-      await update({ force: true });
+      await runUpdate({ force: true });
 
       // Pristine file deleted by safe-file-delete; empty dir cleaned up
       expect(fs.existsSync(skillFile)).toBe(false);
@@ -1484,7 +1502,7 @@ describe("update() integration", () => {
       fs.writeFileSync(skillFile, userContent);
 
       // Manifest's real allowed_hashes won't match user content
-      await update({ force: true });
+      await runUpdate({ force: true });
 
       // User-modified file preserved (hash mismatch → skip-modified)
       expect(fs.existsSync(skillFile)).toBe(true);
@@ -1513,7 +1531,7 @@ describe("update() integration", () => {
       const sharedContent = "---\nname: trellis-brainstorm\n---\nshared\n";
       fs.writeFileSync(sharedSkillFile, sharedContent);
 
-      await update({ force: true });
+      await runUpdate({ force: true });
 
       // .agents/skills/ must survive untouched (not in any safe-file-delete entry)
       expect(fs.existsSync(sharedSkillFile)).toBe(true);

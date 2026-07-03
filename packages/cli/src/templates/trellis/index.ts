@@ -2,7 +2,7 @@
  * Trellis workflow templates
  *
  * These are GENERIC templates for user projects.
- * Do NOT use Trellis project's own .trellis/ directory (which may be customized).
+ * Do NOT use Trellis project's own .cstl/ directory (which may be customized).
  *
  * Directory structure:
  *   trellis/
@@ -173,7 +173,7 @@ function readTaskTemplate(relativePath: string): string {
 }
 
 /**
- * Optional task artifact templates (under `.trellis/tasks/templates/`).
+ * Optional task artifact templates (under `.cstl/tasks/templates/`).
  * Not applied by `task.py create`; copy into a new task directory when starting
  * release-readiness or release-execution work.
  */

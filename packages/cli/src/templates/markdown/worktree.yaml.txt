@@ -22,7 +22,7 @@ copy:
   # - .env
   # - .env.local
   # Workflow config
-  - .trellis/.developer
+  - .cstl/.developer
 
 #-------------------------------------------------------------------------------
 # Post-Create Hooks

@@ -47,7 +47,7 @@ function writeFile(root: string, rel: string, content: string): void {
 }
 
 function writeTrellisScripts(root: string): void {
-  const scriptsDir = path.join(root, ".trellis", "scripts");
+  const scriptsDir = path.join(root, ".cstl", "scripts");
   for (const [rel, content] of getAllScripts()) {
     writeFile(scriptsDir, rel, content);
   }
@@ -55,11 +55,11 @@ function writeTrellisScripts(root: string): void {
 
 function seedProject(root: string): void {
   writeTrellisScripts(root);
-  writeFile(root, ".trellis/.developer", "name=test-dev\n");
-  writeFile(root, ".trellis/tasks/06-13-smart/prd.md", "# Smart Task\n");
+  writeFile(root, ".cstl/.developer", "name=test-dev\n");
+  writeFile(root, ".cstl/tasks/06-13-smart/prd.md", "# Smart Task\n");
   writeFile(
     root,
-    ".trellis/tasks/06-13-smart/task.json",
+    ".cstl/tasks/06-13-smart/task.json",
     JSON.stringify(
       {
         id: "smart",
@@ -150,7 +150,7 @@ function runSmartSearch(
 ): { status: number | null; stdout: string; stderr: string } {
   const result = spawnSync(
     pythonCmd as string,
-    [path.join(root, ".trellis", "scripts", "run_smart_search.py"), ...args],
+    [path.join(root, ".cstl", "scripts", "run_smart_search.py"), ...args],
     { cwd: root, encoding: "utf-8", env },
   );
   return {
@@ -181,7 +181,7 @@ describe.skipIf(pythonCmd === null)("run_smart_search.py", () => {
         "--smart-search-command",
         smartSearchCommand,
         "--task",
-        ".trellis/tasks/06-13-smart",
+        ".cstl/tasks/06-13-smart",
         "--run-id",
         "unit-run",
         "--json",
@@ -199,9 +199,9 @@ describe.skipIf(pythonCmd === null)("run_smart_search.py", () => {
       intent: "deep-research",
       status: "ok",
       outputPath:
-        ".trellis/tasks/06-13-smart/research/smart-search/unit-run/deep_research.json",
-      evidenceDir: ".trellis/tasks/06-13-smart/research/smart-search/unit-run",
-      manifestPath: ".trellis/tasks/06-13-smart/research/smart-search/unit-run/manifest.json",
+        ".cstl/tasks/06-13-smart/research/smart-search/unit-run/deep_research.json",
+      evidenceDir: ".cstl/tasks/06-13-smart/research/smart-search/unit-run",
+      manifestPath: ".cstl/tasks/06-13-smart/research/smart-search/unit-run/manifest.json",
       degraded: false,
       routePolicyVersion: "research-router-v1",
     });
@@ -229,7 +229,7 @@ describe.skipIf(pythonCmd === null)("run_smart_search.py", () => {
 
     const manifestPath = path.join(
       tmpDir,
-      ".trellis",
+      ".cstl",
       "tasks",
       "06-13-smart",
       "research",
@@ -249,7 +249,7 @@ describe.skipIf(pythonCmd === null)("run_smart_search.py", () => {
         "--smart-search-command",
         smartSearchCommand,
         "--task",
-        ".trellis/tasks/06-13-smart",
+        ".cstl/tasks/06-13-smart",
         "--run-id",
         "flags-run",
         "--locale-scope",
@@ -277,7 +277,7 @@ describe.skipIf(pythonCmd === null)("run_smart_search.py", () => {
         "--smart-search-command",
         missingExecutable,
         "--task",
-        ".trellis/tasks/06-13-smart",
+        ".cstl/tasks/06-13-smart",
         "--run-id",
         "missing-cli",
         "--json",
@@ -289,7 +289,7 @@ describe.skipIf(pythonCmd === null)("run_smart_search.py", () => {
     expect(manifest.status).toBe("not_configured");
     expect(manifest.error).toContain("could not be resolved");
     expect(manifest.outputPath).toBe(
-      ".trellis/tasks/06-13-smart/research/smart-search/missing-cli/deep_research.json",
+      ".cstl/tasks/06-13-smart/research/smart-search/missing-cli/deep_research.json",
     );
     expect(manifest.citations).toEqual([]);
   });
@@ -322,7 +322,7 @@ describe.skipIf(pythonCmd === null)("run_smart_search.py", () => {
         ].join("\n"),
       ],
       {
-        cwd: path.join(repoRoot, ".trellis", "scripts"),
+        cwd: path.join(repoRoot, ".cstl", "scripts"),
         encoding: "utf-8",
       },
     );

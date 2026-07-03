@@ -23,7 +23,7 @@ hook entry point). Written to each platform's hooks directory via
 writeSharedHooks() at init time.
 
 Silent exit 0 cases (no output):
-  - No .trellis/ directory found (not a Trellis project)
+  - No .cstl/ directory found (not a Trellis project)
   - task.json malformed or missing status
 """
 from __future__ import annotations
@@ -71,14 +71,14 @@ If you have not already loaded Trellis context this session, read the `cstl-star
 # ---------------------------------------------------------------------------
 
 def find_trellis_root(start: Path) -> Optional[Path]:
-    """Walk up from start to find directory containing .trellis/.
+    """Walk up from start to find directory containing .cstl/.
 
     Handles CWD drift: subdirectory launches, monorepo packages, etc.
-    Returns None if no .trellis/ found (silent no-op).
+    Returns None if no .cstl/ found (silent no-op).
     """
     cur = start.resolve()
     while cur != cur.parent:
-        if (cur / ".trellis").is_dir():
+        if (cur / ".cstl").is_dir():
             return cur
         cur = cur.parent
     return None
@@ -125,7 +125,7 @@ def _detect_platform(input_data: dict) -> str | None:
 
 
 def _resolve_selected_task(root: Path, input_data: dict):
-    scripts_dir = root / ".trellis" / "scripts"
+    scripts_dir = root / ".cstl" / "scripts"
     if str(scripts_dir) not in sys.path:
         sys.path.insert(0, str(scripts_dir))
     from common.active_task import resolve_selected_task  # type: ignore[import-not-found]
@@ -180,7 +180,7 @@ def load_breadcrumbs(root: Path) -> dict[str, str]:
     in build_breadcrumb so users see the broken state and fix
     workflow.md, rather than the hook silently masking the issue.
     """
-    workflow = root / ".trellis" / "workflow.md"
+    workflow = root / ".cstl" / "workflow.md"
     if not workflow.is_file():
         return {}
     try:
@@ -198,12 +198,12 @@ def load_breadcrumbs(root: Path) -> dict[str, str]:
 
 
 def _read_trellis_config(root: Path) -> dict:
-    """Load .trellis/config.yaml via the bundled trellis_config helper.
+    """Load .cstl/config.yaml via the bundled trellis_config helper.
 
-    The helper lives in .trellis/scripts/common; the hook lives outside the
+    The helper lives in .cstl/scripts/common; the hook lives outside the
     scripts tree, so we extend sys.path before importing.
     """
-    scripts_dir = root / ".trellis" / "scripts"
+    scripts_dir = root / ".cstl" / "scripts"
     if str(scripts_dir) not in sys.path:
         sys.path.insert(0, str(scripts_dir))
     try:
@@ -219,7 +219,7 @@ def _read_trellis_config(root: Path) -> dict:
 def _codex_mode_banner(config: dict) -> str:
     """Emit a `<codex-mode>` banner for the additionalContext payload.
 
-    Reads `codex.dispatch_mode` from .trellis/config.yaml; defaults to
+    Reads `codex.dispatch_mode` from .cstl/config.yaml; defaults to
     `inline` when missing or invalid because Codex sub-agents run with
     `fork_turns="none"` isolation and can't inherit the parent session's
     task context. The banner makes the active mode explicit to Codex AI
@@ -254,7 +254,7 @@ def resolve_breadcrumb_key(
 
     Codex defaults to ``inline`` because sub-agents run with ``fork_turns="none"``
     isolation and can't inherit the parent session's task context. Users can
-    opt into ``codex.dispatch_mode: sub-agent`` in ``.trellis/config.yaml``
+    opt into ``codex.dispatch_mode: sub-agent`` in ``.cstl/config.yaml``
     to use the parallel ``<status>-inline`` tag → ``<status>`` flip. Invalid
     or missing values fall back to inline.
 

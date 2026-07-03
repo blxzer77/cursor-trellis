@@ -89,9 +89,9 @@ def render_task_dashboard(
             lines.append("")
 
     lines.append("Suggested actions:")
-    lines.append("  - Select a task: python ./.trellis/scripts/task.py select <task>")
-    lines.append("  - Create a task: python ./.trellis/scripts/task.py create \"<title>\" --slug <slug>")
-    lines.append("  - Inspect raw list: python ./.trellis/scripts/task.py list")
+    lines.append("  - Select a task: python ./.cstl/scripts/task.py select <task>")
+    lines.append("  - Create a task: python ./.cstl/scripts/task.py create \"<title>\" --slug <slug>")
+    lines.append("  - Inspect raw list: python ./.cstl/scripts/task.py list")
     lines.append("  - Continue without a task only for No Task or Micro-Grill work")
     if developer:
         lines.append(f"Developer: {developer}")

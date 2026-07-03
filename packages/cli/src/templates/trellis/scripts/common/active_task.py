@@ -2,7 +2,7 @@
 """Session-scoped selected task resolution.
 
 The user-facing concept is a live-session "selected task". Trellis stores that
-pointer per AI session/window under `.trellis/.runtime/sessions/`; without a
+pointer per AI session/window under `.cstl/.runtime/sessions/`; without a
 stable session key there is no selected task.
 """
 
@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-DIR_WORKFLOW = ".trellis"
+DIR_WORKFLOW = ".cstl"
 DIR_TASKS = "tasks"
 DIR_RUNTIME = ".runtime"
 DIR_SESSIONS = "sessions"

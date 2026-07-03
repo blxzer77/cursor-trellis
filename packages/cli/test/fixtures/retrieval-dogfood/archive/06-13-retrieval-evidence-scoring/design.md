@@ -7,7 +7,7 @@ Add a small generated-runtime scoring module that can be reused by context loadi
 Candidate module:
 
 ```text
-.trellis/scripts/common/retrieval_evidence.py
+.cstl/scripts/common/retrieval_evidence.py
 packages/cli/src/templates/trellis/scripts/common/retrieval_evidence.py
 ```
 
@@ -22,7 +22,7 @@ Recommended output shape:
   "version": 1,
   "source": "smart-search",
   "kind": "external-evidence",
-  "reference": ".trellis/tasks/<task>/research/smart-search/<run>/manifest.json",
+  "reference": ".cstl/tasks/<task>/research/smart-search/<run>/manifest.json",
   "title": "React docs",
   "status": "ok",
   "trust": "high",

@@ -299,7 +299,7 @@ function policyVerification(): CodebaseRetrievalVerificationStep[] {
     {
       id: "policy-doc-top1",
       requirement:
-        "For policy/document intents, confirm Top-1 policy evidence from AGENTS.md or .trellis/spec before ranking implementation modules first.",
+        "For policy/document intents, confirm Top-1 policy evidence from AGENTS.md or .cstl/spec before ranking implementation modules first.",
       appliesToRoles: ["exact", "semantic"],
     },
     {
@@ -486,7 +486,7 @@ function orderedRoutesForIntents(
         role: "exact",
         sourceFamily: "policy-docs",
         commands: [
-          'rg -i "storage default|sidecar|sqlite only" AGENTS.md "**/AGENTS.md" README.md CONTRIBUTING.md .trellis/spec',
+          'rg -i "storage default|sidecar|sqlite only" AGENTS.md "**/AGENTS.md" README.md CONTRIBUTING.md .cstl/spec',
         ],
         rationale: "Policy/document intent: search instruction and spec docs first.",
       });
@@ -509,7 +509,7 @@ function orderedRoutesForIntents(
       role: "exact",
       sourceFamily: "policy-docs",
       commands: [
-        'rg -i "storage default|sidecar|sqlite only" AGENTS.md "**/AGENTS.md" README.md CONTRIBUTING.md .trellis/spec',
+        'rg -i "storage default|sidecar|sqlite only" AGENTS.md "**/AGENTS.md" README.md CONTRIBUTING.md .cstl/spec',
       ],
       rationale: "Policy/document intent: search instruction and spec docs first.",
     });
@@ -534,7 +534,7 @@ function orderedRoutesForIntents(
         role: "exact",
         sourceFamily: "policy-docs",
         commands: [
-          'rg -i "storage default|sidecar|sqlite only" AGENTS.md "**/AGENTS.md" README.md CONTRIBUTING.md .trellis/spec',
+          'rg -i "storage default|sidecar|sqlite only" AGENTS.md "**/AGENTS.md" README.md CONTRIBUTING.md .cstl/spec',
         ],
         rationale: "Policy/document branch after exact-primary when both intents match.",
       });
@@ -791,7 +791,7 @@ function buildFallbackHints(
     hints.push({
       when: "semantic Top-1 is implementation-only for policy query",
       action:
-        "Fall back to policy-doc rg route and AGENTS.md/.trellis/spec reads before accepting semantic ranking.",
+        "Fall back to policy-doc rg route and AGENTS.md/.cstl/spec reads before accepting semantic ranking.",
       replacesRole: "semantic",
     });
   }

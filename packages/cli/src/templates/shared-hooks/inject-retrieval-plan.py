@@ -4,10 +4,10 @@
 DEGRADED MODE (2026-06-24): beforeSubmitPrompt hook's additional_context does
 not reach the model in current Cursor versions (L1: event often not fired;
 L2: additional_context not delivered). This hook now runs in telemetry-only
-mode: logs routing decisions to .trellis/.runtime/retrieval-plan-events.log
+mode: logs routing decisions to .cstl/.runtime/retrieval-plan-events.log
 for post-session analysis but does NOT inject plan blocks.
 
-See .trellis/tasks/06-24-handle-beforesubmitprompt-unreliability/prd.md for
+See .cstl/tasks/06-24-handle-beforesubmitprompt-unreliability/prd.md for
 probe results and mitigation strategy.
 
 Silent exit 0 (no stdout) when:
@@ -48,7 +48,7 @@ if sys.platform.startswith("win"):
             except Exception:
                 pass
 
-DIR_WORKFLOW = ".trellis"
+DIR_WORKFLOW = ".cstl"
 PLAN_MARKER_ZH = "## 代码库检索计划"
 PLAN_MARKER_EN = "## Codebase retrieval plan"
 TELEMETRY_LOG = ".runtime/retrieval-plan-events.log"

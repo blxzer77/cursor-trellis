@@ -1150,7 +1150,7 @@ def durable_learning_decision_status(content: str) -> dict[str, bool]:
 def suggest_spec_targets(repo_root: Path, task_dir: Path, task_data: dict) -> list[str]:
     """Suggest existing spec paths from task scope; does not invent new rules."""
     suggestions: list[str] = []
-    spec_root = repo_root / ".trellis" / "spec"
+    spec_root = repo_root / ".cstl" / "spec"
     if not spec_root.is_dir():
         return suggestions
 
@@ -1158,7 +1158,7 @@ def suggest_spec_targets(repo_root: Path, task_dir: Path, task_data: dict) -> li
     if isinstance(package, str) and package.strip():
         pkg_index = spec_root / package.strip() / "index.md"
         if pkg_index.is_file():
-            suggestions.append(f".trellis/spec/{package.strip()}/index.md")
+            suggestions.append(f".cstl/spec/{package.strip()}/index.md")
 
     scope = task_data.get("scope")
     if isinstance(scope, str) and scope.strip():
@@ -1168,7 +1168,7 @@ def suggest_spec_targets(repo_root: Path, task_dir: Path, task_data: dict) -> li
             index = scope_path / "index.md"
             if index.is_file():
                 suggestions.append(
-                    f".trellis/spec/{scope_path.relative_to(spec_root).as_posix()}/index.md"
+                    f".cstl/spec/{scope_path.relative_to(spec_root).as_posix()}/index.md"
                 )
 
     guide_paths = (
@@ -1178,7 +1178,7 @@ def suggest_spec_targets(repo_root: Path, task_dir: Path, task_data: dict) -> li
     for rel in guide_paths:
         path = spec_root / rel
         if path.is_file():
-            suggestions.append(f".trellis/spec/{rel}")
+            suggestions.append(f".cstl/spec/{rel}")
 
     return _dedupe_preserve_order(suggestions)[:6]
 
@@ -1192,7 +1192,7 @@ def build_spec_update_scaffold(
 ) -> str:
     """Markdown checklist for spec capture; user/reviewer must confirm before editing specs."""
     targets = suggest_spec_targets(repo_root, task_dir, task_data)
-    rel_task = f".trellis/tasks/{task_dir.name}"
+    rel_task = f".cstl/tasks/{task_dir.name}"
     lines = [
         "## Spec update scaffold (reviewer-confirmed)",
         "",
@@ -1205,7 +1205,7 @@ def build_spec_update_scaffold(
         [
             "1. Decide outcome in verify.md:",
             "   - Routine: `Durable learning decision: no durable learning`",
-            "   - Reusable insight: `Spec update evidence: .trellis/spec/<path>` after edits",
+            "   - Reusable insight: `Spec update evidence: .cstl/spec/<path>` after edits",
             f"   - Already documented: `Learning artifact: {rel_task}/handoff.md`",
             "",
             "2. Use `/cstl:update-spec` or `/cstl:break-loop` for depth; never auto-write specs.",
@@ -1219,11 +1219,11 @@ def build_spec_update_scaffold(
         lines.append("")
     else:
         lines.append(
-            "3. Browse `.trellis/spec/<package-or-layer>/index.md` for the right code-spec file."
+            "3. Browse `.cstl/spec/<package-or-layer>/index.md` for the right code-spec file."
         )
         lines.append("")
     lines.append(
-        "4. Re-run `python ./.trellis/scripts/task.py archive <task> --check` after verify.md is final."
+        "4. Re-run `python ./.cstl/scripts/task.py archive <task> --check` after verify.md is final."
     )
     lines.append("")
     return "\n".join(lines)
@@ -1233,13 +1233,13 @@ def _learning_decision_draft_lines(task_dir: Path, task_data: dict) -> list[str]
     """Default durable-learning block for prepare-archive-evidence."""
     repo_root = task_dir.parent.parent.parent
     targets = suggest_spec_targets(repo_root, task_dir, task_data)
-    target_hint = targets[0] if targets else ".trellis/spec/<layer>/index.md"
+    target_hint = targets[0] if targets else ".cstl/spec/<layer>/index.md"
     return [
         "Durable learning decision: no durable learning for this task scope.",
         "",
         "# Replace the line above with ONE of these before archive:",
         f"# Spec update evidence: {target_hint}",
-        f"# Learning artifact: .trellis/tasks/{task_dir.name}/handoff.md",
+        f"# Learning artifact: .cstl/tasks/{task_dir.name}/handoff.md",
         "# Spec update needed: (brief reason) — then run /cstl:update-spec and point Spec update evidence at the edited file",
         "",
     ]
@@ -1268,12 +1268,12 @@ def archive_repair_hints(
     """Map archive validation errors to actionable next-step hints."""
     hints: list[str] = []
     task_ref = task_dir.name
-    rel_task = f".trellis/tasks/{task_ref}"
+    rel_task = f".cstl/tasks/{task_ref}"
 
     for error in errors:
         if error == "verify.md":
             hints.append(
-                f"Create verify.md, then run: python ./.trellis/scripts/task.py "
+                f"Create verify.md, then run: python ./.cstl/scripts/task.py "
                 f"prepare-archive-evidence {rel_task}"
             )
             continue
@@ -1281,7 +1281,7 @@ def archive_repair_hints(
             hints.append(
                 "Add a grep-friendly line such as "
                 "'Validation commands: <command> — <outcome>' to verify.md, "
-                f"or run: python ./.trellis/scripts/task.py prepare-archive-evidence {rel_task}"
+                f"or run: python ./.cstl/scripts/task.py prepare-archive-evidence {rel_task}"
             )
             continue
         if error == "verify.md missing final acceptance evidence":
@@ -1295,9 +1295,9 @@ def archive_repair_hints(
             hints.append(
                 "Durable learning decision (pick one grep-friendly line in verify.md): "
                 "'Durable learning decision: no durable learning' for routine work; "
-                "'Spec update evidence: .trellis/spec/<path>' after /cstl:update-spec; "
+                "'Spec update evidence: .cstl/spec/<path>' after /cstl:update-spec; "
                 "'Learning artifact: <path>' when handoff/retrospective already captures the insight. "
-                f"Or run: python ./.trellis/scripts/task.py prepare-archive-evidence {rel_task}"
+                f"Or run: python ./.cstl/scripts/task.py prepare-archive-evidence {rel_task}"
             )
             continue
         if error == "verify.md missing final integration evidence":
@@ -1313,21 +1313,21 @@ def archive_repair_hints(
             if transition == "parent-integrated":
                 hints.append(
                     f"Parent archive needs record-gate for parent-integrated/{gate}: "
-                    f"python ./.trellis/scripts/task.py record-gate {rel_task} "
+                    f"python ./.cstl/scripts/task.py record-gate {rel_task} "
                     f"--transition parent-integrated --gate {gate} --result PASS "
                     f"--reviewer parent --evidence task-map.md"
                 )
             elif transition == "child-review":
                 hints.append(
                     f"Full Child acceptance needs record-gate for child-review/{gate}: "
-                    f"python ./.trellis/scripts/task.py record-gate {rel_task} "
+                    f"python ./.cstl/scripts/task.py record-gate {rel_task} "
                     f"--transition child-review --gate {gate} --result PASS "
                     f"--reviewer parent --evidence verify.md"
                 )
             else:
                 hints.append(
                     f"Record reviewer gate after explicit review (never auto-PASS): "
-                    f"python ./.trellis/scripts/task.py record-gate {rel_task} "
+                    f"python ./.cstl/scripts/task.py record-gate {rel_task} "
                     f"--transition {transition} --gate {gate} --result PASS "
                     f"--reviewer <reviewer-id> --evidence verify.md"
                 )
@@ -1376,7 +1376,7 @@ def archive_repair_hints(
 
     if not hints and not guard.ok:
         hints.append(
-            f"Run: python ./.trellis/scripts/task.py prepare-archive-evidence {rel_task} "
+            f"Run: python ./.cstl/scripts/task.py prepare-archive-evidence {rel_task} "
             "then archive --check again."
         )
 
@@ -1454,7 +1454,7 @@ def build_archive_evidence_draft(
         )
 
     if guard.is_full_task and guard.required_gates:
-        rel_task = f".trellis/tasks/{task_dir.name}"
+        rel_task = f".cstl/tasks/{task_dir.name}"
         lines.extend(
             [
                 "## Completion gate preparation (not recorded)",
@@ -1465,7 +1465,7 @@ def build_archive_evidence_draft(
         )
         for gate in guard.required_gates:
             lines.append(
-                f"- `python ./.trellis/scripts/task.py record-gate {rel_task} "
+                f"- `python ./.cstl/scripts/task.py record-gate {rel_task} "
                 f"--transition full-task-complete --gate {gate} --result PASS "
                 f"--reviewer <reviewer-id> --evidence verify.md`"
             )
@@ -1900,7 +1900,7 @@ def start_execution_repair_hints(
 ) -> list[str]:
     """Map start-execution validation errors to actionable planning hints."""
     hints: list[str] = []
-    rel_task = f".trellis/tasks/{task_dir.name}"
+    rel_task = f".cstl/tasks/{task_dir.name}"
     for error in errors:
         if error.startswith("missing gate record:"):
             _rest = error.split(":", 1)[1].strip()
@@ -1913,7 +1913,7 @@ def start_execution_repair_hints(
                 )
             else:
                 hints.append(
-                    f"python ./.trellis/scripts/task.py record-gate {rel_task} "
+                    f"python ./.cstl/scripts/task.py record-gate {rel_task} "
                     f"--transition start-execution --gate {gate} --result PASS "
                     f"--reviewer <reviewer-id> --evidence verify.md"
                 )

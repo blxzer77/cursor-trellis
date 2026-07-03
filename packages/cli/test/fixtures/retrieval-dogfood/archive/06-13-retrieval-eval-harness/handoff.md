@@ -29,9 +29,9 @@ packages/cli/test/scripts/context-pack.integration.test.ts
 
 `seedEvalProject(root)` materializes a temporary Trellis project with:
 
-- generated `.trellis/scripts/*` from template registration;
-- selected task `.trellis/tasks/06-13-eval/*`;
-- session journal `.trellis/workspace/eval-dev/journal-1.md`;
+- generated `.cstl/scripts/*` from template registration;
+- selected task `.cstl/tasks/06-13-eval/*`;
+- session journal `.cstl/workspace/eval-dev/journal-1.md`;
 - Smart Search manifests for `ok`, `degraded`, `failed`, and `not_configured`;
 - durable spec artifact for artifact-search coverage.
 

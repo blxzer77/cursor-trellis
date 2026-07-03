@@ -7,7 +7,7 @@ tools: Read, Write, Edit, Bash, Glob, Grep, mcp__exa__web_search_exa, mcp__exa__
 ## Entry points
 
 - **Agent session:** Open this agent file manually in a new chat — context from this file + your main-session prompt.
-- **Task dispatch:** Run `python ./.trellis/scripts/generate_dispatch_prompt.py --agent check` → pass stdout as `Task(..., prompt=...)` — context from the Layer 2 prompt.
+- **Task dispatch:** Run `python ./.cstl/scripts/generate_dispatch_prompt.py --agent check` → pass stdout as `Task(..., prompt=...)` — context from the Layer 2 prompt.
 
 ## Context source
 
@@ -21,7 +21,7 @@ You are the Check Agent in the Trellis workflow.
 ## Model policy
 
 - **Default:** no `model:` → **inherit** parent session.
-- **Per dispatch:** main session asks user → one-shot `model:` overlay → `Task` → restore (architecture review uses the same flow). See `.trellis/spec/guides/cursor-subagent-policy.md`.
+- **Per dispatch:** main session asks user → one-shot `model:` overlay → `Task` → restore (architecture review uses the same flow). See `.cstl/spec/guides/cursor-subagent-policy.md`.
 
 ## Recursion Guard
 
@@ -47,7 +47,7 @@ Look for the `<!-- cstl-hook-injected -->` marker in your input above.
 ## Context
 
 Before checking, read:
-- `.trellis/spec/` - Development guidelines
+- `.cstl/spec/` - Development guidelines
 - Task `prd.md` - Requirements document
 - Task `design.md` - Technical design (if exists)
 - Task `implement.md` - Execution plan (if exists)
@@ -65,7 +65,7 @@ Before checking, read:
 
 - Reviewer id: `cursor`.
 - When `implement.md` quality_gates requires a reviewer gate for the current transition, write human-readable evidence in `verify.md` before recording the machine-checkable gate result. Parent/Child integration evidence may also belong in Parent `task-map.md`.
-- Record non-baseline gates with `python ./.trellis/scripts/task.py record-gate <task> --transition <transition> --gate <gate> --result PASS --reviewer cursor --evidence verify.md`.
+- Record non-baseline gates with `python ./.cstl/scripts/task.py record-gate <task> --transition <transition> --gate <gate> --result PASS --reviewer cursor --evidence verify.md`.
 - For FAIL, add `--root-cause implementation-defect|contract-changing-defect|validation-environment-blocker` and `--issue-fingerprint <short-stable-id>`. Route implementation defects back to Execution, contract-changing defects to Planning, and validation blockers to Verification / Review.
 - For SKIPPED, use only explicit user approval: `--skip-approved-by user --skip-reason <reason>`.
 - Never record `baseline-check`; the CLI owns it. Do not pass review bodies, logs, screenshots, or long issue lists through `record-gate` arguments.
@@ -89,7 +89,7 @@ git diff              # View specific changes
 
 ### Step 2: Check Against Specs and Task Artifacts
 
-Read the task's prd.md, design.md if present, and implement.md if present, then read relevant specs in `.trellis/spec/` to check code:
+Read the task's prd.md, design.md if present, and implement.md if present, then read relevant specs in `.cstl/spec/` to check code:
 
 - Does it satisfy the task requirements
 - Does it follow the technical design and implementation plan when present
@@ -124,7 +124,7 @@ When the pack exists:
 
 ```bash
 # Optional: confirm path from selected task
-python ./.trellis/scripts/task.py selected --source
+python ./.cstl/scripts/task.py selected --source
 ```
 
 Read `{TASK}/research/retrieval-pack-latest.json` and use `contextPack.selected` (top items: `title`, `source`, `reference`, `score`). Add or update `verify.md` with:

@@ -19,29 +19,29 @@ Do **not** ask the user to hand-edit slugs (`model-xxxxx`) unless they prefer it
 - Right after **`cstl init`** when **Cursor** was selected (CLI prints a follow-up hint).
 - User says they use **Cursor++ BYOK** and want per–subagent-type models.
 - After Cursor++ **providers** change: re-list, adjust fallbacks, re-patch.
-- After **Cursor or Cursor++ upgrade**: run `python ./.trellis/local/cursor2plus/patch_wpelc8.py --check-compat` before `--apply --approve`; revert first if compat fails.
+- After **Cursor or Cursor++ upgrade**: run `python ./.cstl/local/cursor2plus/patch_wpelc8.py --check-compat` before `--apply --approve`; revert first if compat fails.
 
-Native **Cursor API** (no Cursor++): **stop** — frontmatter `model:` works; this skill does not apply. Tell the user: **`.trellis/local/cursor2plus/` is safe to ignore or delete** unless they use Cursor++ BYOK.
+Native **Cursor API** (no Cursor++): **stop** — frontmatter `model:` works; this skill does not apply. Tell the user: **`.cstl/local/cursor2plus/` is safe to ignore or delete** unless they use Cursor++ BYOK.
 
 ## Workflow
 
-1. Confirm Cursor++ data dir exists (`~/.ccursor/providers.json` or user path in `.trellis/local/cursor2plus/config.local.json`).
+1. Confirm Cursor++ data dir exists (`~/.ccursor/providers.json` or user path in `.cstl/local/cursor2plus/config.local.json`).
 2. From repo root:
    ```bash
-   python ./.trellis/local/cursor2plus/patch_wpelc8.py --list-models
-   python ./.trellis/local/cursor2plus/patch_wpelc8.py --explain
+   python ./.cstl/local/cursor2plus/patch_wpelc8.py --list-models
+   python ./.cstl/local/cursor2plus/patch_wpelc8.py --explain
    ```
 3. Ask the user **one role at a time** (or one message with a table) which **apiModel/displayName** they want for:
    - `cstl-research`, `cstl-implement`, `cstl-check`
    - optional: `generalPurpose`, `shell`, `best-of-n-runner`
    For each, ask **fallback** if they care (recommend a second choice from `--list-models`).
-4. Write **`%USERPROFILE%\.ccursor\trellis-task-models.json5`** (or `~/.ccursor/`) using structure from `.trellis/local/trellis-task-models.json5.example`:
+4. Write **`%USERPROFILE%\.ccursor\trellis-task-models.json5`** (or `~/.ccursor/`) using structure from `.cstl/local/trellis-task-models.json5.example`:
    - JSON5 with `//` comments above each key explaining the Trellis/Cursor role
    - `"models": { "<subagent_type>": { "primary": "...", "fallback": "..." } }`
 5. Run:
    ```bash
-   python ./.trellis/local/cursor2plus/patch_wpelc8.py --print-map
-   python ./.trellis/local/cursor2plus/patch_wpelc8.py --apply --approve
+   python ./.cstl/local/cursor2plus/patch_wpelc8.py --print-map
+   python ./.cstl/local/cursor2plus/patch_wpelc8.py --apply --approve
    ```
 6. Tell user: **Developer: Reload Window** in Cursor (once per patch).
 7. If stderr shows `WARN ... using fallback`, explain that primary was missing from current `providers.json` and fallback was used — suggest updating primary/fallback names, not panicking.
@@ -57,7 +57,7 @@ Native **Cursor API** (no Cursor++): **stop** — frontmatter `model:` works; th
 
 - User catalog: `~/.ccursor/providers.json`
 - User routing doc: `~/.ccursor/trellis-task-models.json5` (gitignored on machine)
-- Project override (optional): `.trellis/local/subagent-models.json5` — same shape, wins on same key
-- Patch bundle: `.trellis/local/cursor2plus/`
+- Project override (optional): `.cstl/local/subagent-models.json5` — same shape, wins on same key
+- Patch bundle: `.cstl/local/cursor2plus/`
 
-Policy: `.trellis/spec/guides/cursor-subagent-policy.md` (Method 2.5 / 2.6).
+Policy: `.cstl/spec/guides/cursor-subagent-policy.md` (Method 2.5 / 2.6).

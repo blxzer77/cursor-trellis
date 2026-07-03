@@ -72,7 +72,7 @@ describe.skipIf(pythonCmd === null)("context_pack.py", () => {
 
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-context-pack-"));
-    const scriptsDir = path.join(tmpDir, ".trellis", "scripts");
+    const scriptsDir = path.join(tmpDir, ".cstl", "scripts");
     for (const [rel, content] of getAllScripts()) {
       const target = path.join(scriptsDir, rel);
       fs.mkdirSync(path.dirname(target), { recursive: true });

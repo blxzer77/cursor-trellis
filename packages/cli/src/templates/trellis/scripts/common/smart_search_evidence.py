@@ -51,7 +51,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--run-id",
         help="Stable run id for output paths. Defaults to timestamp plus query slug.",
     )
-    parser.add_argument("--root", help="Repository root. Defaults to nearest parent with .trellis/.")
+    parser.add_argument("--root", help="Repository root. Defaults to nearest parent with .cstl/.")
     parser.add_argument(
         "--smart-search-command",
         default=None,
@@ -318,7 +318,7 @@ def resolve_evidence_dir(repo_root: Path, task_ref: str | None, run_id: str) -> 
 
     if task_dir and task_dir.exists():
         return task_dir / "research" / "smart-search" / safe_filename(run_id)
-    return repo_root / ".trellis" / "workspace" / "smart-search" / safe_filename(run_id)
+    return repo_root / ".cstl" / "workspace" / "smart-search" / safe_filename(run_id)
 
 
 def default_run_id(intent: str, query: str) -> str:

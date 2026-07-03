@@ -4,10 +4,10 @@ When the user wants to change AI entry points, auto-trigger rules, or explicit c
 
 ## Read These Files First
 
-1. `.trellis/workflow.md`
+1. `.cstl/workflow.md`
 2. Target platform skill/command/prompt/workflow directory
 3. Related agent or hook files
-4. Whether project rules already exist in `.trellis/spec/`
+4. Whether project rules already exist in `.cstl/spec/`
 
 ## Which Entry Type To Choose
 
@@ -15,8 +15,8 @@ When the user wants to change AI entry points, auto-trigger rules, or explicit c
 | --- | --- |
 | AI should automatically know a capability | Add or modify a skill. |
 | User wants to trigger manually with a command | Add or modify a command/prompt/workflow. |
-| Team project conventions | Prefer `.trellis/spec/` or a project-local skill. |
-| Change Trellis flow semantics | Synchronize `.trellis/workflow.md`. |
+| Team project conventions | Prefer `.cstl/spec/` or a project-local skill. |
+| Change Trellis flow semantics | Synchronize `.cstl/workflow.md`. |
 
 ## Modify A Skill
 
@@ -45,11 +45,11 @@ Do not write vague descriptions such as "helpful project skill"; they can trigge
 Explicit entry points should state:
 
 - How the user triggers it.
-- Which `.trellis/` files to read.
+- Which `.cstl/` files to read.
 - Which scripts to run.
 - How to report after completion.
 
-If a command only repeats workflow rules, prefer making it reference/read `.trellis/workflow.md` instead of maintaining a second copy of the flow.
+If a command only repeats workflow rules, prefer making it reference/read `.cstl/workflow.md` instead of maintaining a second copy of the flow.
 
 ## Common Paths
 
@@ -74,4 +74,4 @@ For shared skill layers across tools, consider `.agents/skills/` on platforms th
 
 - Do not mix platform-specific syntax from removed adapters into the Cursor skill files.
 - Do not change only the dogfooded `.cursor/skills/` copy while forgetting to mirror the published template `packages/cli/src/templates/cursor/skills/` (and vice versa); see `cross-layer-thinking-guide.md.txt` → Cross-Package Template Consistency.
-- Do not hide long-term engineering conventions inside a command; write them to `.trellis/spec/`.
+- Do not hide long-term engineering conventions inside a command; write them to `.cstl/spec/`.

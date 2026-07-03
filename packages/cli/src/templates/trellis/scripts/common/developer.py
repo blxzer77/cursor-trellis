@@ -34,8 +34,8 @@ def init_developer(name: str, repo_root: Path | None = None) -> bool:
     """Initialize developer.
 
     Creates:
-        - .trellis/.developer file with developer info
-        - .trellis/workspace/<name>/ directory structure
+        - .cstl/.developer file with developer info
+        - .cstl/workspace/<name>/ directory structure
         - Initial journal file and index.md
 
     Args:

@@ -26,7 +26,7 @@ describe("check-router-copy-sync", () => {
 
         path.join(cliDir, "src/templates/trellis/scripts/common/codebase_retrieval_router.py"),
 
-        path.join(trellisRoot, ".trellis/scripts/common/codebase_retrieval_router.py"),
+        path.join(trellisRoot, ".cstl/scripts/common/codebase_retrieval_router.py"),
 
       ],
 
@@ -34,7 +34,7 @@ describe("check-router-copy-sync", () => {
 
         path.join(cliDir, "src/templates/trellis/scripts/route_codebase_retrieval.py"),
 
-        path.join(trellisRoot, ".trellis/scripts/route_codebase_retrieval.py"),
+        path.join(trellisRoot, ".cstl/scripts/route_codebase_retrieval.py"),
 
       ],
 

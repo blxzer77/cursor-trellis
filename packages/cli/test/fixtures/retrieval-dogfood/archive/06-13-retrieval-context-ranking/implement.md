@@ -30,7 +30,7 @@ quality_gates:
 
 ## Candidate Files
 
-- `Trellis/.trellis/scripts/common/session_context.py`
+- `Trellis/.cstl/scripts/common/session_context.py`
 - `Trellis/packages/cli/src/templates/trellis/scripts/common/session_context.py`
 - `Trellis/packages/cli/test/scripts/context-loading.integration.test.ts`
 

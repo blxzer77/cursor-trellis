@@ -13,10 +13,10 @@ import {
   type RetrievalPackPayload,
 } from "./retrieval-eval-fixtures.js";
 
-export const DOGFOOD_TASK_PATH = ".trellis/tasks/06-13-dogfood-retrieval";
+export const DOGFOOD_TASK_PATH = ".cstl/tasks/06-13-dogfood-retrieval";
 export const DOGFOOD_DEVELOPER = "dogfood-dev";
 export const DOGFOOD_SESSION_ID = "retrieval-dogfood-test";
-export const DOGFOOD_ARCHIVE_TASK_PREFIX = ".trellis/tasks/archive-fixtures";
+export const DOGFOOD_ARCHIVE_TASK_PREFIX = ".cstl/tasks/archive-fixtures";
 
 const fixtureRoot = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -112,8 +112,8 @@ function readBundledFixture(slug: string, file: string): string {
 
 export function seedDogfoodProject(root: string): void {
   writeTrellisScripts(root);
-  writeFile(root, ".trellis/.developer", `name=${DOGFOOD_DEVELOPER}\n`);
-  writeJson(root, `.trellis/.runtime/sessions/${DOGFOOD_SESSION_ID}.json`, {
+  writeFile(root, ".cstl/.developer", `name=${DOGFOOD_DEVELOPER}\n`);
+  writeJson(root, `.cstl/.runtime/sessions/${DOGFOOD_SESSION_ID}.json`, {
     selected_task: DOGFOOD_TASK_PATH,
   });
 
@@ -177,7 +177,7 @@ export function seedDogfoodProject(root: string): void {
   );
   writeFile(
     root,
-    ".trellis/spec/Trellis/framework/retrieval-evidence-scoring.md",
+    ".cstl/spec/Trellis/framework/retrieval-evidence-scoring.md",
     [
       "# Retrieval Evidence Scoring",
       "",
@@ -187,7 +187,7 @@ export function seedDogfoodProject(root: string): void {
   );
   writeFile(
     root,
-    `.trellis/workspace/${DOGFOOD_DEVELOPER}/journal-1.md`,
+    `.cstl/workspace/${DOGFOOD_DEVELOPER}/journal-1.md`,
     [
       "# Journal - dogfood-dev (Part 1)",
       "",
@@ -245,7 +245,7 @@ export function runSearchArtifacts(
 ): { status: number | null; stdout: string; stderr: string; results: Record<string, unknown>[] } {
   const result = spawnSync(
     pythonCmd,
-    [path.join(root, ".trellis", "scripts", "search_artifacts.py"), "--query", query, "--json"],
+    [path.join(root, ".cstl", "scripts", "search_artifacts.py"), "--query", query, "--json"],
     { cwd: root, encoding: "utf-8" },
   );
   const payload = result.stdout ? (JSON.parse(result.stdout) as { results?: Record<string, unknown>[] }) : {};
@@ -264,7 +264,7 @@ export function runSearchMemory(
 ): { status: number | null; stdout: string; stderr: string; results: Record<string, unknown>[] } {
   const result = spawnSync(
     pythonCmd,
-    [path.join(root, ".trellis", "scripts", "search_memory.py"), "--query", query, "--json"],
+    [path.join(root, ".cstl", "scripts", "search_memory.py"), "--query", query, "--json"],
     { cwd: root, encoding: "utf-8" },
   );
   const payload = result.stdout ? (JSON.parse(result.stdout) as { results?: Record<string, unknown>[] }) : {};

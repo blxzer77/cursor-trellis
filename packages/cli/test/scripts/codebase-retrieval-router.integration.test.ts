@@ -10,7 +10,7 @@ import { resolvePython } from "./retrieval-eval-fixtures.js";
 const pythonCmd = resolvePython();
 
 function writeTrellisScripts(root: string): void {
-  const scriptsDir = path.join(root, ".trellis", "scripts");
+  const scriptsDir = path.join(root, ".cstl", "scripts");
   for (const [rel, content] of getAllScripts()) {
     const target = path.join(scriptsDir, rel);
     fs.mkdirSync(path.dirname(target), { recursive: true });
@@ -19,7 +19,7 @@ function writeTrellisScripts(root: string): void {
 }
 
 function runRouter(root: string, query: string): Record<string, unknown> {
-  const scriptPath = path.join(root, ".trellis", "scripts", "route_codebase_retrieval.py");
+  const scriptPath = path.join(root, ".cstl", "scripts", "route_codebase_retrieval.py");
   const result = spawnSync(pythonCmd as string, [scriptPath, query, "--json"], {
     cwd: root,
     encoding: "utf-8",
@@ -58,7 +58,7 @@ describe.skipIf(pythonCmd === null)("codebase_retrieval_router.py", () => {
       }),
       "utf-8",
     );
-    const build = path.join(tmpDir, ".trellis", "scripts", "build_retrieval_pack.py");
+    const build = path.join(tmpDir, ".cstl", "scripts", "build_retrieval_pack.py");
     const result = spawnSync(
       pythonCmd as string,
       [build, "--input", inputPath, "--root", tmpDir, "--json"],

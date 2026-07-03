@@ -12,7 +12,7 @@ import {
 export function channelRoot(): string {
   const env = process.env.TRELLIS_CHANNEL_ROOT;
   if (env && env.length > 0) return path.resolve(env);
-  return path.join(os.homedir(), ".trellis", "channels");
+  return path.join(os.homedir(), ".cstl", "channels");
 }
 
 /**

@@ -1,7 +1,7 @@
 /**
  * Shared hook templates — platform-independent Python hook scripts.
  *
- * These scripts read only from .trellis/ paths (JSONL, prd.md, spec/) and
+ * These scripts read only from .cstl/ paths (JSONL, prd.md, spec/) and
  * have no platform-specific placeholders. They can be written as-is to any
  * platform's hooks directory.
  */

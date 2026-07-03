@@ -160,7 +160,7 @@ function stepForRoute(
   }
 
   if (routeId === "policy-docs-rg" || route.sourceFamily === "policy-docs") {
-    return "使用 **Grep** 在 `AGENTS.md`、`**/AGENTS.md`、`.trellis/spec`、`README.md` 中搜索策略/边界关键词。";
+    return "使用 **Grep** 在 `AGENTS.md`、`**/AGENTS.md`、`.cstl/spec`、`README.md` 中搜索策略/边界关键词。";
   }
 
   if (role === "exact" || routeId.includes("rg")) {
