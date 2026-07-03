@@ -104,3 +104,31 @@ export function hasLegacyTrellisBlock(content: string): boolean {
       content.indexOf(LEGACY_TRELLIS_BLOCK_START)
   );
 }
+
+/**
+ * Remove the CSTL managed block from `content`, leaving any upstream TRELLIS
+ * block and user content untouched. Collapses the blank lines left behind so
+ * the result reads naturally. Returns the content unchanged if no CSTL block
+ * is present.
+ *
+ * Used by `cstl uninstall` so a coexistence repo ends up with only the
+ * upstream TRELLIS block + user content after cursor-trellis is removed.
+ */
+export function removeCstlManagedBlock(content: string): string {
+  const startIdx = content.indexOf(CSTL_BLOCK_START);
+  if (startIdx === -1) {
+    return content;
+  }
+  const endIdx = content.indexOf(CSTL_BLOCK_END, startIdx);
+  if (endIdx === -1) {
+    return content;
+  }
+  const before = content.slice(0, startIdx);
+  const after = content.slice(endIdx + CSTL_BLOCK_END.length);
+  // Collapse up to one blank-line gap on each side so we don't leave a run of
+  // 4+ newlines, but never trim away meaningful separator lines.
+  return (
+    before.replace(/\n{2,}$/, "\n\n") +
+    after.replace(/^\n{2,}/, "\n\n")
+  ).replace(/^\n{2,}/, "\n");
+}

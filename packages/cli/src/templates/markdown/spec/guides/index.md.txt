@@ -29,6 +29,7 @@ These guides help you **ask the right questions before coding**.
 | [Cursor subagent policy](./cursor-subagent-policy.md) | Task tool scenes, Agent mode, `model_policy: cursor-configured`, Cursor++ | Parent/Child dispatch, research/implement/check, parallel execution |
 | [Execution strategy](./execution-strategy.md) | `suggest-execution-strategy`, rules JSON, inline vs worker vs child-task | Writing `implement.md` contract, Phase 2 dispatch |
 | [Cursor context injection guide](./cursor-context-injection-guide.md) | Which Cursor channels reach the model (sessionStart bug, .cursor/rules, AGENTS.md) | "Agent ignored instructions" on Cursor, adding always-visible rules |
+| [cursor-trellis release & coexistence](./cursor-trellis-release-coexistence-guide.md) | npm publish runbook, `cstl-v*` tags, upstream Trellis coexistence | Releasing cstl, scenario 2 init, migrate gate, uninstall AGENTS strip |
 
 ---
 

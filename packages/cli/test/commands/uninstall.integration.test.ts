@@ -28,8 +28,21 @@ vi.mock("node:child_process", () => ({
 
 import { init } from "../../src/commands/init.js";
 import { uninstall } from "../../src/commands/uninstall.js";
-import { DIR_NAMES } from "../../src/constants/paths.js";
+import { DIR_NAMES, FILE_NAMES } from "../../src/constants/paths.js";
 import { loadHashes } from "../../src/utils/template-hash.js";
+import {
+  CSTL_BLOCK_END,
+  CSTL_BLOCK_START,
+  LEGACY_TRELLIS_BLOCK_END,
+  LEGACY_TRELLIS_BLOCK_START,
+  hasCstlBlock,
+  hasLegacyTrellisBlock,
+} from "../../src/utils/agents-md.js";
+
+const CSTL_BLK = (inner: string) =>
+  `${CSTL_BLOCK_START}\n${inner}\n${CSTL_BLOCK_END}`;
+const TRELLIS_BLK = (inner: string) =>
+  `${LEGACY_TRELLIS_BLOCK_START}\n${inner}\n${LEGACY_TRELLIS_BLOCK_END}`;
 
 // eslint-disable-next-line @typescript-eslint/no-empty-function
 const noop = () => {};
@@ -254,6 +267,51 @@ describe("uninstall() integration", () => {
       const after = JSON.parse(fs.readFileSync(hooksPath, "utf-8")) as Record<string, unknown>;
       expect(after.userNote).toBe("keep-me");
     }
+  });
+
+  it("#9 pure cursor-trellis: AGENTS.md (template = CSTL block only) is deleted on uninstall", async () => {
+    await init({ yes: true, cursor: true, force: true });
+    const agentsPath = path.join(tmpDir, FILE_NAMES.AGENTS);
+    expect(fs.existsSync(agentsPath)).toBe(true);
+    expect(hasCstlBlock(fs.readFileSync(agentsPath, "utf-8"))).toBe(true);
+
+    await uninstall({ yes: true });
+
+    // Template AGENTS.md is entirely the CSTL block → stripping leaves it
+    // empty → uninstall deletes it.
+    expect(fs.existsSync(agentsPath)).toBe(false);
+  });
+
+  it("#10 coexistence: uninstall strips CSTL block, keeps TRELLIS block + user content", async () => {
+    await init({ yes: true, cursor: true, force: true });
+    const agentsPath = path.join(tmpDir, FILE_NAMES.AGENTS);
+    // Simulate a coexistence AGENTS.md: upstream TRELLIS block + cursor-trellis
+    // CSTL block + user content above and below.
+    const coexistence = `# My project\n\n${TRELLIS_BLK("# upstream trellis")}\n\n${CSTL_BLK("# cstl managed")}\n\n# User footer`;
+    fs.writeFileSync(agentsPath, coexistence);
+
+    await uninstall({ yes: true });
+
+    expect(fs.existsSync(agentsPath)).toBe(true);
+    const after = fs.readFileSync(agentsPath, "utf-8");
+    expect(hasCstlBlock(after)).toBe(false);
+    expect(hasLegacyTrellisBlock(after)).toBe(true);
+    expect(after).toContain("# upstream trellis");
+    expect(after).toContain("# My project");
+    expect(after).toContain("# User footer");
+  });
+
+  it("#11 AGENTS.md with CSTL block + user header keeps the header after uninstall", async () => {
+    await init({ yes: true, cursor: true, force: true });
+    const agentsPath = path.join(tmpDir, FILE_NAMES.AGENTS);
+    fs.writeFileSync(agentsPath, `# My project\n\n${CSTL_BLK("# cstl managed")}\n`);
+
+    await uninstall({ yes: true });
+
+    expect(fs.existsSync(agentsPath)).toBe(true);
+    const after = fs.readFileSync(agentsPath, "utf-8");
+    expect(hasCstlBlock(after)).toBe(false);
+    expect(after).toContain("# My project");
   });
 
 });

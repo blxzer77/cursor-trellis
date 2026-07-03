@@ -15,6 +15,17 @@ import {
   getModificationStatus,
   initializeHashes,
 } from "../../src/utils/template-hash.js";
+import {
+  CSTL_BLOCK_END,
+  CSTL_BLOCK_START,
+  LEGACY_TRELLIS_BLOCK_END,
+  LEGACY_TRELLIS_BLOCK_START,
+} from "../../src/utils/agents-md.js";
+
+const CSTL_BLK = (inner: string) =>
+  `${CSTL_BLOCK_START}\n${inner}\n${CSTL_BLOCK_END}`;
+const TRELLIS_BLK = (inner: string) =>
+  `${LEGACY_TRELLIS_BLOCK_START}\n${inner}\n${LEGACY_TRELLIS_BLOCK_END}`;
 
 // =============================================================================
 // computeHash — pure function (EASY)
@@ -308,6 +319,77 @@ describe("isTemplateModified", () => {
 
     const result = isTemplateModified(tmpDir, "file.txt", hashes);
     expect(result).toBe(true);
+  });
+});
+
+// =============================================================================
+// AGENTS.md block-level hash (coexistence: only the CSTL block is tracked)
+// =============================================================================
+
+describe("AGENTS.md block-level hash", () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-test-"));
+    fs.mkdirSync(path.join(tmpDir, ".cstl"), { recursive: true });
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it("updateHashes stores the CSTL block hash for AGENTS.md, not the whole file", () => {
+    const content = `# Project\n\n${CSTL_BLK("# cstl managed")}\n\n# Footer`;
+    fs.writeFileSync(path.join(tmpDir, "AGENTS.md"), content);
+    updateHashes(tmpDir, new Map([["AGENTS.md", content]]));
+    const stored = loadHashes(tmpDir)["AGENTS.md"];
+    expect(stored).toBe(computeHash(CSTL_BLK("# cstl managed")));
+    expect(stored).not.toBe(computeHash(content));
+  });
+
+  it("edits OUTSIDE the CSTL block are NOT 'modified'", () => {
+    const original = `# Project\n\n${CSTL_BLK("# cstl managed")}\n\n# Footer`;
+    const hashes = { "AGENTS.md": computeHash(CSTL_BLK("# cstl managed")) };
+    fs.writeFileSync(
+      path.join(tmpDir, "AGENTS.md"),
+      original.replace("# Footer", "# New footer"),
+    );
+    expect(isTemplateModified(tmpDir, "AGENTS.md", hashes)).toBe(false);
+  });
+
+  it("edits INSIDE the CSTL block ARE 'modified'", () => {
+    const original = `# Project\n\n${CSTL_BLK("# cstl managed")}\n`;
+    const hashes = { "AGENTS.md": computeHash(CSTL_BLK("# cstl managed")) };
+    fs.writeFileSync(
+      path.join(tmpDir, "AGENTS.md"),
+      original.replace("# cstl managed", "# changed"),
+    );
+    expect(isTemplateModified(tmpDir, "AGENTS.md", hashes)).toBe(true);
+  });
+
+  it("coexistence: edits to the upstream TRELLIS block are NOT 'modified'", () => {
+    const original = `# Project\n\n${TRELLIS_BLK("# upstream")}\n\n${CSTL_BLK("# cstl managed")}\n`;
+    const hashes = { "AGENTS.md": computeHash(CSTL_BLK("# cstl managed")) };
+    fs.writeFileSync(
+      path.join(tmpDir, "AGENTS.md"),
+      original.replace("# upstream", "# upstream changed"),
+    );
+    expect(isTemplateModified(tmpDir, "AGENTS.md", hashes)).toBe(false);
+  });
+
+  it("legacy whole-file stored hash does NOT trigger a false 'modified' on upgrade", () => {
+    const content = `# Project\n\n${CSTL_BLK("# cstl managed")}\n\n# Footer`;
+    fs.writeFileSync(path.join(tmpDir, "AGENTS.md"), content);
+    // Pre-0.3.3 manifest stored a whole-file hash for AGENTS.md.
+    const legacyHashes = { "AGENTS.md": computeHash(content) };
+    expect(isTemplateModified(tmpDir, "AGENTS.md", legacyHashes)).toBe(false);
+  });
+
+  it("AGENTS.md with no CSTL block falls back to whole-file hash", () => {
+    const content = "# Just user content, no managed block";
+    fs.writeFileSync(path.join(tmpDir, "AGENTS.md"), content);
+    updateHashes(tmpDir, new Map([["AGENTS.md", content]]));
+    expect(loadHashes(tmpDir)["AGENTS.md"]).toBe(computeHash(content));
   });
 });
 

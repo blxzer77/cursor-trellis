@@ -30,6 +30,11 @@ import { init } from "../../src/commands/init.js";
 import { VERSION } from "../../src/constants/version.js";
 import { DIR_NAMES, FILE_NAMES, PATHS } from "../../src/constants/paths.js";
 import { computeHash } from "../../src/utils/template-hash.js";
+import {
+  CSTL_BLOCK_END,
+  CSTL_BLOCK_START,
+  extractBlock,
+} from "../../src/utils/agents-md.js";
 import { execSync } from "node:child_process";
 import inquirer from "inquirer";
 
@@ -702,7 +707,13 @@ describe("init() integration", () => {
       path.join(tmpDir, FILE_NAMES.AGENTS),
       "utf-8",
     );
-    expect(hashes[FILE_NAMES.AGENTS]).toBe(computeHash(agentsContent));
+    const cstlBlock = extractBlock(
+      agentsContent,
+      CSTL_BLOCK_START,
+      CSTL_BLOCK_END,
+    );
+    expect(cstlBlock).not.toBeNull();
+    expect(hashes[FILE_NAMES.AGENTS]).toBe(computeHash(cstlBlock!));
     expect(Object.keys(hashes).length).toBeGreaterThan(0);
   });
 

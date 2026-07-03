@@ -1,0 +1,50 @@
+# Publish @blxzer/cursor-trellis-core and @blxzer/cursor-trellis to npm when a
+# cursor-trellis release tag is pushed.
+#
+# Tag convention: cstl-v<semver> (NOT v<semver> — legacy @blxzer/trellis tags
+# occupy v0.3.x–v0.6.x in this repo's history).
+#
+# Required repo secret: NPM_TOKEN (npm automation token with publish access to
+# both @blxzer/cursor-trellis and @blxzer/cursor-trellis-core).
+#
+# Manual fallback (maintainer machine): node packages/cli/scripts/publish-packages.js
+
+name: Publish
+
+on:
+  push:
+    tags:
+      - "cstl-v*"
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify tag matches package versions
+        run: node packages/cli/scripts/release-preflight.js check-versions --require-tag
+
+      - name: Verify packed CLI resolves core dependency
+        run: node packages/cli/scripts/release-preflight.js verify-packed-cli
+
+      - name: Publish core then cli
+        run: node packages/cli/scripts/publish-packages.js
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Verify npm registry visibility
+        run: node packages/cli/scripts/release-preflight.js verify-npm --package all
