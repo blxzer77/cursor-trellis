@@ -45,8 +45,8 @@ Write-Host ""
 Write-Host "==> Generated layout ($Workspace)"
 Get-ChildItem -Force | ForEach-Object { $_.Name }
 Write-Host ""
-Write-Host ".trellis/"
-Get-ChildItem .trellis -ErrorAction SilentlyContinue | ForEach-Object { "  $($_.Name)" }
+Write-Host ".cstl/"
+Get-ChildItem .cstl -ErrorAction SilentlyContinue | ForEach-Object { "  $($_.Name)" }
 Write-Host ""
 Write-Host ".cursor/"
 Get-ChildItem .cursor -ErrorAction SilentlyContinue | ForEach-Object { "  $($_.Name)" }

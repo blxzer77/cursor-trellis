@@ -4,7 +4,7 @@
 
 Trellis 将代码库与外部事实问题通过一个**检索层**路由,而不是依赖单一工具。本文说明适配器栈、路由信封、上下文如何进入 Cursor Agent,以及 gating 可以断言什么结论的证据/评分规则。
 
-这是公开设计文档。已初始化项目内面向 Agent 的规范指南是 `.trellis/spec/guides/retrieval-daily-guide.md`;强制执行的 Cursor 规则是 `.cursor/rules/retrieval-routing.mdc`(`alwaysApply: true`)。
+这是公开设计文档。已初始化项目内面向 Agent 的规范指南是 `.cstl/spec/guides/retrieval-daily-guide.md`;强制执行的 Cursor 规则是 `.cursor/rules/retrieval-routing.mdc`(`alwaysApply: true`)。
 
 ## 为什么需要检索层
 
@@ -33,15 +33,15 @@ Trellis 分类问题的**意图**,然后路由到该意图下最省 token 的适
 | **Enhance** | session-memory | `search_memory.py` | 工作区日志中的可复用过往决策、近期工作 |
 | **Placeholder** | mcp/browser/network | 仅信封 | 为未来 MCP 适配器预留;当前仅元数据,非检索后端 |
 
-**Core** 适配器始终可用。**Enhance** 适配器可选,由 `.trellis/capabilities.json` gating。**Placeholder** 条目预留意图槽位但不执行检索。
+**Core** 适配器始终可用。**Enhance** 适配器可选,由 `.cstl/capabilities.json` gating。**Placeholder** 条目预留意图槽位但不执行检索。
 
 ## 路由信封
 
 `route_codebase_retrieval.py` 是意图路由器。输入自然语言问题,输出结构化计划:
 
 ```bash
-python ./.trellis/scripts/route_codebase_retrieval.py "<问题>" --json
-python ./.trellis/scripts/route_codebase_retrieval.py "<问题>" --instructions
+python ./.cstl/scripts/route_codebase_retrieval.py "<问题>" --json
+python ./.cstl/scripts/route_codebase_retrieval.py "<问题>" --instructions
 ```
 
 JSON 信封包含:
@@ -99,7 +99,7 @@ JSON 信封包含:
 离线重排:
 
 ```bash
-python ./.trellis/scripts/rank_retrieval_candidates.py --candidates fixtures.json --intents caller-chain --top-k 5 --pretty
+python ./.cstl/scripts/rank_retrieval_candidates.py --candidates fixtures.json --intents caller-chain --top-k 5 --pretty
 ```
 
 ## Token 经济
@@ -134,7 +134,7 @@ TRELLIS_SMART_SEARCH_COMMAND  →  smart_search.command 设置
 PATH smart-search  →  项目 node_modules/.bin/smart-search
 ```
 
-Agent 入口始终是 `./.trellis/scripts/run_smart_search.py`,不是裸 CLI 二进制。
+Agent 入口始终是 `./.cstl/scripts/run_smart_search.py`,不是裸 CLI 二进制。
 
 ## 语义路由(Cursor)
 
@@ -167,14 +167,14 @@ smart-search 运行写 retrieval pack(`{TASK}/research/smart-search/retrieval-pa
 
 | 命令 | 用途 |
 | --- | --- |
-| `python ./.trellis/scripts/search_artifacts.py --query "<主题>" --json` | 持久 Trellis spec、任务、研究、日志 |
-| `python ./.trellis/scripts/search_memory.py --query "<主题>" --json` | 工作区日志中的过往决策 |
-| `python ./.trellis/scripts/run_smart_search.py "<问题>" --intent deep-research --json` | 外部 web 事实(强制首选;在 `{TASK}/research/smart-search/` 写 manifest) |
-| `python ./.trellis/scripts/route_codebase_retrieval.py "<问题>" --json` | 意图 + 路由信封(含 `agentInstructions`) |
-| `python ./.trellis/scripts/route_codebase_retrieval.py "<问题>" --instructions` | 仅 Agent 可执行步骤 |
-| `python ./.trellis/scripts/get_context.py --mode retrieval-pack --json --input evidence.json` | 对收集证据评分(**不检索**) |
-| `python ./.trellis/scripts/codegraph_session_smoke.py --json` | 验证工作区存在 `.codegraph/` 索引 |
-| `python ./.trellis/scripts/rank_retrieval_candidates.py --candidates fixtures.json --intents caller-chain --top-k 5 --pretty` | 离线结果层重排 |
+| `python ./.cstl/scripts/search_artifacts.py --query "<主题>" --json` | 持久 Trellis spec、任务、研究、日志 |
+| `python ./.cstl/scripts/search_memory.py --query "<主题>" --json` | 工作区日志中的过往决策 |
+| `python ./.cstl/scripts/run_smart_search.py "<问题>" --intent deep-research --json` | 外部 web 事实(强制首选;在 `{TASK}/research/smart-search/` 写 manifest) |
+| `python ./.cstl/scripts/route_codebase_retrieval.py "<问题>" --json` | 意图 + 路由信封(含 `agentInstructions`) |
+| `python ./.cstl/scripts/route_codebase_retrieval.py "<问题>" --instructions` | 仅 Agent 可执行步骤 |
+| `python ./.cstl/scripts/get_context.py --mode retrieval-pack --json --input evidence.json` | 对收集证据评分(**不检索**) |
+| `python ./.cstl/scripts/codegraph_session_smoke.py --json` | 验证工作区存在 `.codegraph/` 索引 |
+| `python ./.cstl/scripts/rank_retrieval_candidates.py --candidates fixtures.json --intents caller-chain --top-k 5 --pretty` | 离线结果层重排 |
 
 ## codegraph 独有价值
 

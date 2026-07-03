@@ -4,7 +4,7 @@
 
 本文说明在 `cstl init --cursor` 之后,如何在 Cursor 里跑 Trellis **任务生命周期**。覆盖完整生命周期:Request Triage、Task Ladder、规划工件、Parent/Child 任务树、三阶段(Plan → Execute → Finish)以及 Lite、Micro-Grill、No Task 三种模式的差异。
 
-规范原文在项目 `.trellis/workflow.md`(由 Trellis 生成/更新)。Cursor Agent 还会通过 `.cursor/rules/cstl-triage.mdc` 看到 **Request Triage** 硬门禁。
+规范原文在项目 `.cstl/workflow.md`(由 Trellis 生成/更新)。Cursor Agent 还会通过 `.cursor/rules/cstl-triage.mdc` 看到 **Request Triage** 硬门禁。
 
 ## 前置条件
 
@@ -12,7 +12,7 @@
 2. 在仓库根目录:`cstl init --cursor`
 3. 用 Cursor 打开项目;持久性工作使用 **Agent** 模式。
 
-可选:在终端运行 `python ./.trellis/scripts/get_context.py` 查看当前任务与阶段提示。
+可选:在终端运行 `python ./.cstl/scripts/get_context.py` 查看当前任务与阶段提示。
 
 ## Request Triage(每一轮)
 
@@ -124,7 +124,7 @@ flowchart TD
 **1.4 执行门禁。** 运行非变更预检:
 
 ```bash
-python ./.trellis/scripts/task.py start-execution <任务目录> --check
+python ./.cstl/scripts/task.py start-execution <任务目录> --check
 ```
 
 复杂任务须有 `prd.md`、`design.md`、`implement.md` 并已评审。`--check` 通过后,报告工件门就绪(含任务路径 + 契约/指纹上下文),请求明确执行批准。此预检前的普通同意("确认"、"好"、"开始")**不是**执行批准。
@@ -132,7 +132,7 @@ python ./.trellis/scripts/task.py start-execution <任务目录> --check
 用户批准执行后,运行:
 
 ```bash
-python ./.trellis/scripts/task.py start-execution <任务目录> --approved
+python ./.cstl/scripts/task.py start-execution <任务目录> --approved
 ```
 
 状态变为 `in_progress`。此后才应按 `implement.md` 修改代码。
@@ -153,14 +153,14 @@ python ./.trellis/scripts/task.py start-execution <任务目录> --approved
 
 **3.2 调试回顾(按需)。** 若任务涉及反复调试(同一问题修多次),加载 `cstl-break-loop` 分类根因、解释早期修复为何失败、提出预防。
 
-**3.3 学习决策。** 审查任务是否产生值得记录的持久学习(反复失败环、需求漂移、架构决策、可复用约定、工具链坑)。若有,加载 `cstl-update-spec` 更新 `.trellis/spec/` 或写聚焦 `retrospective.md`,从 `verify.md` 链接。若无持久学习,在 `verify.md` 写明确 `No durable learning` 决策。
+**3.3 学习决策。** 审查任务是否产生值得记录的持久学习(反复失败环、需求漂移、架构决策、可复用约定、工具链坑)。若有,加载 `cstl-update-spec` 更新 `.cstl/spec/` 或写聚焦 `retrospective.md`,从 `verify.md` 链接。若无持久学习,在 `verify.md` 写明确 `No durable learning` 决策。
 
 **3.4 提交。** Agent 驱动批量提交:查 `git status --porcelain`,从 `git log --oneline -5` 学提交风格,把脏文件分"本次 AI 编辑"(工作提交先)与"记账"(归档+日志提交后)。工作提交先于记账——不交错。
 
 **3.5 归档。** 用 `/cstl-finish-work` 或手动状态更新闭环:
 
 ```bash
-python ./.trellis/scripts/task.py status <task> done   # 若 workflow 允许
+python ./.cstl/scripts/task.py status <task> done   # 若 workflow 允许
 ```
 
 归档前,`verify.md` 须含验证证据、最终验收证据、门/评审引用(适用时)、持久学习决策。带 child 的 Parent 还须含最终集成证据。
@@ -175,7 +175,7 @@ python ./.trellis/scripts/task.py status <task> done   # 若 workflow 允许
 
 ## workflow-state breadcrumb
 
-Cursor 的 `UserPromptSubmit` 钩子读 `.trellis/workflow.md` 内嵌的 `[workflow-state:*]` 块,注入每回合显示当前阶段(`no_task`/`planning`/`in_progress`)的 breadcrumb。这是每回合阶段提示的唯一真相源。规范契约在 `.trellis/workflow.md`;公开文档此处仅概述。若钩子找不到标签,降级为可见的"Refer to workflow.md for current step."行,让用户注意到并修复损坏的 `workflow.md`。
+Cursor 的 `UserPromptSubmit` 钩子读 `.cstl/workflow.md` 内嵌的 `[workflow-state:*]` 块,注入每回合显示当前阶段(`no_task`/`planning`/`in_progress`)的 breadcrumb。这是每回合阶段提示的唯一真相源。规范契约在 `.cstl/workflow.md`;公开文档此处仅概述。若钩子找不到标签,降级为可见的"Refer to workflow.md for current step."行,让用户注意到并修复损坏的 `workflow.md`。
 
 ## 斜杠命令与手工脚本
 
@@ -197,7 +197,7 @@ cd /path/to/your-project
 cstl update
 ```
 
-刷新 `.trellis/workflow.md`、Cursor rules/commands/hooks、哈希跟踪模板。若自定义过 workflow 或 rules,审阅 diff。
+刷新 `.cstl/workflow.md`、Cursor rules/commands/hooks、哈希跟踪模板。若自定义过 workflow 或 rules,审阅 diff。
 
 ## 延伸阅读
 

@@ -8,7 +8,7 @@ This document is the complete reference for Trellis **internal skills** on Curso
 
 Trellis internal skills are role-scoped instruction bundles that activate **automatically** when the workflow matcher decides they fit a turn — the agent loads them on demand, the user does not invoke them via `/`. They encode the procedural parts of the Trellis lifecycle: planning grills, pre-development reading, quality checks, bug retrospectives, spec updates, meta-customization, and web research.
 
-The canonical auto-triggered list lives in `AGENTS.md` (generated from `markdown/agents.md` in the template tree). On Cursor, the `commands-only` policy means **internal skills are deliberately not written to `.cursor/skills/`** — the `/` palette stays small (only user-invocable commands like `/cstl-continue` appear), and skill semantics travel through `.cursor/rules` + `AGENTS.md` + `.trellis/workflow.md` instead. This is a product choice: deep integration on a single platform beats a sprawling skill palette.
+The canonical auto-triggered list lives in `AGENTS.md` (generated from `markdown/agents.md` in the template tree). On Cursor, the `commands-only` policy means **internal skills are deliberately not written to `.cursor/skills/`** — the `/` palette stays small (only user-invocable commands like `/cstl-continue` appear), and skill semantics travel through `.cursor/rules` + `AGENTS.md` + `.cstl/workflow.md` instead. This is a product choice: deep integration on a single platform beats a sprawling skill palette.
 
 ## Skill vs Agent vs Command
 
@@ -65,7 +65,7 @@ Three forms inherit differently:
 | --- | --- |
 | **Definition** | `templates/common/skills/break-loop.md` |
 | **Triggers** | Repeatedly debugging the same bug; `cstl-start` routes "stuck / same bug fixed multiple times" |
-| **Role** | Deep bug analysis to break the "fix bug → forget → repeat" cycle. Five dimensions: **1 Root Cause Category** (A Missing Spec / B Cross-Layer Contract / C Change Propagation Failure / D Test Coverage Gap / E Implicit Assumption), **2 Why Fixes Failed** (surface fix / incomplete scope / tool limitation / mental model), **3 Prevention Mechanisms** (documentation / architecture / compile-time / runtime / test / review), **4 Systematic Expansion** (similar issues / design flaw / process flaw / knowledge gap), **5 Knowledge Capture** (update `.trellis/spec/guides/` thinking guides) |
+| **Role** | Deep bug analysis to break the "fix bug → forget → repeat" cycle. Five dimensions: **1 Root Cause Category** (A Missing Spec / B Cross-Layer Contract / C Change Propagation Failure / D Test Coverage Gap / E Implicit Assumption), **2 Why Fixes Failed** (surface fix / incomplete scope / tool limitation / mental model), **3 Prevention Mechanisms** (documentation / architecture / compile-time / runtime / test / review), **4 Systematic Expansion** (similar issues / design flaw / process flaw / knowledge gap), **5 Knowledge Capture** (update `.cstl/spec/guides/` thinking guides) |
 | **Boundaries** | Philosophy: "30 minutes of analysis saves 30 hours of future debugging". After analysis it MUST immediately update spec/guides and sync templates — the analysis is worthless if it stays in chat |
 
 #### `cstl-update-spec`
@@ -93,7 +93,7 @@ Three forms inherit differently:
 | | |
 | --- | --- |
 | **Definition** | `bundled-skills/cstl-meta/SKILL.md` + `references/` (local-architecture, platform-files, customize-local) |
-| **Triggers** | User wants to modify or understand the local `.trellis/` architecture, platform hooks/agents/skills/commands/workflows |
+| **Triggers** | User wants to modify or understand the local `.cstl/` architecture, platform hooks/agents/skills/commands/workflows |
 | **Role** | Local Trellis architecture map and customization entry router. Three reference layers: **local-architecture** (context injection, generated files, spec system, task system, workflow, workspace memory), **platform-files** (agents, hooks-and-settings, overview, platform-map, skills-and-commands), **customize-local** (change-agents, change-context-loading, change-hooks, change-skills-or-commands, change-spec-structure, change-task-lifecycle, change-workflow) |
 | **Boundaries** | Edits only the user's project-local files, never the upstream source tree. Routes to `cstl-skill-creator` for detailed skill authoring rules |
 
@@ -102,7 +102,7 @@ Three forms inherit differently:
 | | |
 | --- | --- |
 | **Definition** | `bundled-skills/cstl-spec-bootstrap/SKILL.md` + `references/` (mcp-setup, repository-analysis, spec-task-planning) |
-| **Triggers** | Create or refresh `.trellis/spec/`; after `cstl init` when the spec tree is empty or needs restructuring |
+| **Triggers** | Create or refresh `.cstl/spec/`; after `cstl init` when the spec tree is empty or needs restructuring |
 | **Role** | Single-owner full flow: analyze repository → decouple spec boundaries → fill specs with **real code patterns** (not template boilerplate) → verify no placeholders. Uses GitNexus/ABCoder/source analysis to extract actual conventions |
 | **Boundaries** | No template clichés; one owner owns the whole bootstrap; see [spec-system.md](spec-system.md) for the resulting structure |
 
@@ -165,7 +165,7 @@ Three names overlap conceptually but resolve to different runtimes:
 
 Trellis skills are customizable at three layers:
 
-1. **Project-local skills** — drop a `SKILL.md` (or single-file `.md`) into the project's `.trellis/` or `.agents/skills/` tree. Loaded by the workflow matcher alongside bundled skills.
+1. **Project-local skills** — drop a `SKILL.md` (or single-file `.md`) into the project's `.cstl/` or `.agents/skills/` tree. Loaded by the workflow matcher alongside bundled skills.
 2. **Shared skills** — place under a shared `.agents/skills/` path when behavior spans multiple projects on the same platform.
 3. **Upstream bundled skills** — the ones shipped in `@blxzer/cursor-trellis`; customize by copying and overriding locally rather than editing the installed package.
 

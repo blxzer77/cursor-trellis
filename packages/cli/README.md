@@ -15,6 +15,8 @@ English | [简体中文](README.zh-CN.md)
 
 Based on the [Trellis framework by mindfold-ai](https://github.com/mindfold-ai/Trellis), this version is adapted for Cursor with rules, commands, agents, and hooks.
 
+**Why `cstl` and `.cstl/`?** The CLI is `cstl` (not `trellis`) and the runtime directory is `.cstl/` (not `.trellis/`) so this fork can coexist with upstream Trellis in the same repository. See the [repository README](../../README.md#why-cstl-and-cstl).
+
 ## What it does
 
 - Task artifacts (PRD, design, implementation plan) persist in `.cstl/tasks/`

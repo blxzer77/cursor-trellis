@@ -14,14 +14,14 @@
 
 ## 这是什么
 
-社区对 [mindfold-ai/Trellis](https://github.com/mindfold-ai/Trellis) 应该不陌生——`.trellis/` 工件、三阶段生命周期、Parent/Child 任务树、Triage 决策树那套渐进式上下文框架。**cursor-trellis** 就是它的 **Cursor 单平台适配分支**:不铺 16 个平台,只把 Cursor 这一条路做深。
+社区对 [mindfold-ai/Trellis](https://github.com/mindfold-ai/Trellis) 应该不陌生——上游用 **`.trellis/`** 工件、三阶段生命周期、Parent/Child 任务树、Triage 决策树那套渐进式上下文框架。**cursor-trellis** 是它的 **Cursor 单平台适配分支**（本 fork 运行时目录为 **`.cstl/`**，避免与上游 `.trellis/` 同仓冲突）:不铺 16 个平台,只把 Cursor 这一条路做深。
 
 核心取舍是把框架语义落到 Cursor 的原生通道上——`.cursor/rules`(常驻策略)、`commands`(用户可调入口)、`agents`(子 Agent)、`hooks.json`(Python 脚本,会话/检索/派发上下文)。这样 Triage 硬门禁、spec 渐进加载、任务门禁等行为不再依赖容易失效的 session 注入,而是走 `.cursor/rules` 这个可靠通道。
 
 ```mermaid
 flowchart TB
   subgraph repo[你的应用仓库]
-    T[".trellis/<br/>workflow · spec · tasks · scripts"]
+    T[".cstl/<br/>workflow · spec · tasks · scripts"]
     A[AGENTS.md]
     C[".cursor/<br/>rules · commands · agents · hooks"]
   end
@@ -225,4 +225,4 @@ flowchart TD
 
 ---
 
-**维护:** 仓库 README 与 `docs/` 会随 CLI 模板更新;`cstl update` 可刷新本地 `.trellis/` / `.cursor/` 生成物(注意保留你对 spec 与任务的本地修改)。
+**维护:** 仓库 README 与 `docs/` 会随 CLI 模板更新;`cstl update` 可刷新本地 `.cstl/` / `.cursor/` 生成物(注意保留你对 spec 与任务的本地修改)。

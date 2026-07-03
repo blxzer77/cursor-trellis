@@ -4,7 +4,7 @@ English | [简体中文](workflow.zh-CN.md)
 
 This guide explains how to run the **Trellis task lifecycle** inside **Cursor** after `cstl init --cursor`. It covers the full lifecycle: Request Triage, the Task Ladder, planning artifacts, Parent/Child task trees, the three phases (Plan → Execute → Finish), and the differences between Lite, Micro-Grill, and No Task turns.
 
-The canonical rules live in your project's `.trellis/workflow.md` (generated/updated by Trellis). Cursor agents also see **Request Triage** via `.cursor/rules/cstl-triage.mdc`.
+The canonical rules live in your project's `.cstl/workflow.md` (generated/updated by Trellis). Cursor agents also see **Request Triage** via `.cursor/rules/cstl-triage.mdc`.
 
 ## Prerequisites
 
@@ -12,7 +12,7 @@ The canonical rules live in your project's `.trellis/workflow.md` (generated/upd
 2. In your repo root: `cstl init --cursor`
 3. Open the project in Cursor and use **Agent** mode for durable work.
 
-Optional: run `python ./.trellis/scripts/get_context.py` in a terminal to see the active task and phase hints.
+Optional: run `python ./.cstl/scripts/get_context.py` in a terminal to see the active task and phase hints.
 
 ## Request Triage (every turn)
 
@@ -124,7 +124,7 @@ flowchart TD
 **1.4 Execution gate.** Run the non-mutating preflight:
 
 ```bash
-python ./.trellis/scripts/task.py start-execution <task-dir> --check
+python ./.cstl/scripts/task.py start-execution <task-dir> --check
 ```
 
 For complex tasks, `prd.md`, `design.md`, and `implement.md` must exist and be reviewed. If `--check` passes, report that artifact gates are ready (include task path + contract/fingerprint context) and ask for explicit execution approval. Ordinary agreement ("confirm", "ok", "start") before this preflight is **not** execution approval.
@@ -132,7 +132,7 @@ For complex tasks, `prd.md`, `design.md`, and `implement.md` must exist and be r
 Only after the user approves execution, run:
 
 ```bash
-python ./.trellis/scripts/task.py start-execution <task-dir> --approved
+python ./.cstl/scripts/task.py start-execution <task-dir> --approved
 ```
 
 Status moves to `in_progress`. Only then should the agent modify code scoped in `implement.md`.
@@ -153,14 +153,14 @@ Execution is bounded by the approved `prd.md`, `design.md`, `implement.md`, and 
 
 **3.2 Debug retrospective (on demand).** If the task involved repeated debugging (same issue fixed multiple times), load `cstl-break-loop` to classify root cause, explain why earlier fixes failed, and propose prevention.
 
-**3.3 Learning decision.** Review whether the task produced durable learning worth recording (repeated failure loops, requirement drift, architecture decisions, reusable conventions, toolchain pitfalls). If yes, load `cstl-update-spec` and update `.trellis/spec/` or write a focused `retrospective.md`, linked from `verify.md`. If no durable learning exists, write an explicit `No durable learning` decision in `verify.md`.
+**3.3 Learning decision.** Review whether the task produced durable learning worth recording (repeated failure loops, requirement drift, architecture decisions, reusable conventions, toolchain pitfalls). If yes, load `cstl-update-spec` and update `.cstl/spec/` or write a focused `retrospective.md`, linked from `verify.md`. If no durable learning exists, write an explicit `No durable learning` decision in `verify.md`.
 
 **3.4 Commit changes.** The agent drives a batched commit: inspect `git status --porcelain`, learn commit style from `git log --oneline -5`, classify dirty files into "AI-edited this session" (work commits FIRST) vs "bookkeeping" (archive + journal commits after). Work commits land before bookkeeping — never interleaved.
 
 **3.5 Archive.** Close the loop with `/cstl-finish-work` or manual status update:
 
 ```bash
-python ./.trellis/scripts/task.py status <task> done   # when your workflow allows
+python ./.cstl/scripts/task.py status <task> done   # when your workflow allows
 ```
 
 Before archive, `verify.md` must contain validation evidence, final acceptance evidence, gate/review references when applicable, and the durable-learning decision. Parent tasks with children must also include final integration evidence.
@@ -175,7 +175,7 @@ Before archive, `verify.md` must contain validation evidence, final acceptance e
 
 ## workflow-state breadcrumb
 
-Cursor's `UserPromptSubmit` hook reads `[workflow-state:*]` blocks embedded in `.trellis/workflow.md` and injects a per-turn breadcrumb showing the current phase (`no_task` / `planning` / `in_progress`). This is the single source of truth for the per-turn phase hint. The canonical contract lives in `.trellis/workflow.md`; public docs summarize it here. If the hook can't find a tag, it degrades to a visible "Refer to workflow.md for current step." line so users notice and fix a broken `workflow.md`.
+Cursor's `UserPromptSubmit` hook reads `[workflow-state:*]` blocks embedded in `.cstl/workflow.md` and injects a per-turn breadcrumb showing the current phase (`no_task` / `planning` / `in_progress`). This is the single source of truth for the per-turn phase hint. The canonical contract lives in `.cstl/workflow.md`; public docs summarize it here. If the hook can't find a tag, it degrades to a visible "Refer to workflow.md for current step." line so users notice and fix a broken `workflow.md`.
 
 ## Slash commands vs manual scripts
 
@@ -197,7 +197,7 @@ cd /path/to/your-project
 cstl update
 ```
 
-This refreshes `.trellis/workflow.md`, Cursor rules/commands/hooks, and hash-tracked templates. Review diffs when you have customized workflow or rules.
+This refreshes `.cstl/workflow.md`, Cursor rules/commands/hooks, and hash-tracked templates. Review diffs when you have customized workflow or rules.
 
 ## See also
 

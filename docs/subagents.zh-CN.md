@@ -116,11 +116,11 @@ Parent 任务编排 Child 任务时,派发权限分裂:
 - **审查编排** —— Parent 会话可 inline 产品化 child 派发与审查:
 
   ```bash
-  python ./.trellis/scripts/task.py parent-status <parent-task>
-  python ./.trellis/scripts/task.py generate-child-prompt <parent-task> <child-task> --mode inline
-  python ./.trellis/scripts/task.py review-child <parent-task> <child-task> --check
-  python ./.trellis/scripts/task.py review-child <parent-task> <child-task> --decision accept --ref <child-ref>
-  python ./.trellis/scripts/task.py review-child <parent-task> <child-task> --decision integrate-through --ref <child-ref>
+  python ./.cstl/scripts/task.py parent-status <parent-task>
+  python ./.cstl/scripts/task.py generate-child-prompt <parent-task> <child-task> --mode inline
+  python ./.cstl/scripts/task.py review-child <parent-task> <child-task> --check
+  python ./.cstl/scripts/task.py review-child <parent-task> <child-task> --decision accept --ref <child-ref>
+  python ./.cstl/scripts/task.py review-child <parent-task> <child-task> --decision integrate-through --ref <child-ref>
   ```
 
   `--mode subagent` 仅当平台能生成子 Agent 时作交付提示;inline 模式是可移植默认。

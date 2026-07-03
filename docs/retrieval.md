@@ -4,7 +4,7 @@ English | [简体中文](retrieval.zh-CN.md)
 
 Trellis routes codebase and external-fact questions through a deliberate **retrieval layer** instead of relying on a single tool. This document explains the adapter stack, the routing envelope, how context reaches the Cursor agent, and the evidence/scoring rules that gate what can be claimed.
 
-This is the public design doc. The canonical, agent-facing guide inside an initialized project is `.trellis/spec/guides/retrieval-daily-guide.md`; the Cursor rule that enforces it is `.cursor/rules/retrieval-routing.mdc` (`alwaysApply: true`).
+This is the public design doc. The canonical, agent-facing guide inside an initialized project is `.cstl/spec/guides/retrieval-daily-guide.md`; the Cursor rule that enforces it is `.cursor/rules/retrieval-routing.mdc` (`alwaysApply: true`).
 
 ## Why a retrieval layer
 
@@ -33,15 +33,15 @@ Seven adapters, grouped into three layers:
 | **Enhance** | session-memory | `search_memory.py` | Reusable prior decisions, recent work recorded in workspace journals |
 | **Placeholder** | mcp/browser/network | envelope-only | Reserved for future MCP adapters; currently metadata-only, not search backends |
 
-**Core** adapters are always available. **Enhance** adapters are optional and gated by `.trellis/capabilities.json`. **Placeholder** entries reserve intent slots without executing searches.
+**Core** adapters are always available. **Enhance** adapters are optional and gated by `.cstl/capabilities.json`. **Placeholder** entries reserve intent slots without executing searches.
 
 ## Router envelope
 
 `route_codebase_retrieval.py` is the intent router. It takes a natural-language question and emits a structured plan:
 
 ```bash
-python ./.trellis/scripts/route_codebase_retrieval.py "<question>" --json
-python ./.trellis/scripts/route_codebase_retrieval.py "<question>" --instructions
+python ./.cstl/scripts/route_codebase_retrieval.py "<question>" --json
+python ./.cstl/scripts/route_codebase_retrieval.py "<question>" --instructions
 ```
 
 The JSON envelope contains:
@@ -99,7 +99,7 @@ After adapters produce **path candidates**, reorder before picking Top-1 / Top-5
 Offline reorder:
 
 ```bash
-python ./.trellis/scripts/rank_retrieval_candidates.py --candidates fixtures.json --intents caller-chain --top-k 5 --pretty
+python ./.cstl/scripts/rank_retrieval_candidates.py --candidates fixtures.json --intents caller-chain --top-k 5 --pretty
 ```
 
 ## Token economy
@@ -134,7 +134,7 @@ TRELLIS_SMART_SEARCH_COMMAND  →  smart_search.command setting
 PATH smart-search  →  project node_modules/.bin/smart-search
 ```
 
-The agent entrypoint is always `./.trellis/scripts/run_smart_search.py`, never the raw CLI binary.
+The agent entrypoint is always `./.cstl/scripts/run_smart_search.py`, never the raw CLI binary.
 
 ## Semantic routing (Cursor)
 
@@ -167,14 +167,14 @@ When a smart-search run writes a retrieval pack (`{TASK}/research/smart-search/r
 
 | Command | Purpose |
 | --- | --- |
-| `python ./.trellis/scripts/search_artifacts.py --query "<topic>" --json` | Durable Trellis specs, tasks, research, journals |
-| `python ./.trellis/scripts/search_memory.py --query "<topic>" --json` | Prior decisions in workspace journals |
-| `python ./.trellis/scripts/run_smart_search.py "<question>" --intent deep-research --json` | External web facts (mandatory first; writes manifest under `{TASK}/research/smart-search/`) |
-| `python ./.trellis/scripts/route_codebase_retrieval.py "<question>" --json` | Intent + routes envelope (includes `agentInstructions`) |
-| `python ./.trellis/scripts/route_codebase_retrieval.py "<question>" --instructions` | Agent-executable steps only |
-| `python ./.trellis/scripts/get_context.py --mode retrieval-pack --json --input evidence.json` | Score collected evidence (does **not** search) |
-| `python ./.trellis/scripts/codegraph_session_smoke.py --json` | Verify a `.codegraph/` index exists for the workspace |
-| `python ./.trellis/scripts/rank_retrieval_candidates.py --candidates fixtures.json --intents caller-chain --top-k 5 --pretty` | Offline result-layer reordering |
+| `python ./.cstl/scripts/search_artifacts.py --query "<topic>" --json` | Durable Trellis specs, tasks, research, journals |
+| `python ./.cstl/scripts/search_memory.py --query "<topic>" --json` | Prior decisions in workspace journals |
+| `python ./.cstl/scripts/run_smart_search.py "<question>" --intent deep-research --json` | External web facts (mandatory first; writes manifest under `{TASK}/research/smart-search/`) |
+| `python ./.cstl/scripts/route_codebase_retrieval.py "<question>" --json` | Intent + routes envelope (includes `agentInstructions`) |
+| `python ./.cstl/scripts/route_codebase_retrieval.py "<question>" --instructions` | Agent-executable steps only |
+| `python ./.cstl/scripts/get_context.py --mode retrieval-pack --json --input evidence.json` | Score collected evidence (does **not** search) |
+| `python ./.cstl/scripts/codegraph_session_smoke.py --json` | Verify a `.codegraph/` index exists for the workspace |
+| `python ./.cstl/scripts/rank_retrieval_candidates.py --candidates fixtures.json --intents caller-chain --top-k 5 --pretty` | Offline result-layer reordering |
 
 ## codegraph-only value
 

@@ -2,7 +2,7 @@
 
 English | [简体中文](cursor.zh-CN.md)
 
-Trellis treats **Cursor** as a first-class platform. After you run `cstl init --cursor`, the CLI writes a managed `.cursor/` tree plus the shared `.trellis/` workspace. This document explains what gets generated, how context reaches the agent, how retrieval plans are injected, and how the two Cursor environments (Native API vs Cursor++ BYOK) differ for subagent dispatch.
+Trellis treats **Cursor** as a first-class platform. After you run `cstl init --cursor`, the CLI writes a managed `.cursor/` tree plus the shared `.cstl/` workspace. This document explains what gets generated, how context reaches the agent, how retrieval plans are injected, and how the two Cursor environments (Native API vs Cursor++ BYOK) differ for subagent dispatch.
 
 ## What `cstl init --cursor` does
 
@@ -16,7 +16,7 @@ cstl init --cursor
 
 `init` also creates or updates:
 
-- `.trellis/` — workflow, spec, tasks, workspace, scripts
+- `.cstl/` — workflow, spec, tasks, workspace, scripts
 - `AGENTS.md` — high-level agent instructions (Trellis-managed block)
 - Platform files under `.cursor/` (see below)
 
@@ -35,13 +35,13 @@ On Cursor, Trellis uses a **commands-only** default:
 | `.cursor/worktrees.json` | Cursor native worktree helper config |
 | `.cursor/skills/` | **Not** populated by default — internal workflow skills stay off the palette |
 
-**Rationale.** Keep the `/` palette small and reliable. Workflow semantics reach the agent through **rules** and **AGENTS.md** / `.trellis/workflow.md`, not through a large skills tree on Cursor. Other platforms (Claude Code, Codex, …) may ship skills under their own config dirs; that is intentional and documented only in the appendix below.
+**Rationale.** Keep the `/` palette small and reliable. Workflow semantics reach the agent through **rules** and **AGENTS.md** / `.cstl/workflow.md`, not through a large skills tree on Cursor. Other platforms (Claude Code, Codex, …) may ship skills under their own config dirs; that is intentional and documented only in the appendix below.
 
 ## Generated layout
 
 ```text
 your-project/
-  .trellis/
+  .cstl/
     workflow.md          # Shared lifecycle (plan, execute, finish, triage)
     spec/                # Coding guidelines by layer
     tasks/               # PRDs, design, implement, verify
@@ -77,7 +77,7 @@ Cursor **User Rules** and project **`.cursor/rules`** are the reliable channel f
 
 This compensates for a known Cursor limitation: `sessionStart` hook `additional_context` may not reach the agent (#158452). Triage and retrieval policy therefore must not depend only on hook-injected workflow text.
 
-For day-to-day edits, treat `.trellis/workflow.md` as the canonical workflow spec; rules summarize the hard gates agents must follow in chat.
+For day-to-day edits, treat `.cstl/workflow.md` as the canonical workflow spec; rules summarize the hard gates agents must follow in chat.
 
 **Platform issues, Native/BYOK split, step-by-step operations, and external evidence** are documented in [Cursor platform limitations and cursor-trellis adaptation](cursor-platform-limitations-and-trellis-adaptation.md).
 
@@ -114,7 +114,7 @@ Prefer named Trellis agents over ad-hoc prompts when a step needs a clean contex
 | `beforeShellExecution` | Shell/session context for terminal tools |
 | `stop` | End-of-turn retrieval pack (research workflow) |
 
-Local overrides may live in `.trellis/hooks.local.json` (gitignored in Trellis source policy). Requires **Python ≥ 3.9** on the machine where hooks run.
+Local overrides may live in `.cstl/hooks.local.json` (gitignored in Trellis source policy). Requires **Python ≥ 3.9** on the machine where hooks run.
 
 For the retrieval injection channel, see [Retrieval layer design](retrieval.md#cursor-dual-injection-channel).
 
@@ -124,15 +124,15 @@ You do **not** pick one environment forever. Trellis is designed for setups wher
 
 | Typical setup | What to do |
 | --- | --- |
-| **Mix of Native-first and BYOK repos** | Run `cstl init --cursor` on each repo. Add `--cursor2plus` only on repos where you need the Method 2.5 patch bundle (`.trellis/local/cursor2plus/`). |
-| **Multi-repo harness / workspace** | Each project root owns its own `.trellis/` and `.cursor/`. Init/update/migrate are **per repo**, not once per machine. |
+| **Mix of Native-first and BYOK repos** | Run `cstl init --cursor` on each repo. Add `--cursor2plus` only on repos where you need the Method 2.5 patch bundle (`.cstl/local/cursor2plus/`). |
+| **Multi-repo harness / workspace** | Each project root owns its own `.cstl/` and `.cursor/`. Init/update/migrate are **per repo**, not once per machine. |
 | **Force routing for a test session** | Set `TRELLIS_CURSOR_BYOK=0` or `1` before opening Cursor — affects retrieval `cursorEnv` without deleting `~/.ccursor/`. |
 
 ### Configuration layers
 
 | Layer | Examples | Scope |
 | --- | --- | --- |
-| **Project** | `.trellis/local/cursor2plus/`, `.trellis/local/subagent-models.json`, `.cursor/mcp.json` from `--capability codebase-retrieval` | This repo only |
+| **Project** | `.cstl/local/cursor2plus/`, `.cstl/local/subagent-models.json`, `.cursor/mcp.json` from `--capability codebase-retrieval` | This repo only |
 | **User / machine** | `~/.ccursor/routes.json` (`byokMode`), `~/.ccursor/trellis-task-models.json5`, `~/.ccursor/providers.json` | All Cursor sessions on this machine (BYOK stack) |
 | **Session override** | `TRELLIS_CURSOR_BYOK=0|1` | Current agent session retrieval routing |
 
@@ -155,7 +155,7 @@ Full method table: [Subagent dispatch strategy](#subagent-dispatch-strategy) and
 
 ### Cursor optional appendix
 
-BYOK-only material: pass `--cursor2plus` with `--cursor` to add `.trellis/local/cursor2plus/` and `/cstl-cursor2plus-setup`. Native API users can ignore or delete that directory on repos that do not need Method 2.5. Details in [Method 2.5 detail](#method-25-detail-byok-json5-patch) below.
+BYOK-only material: pass `--cursor2plus` with `--cursor` to add `.cstl/local/cursor2plus/` and `/cstl-cursor2plus-setup`. Native API users can ignore or delete that directory on repos that do not need Method 2.5. Details in [Method 2.5 detail](#method-25-detail-byok-json5-patch) below.
 
 ## Cursor environments (Native vs BYOK)
 
@@ -203,19 +203,19 @@ When a subagent dispatch is imminent, the dispatch method depends on environment
 
 **After Cursor or Cursor++ upgrades (BYOK operators):**
 
-1. `python .trellis/local/cursor2plus/patch_wpelc8.py --check-compat`
+1. `python .cstl/local/cursor2plus/patch_wpelc8.py --check-compat`
 2. If `fail` / `not_locatable`: `patch_wpelc8.py --revert` → Reload Window → wait for a Trellis bundle update or manual re-location guidance.
 3. If `ok`: re-run `--print-map` then `--apply --approve` only when you still need the patch.
 
-`cstl update` refreshes the patch **scripts** in `.trellis/local/cursor2plus/` but does **not** re-apply the extension patch automatically.
+`cstl update` refreshes the patch **scripts** in `.cstl/local/cursor2plus/` but does **not** re-apply the extension patch automatically.
 
-**Trellis ships** (every `cstl init` / `cstl update`, when `--cursor2plus` is passed): `.trellis/local/cursor2plus/` containing `patch_wpelc8.py`, `README.md`, `config.local.json.example`. Native Cursor API users can ignore this directory.
+**Trellis ships** (every `cstl init` / `cstl update`, when `--cursor2plus` is passed): `.cstl/local/cursor2plus/` containing `patch_wpelc8.py`, `README.md`, `config.local.json.example`. Native Cursor API users can ignore this directory.
 
 **Operator workflow (BYOK only):**
 
 1. Fill `~/.ccursor/trellis-task-models.json5` with `subagent_type` → slug from `~/.ccursor/providers.json` `id` fields.
-2. Optionally override per repo: `.trellis/local/subagent-models.json` (project wins on same key).
-3. From `.trellis/local/cursor2plus/`: `python patch_wpelc8.py --print-map` → `python patch_wpelc8.py` → **Developer: Reload Window**.
+2. Optionally override per repo: `.cstl/local/subagent-models.json` (project wins on same key).
+3. From `.cstl/local/cursor2plus/`: `python patch_wpelc8.py --print-map` → `python patch_wpelc8.py` → **Developer: Reload Window**.
 4. Verify: `taskToolCall dispatching` → `resolvedModelId` matches slug.
 5. **Revert:** `python patch_wpelc8.py --revert`; Reload Window. Re-run patch after Cursor / Cursor++ upgrades.
 
@@ -223,7 +223,7 @@ Native Cursor API: **stop** — frontmatter `model:` works; Method 2.5 does not 
 
 ### `--cursor2plus` initialization
 
-Pass both `--cursor` and `--cursor2plus` to `cstl init` to materialize the BYOK local bundle at `.trellis/local/cursor2plus/`. This adds the `/cstl-cursor2plus-setup` slash command, which launches an agent-led workflow to write the json5 model map. Without `--cursor2plus`, this directory is absent and BYOK users must manage the patch manually if they want Method 2.5.
+Pass both `--cursor` and `--cursor2plus` to `cstl init` to materialize the BYOK local bundle at `.cstl/local/cursor2plus/`. This adds the `/cstl-cursor2plus-setup` slash command, which launches an agent-led workflow to write the json5 model map. Without `--cursor2plus`, this directory is absent and BYOK users must manage the patch manually if they want Method 2.5.
 
 ### When to ask the user for model choice
 
@@ -247,7 +247,7 @@ Subagent dispatch needed
 
 ## Validated gates (since 0.2.8)
 
-Trellis ships two hard gates that keep dogfood files (`./cursor/` and `./.trellis/scripts/`) in lock-step with generated templates. They run as part of `cstl init` / `cstl update` and as standalone checks:
+Trellis ships two hard gates that keep dogfood files (`./cursor/` and `./.cstl/scripts/`) in lock-step with generated templates. They run as part of `cstl init` / `cstl update` and as standalone checks:
 
 - **`cstl validate-rules`** — compares every rule file under `.cursor/rules/` against the bundled manifest in `packages/cli/src/templates/cursor/fixtures/expected-rules.ts`. Fails the command when a rule is missing, mis-titled, or out of sync.
 - **`pnpm mirror-check`** (contributor-side) — compares agent and rule template files against their dogfood instances in this repo, so the source-of-truth templates and the live `.cursor/` files do not drift.

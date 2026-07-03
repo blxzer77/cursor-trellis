@@ -12,7 +12,7 @@
  * 5. Platform Registry (beta.9, beta.13, beta.16)
  */
 
-import { execSync, spawnSync } from "node:child_process";
+import { execSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -25,20 +25,9 @@ import {
   getMigrationsForVersion,
   hasPendingMigrations,
 } from "../src/migrations/index.js";
-import {
-  getLegacyMigrationVersions,
-  getLegacyMigrationsForVersion,
-  LEGACY_MANIFESTS_DIR_PATH,
-} from "./helpers/legacy-migrations.js";
 import { isManagedPath } from "../src/configurators/index.js";
-import { AI_TOOLS } from "../src/types/ai-tools.js";
 import { PATHS } from "../src/constants/paths.js";
 import { getSharedHookScripts } from "../src/templates/shared-hooks/index.js";
-import {
-  getBundledSkillTemplates,
-  getCommandTemplates,
-  getSkillTemplates,
-} from "../src/templates/common/index.js";
 import {
   commonInit,
   taskScript,
@@ -46,23 +35,14 @@ import {
   commonCliAdapter,
   commonTaskUtils,
   commonDeveloper,
-  commonConfig,
   commonGitContext,
   commonSessionContext,
   getAllScripts,
   MAINTAINER_ONLY_SCRIPT_PATHS,
 } from "../src/templates/trellis/index.js";
 import {
-  collectPlatformTemplates,
-  configurePlatform,
-  PLATFORM_IDS,
-} from "../src/configurators/index.js";
-import { setWriteMode } from "../src/utils/file-writer.js";
-import {
-  guidesIndexContent,
   workspaceIndexContent,
 } from "../src/templates/markdown/index.js";
-import * as markdownExports from "../src/templates/markdown/index.js";
 
 afterEach(() => {
   clearManifestCache();

@@ -4,6 +4,8 @@
 
 Trellis CLI 的 npm 包。项目总览：[../../README.zh-CN.md](../../README.zh-CN.md)。Cursor 工作流：[../../docs/workflow.zh-CN.md](../../docs/workflow.zh-CN.md)。
 
+**为何 `cstl` 与 `.cstl/`？** CLI 为 `cstl`（非 `trellis`），运行时目录为 `.cstl/`（非 `.trellis/`），以便与上游 Trellis 在同一仓库共存。详见[仓库 README](../../README.zh-CN.md#为何使用-cstl-与-cstl)。
+
 ## 安装
 
 ```bash

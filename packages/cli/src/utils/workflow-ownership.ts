@@ -4,13 +4,10 @@ import path from "node:path";
 
 
 
-export type CstlMigrateAssessment = {
-
+export interface CstlMigrateAssessment {
   ok: boolean;
-
   reason?: string;
-
-};
+}
 
 
 

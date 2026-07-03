@@ -45,10 +45,10 @@ echo "==> Generated layout ($WORKSPACE)"
 if command -v tree >/dev/null 2>&1; then
   tree -L 2 -a --dirsfirst
 else
-  find . -maxdepth 2 \( -name .trellis -o -name .cursor -o -name AGENTS.md \) -print | sort
+  find . -maxdepth 2 \( -name .cstl -o -name .cursor -o -name AGENTS.md \) -print | sort
   echo ""
-  echo ".trellis/"
-  ls -1 .trellis 2>/dev/null || true
+  echo ".cstl/"
+  ls -1 .cstl 2>/dev/null || true
   echo ""
   echo ".cursor/"
   ls -1 .cursor 2>/dev/null || true

@@ -169,7 +169,7 @@ Native 与 BYOK 分叉见下文第二、三部分。
 cstl init --cursor
 ```
 
-确认存在 `.trellis/workflow.md`、`.cursor/rules/cstl-triage.mdc`、`.cursor/agents/cstl-*.md`。
+确认存在 `.cstl/workflow.md`、`.cursor/rules/cstl-triage.mdc`、`.cursor/agents/cstl-*.md`。
 
 **B. Triage**
 
@@ -178,7 +178,7 @@ cstl init --cursor
 **C. 派发子任务（关键）**
 
 ```bash
-python ./.trellis/scripts/generate_dispatch_prompt.py --agent research --task ".trellis/tasks/你的任务目录"
+python ./.cstl/scripts/generate_dispatch_prompt.py --agent research --task ".cstl/tasks/你的任务目录"
 ```
 
 将 `--agent` 改为 `implement` 或 `check`。复制**整段输出**，在 Cursor Task 中 `subagent_type` 填 `cstl-research`（等），prompt 粘贴全文。  
@@ -191,7 +191,7 @@ python ./.trellis/scripts/generate_dispatch_prompt.py --agent research --task ".
 **E. 查外部资料**
 
 ```bash
-python ./.trellis/scripts/run_smart_search.py "你的问题" --intent deep-research --json
+python ./.cstl/scripts/run_smart_search.py "你的问题" --intent deep-research --json
 ```
 
 仅在 smart-search 不可用时再降级用其他网页搜索。
@@ -216,9 +216,9 @@ python ./.trellis/scripts/run_smart_search.py "你的问题" --intent deep-resea
 | --- | --- |
 | 环境检测 | `TRELLIS_CURSOR_BYOK` 或 `~/.ccursor/routes.json` |
 | BYOK 语义 | 检索计划用 **fast-context MCP**（`fast_context_search`），不用内置 semantic |
-| 可选包 | `cstl init --cursor --cursor2plus` → `.trellis/local/cursor2plus/` |
+| 可选包 | `cstl init --cursor --cursor2plus` → `.cstl/local/cursor2plus/` |
 | 子任务上下文 | 与 Native 相同：CLI 生成派发说明为主路径 |
-| 映射文件 | `~/.ccursor/trellis-task-models.json5` 或 `.trellis/local/subagent-models.json` |
+| 映射文件 | `~/.ccursor/trellis-task-models.json5` 或 `.cstl/local/subagent-models.json` |
 | 可选补丁 | `patch_wpelc8.py`：仅在你明确同意后执行 |
 
 ### 3.3 推荐操作步骤（BYOK）
@@ -244,7 +244,7 @@ Native 用户可忽略整个 `cursor2plus` 目录。
 ```
 
 ```bash
-cd .trellis/local/cursor2plus
+cd .cstl/local/cursor2plus
 python patch_wpelc8.py --print-map
 ```
 
@@ -334,7 +334,7 @@ python patch_wpelc8.py
 | Fast regex search | https://cursor.com/blog/fast-regex-search |
 | Automations | https://cursor.com/blog/automations |
 
-维护者本地追溯：`.trellis/tasks/06-26-cursor-platform-adaptation-research/`、`.trellis/workspace/smart-search/20260625t*/manifest.json`。
+维护者本地追溯：`.cstl/tasks/06-26-cursor-platform-adaptation-research/`、`.cstl/workspace/smart-search/20260625t*/manifest.json`。
 
 ---
 
