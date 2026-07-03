@@ -11,7 +11,7 @@ SemVer: [semver.org](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [0.3.1] - 2026-07-03
+## [0.3.1] - 2026-07-04
 
 **Breaking (coexistence)**: cursor-trellis runtime directory moves from `.trellis/` to **`.cstl/`** so upstream [mindfold-ai/Trellis](https://github.com/mindfold-ai/Trellis) can keep `.trellis/` in the same repository while Cursor uses `cstl`.
 
@@ -21,6 +21,11 @@ SemVer: [semver.org](https://semver.org/spec/v2.0.0.html).
 - **feat(agents)**: AGENTS.md managed block uses `<!-- CSTL:START -->` / `<!-- CSTL:END -->` (legacy `TRELLIS:START` upgraded on migrate).
 - **chore(channel)**: `cstl channel` multi-agent CLI is **not registered** (Cursor-only product; upstream channel runtime out of scope).
 - **chore(config)**: removed default `channel.worker_guard` from `config.yaml` template.
+
+### Added
+
+- **feat(init) coexistence mode**: when `cstl init` detects an upstream `.trellis/` (and no `.cstl/`), it creates `.cstl/` alongside, **takes over `.cursor/`** (force-writes cstl hooks/rules/commands even under `-y`), leaves `.trellis/` and other upstream platform dirs untouched, and adds a `<!-- CSTL:START -->` block to AGENTS.md **alongside** an existing `<!-- TRELLIS:START -->` block (dual-block). Prints a guidance banner warning not to run `cstl update --migrate` in coexistence repos.
+- **feat(update) conservative migrate gate**: `cstl update --migrate` refuses the `.trellis/` → `.cstl/` rename unless a positive cursor-trellis fingerprint is present (`cstl-*` command, `cstl-triage.mdc`, or cstl-flavored `cli_adapter.py`). Mixed cursor-trellis + upstream Trellis layouts abort for manual split. New **`--force-cstl-migrate`** escape hatch overrides upstream-signal aborts (still gated on `.trellis/` existing and `.cstl/` absent).
 
 ### Migration
 

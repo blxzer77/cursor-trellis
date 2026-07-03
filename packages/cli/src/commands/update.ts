@@ -114,6 +114,11 @@ export interface UpdateOptions {
   json?: boolean;
   /** Skip post-apply Python script smoke checks (apply mode only). */
   skipPostUpdateSmoke?: boolean;
+  /**
+   * F5 escape hatch: force the `.trellis/` → `.cstl/` rename-dir migration
+   * even when upstream Trellis signals are detected. Requires `--migrate`.
+   */
+  forceCstlMigrate?: boolean;
   /** Filled on completion for `cstl rollout` aggregation. */
   lastReport?: UpdateRolloutReport;
 }
@@ -2506,7 +2511,9 @@ export async function update(options: UpdateOptions): Promise<void> {
       ...classifiedMigrations.conflict,
     ];
     if (includesCstlRuntimeDirRename(pendingRenameItems)) {
-      const assessment = assessCstlDirectoryMigrate(cwd);
+      const assessment = assessCstlDirectoryMigrate(cwd, {
+        forceCstlMigrate: options.forceCstlMigrate,
+      });
       if (!assessment.ok) {
         console.error(chalk.red("Error:"), assessment.reason);
         process.exit(1);

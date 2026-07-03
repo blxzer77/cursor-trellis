@@ -385,7 +385,7 @@ For multi-package workspaces, list all install commands needed after a fresh che
 ## References
 
 - `.cursor/agents/cstl-research.md`, `cstl-implement.md`, `cstl-check.md`
-- `.cursor/agents/.trellis-model-overlay.local.md` — optional overlay audit stub (native API)
+- `.cursor/agents/.cstl-model-overlay.local.md` — optional overlay audit stub (native API)
 - Reference `patch_wpelc8.py` in task `06-18-byok-manual-dispatch-automation/research/` — copy locally; not a runtime git dependency
 - `.cstl/workflow.md` — Task Ladder + Parent orchestration
 - [Cursor Subagents](https://cursor.com/docs/subagents) — `model: inherit | <id>`

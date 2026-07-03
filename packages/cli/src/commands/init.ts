@@ -23,11 +23,13 @@ import { VERSION } from "../constants/version.js";
 import { agentsMdContent } from "../templates/markdown/index.js";
 import {
   setWriteMode,
+  getWriteMode,
   startRecordingWrites,
   stopRecordingWrites,
   writeFile,
   type WriteMode,
 } from "../utils/file-writer.js";
+import { insertCstlManagedBlock } from "../utils/agents-md.js";
 import { emptyTaskJson, type TaskJson } from "../utils/task-json.js";
 import {
   detectProjectType,
@@ -1270,6 +1272,31 @@ export async function init(options: InitOptions): Promise<void> {
     path.join(cwd, DIR_NAMES.WORKFLOW, FILE_NAMES.DEVELOPER),
   );
 
+  // Coexistence mode: an upstream mindfold-ai/Trellis `.trellis/` tree exists
+  // but cursor-trellis has no `.cstl/` yet. The user is adding cursor-trellis
+  // on Cursor alongside upstream Trellis (scenario 2). cursor-trellis owns
+  // `.cursor/` and `.cstl/`; it must NOT touch `.trellis/` and must preserve
+  // an existing `<!-- TRELLIS:START -->` block in AGENTS.md.
+  const coexistenceMode =
+    isFirstInit && fs.existsSync(path.join(cwd, ".trellis"));
+  if (coexistenceMode) {
+    console.log(
+      chalk.cyan(
+        "\n  Detected upstream `.trellis/` — coexistence mode: cursor-trellis will use `.cstl/`",
+      ),
+    );
+    console.log(
+      chalk.gray(
+        "  alongside `.trellis/` and take over `.cursor/`. `.trellis/` will not be touched.\n",
+      ),
+    );
+    console.log(
+      chalk.gray(
+        "  Do NOT run `cstl update --migrate` here — that would rename the upstream `.trellis/`.\n",
+      ),
+    );
+  }
+
   // Generate ASCII art banner dynamically using FIGlet "Rebel" font
   const banner = figlet.textSync("Trellis", { font: "Rebel" });
   console.log(chalk.cyan(`\n${banner.trimEnd()}`));
@@ -2090,16 +2117,29 @@ export async function init(options: InitOptions): Promise<void> {
     const versionPath = path.join(cwd, DIR_NAMES.WORKFLOW, ".version");
     fs.writeFileSync(versionPath, VERSION);
 
-    // Configure selected tools by copying entire directories (dogfooding)
+    // Configure selected tools by copying entire directories (dogfooding).
+    // In coexistence mode cursor-trellis takes over `.cursor/` — force-write
+    // platform files even when `-y`/`--skipExisting` is set, so cstl hooks,
+    // rules, and commands land regardless of upstream files already present.
     const selectedPlatformIds: AITool[] = [];
-    for (const tool of tools) {
-      const platformId = resolveCliFlag(tool);
-      if (platformId) {
-        selectedPlatformIds.push(platformId);
-        console.log(
-          chalk.blue(`📝 Configuring ${AI_TOOLS[platformId].name}...`),
-        );
-        await configurePlatform(platformId, cwd);
+    const savedMode = getWriteMode();
+    if (coexistenceMode) {
+      setWriteMode("force");
+    }
+    try {
+      for (const tool of tools) {
+        const platformId = resolveCliFlag(tool);
+        if (platformId) {
+          selectedPlatformIds.push(platformId);
+          console.log(
+            chalk.blue(`📝 Configuring ${AI_TOOLS[platformId].name}...`),
+          );
+          await configurePlatform(platformId, cwd);
+        }
+      }
+    } finally {
+      if (coexistenceMode) {
+        setWriteMode(savedMode);
       }
     }
 
@@ -2126,7 +2166,7 @@ export async function init(options: InitOptions): Promise<void> {
     }
 
     // Create root files (skip if exists)
-    await createRootFiles(cwd);
+    await createRootFiles(cwd, coexistenceMode);
   } finally {
     stopRecordingWrites();
   }
@@ -2229,8 +2269,35 @@ function askInput(prompt: string): Promise<string> {
   });
 }
 
-async function createRootFiles(cwd: string): Promise<void> {
+async function createRootFiles(
+  cwd: string,
+  coexistenceMode = false,
+): Promise<void> {
   const agentsPath = path.join(cwd, FILE_NAMES.AGENTS);
+
+  if (coexistenceMode && fs.existsSync(agentsPath)) {
+    // Coexistence: preserve an upstream `<!-- TRELLIS:START -->` block and any
+    // user content, and add/refresh the `<!-- CSTL:START -->` block alongside.
+    // Force-write the merged result (via writeFile so the write is recorded
+    // for hash tracking) even under `-y`.
+    const existing = fs.readFileSync(agentsPath, "utf-8");
+    const merged = insertCstlManagedBlock(existing, agentsMdContent);
+    const saved = getWriteMode();
+    setWriteMode("force");
+    try {
+      const wrote = await writeFile(agentsPath, merged);
+      if (wrote) {
+        console.log(
+          chalk.blue(
+            "📄 Updated AGENTS.md with cursor-trellis managed block (preserved upstream block)",
+          ),
+        );
+      }
+    } finally {
+      setWriteMode(saved);
+    }
+    return;
+  }
 
   // Write AGENTS.md from template
   const agentsWritten = await writeFile(agentsPath, agentsMdContent);

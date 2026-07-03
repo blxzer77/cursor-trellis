@@ -187,6 +187,10 @@ program
     "--skip-post-update-smoke",
     "Skip post-apply Python script smoke checks",
   )
+  .option(
+    "--force-cstl-migrate",
+    "Force the .trellis/ → .cstl/ rename even when upstream Trellis signals are detected (escape hatch)",
+  )
   .action(async (options: Record<string, unknown>) => {
     try {
       await update({
@@ -199,6 +203,7 @@ program
         skipReadiness: options.skipReadiness as boolean,
         json: options.json as boolean,
         skipPostUpdateSmoke: options.skipPostUpdateSmoke as boolean,
+        forceCstlMigrate: options.forceCstlMigrate as boolean,
       });
     } catch (error) {
       console.error(

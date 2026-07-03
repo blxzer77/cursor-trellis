@@ -1011,4 +1011,73 @@ describe("init() integration", () => {
       expect(hook.timeout).toBeGreaterThanOrEqual(15);
     }
   });
+
+  // Coexistence scenario 2: an upstream mindfold-ai/Trellis `.trellis/` tree
+  // is present and the user adds cursor-trellis on Cursor alongside it.
+  // cursor-trellis must create `.cstl/`, take over `.cursor/`, preserve an
+  // existing `<!-- TRELLIS:START -->` block in AGENTS.md, and NOT touch
+  // `.trellis/`. See design.md "scenario 2 coexistence".
+  it("#20 coexists with upstream .trellis/ (scenario 2)", async () => {
+    // Upstream Trellis state on disk before cursor-trellis init.
+    fs.mkdirSync(path.join(tmpDir, ".trellis", "scripts", "common"), {
+      recursive: true,
+    });
+    fs.writeFileSync(path.join(tmpDir, ".trellis", ".version"), "0.4.0");
+    fs.writeFileSync(
+      path.join(tmpDir, ".trellis", "scripts", "common", "marker.txt"),
+      "upstream-owned",
+    );
+    // Upstream Cursor config that cursor-trellis must overwrite.
+    fs.mkdirSync(path.join(tmpDir, ".cursor", "commands"), { recursive: true });
+    fs.writeFileSync(
+      path.join(tmpDir, ".cursor", "commands", "trellis-continue.md"),
+      "# upstream continue",
+    );
+    fs.writeFileSync(
+      path.join(tmpDir, ".cursor", "hooks.json"),
+      '{"hooks":{},"upstream":true}',
+    );
+    // Upstream AGENTS.md with a TRELLIS managed block.
+    fs.writeFileSync(
+      path.join(tmpDir, "AGENTS.md"),
+      `# Project\n\n<!-- TRELLIS:START -->\n# upstream trellis block\n<!-- TRELLIS:END -->\n\n# User footer\n`,
+    );
+
+    await init({ yes: true, cursor: true });
+
+    // .cstl/ created, .trellis/ untouched.
+    expect(fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW))).toBe(true);
+    expect(fs.existsSync(path.join(tmpDir, ".trellis"))).toBe(true);
+    expect(
+      fs.readFileSync(
+        path.join(tmpDir, ".trellis", "scripts", "common", "marker.txt"),
+        "utf-8",
+      ),
+    ).toBe("upstream-owned");
+
+    // cursor-trellis took over .cursor/: cstl commands present, hooks.json
+    // is cursor-trellis's (not the upstream stub).
+    expect(
+      fs.existsSync(
+        path.join(tmpDir, ".cursor", "commands", "cstl-continue.md"),
+      ),
+    ).toBe(true);
+    const hooks = JSON.parse(
+      fs.readFileSync(path.join(tmpDir, ".cursor", "hooks.json"), "utf-8"),
+    ) as { upstream?: boolean; hooks?: unknown };
+    expect(hooks.upstream).toBeUndefined();
+
+    // AGENTS.md has BOTH the upstream TRELLIS block and a new CSTL block.
+    const agents = fs.readFileSync(path.join(tmpDir, "AGENTS.md"), "utf-8");
+    expect(agents).toContain("<!-- TRELLIS:START -->");
+    expect(agents).toContain("<!-- TRELLIS:END -->");
+    expect(agents).toContain("# upstream trellis block");
+    expect(agents).toContain("<!-- CSTL:START -->");
+    expect(agents).toContain("<!-- CSTL:END -->");
+    expect(agents).toContain("# User footer");
+    // CSTL block placed after TRELLIS block.
+    expect(agents.indexOf("<!-- TRELLIS:END -->")).toBeLessThan(
+      agents.indexOf("<!-- CSTL:START -->"),
+    );
+  });
 });
