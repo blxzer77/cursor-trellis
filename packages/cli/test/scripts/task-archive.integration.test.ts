@@ -65,10 +65,21 @@ function setupRepo(tmp: string): void {
   );
 }
 
+function minimalVerifyMd(): string {
+  return [
+    "# verify",
+    "Validation commands: pytest task-archive integration — pass",
+    "Final acceptance evidence: archive integration test acceptance",
+    "Durable learning decision: no durable learning",
+    "",
+  ].join("\n");
+}
+
 function makeTask(repo: string, name: string, prdBody: string): void {
   const dir = path.join(repo, ".trellis", "tasks", name);
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, "prd.md"), prdBody);
+  fs.writeFileSync(path.join(dir, "verify.md"), minimalVerifyMd());
   fs.writeFileSync(
     path.join(dir, "task.json"),
     JSON.stringify({
