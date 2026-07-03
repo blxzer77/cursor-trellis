@@ -1,6 +1,9 @@
 # cursor-trellis
 
 <p>
+  <a href="https://github.com/blxzer77/cursor-trellis/actions/workflows/ci.yml">
+    <img src="https://github.com/blxzer77/cursor-trellis/actions/workflows/ci.yml/badge.svg" alt="CI">
+  </a>
   <a href="https://www.npmjs.com/package/@blxzer/cursor-trellis">
     <img src="https://img.shields.io/npm/v/@blxzer/cursor-trellis?label=npm%20latest" alt="npm latest">
   </a>
@@ -45,6 +48,30 @@
 | **smart-search** | `@blxzer/smart-search`（自动安装的依赖） |
 | **本仓库** | https://github.com/blxzer77/cursor-trellis |
 | **原版 Trellis** | [mindfold-ai/Trellis](https://github.com/mindfold-ai/Trellis) |
+
+## 快速体验（约 5 分钟）
+
+在不污染本源码树的前提下，用空目录体验 init 流程：
+
+```bash
+npm install -g @blxzer/cursor-trellis
+cd examples/minimal-agent-app
+./demo.sh          # Windows 用 demo.ps1
+```
+
+脚本执行 `cstl init --cursor -y` → `cstl validate-rules` → 列出 `.trellis/` 与 `.cursor/`。详见 [examples/minimal-agent-app/README.md](examples/minimal-agent-app/README.md)。Agent 工具层叙事（CLI / MCP / Hook / Rule）：[docs/agent-tooling-narrative.zh-CN.md](docs/agent-tooling-narrative.zh-CN.md)。
+
+## 快速体验（约 5 分钟）
+
+在不污染本源码树的前提下，用空目录体验 init 流程：
+
+```bash
+npm install -g @blxzer/cursor-trellis
+cd examples/minimal-agent-app
+./demo.sh          # Windows 用 demo.ps1
+```
+
+脚本执行 `cstl init --cursor -y` → `cstl validate-rules` → 列出 `.trellis/` 与 `.cursor/`。详见 [examples/minimal-agent-app/README.md](examples/minimal-agent-app/README.md)。Agent 工具层叙事（CLI / MCP / Hook / Rule）：[docs/agent-tooling-narrative.zh-CN.md](docs/agent-tooling-narrative.zh-CN.md)。
 
 ## 快速开始（Cursor）
 
@@ -167,7 +194,10 @@ smart-search --version
 pnpm install
 pnpm build
 pnpm test
+pnpm mirror-check   # dogfood .cursor 与模板同步（贡献者）
 ```
+
+推送/PR 时 CI 跑相同流水线（见顶部 badge）。
 
 包级说明：[packages/cli/README.zh-CN.md](packages/cli/README.zh-CN.md)。面向 Agent 的代码库导览：[AGENTS.md](AGENTS.md)。
 
@@ -186,6 +216,8 @@ pnpm test
 | [docs/architecture.zh-CN.md](docs/architecture.zh-CN.md) | 高层架构与 smart-search |
 | [docs/skills.zh-CN.md](docs/skills.zh-CN.md) | 内部技能参考手册 |
 | [docs/subagents.zh-CN.md](docs/subagents.zh-CN.md) | 子 Agent 派发设计 |
+| [docs/agent-tooling-narrative.zh-CN.md](docs/agent-tooling-narrative.zh-CN.md) | CLI / MCP / Hook / Rule 分层叙事 |
+| [examples/minimal-agent-app/](examples/minimal-agent-app/) | 5 分钟 init 演示 |
 | [docs/spec-system.zh-CN.md](docs/spec-system.zh-CN.md) | 渐进式 spec 系统 |
 | [docs/task-system.zh-CN.md](docs/task-system.zh-CN.md) | 任务工件、门禁、Parent/Child |
 | [packages/cli/README.zh-CN.md](packages/cli/README.zh-CN.md) | CLI / npm 参考 |

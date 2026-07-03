@@ -202,3 +202,9 @@ docs/release-publish-internal.md
 
 # Internal maintainer handbook (local only, not published)
 docs/maintainers.md
+
+# Interview-only notes (local, not published)
+TECH.md
+
+# Example demo output
+examples/minimal-agent-app/_demo-workspace/
