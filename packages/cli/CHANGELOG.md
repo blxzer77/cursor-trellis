@@ -11,7 +11,9 @@ SemVer: [semver.org](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [0.3.1] - 2026-07-04
+## [0.3.2] - 2026-07-04
+
+> **0.3.1 was withdrawn** shortly after publish: the initial `npm publish` did not rewrite the `workspace:*` dependency on `@blxzer/cursor-trellis-core` (and core@0.3.1 was not published alongside), so 0.3.1 was uninstallable (`EUNSUPPORTEDPROTOCOL`). 0.3.2 reissues the same content via the proper `pnpm publish` orchestration (`publish-packages.js` publishes core first, then cli, rewriting `workspace:*` to the resolved version).
 
 **Breaking (coexistence)**: cursor-trellis runtime directory moves from `.trellis/` to **`.cstl/`** so upstream [mindfold-ai/Trellis](https://github.com/mindfold-ai/Trellis) can keep `.trellis/` in the same repository while Cursor uses `cstl`.
 
@@ -34,6 +36,10 @@ npm install -g @blxzer/cursor-trellis@0.3.1
 cd /path/to/project
 cstl update --migrate
 ```
+
+## [0.3.1] — withdrawn (2026-07-04)
+
+Withdrawn due to an npm publish defect (unresolvable `workspace:*` dep on `@blxzer/cursor-trellis-core` + missing core@0.3.1). Reissued as **0.3.2** with identical content. See [0.3.2] above.
 
 ## [0.3.0] - 2026-07-02
 
