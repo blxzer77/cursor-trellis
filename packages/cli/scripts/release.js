@@ -93,7 +93,11 @@ function main() {
   run("node scripts/release-preflight.js check-versions");
   run("git add package.json ../core/package.json");
   gitCommit(version);
-  run(`git tag "v${version}"`);
+  // Tag with the `cstl-v` prefix to avoid collisions with legacy
+  // @blxzer/trellis tags (v0.3.x–v0.6.x) that share this repo's history.
+  // release-preflight tagVersionFromEnv still extracts the version from the
+  // prefixed tag (its regex is end-anchored, not start-anchored).
+  run(`git tag "cstl-v${version}"`);
   run(`git push private ${pushTarget(type)} --tags`);
 }
 
