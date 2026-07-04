@@ -124,7 +124,7 @@ Trellis/
 
 ## 4. CLI Package — `packages/cli/`
 
-**npm**: `@blxzer/cursor-trellis` — Bins: `cstl`, `tl`, `smart-search`
+**npm**: `@blxzer/cursor-trellis` — Bins: `cstl`, `smart-search`
 **Dependencies**: trellis-core (workspace), chalk, commander, figlet, giget, inquirer, undici, zod
 
 ### Source layout (high level)
