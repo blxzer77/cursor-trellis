@@ -7,6 +7,20 @@ description: "Wrap up the current session: verify quality gate passed, remind us
 
 Wrap up the current session: archive the selected task (and any other completed-but-unarchived tasks the user wants to clean up) and record the session journal. Code commits are NOT done here — those happen in workflow Phase 3.4 before you invoke this command.
 
+Before archive, confirm `verify.md` includes Phase 3.3 **Learning decision** (`update-spec` | `no-update` | `unsure`) and gate-compatible evidence per `.cstl/spec/guides/durable-learning-decision-guide.md`. Run `task.py archive <task> --check` when unsure.
+
+## Evidence pack reference (optional — graceful skip)
+
+When the selected task has `{TASK}/research/retrieval-pack-latest.json` (written by the research-end `stop` hook via `get_context --mode retrieval-pack`, or by an explicit pack run during Phase 3.1):
+
+1. Read the JSON; note top `contextPack.selected` items (`title`, `source`, `reference`, `score`) and `collection` counts.
+2. Ensure `verify.md` includes an `## Evidence pack reference` section citing those ranked sources or documenting explicit gaps.
+3. If the section is missing, add it before proceeding to archive.
+
+If the file does not exist: **skip silently** — no error, no user prompt. Pack absence is normal when the task did not use research/smart-search.
+
+Pack format: `version`, `source` (`retrieval-pack-orchestrator`), `contextPack.selected[]`, `scoredEvidence`, `collection`. Smart-search manifests that feed scoring live under `{TASK}/research/smart-search/<run-id>/` (from `run_smart_search.py`).
+
 ## Step 1: Survey current state
 
 ```bash
@@ -40,7 +54,7 @@ For each remaining dirty path, decide whether it belongs to **the selected task*
 Then route:
 
 - **Any remaining path looks like selected-task work** — bail out with:
-  > "Working tree has uncommitted code changes from this task: `<list>`. Return to workflow Phase 3.4 to commit them before running ``finish-work` (Trellis command)`."
+  > "Working tree has uncommitted code changes from this task: `<list>`. Return to workflow Phase 3.4 to commit them before running `cstl-finish-work`."
 
   Do NOT run `git commit` here. Do NOT prompt the user to commit. The user goes back to Phase 3.4 and the AI drives the batched commit there.
 - **All remaining paths look unrelated** (other parallel-window work) — report them once and continue to Step 3:
@@ -48,18 +62,6 @@ Then route:
 - **Genuinely unsure** — ask the user once: "Are `<list>` this task's work I forgot to commit, or another window's? (commit / ignore)" — then route per their answer.
 
 ## Step 3: Archive task(s)
-
-Before archiving, confirm archive evidence is complete. If `archive --check` fails, read the **Next steps** hints, then optionally draft missing `verify.md` sections (append-only, does not record reviewer gates):
-
-```bash
-python ./.cstl/scripts/task.py archive <task-name> --check
-python ./.cstl/scripts/task.py prepare-archive-evidence <task-name>
-python ./.cstl/scripts/task.py archive <task-name> --check
-```
-
-Reviewer completion gates (for example `full-task-complete/code-review`) still require explicit `record-gate` after human review — `prepare-archive-evidence` only lists the commands.
-
-Archive when checks pass:
 
 ```bash
 python ./.cstl/scripts/task.py archive <task-name>

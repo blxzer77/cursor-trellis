@@ -1,248 +1,87 @@
 # Platform Compatibility Reference
 
-Detailed guide on Trellis feature availability across different AI coding platforms.
+cursor-trellis is **Cursor-only**. This fork generates `.cursor/` (rules, commands, agents, hooks) and `.cstl/` (workflow, tasks, spec, scripts). Legacy adapter directories from upstream Trellis may remain on disk after `cstl update` but are not extended by new behavior.
+
+> **Historical note:** Upstream [mindfold-ai/Trellis](https://github.com/mindfold-ai/Trellis) targeted multiple AI platforms (Claude Code, Codex, etc.). cursor-trellis converged on Cursor; do not treat removed adapters as current integration paths.
 
 ---
 
-## Overview
-
-Trellis is designed primarily for **Claude Code** but provides partial support for **Cursor**. Future support for **OpenCode** is under consideration.
-
-The key differentiator is **hooks support** - Claude Code's hook system enables automatic context injection and quality enforcement, while other platforms require manual workarounds.
-
----
-
-## Platform Architecture
+## Feature layers (Cursor)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                         TRELLIS FEATURE LAYERS                           │
+│                         TRELLIS FEATURE LAYERS (Cursor)                  │
 ├─────────────────────────────────────────────────────────────────────────┤
+│  LAYER 3: AUTOMATION — `.cursor/hooks/` + Python scripts                 │
+│           Session start, workflow state, subagent prelude, retrieval     │
 │                                                                          │
-│  ┌────────────────────────────────────────────────────────────────────┐ │
-│  │                    LAYER 3: AUTOMATION                              │ │
-│  │  Hooks, Ralph Loop, Auto-injection, Multi-Session                  │ │
-│  │  ─────────────────────────────────────────────────────────────────│ │
-│  │  Platform: Claude Code ONLY                                        │ │
-│  └────────────────────────────────────────────────────────────────────┘ │
-│                                    │                                     │
-│  ┌────────────────────────────────▼───────────────────────────────────┐ │
-│  │                    LAYER 2: AGENTS                                  │ │
-│  │  Agent definitions, Task tool, Subagent invocation                 │ │
-│  │  ─────────────────────────────────────────────────────────────────│ │
-│  │  Platform: Claude Code (full), Cursor (manual)                     │ │
-│  └────────────────────────────────────────────────────────────────────┘ │
-│                                    │                                     │
-│  ┌────────────────────────────────▼───────────────────────────────────┐ │
-│  │                    LAYER 1: PERSISTENCE                             │ │
-│  │  Workspace, Tasks, Specs, Commands, JSONL files                    │ │
-│  │  ─────────────────────────────────────────────────────────────────│ │
-│  │  Platform: ALL (file-based, portable)                              │ │
-│  └────────────────────────────────────────────────────────────────────┘ │
+│  LAYER 2: AGENTS — `.cursor/agents/` + Task tool dispatch              │
+│           cstl-research / cstl-implement / cstl-check                    │
 │                                                                          │
+│  LAYER 1: PERSISTENCE — file-based (portable)                          │
+│           `.cstl/` workspace, tasks, spec, scripts; `.cursor/commands/` │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Detailed Feature Breakdown
-
-### Layer 1: Persistence (All Platforms)
-
-These features work on all platforms because they're file-based.
+## Layer 1: Persistence
 
 | Feature | Location | Description |
 |---------|----------|-------------|
 | Workspace system | `.cstl/workspace/` | Journals, session history |
-| Task system | `.cstl/tasks/` | Task tracking, requirements |
+| Task system | `.cstl/tasks/` | Task tracking, PRDs, verify |
 | Spec system | `.cstl/spec/` | Coding guidelines |
-| Slash commands | `.claude/commands/` | Command prompts (read manually on Cursor) |
-| JSONL context | `*.jsonl` in task dirs | Context file lists |
-| Developer identity | `.cstl/.developer` | Who is working |
-| Current task | `.cstl/.runtime/sessions/` | Session-scoped active task state |
-
-**Cursor workaround**: Manually read these files at session start.
-
-### Layer 2: Agents (Claude Code Full, Cursor Limited)
-
-| Feature | Claude Code | Cursor |
-|---------|-------------|--------|
-| Agent definitions | Auto-loaded via `--agent` flag | Read `.claude/agents/*.md` manually |
-| Task tool | Full subagent support | No Task tool |
-| Context injection | Automatic via hooks | Manual copy-paste |
-| Agent restrictions | Enforced by definition | Honor code only |
-
-**Cursor workaround**:
-1. Read the agent definition file manually
-2. Copy relevant context from JSONL files
-3. Follow agent restrictions manually
-
-### Layer 3: Automation (Claude Code Only)
-
-| Feature | Dependency | Why Claude Code Only |
-|---------|------------|---------------------|
-| SessionStart hook | `.claude/settings.json` | Claude Code hook system |
-| PreToolUse hook | Hook system | Intercepts tool calls |
-| SubagentStop hook | Hook system | Controls agent lifecycle |
-| Auto context injection | PreToolUse:Task | Hooks inject JSONL content |
-| Ralph Loop | SubagentStop:check | Blocks agent until verify passes |
-| Multi-Session | claude CLI + hooks | `claude --resume`, worktree scripts |
-
-**No workaround**: These features fundamentally require Claude Code's hook system.
+| Slash commands | `.cursor/commands/` | User-invoked `/cstl-*` entry points |
+| JSONL context | `*.jsonl` in task dirs | Sub-agent spec/research manifests |
+| Developer identity | `.cstl/.developer` | Per-machine developer name |
+| Selected task | `.cstl/.runtime/sessions/` | Session-scoped task pointer |
 
 ---
 
-## Claude Code Features Used
+## Layer 2: Agents (Cursor)
 
-### Hook System
+| Feature | Mechanism |
+|---------|-----------|
+| Agent definitions | `.cursor/agents/cstl-{research,implement,check}.md` |
+| Subagent dispatch | Cursor **Task** tool + `generate_dispatch_prompt.py` prelude |
+| Context injection | `preToolUse` hook + JSONL manifests |
+| Policy rules | `.cursor/rules/*.mdc` (always-on, including triage) |
 
-```json
-// .claude/settings.json
-{
-  "hooks": {
-    "SessionStart": [...],
-    "PreToolUse": [...],
-    "SubagentStop": [...]
-  }
-}
-```
-
-Claude Code executes these hooks at specific lifecycle points. No other platform currently supports this.
-
-### CLI Features
-
-| Command | Purpose |
-|---------|---------|
-| `claude --agent <name>` | Load agent definition |
-| `claude --resume <id>` | Resume session |
-| `claude -p` | Print mode (non-interactive) |
-| `claude --dangerously-skip-permissions` | Automation mode |
-| `claude --output-format stream-json` | Machine-readable output |
-
-### Task Tool
-
-```javascript
-Task(
-  subagent_type: "implement",
-  prompt: "...",
-  model: "opus"
-)
-```
-
-Claude Code's Task tool spawns subagents with isolated context. The PreToolUse hook intercepts this to inject specs.
+See `references/platform-files/agents.md` and `.cstl/spec/guides/cursor-subagent-policy.md`.
 
 ---
 
-## Cursor Usage Guide
+## Layer 3: Automation (Cursor hooks)
 
-For teams using Cursor, here's how to get partial Trellis benefits:
+| Feature | Entry |
+|---------|-------|
+| Session context | `sessionStart` → `session-start.py` |
+| Workflow breadcrumb | `beforeSubmitPrompt` → `inject-workflow-state.py` |
+| Retrieval plan | `beforeSubmitPrompt` → `inject-retrieval-plan.py` |
+| Subagent prelude | `preToolUse` (Task) → `inject-subagent-context.py` |
+| Research pack | `stop` → `research-end-retrieval-pack.py` |
 
-### What Works
-
-1. **Workspace tracking**: Journals and sessions work normally
-2. **Task organization**: Task directories and PRDs work
-3. **Spec reading**: Read specs manually at session start
-4. **Commands as prompts**: Read command files as reference
-
-### Recommended Workflow
-
-```
-1. Session Start
-   - Read .cstl/workflow.md
-   - Read relevant specs from .cstl/spec/
-   - Run `task.py current --source`
-
-2. Before Implementation
-   - Read implement.jsonl for session files
-   - Manually read each file listed
-   - Follow spec guidelines
-
-3. Before Commit
-   - Run verify commands manually (pnpm lint, pnpm typecheck)
-   - Self-review against check.jsonl specs
-```
-
-### What Doesn't Work
-
-- No automatic spec injection
-- No Ralph Loop (manual verification only)
-- No Multi-Session (no worktree automation)
-- No session resume
+Configured in `.cursor/hooks.json`. Requires **Python ≥ 3.9** on the machine running Cursor.
 
 ---
 
-## OpenCode Considerations (Future)
+## What is not supported in this fork
 
-### Requirements for Support
+- New installs or updates for `.claude/`, `.codex/`, `.opencode/`, and other legacy adapter trees
+- Upstream Claude Code–specific hooks, Ralph Loop, and Multi-Session CLI flows as documented in old Trellis releases
 
-To support OpenCode, we would need:
-
-1. **Hook equivalent**: Some way to intercept agent lifecycle events
-2. **Agent system**: Subagent invocation with context
-3. **CLI integration**: Scripting and automation support
-
-### Potential Approaches
-
-| Approach | Pros | Cons |
-|----------|------|------|
-| Native integration | Best UX, full features | Requires OpenCode changes |
-| Adapter layer | Works with current OpenCode | Maintenance burden |
-| File-based polling | No OpenCode changes needed | Hacky, latency issues |
-| MCP server | Standard protocol | May not cover all hooks |
-
-### Minimum Viable Support
-
-If OpenCode adds hook support similar to Claude Code:
-
-1. Port `session-start.py` to OpenCode format
-2. Port `inject-subagent-context.py` for context injection
-3. Port `ralph-loop.py` for quality enforcement
-
-Without hooks, only Layer 1 (persistence) features would work.
+If legacy directories exist from an older upgrade, they are preserved but not the integration surface for new Trellis behavior.
 
 ---
 
-## Version Compatibility Matrix
-
-| Trellis Version | Claude Code | Cursor | OpenCode |
-|-----------------|-------------|--------|----------|
-| 0.3.x | Full support | Partial | Not supported |
-| 0.4.x (planned) | Full support | Partial | TBD |
-
-### Breaking Changes
-
-| Version | Change | Impact |
-|---------|--------|--------|
-| 0.3.0 | New hook format | Update settings.json |
-| 0.3.0-beta.3 | worktree.yaml schema | Update config |
-
----
-
-## Checking Your Platform
-
-### Claude Code
+## Checking your environment
 
 ```bash
-# Check Claude Code version
-claude --version
-
-# Verify hooks are loaded
-cat .claude/settings.json | grep -A 5 '"hooks"'
+cstl --version
+python --version    # ≥ 3.9 for hooks
+cat .cursor/hooks.json
+ls .cursor/rules/
 ```
 
-### Cursor
-
-```bash
-# No CLI check available
-# Verify by checking if hooks execute (they won't)
-```
-
-### Determining Support Level
-
-```
-Is hooks system available?
-├── YES → Full Trellis support (Claude Code)
-└── NO  → Partial support only
-         ├── Can read files → Layer 1 works
-         └── Has agent system → Layer 2 partial
-```
+For Cursor++ BYOK (optional): `.cstl/local/cursor2plus/` — see `docs/cursor.md`.

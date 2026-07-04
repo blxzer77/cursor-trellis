@@ -56,7 +56,7 @@ taosu
 {
   "current_task": ".cstl/tasks/01-31-add-login-taosu",
   "current_run": null,
-  "platform": "claude",
+  "platform": "cursor",
   "last_seen_at": "2026-04-27T00:00:00Z"
 }
 ```
@@ -80,7 +80,7 @@ uses `.runtime/sessions/<session-key>.json` only.
 
 **Purpose**: Track Ralph Loop iteration state.
 
-**Created by**: `ralph-loop.py` (Claude Code only)
+**Created by**: Legacy Ralph Loop tooling (not shipped in cursor-trellis; file may remain gitignored if present from older upgrades)
 
 **Format**: JSON
 
@@ -114,8 +114,8 @@ uses `.runtime/sessions/<session-key>.json` only.
 ```json
 {
   ".cstl/workflow.md": "028891d1fe839a266...",
-  ".claude/hooks/session-start.py": "0a9899e80f6bfe15...",
-  ".claude/commands/start.md": "d1276dcbff880299..."
+  ".cursor/hooks/session-start.py": "0a9899e80f6bfe15...",
+  ".cursor/commands/cstl-start.md": "d1276dcbff880299..."
 }
 ```
 
@@ -201,9 +201,7 @@ uses `.runtime/sessions/<session-key>.json` only.
 6. File descriptions
 7. Best practices
 
-**Injected by**: `session-start.py` hook (Claude Code)
-
-**For Cursor**: Read manually at session start.
+**Injected by**: `.cursor/hooks/session-start.py` (and related hooks) on Cursor.
 
 ---
 
@@ -227,7 +225,7 @@ verify:
   - pnpm typecheck
 ```
 
-→ See `claude-code/worktree-config.md` for details.
+Fields: `worktree_dir`, `copy`, `post_create`, `verify` — used by contributor worktree flows; customize per project needs.
 
 ---
 
@@ -245,9 +243,9 @@ verify:
 
 ### `.session-id`
 
-**Purpose**: Store Claude Code session ID for resume.
+**Purpose**: Legacy session identifier from upstream multi-session tooling.
 
-**Created by**: Multi-Session `start.py`
+**Created by**: Not used by cursor-trellis Cursor hooks.
 
 **Format**: UUID string.
 
@@ -293,7 +291,7 @@ Coding guidelines and specifications.
 
 Automation scripts.
 
-→ See `core/scripts.md` and `claude-code/scripts.md`
+→ See `core/scripts.md`
 
 ---
 
@@ -306,10 +304,10 @@ These files are managed by `cstl update`:
 | `.cstl/workflow.md` | Workflow documentation |
 | `.cstl/worktree.yaml` | Multi-session config |
 | `.cstl/.gitignore` | Git ignore rules |
-| `.claude/hooks/*.py` | Hook scripts |
-| `.claude/commands/*.md` | Slash commands |
-| `.claude/agents/*.md` | Agent definitions |
-| `.cursor/commands/*.md` | Cursor commands (mirror) |
+| `.cursor/hooks/*.py` | Hook scripts |
+| `.cursor/commands/*.md` | Slash commands |
+| `.cursor/agents/*.md` | Agent definitions |
+| `.cursor/rules/*.mdc` | Always-on policy rules |
 
 **Update behavior**:
 1. Compare file hash with `.template-hashes.json`
@@ -344,7 +342,7 @@ These files are managed by `cstl update`:
 ├── .developer           # init_developer.py
 ├── .runtime/sessions/   # task.py start
 ├── .current-task        # legacy ignored file, not active-task source
-├── .ralph-state.json    # ralph-loop.py
+├── .ralph-state.json    # legacy (gitignored)
 ├── workspace/{dev}/     # init_developer.py
 │   ├── index.md
 │   ├── journal-1.md

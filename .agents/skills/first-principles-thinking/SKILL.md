@@ -245,7 +245,7 @@ When used within a Trellis-managed project, the analysis artifacts integrate wit
 
 ### Brainstorm Integration
 
-During `/trellis:brainstorm`, when the task is classified as "Complex":
+During Planning (auto-triggered **`cstl-brainstorm`** skill), when the task is classified as "Complex":
 
 1. **Trigger**: User says "从第一性原理分析" or AI detects the problem has ≥3 unvalidated assumptions
 2. **Execute**: Run Phases 0-3, saving output to `fp-analysis.md` in task directory

@@ -6,7 +6,7 @@ Platform-independent Python scripts for Trellis automation.
 
 ## Overview
 
-These scripts work on all platforms - they only read/write files and don't require Claude Code's hook system.
+These scripts only read/write files under `.cstl/` — they do not depend on a specific AI IDE runtime. Cursor hooks call them; you can also run them from a terminal.
 
 ```
 .cstl/scripts/
@@ -182,12 +182,18 @@ Path constants and utilities.
 
 ```python
 from common.paths import (
-    TRELLIS_DIR,      # .cstl/
-    WORKSPACE_DIR,    # .cstl/workspace/
-    TASKS_DIR,        # .cstl/tasks/
-    SPEC_DIR,         # .cstl/spec/
+    DIR_WORKFLOW,     # ".cstl" — directory name constant (not a full Path)
+    DIR_WORKSPACE,    # "workspace"
+    DIR_TASKS,        # "tasks"
+    DIR_SPEC,         # "spec"
+    DIR_SCRIPTS,      # "scripts"
+    get_repo_root,
+    get_tasks_dir,
+    get_workspace_dir,
 )
 ```
+
+> **Legacy name:** pre-rename Trellis docs used `TRELLIS_DIR` for the runtime root. Current scripts use `DIR_WORKFLOW = ".cstl"` in `common/paths.py`.
 
 ### `common/developer.py`
 
