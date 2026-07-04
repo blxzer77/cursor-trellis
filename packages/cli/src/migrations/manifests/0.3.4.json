@@ -1,0 +1,9 @@
+{
+  "version": "0.3.4",
+  "description": "Rename main Cursor chat to cstl task directory on select/start-execution",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**@blxzer/cursor-trellis 0.3.4**\n\n- feat(cursor): auto-rename main Agent chat tab to task directory name after `task.py select` or `start-execution --approved` (`rename-session-for-task.py` + `cstl-session-rename.mdc`). Uses `cursor-app-control` `rename_chat` when available; silent skip when MCP missing. No rename on `task.py create`.",
+  "migrations": [],
+  "notes": "Run `cstl update` to sync new hook, rule, and hooks.json wiring."
+}
