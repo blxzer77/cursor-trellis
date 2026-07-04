@@ -97,7 +97,7 @@ Git worktrees allow multiple working directories from one repository:
 
 ### worktree.yaml
 
-Location: `.trellis/worktree.yaml`
+Location: `.cstl/worktree.yaml`
 
 ```yaml
 # Where worktrees are created (relative to project)
@@ -106,7 +106,7 @@ worktree_dir: ../worktrees
 
 # Files to copy to each worktree (default: [])
 copy:
-  - .trellis/.developer      # Developer identity
+  - .cstl/.developer      # Developer identity
   - .env                      # Environment variables
   - .env.local                # Local overrides
 
@@ -150,7 +150,7 @@ Each session needs a configured task:
 Creates worktree and starts agent.
 
 ```bash
-python3 .trellis/scripts/multi_agent/start.py <task-dir>
+python3 .cstl/scripts/multi_agent/start.py <task-dir>
 ```
 
 **Actions**:
@@ -175,7 +175,7 @@ python3 .trellis/scripts/multi_agent/start.py <task-dir>
 
 **Example**:
 ```bash
-python3 .trellis/scripts/multi_agent/start.py .trellis/tasks/01-31-add-login-taosu
+python3 .cstl/scripts/multi_agent/start.py .cstl/tasks/01-31-add-login-taosu
 # Output: Started agent in ../trellis-worktrees/feature/add-login
 ```
 
@@ -187,19 +187,19 @@ Check all running sessions.
 
 ```bash
 # Overview
-python3 .trellis/scripts/multi_agent/status.py
+python3 .cstl/scripts/multi_agent/status.py
 
 # Detailed view
-python3 .trellis/scripts/multi_agent/status.py --detail <task-name>
+python3 .cstl/scripts/multi_agent/status.py --detail <task-name>
 
 # Watch mode
-python3 .trellis/scripts/multi_agent/status.py --watch <task-name>
+python3 .cstl/scripts/multi_agent/status.py --watch <task-name>
 
 # View logs
-python3 .trellis/scripts/multi_agent/status.py --log <task-name>
+python3 .cstl/scripts/multi_agent/status.py --log <task-name>
 
 # Show registry
-python3 .trellis/scripts/multi_agent/status.py --registry
+python3 .cstl/scripts/multi_agent/status.py --registry
 ```
 
 **Output**:
@@ -223,12 +223,12 @@ Resume stopped sessions:
 Creates PR from worktree changes.
 
 ```bash
-python3 .trellis/scripts/multi_agent/create_pr.py [--dry-run]
+python3 .cstl/scripts/multi_agent/create_pr.py [--dry-run]
 ```
 
 **Actions**:
 1. Stage changes: `git add -A`
-2. Exclude: `git reset .trellis/workspace/`
+2. Exclude: `git reset .cstl/workspace/`
 3. Commit: `feat(<scope>): <task-name>`
 4. Push to remote
 5. Create Draft PR: `gh pr create --draft`
@@ -242,17 +242,17 @@ Clean up after completion.
 
 ```bash
 # Specific worktree
-python3 .trellis/scripts/multi_agent/cleanup.py <branch-name>
+python3 .cstl/scripts/multi_agent/cleanup.py <branch-name>
 
 # All merged worktrees
-python3 .trellis/scripts/multi_agent/cleanup.py --merged
+python3 .cstl/scripts/multi_agent/cleanup.py --merged
 
 # All worktrees (with confirmation)
-python3 .trellis/scripts/multi_agent/cleanup.py --all
+python3 .cstl/scripts/multi_agent/cleanup.py --all
 ```
 
 **Actions**:
-1. Archive task to `.trellis/tasks/archive/YYYY-MM/`
+1. Archive task to `.cstl/tasks/archive/YYYY-MM/`
 2. Remove from registry
 3. Remove worktree: `git worktree remove <path>`
 4. Optionally delete branch
@@ -264,7 +264,7 @@ python3 .trellis/scripts/multi_agent/cleanup.py --all
 Launches Plan Agent to create task configuration.
 
 ```bash
-python3 .trellis/scripts/multi_agent/plan.py \
+python3 .cstl/scripts/multi_agent/plan.py \
   --name <task-slug> \
   --type <backend|frontend|fullstack> \
   --requirement "<description>"
@@ -283,7 +283,7 @@ python3 .trellis/scripts/multi_agent/plan.py \
 
 Tracks all running sessions.
 
-**Location**: `.trellis/workspace/<developer>/.agents/registry.json`
+**Location**: `.cstl/workspace/<developer>/.agents/registry.json`
 
 ```json
 {
@@ -293,7 +293,7 @@ Tracks all running sessions.
       "worktree_path": "/abs/path/to/trellis-worktrees/feature/add-login",
       "pid": 12345,
       "started_at": "2026-01-31T10:30:00",
-      "task_dir": ".trellis/tasks/01-31-add-login-taosu"
+      "task_dir": ".cstl/tasks/01-31-add-login-taosu"
     }
   ]
 }
@@ -316,11 +316,11 @@ registry_list_agents()
 
 ```bash
 # Create task
-python3 .trellis/scripts/task.py create "Add login" --slug add-login
+python3 .cstl/scripts/task.py create "Add login" --slug add-login
 
 # Configure
-python3 .trellis/scripts/task.py init-context <task-dir> fullstack
-python3 .trellis/scripts/task.py set-branch <task-dir> feature/add-login
+python3 .cstl/scripts/task.py init-context <task-dir> fullstack
+python3 .cstl/scripts/task.py set-branch <task-dir> feature/add-login
 
 # Write prd.md
 # ...
@@ -329,13 +329,13 @@ python3 .trellis/scripts/task.py set-branch <task-dir> feature/add-login
 ### 2. Start Session
 
 ```bash
-python3 .trellis/scripts/multi_agent/start.py <task-dir>
+python3 .cstl/scripts/multi_agent/start.py <task-dir>
 ```
 
 ### 3. Monitor
 
 ```bash
-python3 .trellis/scripts/multi_agent/status.py --watch add-login
+python3 .cstl/scripts/multi_agent/status.py --watch add-login
 ```
 
 ### 4. After Completion
@@ -345,7 +345,7 @@ python3 .trellis/scripts/multi_agent/status.py --watch add-login
 # Review on GitHub, merge
 
 # Cleanup
-python3 .trellis/scripts/multi_agent/cleanup.py feature/add-login
+python3 .cstl/scripts/multi_agent/cleanup.py feature/add-login
 ```
 
 ---
@@ -356,16 +356,16 @@ Start multiple sessions:
 
 ```bash
 # Session 1
-python3 .trellis/scripts/multi_agent/start.py .trellis/tasks/01-31-add-login
+python3 .cstl/scripts/multi_agent/start.py .cstl/tasks/01-31-add-login
 
 # Session 2 (immediately)
-python3 .trellis/scripts/multi_agent/start.py .trellis/tasks/01-31-fix-api
+python3 .cstl/scripts/multi_agent/start.py .cstl/tasks/01-31-fix-api
 
 # Session 3
-python3 .trellis/scripts/multi_agent/start.py .trellis/tasks/01-31-update-docs
+python3 .cstl/scripts/multi_agent/start.py .cstl/tasks/01-31-update-docs
 
 # Monitor all
-python3 .trellis/scripts/multi_agent/status.py
+python3 .cstl/scripts/multi_agent/status.py
 ```
 
 Each runs independently:
@@ -382,7 +382,7 @@ If a session stops:
 
 ```bash
 # Find session info
-python3 .trellis/scripts/multi_agent/status.py --detail <task-name>
+python3 .cstl/scripts/multi_agent/status.py --detail <task-name>
 
 # Resume
 cd ../trellis-worktrees/feature/task-name
@@ -416,10 +416,10 @@ verify:
   - pnpm typecheck
 ```
 
-**State** (`.trellis/.ralph-state.json`):
+**State** (`.cstl/.ralph-state.json`):
 ```json
 {
-  "task": ".trellis/tasks/01-31-add-login",
+  "task": ".cstl/tasks/01-31-add-login",
   "iteration": 2,
   "started_at": "2026-01-31T10:30:00"
 }
@@ -443,7 +443,7 @@ verify:
 1. Check Ralph Loop iteration (max 5)
 2. Verify `verify` commands
 3. Manually run verify commands
-4. Check `.trellis/.ralph-state.json`
+4. Check `.cstl/.ralph-state.json`
 
 ### Worktree Issues
 
@@ -462,8 +462,8 @@ git worktree list
 
 ```bash
 # View
-python3 .trellis/scripts/multi_agent/status.py --registry
+python3 .cstl/scripts/multi_agent/status.py --registry
 
 # Manual edit
-vim .trellis/workspace/<dev>/.agents/registry.json
+vim .cstl/workspace/<dev>/.agents/registry.json
 ```

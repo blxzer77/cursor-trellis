@@ -1,4 +1,4 @@
-﻿---
+---
 name: cstl-check
 description: "Comprehensive quality verification: spec compliance, lint, type-check, tests, cross-layer data flow, code reuse, and consistency checks. Use when code is written and needs quality verification, before committing changes, or to catch context drift during long sessions."
 ---
@@ -25,13 +25,13 @@ Read the selected task artifacts in order:
 - `implement.md` if present
 
 ```bash
-python ./.trellis/scripts/get_context.py --mode packages
+python ./.cstl/scripts/get_context.py --mode packages
 ```
 
 For each changed package/layer, read the spec index and follow its **Quality Check** section:
 
 ```bash
-cat .trellis/spec/<package>/<layer>/index.md
+cat .cstl/spec/<package>/<layer>/index.md
 ```
 
 Read the specific guideline files referenced — the index is a pointer, not the goal.
@@ -56,11 +56,28 @@ Run the project's lint, type-check, and test commands. Fix any failures before p
 - [ ] Bug fix → regression test added?
 - [ ] Changed behavior → existing tests updated?
 
+### Durable Learning (Phase 3.3)
+
+- [ ] `verify.md` contains exactly one token: `Learning decision: update-spec` | `no-update` | `unsure`
+- [ ] If `update-spec` or `unsure`: `research/learning-proposal.md` exists (or documented `N/A` with reason) and matches the decision
+- [ ] If `no-update`: includes `no durable learning` (or guide-equivalent) plus brief rationale
+- [ ] If `update-spec`: spec was written only after confirmation; `Spec update evidence:` points at `.cstl/spec/...`
+- [ ] No silent edits to `.cstl/spec/` without confirmation
+
 ### Spec Sync
 
-- [ ] Does `.trellis/spec/` need updates? (new patterns, conventions, lessons learned)
+- [ ] Does `.cstl/spec/` need updates? (route through semi-automatic flow: proposal → confirm → `cstl-update-spec`)
 
 > "If I fixed a bug or discovered something non-obvious, should I document it so future me won't hit the same issue?" → If YES, update the relevant spec doc.
+
+### Retrieval evidence (when task used research / smart-search / optional pack)
+
+- [ ] **`verify.md` lists unresolved retrieval gaps** — external facts still unverified, missing `research/` or `research/smart-search/` evidence, or claims without source/Git/test corroboration
+- [ ] If `{TASK}/research/retrieval-pack-latest.json` exists, top `contextPack.selected` items are cited or gaps are explicitly noted in `verify.md`
+
+**Evidence pack (graceful):** Path `{TASK}/research/retrieval-pack-latest.json`. If absent, skip — no error.
+
+When present, Read the pack and ensure `verify.md` has `## Evidence pack reference` citing `contextPack.selected` (`title`, `source`, `reference`, `score`) or explicit gaps. Empty `selected` with existing `research/` → note stale pack or scoring failure in `verify.md`.
 
 ## Step 5: Cross-Layer Dimensions (if applicable)
 

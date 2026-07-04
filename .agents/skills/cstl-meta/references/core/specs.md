@@ -7,7 +7,7 @@ Maintain coding standards that guide AI development.
 ## Directory Structure
 
 ```
-.trellis/spec/
+.cstl/spec/
 ├── cli/                        # Per-package specs (e.g. packages/cli/)
 │   ├── frontend/               # Frontend guidelines
 │   │   ├── index.md
@@ -133,15 +133,15 @@ Detailed explanation...
 Reference specs in task context:
 
 ```jsonl
-{"file": ".trellis/spec/cli/frontend/index.md", "reason": "Frontend overview"}
-{"file": ".trellis/spec/cli/frontend/component-guidelines.md", "reason": "Component patterns"}
+{"file": ".cstl/spec/cli/frontend/index.md", "reason": "Frontend overview"}
+{"file": ".cstl/spec/cli/frontend/component-guidelines.md", "reason": "Component patterns"}
 ```
 
 ### Manual Reading (Cursor)
 
 Read specs at session start:
 ```
-1. Read .trellis/spec/{category}/index.md
+1. Read .cstl/spec/{category}/index.md
 2. Read specific guidelines as needed
 3. Follow patterns in your code
 ```
@@ -159,7 +159,7 @@ Read specs at session start:
 ### 2. Create Spec File
 
 ```bash
-touch .trellis/spec/cli/frontend/new-pattern.md
+touch .cstl/spec/cli/frontend/new-pattern.md
 ```
 
 ### 3. Follow Format
@@ -187,13 +187,13 @@ Add to relevant task context files.
 ### 1. Create Directory
 
 ```bash
-mkdir .trellis/spec/mobile
+mkdir .cstl/spec/mobile
 ```
 
 ### 2. Create Index
 
 ```bash
-touch .trellis/spec/mobile/index.md
+touch .cstl/spec/mobile/index.md
 ```
 
 ### 3. Add Category Specs

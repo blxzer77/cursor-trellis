@@ -4,11 +4,11 @@ Hooks are the automation layer that connects a platform to Trellis. When the use
 
 ## Read These Files First
 
-1. Target platform settings/config, such as `.claude/settings.json`, `.codex/hooks.json`, `.cursor/hooks.json`
+1. Target platform settings/config: `.cursor/hooks.json`
 2. Target platform hooks directory
-3. `.trellis/scripts/common/active_task.py`
-4. `.trellis/scripts/common/session_context.py`
-5. `.trellis/workflow.md`
+3. `.cstl/scripts/common/active_task.py`
+4. `.cstl/scripts/common/session_context.py`
+5. `.cstl/workflow.md`
 
 ## Common Hook Types
 
@@ -23,28 +23,28 @@ Hooks are the automation layer that connects a platform to Trellis. When the use
 
 1. Find the hook registration in settings/config.
 2. Confirm the registered script path exists.
-3. Read the hook script and identify inputs, outputs, and called `.trellis/scripts/`.
+3. Read the hook script and identify inputs, outputs, and called `.cstl/scripts/`.
 4. Modify hook behavior.
-5. If the hook depends on workflow content, synchronize `.trellis/workflow.md`.
+5. If the hook depends on workflow content, synchronize `.cstl/workflow.md`.
 
 ## Example: Change New-Session Injection Content
 
 First find the session-start hook:
 
 ```text
-.claude/settings.json
-.claude/hooks/session-start.py
+.cursor/hooks.json
+.cursor/hooks/session-start.py
 ```
 
-If the hook ultimately calls `.trellis/scripts/get_context.py` or `session_context.py`, editing the local script is usually more robust than hard-coding content in the hook.
+If the hook ultimately calls `.cstl/scripts/get_context.py` or `session_context.py`, editing the local script is usually more robust than hard-coding content in the hook.
 
 ## Example: Agent Did Not Read JSONL
 
 First confirm:
 
 ```bash
-python ./.trellis/scripts/task.py selected --source
-python ./.trellis/scripts/task.py validate <task>
+python3 ./.cstl/scripts/task.py selected --source
+python3 ./.cstl/scripts/task.py validate <task>
 ```
 
 If the task and JSONL are correct, determine whether the platform uses hook push or agent pull. For hook push, edit `inject-subagent-context`; for agent pull, edit the agent file.
@@ -52,6 +52,6 @@ If the task and JSONL are correct, determine whether the platform uses hook push
 ## Notes
 
 - Settings handle registration, hook scripts handle behavior; inspect both together.
-- Different platforms support different hook events. Do not directly copy another platform's settings.
-- Hooks should read project-local `.trellis/`; they should not depend on Trellis upstream source paths.
+- Cursor's hook event surface has changed between releases; confirm against the current Cursor build before wiring a new event.
+- Hooks should read project-local `.cstl/`; they should not depend on Trellis upstream source paths.
 - Hook failures should produce visible errors so AI does not silently lose context.

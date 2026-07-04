@@ -81,7 +81,7 @@ Inject initial context when a Claude Code session starts.
 ### Script: `session-start.py`
 
 **Injects:**
-- Developer identity from `.trellis/.developer`
+- Developer identity from `.cstl/.developer`
 - Git status and recent commits
 - Current task (if the session-scoped resolver finds one)
 - `workflow.md` content
@@ -129,9 +129,9 @@ Inject relevant specs when a subagent is invoked.
 ### JSONL Format
 
 ```jsonl
-{"file": ".trellis/spec/cli/backend/index.md", "reason": "Backend guidelines"}
+{"file": ".cstl/spec/cli/backend/index.md", "reason": "Backend guidelines"}
 {"file": "src/services/auth.ts", "reason": "Existing pattern"}
-{"file": ".trellis/tasks/01-31-add-login/prd.md", "reason": "Requirements"}
+{"file": ".cstl/tasks/01-31-add-login/prd.md", "reason": "Requirements"}
 ```
 
 ---

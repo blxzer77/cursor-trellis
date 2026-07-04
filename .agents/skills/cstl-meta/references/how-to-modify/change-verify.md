@@ -10,13 +10,13 @@ Add or modify Ralph Loop verification commands.
 
 | File | Action | Required |
 |------|--------|----------|
-| `.trellis/worktree.yaml` | Modify | Yes |
+| `.cstl/worktree.yaml` | Modify | Yes |
 
 ---
 
 ## Step 1: Edit worktree.yaml
 
-Open `.trellis/worktree.yaml` and modify the `verify` section:
+Open `.cstl/worktree.yaml` and modify the `verify` section:
 
 ```yaml
 verify:
