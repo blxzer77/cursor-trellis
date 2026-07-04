@@ -42,7 +42,7 @@ Approved remote actions: tag / push / npm publish / …
 2. **Publish approval evidence** — as above.
 3. **Preflight results** — `check-versions`, `publish-plan`, `verify-packed-cli`.
 4. **Execution log** — commands run (redact tokens); pass/fail.
-5. **Post-publish smoke** — registry check, `trellis --version`, dogfood smoke commands.
+5. **Post-publish smoke** — registry check, `cstl --version`, dogfood smoke commands.
 6. **Validation evidence** — tests run after publish if applicable.
 
 ## Trellis CLI reference sequence (after approval)
