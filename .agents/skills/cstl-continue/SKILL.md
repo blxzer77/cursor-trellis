@@ -56,22 +56,10 @@ Phase rules (full detail in `.cstl/workflow.md`):
 Once you know which step to resume at:
 
 ```bash
-python ./.cstl/scripts/get_context.py --mode phase --step <X.X> --platform codex
+python ./.cstl/scripts/get_context.py --mode phase --step <X.X> --platform cursor
 ```
 
 Follow the loaded instructions. After each `[required]` step completes, move to the next.
-
-### Parent task selected
-
-When the selected task is a **Parent** with `task-map.md` children, prefer orchestration helpers over ad-hoc `integrate-child` sequences:
-
-```bash
-python ./.cstl/scripts/task.py parent-status <parent-task>
-python ./.cstl/scripts/task.py generate-child-prompt <parent-task> <child-task> --mode inline
-python ./.cstl/scripts/task.py review-child <parent-task> <child-task> --check --decision accept --ref <ref>
-```
-
-Use `--mode subagent` only when the platform can dispatch subagents; inline remains the portable default. Reviewer gates still require explicit `record-gate` if you choose to record them.
 
 ---
 
