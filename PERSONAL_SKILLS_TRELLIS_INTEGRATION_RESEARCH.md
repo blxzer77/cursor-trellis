@@ -1,5 +1,7 @@
 # Personal Skills Trellis Integration Research And Plan
 
+> Historical note — pre-rename research (content reflects pre-CSTL-rename state; names/paths below are historical).
+
 ## Scope
 
 This memo records the planning result for the first concrete refactor of the user's Trellis fork on `0.6.0-beta.22`.
