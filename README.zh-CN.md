@@ -70,18 +70,6 @@ cd examples/minimal-agent-app
 
 脚本执行 `cstl init --cursor -y` → `cstl validate-rules` → 列出 `.cstl/` 与 `.cursor/`。详见 [examples/minimal-agent-app/README.md](examples/minimal-agent-app/README.md)。Agent 工具层叙事（CLI / MCP / Hook / Rule）：[docs/agent-tooling-narrative.zh-CN.md](docs/agent-tooling-narrative.zh-CN.md)。
 
-## 快速体验（约 5 分钟）
-
-在不污染本源码树的前提下，用空目录体验 init 流程：
-
-```bash
-npm install -g @blxzer/cursor-trellis
-cd examples/minimal-agent-app
-./demo.sh          # Windows 用 demo.ps1
-```
-
-脚本执行 `cstl init --cursor -y` → `cstl validate-rules` → 列出 `.cstl/` 与 `.cursor/`。详见 [examples/minimal-agent-app/README.md](examples/minimal-agent-app/README.md)。Agent 工具层叙事（CLI / MCP / Hook / Rule）：[docs/agent-tooling-narrative.zh-CN.md](docs/agent-tooling-narrative.zh-CN.md)。
-
 ## 快速开始（Cursor）
 
 **1. 安装 CLI**（全局或项目内）：
