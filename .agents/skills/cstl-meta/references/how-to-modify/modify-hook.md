@@ -78,7 +78,7 @@ def get_additional_context():
     context = []
 
     # Add custom file
-    custom_path = os.path.join(repo_root, ".trellis/custom.md")
+    custom_path = os.path.join(repo_root, ".cstl/custom.md")
     if os.path.exists(custom_path):
         with open(custom_path) as f:
             context.append(f"## Custom Context\n{f.read()}")
@@ -226,8 +226,8 @@ echo '{"subagent_type":"check","output":"test"}' | \
 ```python
 # session-start.py
 files_to_inject = [
-    ".trellis/workflow.md",
-    ".trellis/custom-context.md",  # Add this
+    ".cstl/workflow.md",
+    ".cstl/custom-context.md",  # Add this
 ]
 ```
 

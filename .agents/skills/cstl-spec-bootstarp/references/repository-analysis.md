@@ -4,7 +4,7 @@ The goal is to discover the project's real architecture before writing rules. Do
 
 ## Analysis Order
 
-1. Read the existing `.trellis/spec/` tree and note which files are templates, outdated, or already project-specific.
+1. Read the existing `.cstl/spec/` tree and note which files are templates, outdated, or already project-specific.
 2. Inspect package manifests, build scripts, workspace config, and top-level documentation to identify packages and runtime layers.
 3. Use GitNexus for execution flows, module clusters, dependency hubs, and impact-sensitive areas.
 4. Use ABCoder or language-native tooling for exact signatures, types, class boundaries, and implementation examples.

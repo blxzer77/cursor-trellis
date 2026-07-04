@@ -1,6 +1,6 @@
 # worktree.yaml Configuration Reference
 
-Complete guide to `.trellis/worktree.yaml` configuration.
+Complete guide to `.cstl/worktree.yaml` configuration.
 
 ---
 
@@ -9,12 +9,12 @@ Complete guide to `.trellis/worktree.yaml` configuration.
 `worktree.yaml` configures **both** Multi-Session (worktree isolation) **and** some Multi-Agent behaviors (like Ralph Loop).
 
 ```yaml
-# .trellis/worktree.yaml
+# .cstl/worktree.yaml
 
 # Multi-Session only
 worktree_dir: ../worktrees    # Default value
 copy:
-  - .trellis/.developer
+  - .cstl/.developer
   - .env
 post_create:
   - npm install
@@ -59,7 +59,7 @@ worktree_dir: ../worktrees
 # These files are not in git, need manual copy
 # Default: [] (empty array)
 copy:
-  - .trellis/.developer      # Developer identity
+  - .cstl/.developer      # Developer identity
   - .env                      # Environment variables
   - .env.local                # Local overrides
   # - .npmrc                  # npm config
@@ -216,7 +216,7 @@ post_create:
 
 ```yaml
 copy:
-  - .trellis/.developer
+  - .cstl/.developer
   - .env
   - .env.local
   - .npmrc                    # npm private registry config
@@ -247,7 +247,7 @@ If `worktree.yaml` doesn't exist:
 ### Multi-Agent only (current directory)
 
 ```yaml
-# .trellis/worktree.yaml
+# .cstl/worktree.yaml
 verify:
   - pnpm lint
   - pnpm typecheck
@@ -256,10 +256,10 @@ verify:
 ### Multi-Session only (worktree)
 
 ```yaml
-# .trellis/worktree.yaml
+# .cstl/worktree.yaml
 worktree_dir: ../worktrees
 copy:
-  - .trellis/.developer
+  - .cstl/.developer
 post_create:
   - npm install
 verify:
@@ -277,7 +277,7 @@ verify:
 worktree_dir: ../worktrees
 
 copy:
-  - .trellis/.developer
+  - .cstl/.developer
   - .env
   - .env.local
 
@@ -296,7 +296,7 @@ verify:
 worktree_dir: ../worktrees
 
 copy:
-  - .trellis/.developer
+  - .cstl/.developer
   - .env
   - venv/              # or recreate venv
 
@@ -316,7 +316,7 @@ verify:
 worktree_dir: ../worktrees
 
 copy:
-  - .trellis/.developer
+  - .cstl/.developer
   - .env
 
 post_create:
@@ -335,7 +335,7 @@ verify:
 worktree_dir: ../worktrees
 
 copy:
-  - .trellis/.developer
+  - .cstl/.developer
   - .env
   - .npmrc
 
@@ -399,7 +399,7 @@ worktree_dir: ../worktrees
 
 # Arrays (2-space indent, starts with -)
 copy:
-  - .trellis/.developer
+  - .cstl/.developer
   - .env
 
 # Quoted values
@@ -430,7 +430,7 @@ description: |
 ### View current config
 
 ```bash
-cat .trellis/worktree.yaml
+cat .cstl/worktree.yaml
 ```
 
 ### Test verify commands
@@ -440,7 +440,7 @@ cat .trellis/worktree.yaml
 pnpm lint && pnpm typecheck
 
 # Or view Ralph Loop state
-cat .trellis/.ralph-state.json
+cat .cstl/.ralph-state.json
 ```
 
 ### View worktree status
@@ -453,11 +453,11 @@ git worktree list
 
 ```bash
 # View state file
-cat .trellis/.ralph-state.json
+cat .cstl/.ralph-state.json
 
 # Example output
 # {
-#   "task": ".trellis/tasks/01-31-add-login",
+#   "task": ".cstl/tasks/01-31-add-login",
 #   "iteration": 2,
 #   "started_at": "2026-01-31T10:30:00"
 # }

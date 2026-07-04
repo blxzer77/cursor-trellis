@@ -268,7 +268,7 @@ inject-subagent-context.py runs
             ├── Find task directory from .runtime/sessions/<session-key>.json
             │
             ├── Load implement.jsonl
-            │   {"file": ".trellis/spec/cli/backend/index.md", "reason": "..."}
+            │   {"file": ".cstl/spec/cli/backend/index.md", "reason": "..."}
             │   {"file": "src/services/auth.ts", "reason": "..."}
             │
             ├── Read each file content
@@ -276,7 +276,7 @@ inject-subagent-context.py runs
             └── Build new prompt:
                 # Implement Agent Task
                 ## Your Context
-                === .trellis/spec/cli/backend/index.md ===
+                === .cstl/spec/cli/backend/index.md ===
                 [content]
                 === src/services/auth.ts ===
                 [content]
@@ -384,7 +384,7 @@ elif subagent_type == AGENT_MY_AGENT:
 
 In task directories, create `my-agent.jsonl`:
 ```jsonl
-{"file": ".trellis/spec/my-spec.md", "reason": "My agent spec"}
+{"file": ".cstl/spec/my-spec.md", "reason": "My agent spec"}
 ```
 
 ### 4. (Optional) Add to Dispatch

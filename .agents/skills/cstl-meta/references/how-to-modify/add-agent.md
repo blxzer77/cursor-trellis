@@ -12,7 +12,7 @@ Add a new agent type like `my-agent`.
 |------|--------|----------|
 | `.claude/agents/my-agent.md` | Create | Yes |
 | `.claude/hooks/inject-subagent-context.py` | Modify | Yes |
-| `.trellis/tasks/{template}/my-agent.jsonl` | Create | Yes |
+| `.cstl/tasks/{template}/my-agent.jsonl` | Create | Yes |
 | `trellis-local/SKILL.md` | Update | Yes |
 | `.claude/agents/dispatch.md` | Modify | If adding to pipeline |
 
@@ -126,7 +126,7 @@ def init_my_agent_context(task_dir, dev_type):
     with open(jsonl_path, "w") as f:
         # Add relevant specs
         f.write(json.dumps({
-            "file": ".trellis/spec/guides/index.md",
+            "file": ".cstl/spec/guides/index.md",
             "reason": "Thinking guides"
         }) + "\n")
 ```
@@ -134,8 +134,8 @@ def init_my_agent_context(task_dir, dev_type):
 **Option B**: Manually create template:
 
 ```jsonl
-{"file": ".trellis/spec/guides/index.md", "reason": "Thinking guides"}
-{"file": ".trellis/tasks/{task}/prd.md", "reason": "Requirements"}
+{"file": ".cstl/spec/guides/index.md", "reason": "Thinking guides"}
+{"file": ".cstl/tasks/{task}/prd.md", "reason": "Requirements"}
 ```
 
 ---
