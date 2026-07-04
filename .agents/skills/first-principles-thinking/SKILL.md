@@ -233,7 +233,7 @@ When used within a Trellis-managed project, the analysis artifacts integrate wit
 ### File Placement
 
 ```
-.trellis/tasks/{MM-DD-slug}/
+.cstl/tasks/{MM-DD-slug}/
 ├── task.json              # Existing
 ├── prd.md                 # Existing — FP feeds into this
 ├── fp-analysis.md         # ← FP analysis output (Phases 0-5)
@@ -260,8 +260,8 @@ During `/trellis:brainstorm`, when the task is classified as "Complex":
 After FP analysis completes, add to context files:
 
 ```bash
-python3 ./.trellis/scripts/task.py add-context "$TASK_DIR" implement "fp-analysis.md" "Ground truths and reasoning chain"
-python3 ./.trellis/scripts/task.py add-context "$TASK_DIR" check "fp-analysis.md" "Verify implementation traces to ground truths"
+python3 ./.cstl/scripts/task.py add-context "$TASK_DIR" implement "fp-analysis.md" "Ground truths and reasoning chain"
+python3 ./.cstl/scripts/task.py add-context "$TASK_DIR" check "fp-analysis.md" "Verify implementation traces to ground truths"
 ```
 
 ### Completion Recording
