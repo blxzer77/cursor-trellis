@@ -27,6 +27,7 @@ export interface HookScript {
 export type SharedHookName =
   | "session-start.py"
   | "inject-shell-session-context.py"
+  | "rename-session-for-task.py"
   | "inject-retrieval-plan.py"
   | "inject-workflow-state.py"
   | "inject-subagent-context.py"
@@ -78,6 +79,7 @@ export const SHARED_HOOKS_BY_PLATFORM: Record<
   cursor: [
     "session-start.py",
     "inject-shell-session-context.py",
+    "rename-session-for-task.py",
     "inject-retrieval-plan.py",
     "inject-subagent-context.py",
     "research-end-retrieval-pack.py",

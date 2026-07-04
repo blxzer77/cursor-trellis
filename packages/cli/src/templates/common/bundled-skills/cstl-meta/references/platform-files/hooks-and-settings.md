@@ -27,8 +27,9 @@ Whether legacy settings/config files exist in a project depends on which histori
 | `inject-workflow-state.py` | Parses `[workflow-state:STATUS]` blocks in `.cstl/workflow.md` and emits the body matching the selected task status. Falls back to `Refer to workflow.md for current step.` when no matching block exists. |
 | `inject-subagent-context.py` | Injects PRD, JSONL context, and related spec/research into sub-agents. |
 | `inject-shell-session-context.py` | Lets shell commands inherit Trellis session identity. |
+| `rename-session-for-task.py` | After successful `task.py select` / `start-execution --approved`, prompts main-session rename to task directory name (best-effort `rename_chat`). |
 
-Cursor exposes sessionStart, preToolUse on Task/Subagent, beforeShellExecution, and stop events. Confirm against the current Cursor release before wiring a new event name; the available event surface has evolved over time and historical platform documentation may be stale.
+Cursor exposes sessionStart, preToolUse on Task/Subagent, beforeShellExecution, afterShellExecution, and stop events. Confirm against the current Cursor release before wiring a new event name; the available event surface has evolved over time and historical platform documentation may be stale.
 
 ## Local Change Scenarios
 

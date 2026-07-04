@@ -194,9 +194,13 @@ describe("Cursor hooks.json wiring", () => {
 
     expect(Object.keys(parsed.hooks ?? {})).toContain("beforeSubmitPrompt");
 
+    expect(Object.keys(parsed.hooks ?? {})).toContain("afterShellExecution");
+
     expect(raw).toContain("session-start.py");
 
     expect(raw).toContain("inject-retrieval-plan.py");
+
+    expect(raw).toContain("rename-session-for-task.py");
 
   });
 

@@ -70,12 +70,31 @@ your-project/
 
 ## Rules
 
-Cursor 的**用户规则**与项目 **`.cursor/rules`** 是常驻策略的可靠通道。Trellis 发布两个常驻规则:
+Cursor 的**用户规则**与项目 **`.cursor/rules`** 是常驻策略的可靠通道。Trellis 发布三个常驻规则:
 
 - `cstl-triage.mdc`(`alwaysApply: true`)——在持久性工作前强制执行 **Request Triage**。
 - `retrieval-routing.mdc`(`alwaysApply: true`)——对代码库问题强制执行[检索层](retrieval.zh-CN.md)路由。
+- `cstl-session-rename.mdc`(`alwaysApply: true`)——在 `task.py select` 或 `start-execution --approved` 后,尽力将**主会话**标签改为任务**目录名**(通过 `cursor-app-control` `rename_chat`;MCP 不可用时静默跳过)。
 
 用于弥补已知限制:`sessionStart` 钩子的 `additional_context` 可能无法进入 Agent(#158452)。因此 Triage 与检索策略不能仅依赖钩子注入的 workflow 文本。
+
+### 会话重命名(鼓励一任务一主会话)
+
+Trellis **鼓励**一个 cstl 任务对应一个主 Agent 会话,便于管理;**不**在 `task.py create` 时改名(create 不绑定会话)。Subagent 子窗口不在范围内。
+
+| 触发 | 会话标题 |
+| --- | --- |
+| `task.py select <task-dir>` | 任务目录名(如 `07-04-my-task`) |
+| `task.py start-execution <task-dir> --approved` | 同上 |
+
+机制:`afterShellExecution` 钩子尽力下发 `agent_message`,加上常驻规则 `cstl-session-rename.mdc` 指示 Agent 调用 **`cursor-app-control` → `rename_chat`**。该 MCP 属于 **Cursor 平台能力**(`cstl init` 不会写入 `.cursor/mcp.json`)。
+
+| 环境 | 说明 |
+| --- | --- |
+| Native Cursor API | `rename_chat` 在工具列表中时预期可用 |
+| Cursor++ BYOK | 同一套实现;`rename_chat` 是否可用**视环境而定**——请在 BYOK 下自行验证。不可用时 Trellis 静默跳过,不影响任务流程 |
+
+去重状态:`.cstl/.runtime/session-rename/`(按会话 context key)。
 
 日常以 `.cstl/workflow.md` 为规范来源;rules 概括聊天中必须遵守的硬门禁。
 
@@ -112,6 +131,7 @@ Cursor 上命令引用前缀为 `/trellis-`(见 `packages/cli/src/types/ai-tools
 | `preToolUse` | 子 Agent 上下文注入(Cursor 上尽力而为) |
 | `beforeSubmitPrompt` | 每查询检索计划注入(`inject-retrieval-plan.py` → `## 代码库检索计划` 块) |
 | `beforeShellExecution` | 终端/Shell 会话上下文 |
+| `afterShellExecution` | `task.py select` / `start-execution --approved` 成功后,尽力提示将主会话改名为任务目录名 |
 | `stop` | 回合结束检索包(调研流) |
 
 本地覆盖可放在 `.cstl/hooks.local.json`。运行钩子需要本机 **Python ≥ 3.9**。
