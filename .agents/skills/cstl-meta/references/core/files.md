@@ -1,13 +1,13 @@
 # Trellis File Reference
 
-Complete reference of all files in the `.trellis/` directory.
+Complete reference of all files in the `.cstl/` directory.
 
 ---
 
 ## Directory Structure
 
 ```
-.trellis/
+.cstl/
 ├── .developer              # Developer identity (gitignored)
 ├── .runtime/               # Session-scoped runtime state (gitignored)
 ├── .current-task           # Legacy ignored pointer; not an active-task source
@@ -54,7 +54,7 @@ taosu
 
 ```json
 {
-  "current_task": ".trellis/tasks/01-31-add-login-taosu",
+  "current_task": ".cstl/tasks/01-31-add-login-taosu",
   "current_run": null,
   "platform": "claude",
   "last_seen_at": "2026-04-27T00:00:00Z"
@@ -86,7 +86,7 @@ uses `.runtime/sessions/<session-key>.json` only.
 
 ```json
 {
-  "task": ".trellis/tasks/01-31-add-login",
+  "task": ".cstl/tasks/01-31-add-login",
   "iteration": 2,
   "started_at": "2026-01-31T10:30:00"
 }
@@ -105,22 +105,22 @@ uses `.runtime/sessions/<session-key>.json` only.
 
 ### `.template-hashes.json`
 
-**Purpose**: Track template file versions for `trellis update`.
+**Purpose**: Track template file versions for `cstl update`.
 
-**Created by**: `trellis init` or `trellis update`
+**Created by**: `cstl init` or `cstl update`
 
 **Format**: JSON object mapping file paths to SHA-256 hashes.
 
 ```json
 {
-  ".trellis/workflow.md": "028891d1fe839a266...",
+  ".cstl/workflow.md": "028891d1fe839a266...",
   ".claude/hooks/session-start.py": "0a9899e80f6bfe15...",
   ".claude/commands/start.md": "d1276dcbff880299..."
 }
 ```
 
 **Used by**:
-- `trellis update` - Detect which files have been modified
+- `cstl update` - Detect which files have been modified
 - Determines if files can be auto-updated or need conflict resolution
 
 **Behavior**:
@@ -133,7 +133,7 @@ uses `.runtime/sessions/<session-key>.json` only.
 
 **Purpose**: Track installed Trellis CLI version.
 
-**Created by**: `trellis init` or `trellis update`
+**Created by**: `cstl init` or `cstl update`
 
 **Format**: Plain text, semver version string.
 
@@ -142,7 +142,7 @@ uses `.runtime/sessions/<session-key>.json` only.
 ```
 
 **Used by**:
-- `trellis update` - Determine if update is needed
+- `cstl update` - Determine if update is needed
 - Version mismatch detection
 
 ---
@@ -190,7 +190,7 @@ uses `.runtime/sessions/<session-key>.json` only.
 
 **Purpose**: Main workflow documentation for developers and AI.
 
-**Created by**: `trellis init`
+**Created by**: `cstl init`
 
 **Content sections**:
 1. Quick Start guide
@@ -211,14 +211,14 @@ uses `.runtime/sessions/<session-key>.json` only.
 
 **Purpose**: Configure Multi-Session and Ralph Loop.
 
-**Created by**: `trellis init`
+**Created by**: `cstl init`
 
 **Format**: YAML
 
 ```yaml
 worktree_dir: ../worktrees
 copy:
-  - .trellis/.developer
+  - .cstl/.developer
   - .env
 post_create:
   - npm install
@@ -237,7 +237,7 @@ verify:
 
 **Purpose**: Agent registry for Multi-Session.
 
-**Location**: `.trellis/workspace/{developer}/.agents/`
+**Location**: `.cstl/workspace/{developer}/.agents/`
 
 **Content**: `registry.json` tracking running agents.
 
@@ -299,13 +299,13 @@ Automation scripts.
 
 ## Template Files
 
-These files are managed by `trellis update`:
+These files are managed by `cstl update`:
 
 | File | Purpose |
 |------|---------|
-| `.trellis/workflow.md` | Workflow documentation |
-| `.trellis/worktree.yaml` | Multi-session config |
-| `.trellis/.gitignore` | Git ignore rules |
+| `.cstl/workflow.md` | Workflow documentation |
+| `.cstl/worktree.yaml` | Multi-session config |
+| `.cstl/.gitignore` | Git ignore rules |
 | `.claude/hooks/*.py` | Hook scripts |
 | `.claude/commands/*.md` | Slash commands |
 | `.claude/agents/*.md` | Agent definitions |
@@ -321,10 +321,10 @@ These files are managed by `trellis update`:
 
 ## File Lifecycle
 
-### Created by `trellis init`
+### Created by `cstl init`
 
 ```
-.trellis/
+.cstl/
 ├── .template-hashes.json
 ├── .version
 ├── .gitignore
@@ -340,7 +340,7 @@ These files are managed by `trellis update`:
 ### Created at runtime
 
 ```
-.trellis/
+.cstl/
 ├── .developer           # init_developer.py
 ├── .runtime/sessions/   # task.py start
 ├── .current-task        # legacy ignored file, not active-task source
@@ -359,7 +359,7 @@ These files are managed by `trellis update`:
 
 ```
 # After task completion
-.trellis/tasks/{task}/ → .trellis/tasks/archive/YYYY-MM/
+.cstl/tasks/{task}/ → .cstl/tasks/archive/YYYY-MM/
 
 # After worktree removal
 .agents/registry.json entries removed

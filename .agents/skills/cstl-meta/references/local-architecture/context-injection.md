@@ -1,15 +1,15 @@
 # Local Context Injection System
 
-Trellis context injection aims to make AI read the right files at the right time instead of relying on model memory. In a user project, injection is implemented by `.trellis/` scripts together with platform hooks, agents, and skills.
+Trellis context injection aims to make AI read the right files at the right time instead of relying on model memory. In a user project, injection is implemented by `.cstl/` scripts together with platform hooks, agents, and skills.
 
 ## Injected Context Types
 
 | Type | Source | Purpose |
 | --- | --- | --- |
-| session context | `.trellis/scripts/get_context.py` | Current developer, git status, selected task, Task Dashboard, active tasks, journal, packages. |
-| workflow context | `.trellis/workflow.md` | Current Trellis flow and next action. |
-| spec context | `.trellis/spec/` + task JSONL | Specs that must be followed during implementation/checking. |
-| task context | `.trellis/tasks/<task>/prd.md`, `design.md`, `implement.md`, `research/` | Selected task requirements, design, execution plan, and research. |
+| session context | `.cstl/scripts/get_context.py` | Current developer, git status, selected task, Task Dashboard, active tasks, journal, packages. |
+| workflow context | `.cstl/workflow.md` | Current Trellis flow and next action. |
+| spec context | `.cstl/spec/` + task JSONL | Specs that must be followed during implementation/checking. |
+| task context | `.cstl/tasks/<task>/prd.md`, `design.md`, `implement.md`, `research/` | Selected task requirements, design, execution plan, and research. |
 | platform context | Platform hooks/settings/agents | Lets different AI tools read the files above through their own mechanisms. |
 
 ## session-start
@@ -26,9 +26,9 @@ If the user feels the AI does not know the selected task in a new session, first
 
 ## workflow-state
 
-workflow-state is a lightweight hint injected around each user turn. Based on selected task status, it selects a block from `.trellis/workflow.md`, such as `no_task`, `planning`, `in_progress`, or `completed`.
+workflow-state is a lightweight hint injected around each user turn. Based on selected task status, it selects a block from `.cstl/workflow.md`, such as `no_task`, `planning`, `in_progress`, or `completed`.
 
-If the user wants to change "what the AI should do next in a given state," edit the corresponding state block in `.trellis/workflow.md` first.
+If the user wants to change "what the AI should do next in a given state," edit the corresponding state block in `.cstl/workflow.md` first.
 
 ## sub-agent context
 
@@ -44,14 +44,14 @@ In both modes, JSONL files in the task directory are the manifest for spec/resea
 `implement.jsonl` and `check.jsonl` contain one JSON object per line:
 
 ```jsonl
-{"file": ".trellis/spec/backend/index.md", "reason": "Backend rules"}
+{"file": ".cstl/spec/backend/index.md", "reason": "Backend rules"}
 ```
 
 Readers should skip seed rows without a `file` field. When configuring JSONL, the AI should include only spec/research files, not pre-register code files that will be modified.
 
 ## Selected Task And Context Key
 
-Selected task state lives in `.trellis/.runtime/sessions/` and is isolated per session. Hooks try to resolve the context key from platform events, environment variables, transcript paths, or `TRELLIS_CONTEXT_ID`.
+Selected task state lives in `.cstl/.runtime/sessions/` and is isolated per session. Hooks try to resolve the context key from platform events, environment variables, transcript paths, or `TRELLIS_CONTEXT_ID`.
 
 If shell commands cannot see the same context key, `task.py selected --source` may report no selected task. In that case, check whether the platform passes session identity into the shell instead of hand-writing a global current-task file.
 
@@ -60,9 +60,9 @@ If shell commands cannot see the same context key, `task.py selected --source` m
 | Need | Edit location |
 | --- | --- |
 | Change session-start injected content | The platform's `session-start` hook or plugin file. |
-| Change per-turn workflow-state rules | `[workflow-state:STATUS]` block in `.trellis/workflow.md`. The platform workflow-state hook parses these blocks verbatim and embeds no fallback text. |
+| Change per-turn workflow-state rules | `[workflow-state:STATUS]` block in `.cstl/workflow.md`. The platform workflow-state hook parses these blocks verbatim and embeds no fallback text. |
 | Change how sub-agents read context | Platform agent definitions, the `inject-subagent-context` hook, or agent preludes. |
-| Change JSONL validation/display | `.trellis/scripts/common/task_context.py`. |
-| Change selected task resolution | `.trellis/scripts/common/active_task.py`. |
+| Change JSONL validation/display | `.cstl/scripts/common/task_context.py`. |
+| Change selected task resolution | `.cstl/scripts/common/active_task.py`. |
 
 When modifying context injection, verify two things: new sessions can see the correct task, and sub-agents can see the correct task artifacts/spec/research.

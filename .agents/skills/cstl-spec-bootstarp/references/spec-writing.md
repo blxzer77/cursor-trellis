@@ -64,7 +64,7 @@ Avoid passing raw `process.argv` or unvalidated config objects into shared helpe
 Before finishing:
 
 ```bash
-grep -R "To be filled\\|TODO: fill\\|placeholder" .trellis/spec
+grep -R "To be filled\\|TODO: fill\\|placeholder" .cstl/spec
 ```
 
 Also check links, index files, and whether any spec still describes a template rather than this repository.
