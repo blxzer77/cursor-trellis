@@ -1,0 +1,9 @@
+{
+  "version": "0.3.3",
+  "description": "Coexistence polish: AGENTS CSTL block uninstall, hash scope, publish CI",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**@blxzer/cursor-trellis 0.3.3**\n\n- feat(uninstall): strip CSTL managed block from AGENTS.md while preserving upstream TRELLIS block\n- feat(hash): AGENTS.md template hash tracks CSTL block only\n- docs(spec): cursor-trellis release coexistence guide\n- ci: publish workflow on cstl-v* tags",
+  "migrations": [],
+  "notes": "Run `cstl update` to sync templates. No `--migrate` required."
+}
