@@ -1,0 +1,16 @@
+{
+  "version": "0.3.2",
+  "description": "Reissue 0.3.1 runtime isolation with publishable core/cli pair (.cstl/)",
+  "breaking": true,
+  "recommendMigrate": true,
+  "changelog": "**@blxzer/cursor-trellis 0.3.2**\n\nReissues 0.3.1 content with a publishable `@blxzer/cursor-trellis-core` pair. Runtime root `.trellis/` → **`.cstl/`** for coexistence with upstream Trellis.\n\n```bash\nnpm install -g @blxzer/cursor-trellis@0.3.2\ncstl update --migrate\n```",
+  "migrations": [
+    {
+      "type": "rename-dir",
+      "from": ".trellis",
+      "to": ".cstl",
+      "description": "v0.3.2: cursor-trellis runtime dir isolation (.trellis -> .cstl)"
+    }
+  ],
+  "notes": "0.3.1 was withdrawn from npm; use 0.3.2+ for the .cstl/ migration."
+}
