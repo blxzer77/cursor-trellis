@@ -56,6 +56,7 @@ your-project/
     rules/
       cstl-triage.mdc             # alwaysApply: true
       retrieval-routing.mdc          # alwaysApply: true
+      cstl-session-rename.mdc        # alwaysApply: true
     agents/
       cstl-research.md
       cstl-implement.md
@@ -70,12 +71,31 @@ Implementation reference: `packages/cli/src/configurators/cursor.ts` and `packag
 
 ## Rules
 
-Cursor **User Rules** and project **`.cursor/rules`** are the reliable channel for always-on policy on Cursor. Trellis ships two always-on rules:
+Cursor **User Rules** and project **`.cursor/rules`** are the reliable channel for always-on policy on Cursor. Trellis ships three always-on rules:
 
 - `cstl-triage.mdc` (`alwaysApply: true`) — enforces **Request Triage** before durable work.
 - `retrieval-routing.mdc` (`alwaysApply: true`) — enforces [retrieval layer](retrieval.md) routing for codebase questions.
+- `cstl-session-rename.mdc` (`alwaysApply: true`) — after `task.py select` or `start-execution --approved`, best-effort rename of the **main** chat tab to the task **directory name** via `cursor-app-control` `rename_chat` (skip silently if MCP unavailable).
 
 This compensates for a known Cursor limitation: `sessionStart` hook `additional_context` may not reach the agent (#158452). Triage and retrieval policy therefore must not depend only on hook-injected workflow text.
+
+### Session rename (one task per main chat)
+
+Trellis **encourages** binding one cstl task to one main Agent session for clarity. It does **not** rename on `task.py create` (create does not select/bind the session). Subagent child windows are out of scope.
+
+| Trigger | Chat title |
+| --- | --- |
+| `task.py select <task-dir>` | Task directory name (e.g. `07-04-my-task`) |
+| `task.py start-execution <task-dir> --approved` | Same |
+
+Mechanism: `afterShellExecution` hook emits an `agent_message` (best-effort) plus always-on rule `cstl-session-rename.mdc` instructing the agent to call **`cursor-app-control` → `rename_chat`**. This MCP is a **Cursor platform** capability (not installed by `cstl init`); Trellis does not add it to `.cursor/mcp.json`.
+
+| Environment | Notes |
+| --- | --- |
+| Native Cursor API | Expected to work when `rename_chat` is in the agent tool list |
+| Cursor++ BYOK | Same code path; `rename_chat` availability is **environment-dependent** — verify in your BYOK setup. If unavailable, Trellis skips silently and task workflow continues |
+
+Dedup state: `.cstl/.runtime/session-rename/` (per conversation context key).
 
 For day-to-day edits, treat `.cstl/workflow.md` as the canonical workflow spec; rules summarize the hard gates agents must follow in chat.
 
@@ -112,6 +132,7 @@ Prefer named Trellis agents over ad-hoc prompts when a step needs a clean contex
 | `preToolUse` | Subagent context injection (best-effort on Cursor) |
 | `beforeSubmitPrompt` | Per-query retrieval plan injection (`inject-retrieval-plan.py` → `## 代码库检索计划` block) |
 | `beforeShellExecution` | Shell/session context for terminal tools |
+| `afterShellExecution` | After successful `task.py select` / `start-execution --approved`, best-effort prompt to rename the main chat to the task directory name (`rename-session-for-task.py`) |
 | `stop` | End-of-turn retrieval pack (research workflow) |
 
 Local overrides may live in `.cstl/hooks.local.json` (gitignored in Trellis source policy). Requires **Python ≥ 3.9** on the machine where hooks run.

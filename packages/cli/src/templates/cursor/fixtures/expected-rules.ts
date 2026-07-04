@@ -32,4 +32,9 @@ export const expectedRules: ExpectedRule[] = [
     requiredSections: ["Native", "BYOK", "codegraph", "smart-search"],
     minBytes: 600,
   },
+  {
+    filename: "cstl-session-rename.mdc",
+    requiredSections: ["rename_chat", "select", "start-execution", "skip silently"],
+    minBytes: 300,
+  },
 ];

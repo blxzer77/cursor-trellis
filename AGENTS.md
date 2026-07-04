@@ -33,7 +33,7 @@ The Trellis CLI source repo often sits inside the **D:\MyHarness** harness: the 
 
 **Git remotes (local policy):** This checkout uses **only** the `private` remote (`git@github.com:blxzer77/cursor-trellis.git`). Do **not** add or push to `origin` / `mindfold-ai/Trellis`. Use `git push` (default remote is `private`) or `git push private <branch>`. Do not run `git push origin`.
 
-**Branch policy:** Default development branch is **`main`**. Use short-lived feature branches (`feat/…`, `fix/…`) merged back to `main`; avoid long-lived personal version branches unless cutting a release tag.
+**Branch policy (mandatory):** **`main` is integration/release only — never develop on `main`.** Before any durable edit, create or checkout a short-lived branch (`feat/…`, `fix/…`, `chore/…`). Do not commit feature work directly to `main`. Harness-wide rule: `D:\MyHarness\.cursor\rules\feature-branch-policy.mdc`.
 
 ---
 

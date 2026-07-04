@@ -11,6 +11,12 @@ SemVer: [semver.org](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.4] - 2026-07-04
+
+### Added
+
+- **feat(cursor)**: auto-rename the **main** Agent chat tab to the cstl task **directory name** after `task.py select` or `task.py start-execution --approved` (`rename-session-for-task.py` `afterShellExecution` hook + `cstl-session-rename.mdc` rule). Uses `cursor-app-control` `rename_chat` when available; skips silently when MCP is missing. Does not rename on `task.py create`. Native and BYOK share the same path.
+
 ## [0.3.3] - 2026-07-04
 
 Follow-up polish after 0.3.2 coexistence release: closes known limitations from the runtime-isolation task.

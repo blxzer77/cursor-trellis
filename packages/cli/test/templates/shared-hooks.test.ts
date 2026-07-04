@@ -9,6 +9,7 @@ import {
 const ALL_HOOK_FILES = [
   "session-start.py",
   "inject-shell-session-context.py",
+  "rename-session-for-task.py",
   "inject-retrieval-plan.py",
   "inject-workflow-state.py",
   "inject-subagent-context.py",
@@ -103,6 +104,33 @@ describe("shared-hooks capability table", () => {
           `${platform} declares inject-shell-session-context.py but does not use Cursor beforeShellExecution`,
         ).toBe(false);
     }
+  });
+
+  it("rename-session-for-task.py goes to Cursor only", () => {
+    for (const [platform, hooks] of Object.entries(
+      SHARED_HOOKS_BY_PLATFORM,
+    )) {
+      const has = hooks.includes("rename-session-for-task.py");
+      if (platform === "cursor") expect(has).toBe(true);
+      else
+        expect(
+          has,
+          `${platform} declares rename-session-for-task.py but only Cursor wires afterShellExecution rename`,
+        ).toBe(false);
+    }
+  });
+
+  it("rename-session-for-task.py targets select and start-execution only", () => {
+    const hook = getSharedHookScripts().find(
+      (h) => h.name === "rename-session-for-task.py",
+    );
+    expect(hook).toBeDefined();
+    const content = hook?.content ?? "";
+    expect(content).toContain('subcommand == "select"');
+    expect(content).toContain('subcommand == "start-execution"');
+    expect(content).toContain("--approved");
+    expect(content).toContain("rename_chat");
+    expect(content).not.toContain("create");
   });
 
   it("kiro registers only inject-subagent-context.py (agentSpawn is its only hook event)", () => {

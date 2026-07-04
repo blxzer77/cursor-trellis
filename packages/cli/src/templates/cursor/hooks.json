@@ -26,6 +26,13 @@
         "timeout": 5
       }
     ],
+    "afterShellExecution": [
+      {
+        "command": "{{PYTHON_CMD}} .cursor/hooks/rename-session-for-task.py",
+        "matcher": "task\\.py.*(select|start-execution)",
+        "timeout": 5
+      }
+    ],
     "stop": [
       {
         "command": "{{PYTHON_CMD}} .cursor/hooks/research-end-retrieval-pack.py",
