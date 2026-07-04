@@ -20,7 +20,7 @@ When a Trellis task is useful, write a concise PRD with these sections:
 # Fill <package-or-layer> Trellis Specs
 
 ## Goal
-Write project-specific `.trellis/spec/` guidance for <scope>.
+Write project-specific `.cstl/spec/` guidance for <scope>.
 
 ## Scope
 - Spec directory:
@@ -32,8 +32,8 @@ Write project-specific `.trellis/spec/` guidance for <scope>.
 Summarize the concrete findings from repository analysis.
 
 ## Files To Create Or Update
-- `.trellis/spec/.../index.md`
-- `.trellis/spec/.../<topic>.md`
+- `.cstl/spec/.../index.md`
+- `.cstl/spec/.../<topic>.md`
 
 ## Rules
 - Adapt the spec file set to the real codebase.

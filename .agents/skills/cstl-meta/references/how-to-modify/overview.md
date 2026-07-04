@@ -55,7 +55,7 @@ Common Trellis customization scenarios and what files need to be modified.
 ```
 .claude/agents/my-agent.md                          # Create: Agent definition
 .claude/hooks/inject-subagent-context.py            # Modify: Add agent handling
-.trellis/tasks/{template}/my-agent.jsonl            # Create: Context template
+.cstl/tasks/{template}/my-agent.jsonl            # Create: Context template
 .trellis-local/SKILL.md                             # Update: Document the change
 ```
 
@@ -92,9 +92,9 @@ task.json template                                  # Modify: Add to next_action
 **Files to modify**:
 
 ```
-.trellis/spec/mobile/index.md             # Create: Category index
-.trellis/spec/mobile/*.md                 # Create: Spec files
-.trellis/tasks/{template}/*.jsonl         # Update: Reference new specs
+.cstl/spec/mobile/index.md             # Create: Category index
+.cstl/spec/mobile/*.md                 # Create: Spec files
+.cstl/tasks/{template}/*.jsonl         # Update: Reference new specs
 .trellis-local/SKILL.md                   # Update: Document the change
 ```
 
@@ -109,7 +109,7 @@ task.json template                                  # Modify: Add to next_action
 **Files to modify**:
 
 ```
-.trellis/worktree.yaml                    # Modify: verify section
+.cstl/worktree.yaml                    # Modify: verify section
 ```
 
 **Example**:
@@ -149,7 +149,7 @@ task.json (in task directories)           # Modify: next_action array
 **Files to modify**:
 
 ```
-.trellis/worktree.yaml                    # Modify: post_create section
+.cstl/worktree.yaml                    # Modify: post_create section
 ```
 
 **Example**:
@@ -183,8 +183,8 @@ post_create:
 **Files to modify**:
 
 ```
-.trellis/scripts/my-script.py             # Create: Script
-.trellis/scripts/common/*.py              # Create/Modify: If shared utilities
+.cstl/scripts/my-script.py             # Create: Script
+.cstl/scripts/common/*.py              # Create/Modify: If shared utilities
 .trellis-local/SKILL.md                   # Update: Document the change
 ```
 
@@ -199,8 +199,8 @@ post_create:
 **Files to modify**:
 
 ```
-.trellis/scripts/task.py                  # Modify: init-context logic
-.trellis/tasks/{template}/*.jsonl         # Create: New JSONL templates
+.cstl/scripts/task.py                  # Modify: init-context logic
+.cstl/tasks/{template}/*.jsonl         # Create: New JSONL templates
 .trellis-local/SKILL.md                   # Update: Document the change
 ```
 

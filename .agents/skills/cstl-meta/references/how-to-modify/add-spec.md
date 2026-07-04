@@ -10,8 +10,8 @@ Add a new spec category like `mobile/`.
 
 | File | Action | Required |
 |------|--------|----------|
-| `.trellis/spec/mobile/index.md` | Create | Yes |
-| `.trellis/spec/mobile/*.md` | Create | Yes |
+| `.cstl/spec/mobile/index.md` | Create | Yes |
+| `.cstl/spec/mobile/*.md` | Create | Yes |
 | Task JSONL templates | Update | Yes |
 | `trellis-local/SKILL.md` | Update | Yes |
 
@@ -20,14 +20,14 @@ Add a new spec category like `mobile/`.
 ## Step 1: Create Category Directory
 
 ```bash
-mkdir -p .trellis/spec/mobile
+mkdir -p .cstl/spec/mobile
 ```
 
 ---
 
 ## Step 2: Create Index File
 
-Create `.trellis/spec/mobile/index.md`:
+Create `.cstl/spec/mobile/index.md`:
 
 ```markdown
 # Mobile Specifications
@@ -110,7 +110,7 @@ def init_mobile_context(task_dir):
     jsonl_path = os.path.join(task_dir, "implement.jsonl")
     with open(jsonl_path, "a") as f:
         f.write(json.dumps({
-            "file": ".trellis/spec/mobile/index.md",
+            "file": ".cstl/spec/mobile/index.md",
             "reason": "Mobile guidelines"
         }) + "\n")
 ```
@@ -120,8 +120,8 @@ def init_mobile_context(task_dir):
 Edit existing JSONL files:
 
 ```jsonl
-{"file": ".trellis/spec/mobile/index.md", "reason": "Mobile guidelines"}
-{"file": ".trellis/spec/mobile/architecture.md", "reason": "Architecture patterns"}
+{"file": ".cstl/spec/mobile/index.md", "reason": "Mobile guidelines"}
+{"file": ".cstl/spec/mobile/architecture.md", "reason": "Architecture patterns"}
 ```
 
 ---
@@ -136,7 +136,7 @@ Update `.claude/skills/trellis-local/SKILL.md`:
 ### Added Categories
 
 #### mobile/
-- **Path**: `.trellis/spec/mobile/`
+- **Path**: `.cstl/spec/mobile/`
 - **Purpose**: Mobile development guidelines
 - **Added**: 2026-01-31
 - **Files**:

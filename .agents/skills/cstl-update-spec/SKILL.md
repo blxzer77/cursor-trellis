@@ -1,6 +1,6 @@
-﻿---
+---
 name: cstl-update-spec
-description: "Captures executable contracts and coding conventions into .trellis/spec/ documents. Use when learning something valuable from debugging, implementing, or discussion that should be preserved for future sessions."
+description: "Captures executable contracts and coding conventions into .cstl/spec/ documents. Use when learning something valuable from debugging, implementing, or discussion that should be preserved for future sessions."
 ---
 
 # Update Code-Spec - Capture Executable Contracts
@@ -8,6 +8,19 @@ description: "Captures executable contracts and coding conventions into .trellis
 When you learn something valuable (from debugging, implementing, or discussion), use this to update the relevant code-spec documents.
 
 **Timing**: After completing a task, fixing a bug, or discovering a new pattern
+
+---
+
+## Semi-automatic flow (required for durable learning)
+
+1. **Detect** — did this task produce reusable code-spec or guide-worthy learning?
+2. **Proposal** — write `{TASK}/research/learning-proposal.md` (target spec paths, draft bullets; **do not** edit `.cstl/spec/` yet).
+3. **Confirm** — user or task owner explicitly approves (`Learning decision: update-spec` in `verify.md`).
+4. **Write** — only then edit spec files; add `Spec update evidence: .cstl/spec/...` to `verify.md`.
+
+**Forbidden:** silent spec edits; writing spec when `Learning decision: no-update` or `unsure` without follow-up; auto-updating spec from hooks or check alone.
+
+Align with workflow Phase 3.3 (`update-spec` | `no-update` | `unsure`).
 
 ---
 
@@ -60,7 +73,7 @@ For triggered tasks, include all sections below:
 ## Spec Structure Overview
 
 ```
-.trellis/spec/
+.cstl/spec/
 ├── <layer>/           # Per-layer coding standards (e.g., backend/, frontend/, api/)
 │   ├── index.md       # Overview and links
 │   └── *.md           # Topic-specific guidelines
@@ -122,7 +135,7 @@ Before editing, read the current code-spec to:
 - Find the right section for your update
 
 ```bash
-cat .trellis/spec/<category>/<file>.md
+cat .cstl/spec/<category>/<file>.md
 ```
 
 ### Step 4: Make the Update

@@ -8,11 +8,11 @@ These systems work on **all platforms** (Claude Code, Cursor, and future platfor
 
 | System | Purpose | Files |
 |--------|---------|-------|
-| Workspace | Session tracking, journals | `.trellis/workspace/` |
-| Tasks | Work item tracking | `.trellis/tasks/` |
-| Specs | Coding guidelines | `.trellis/spec/` |
+| Workspace | Session tracking, journals | `.cstl/workspace/` |
+| Tasks | Work item tracking | `.cstl/tasks/` |
+| Specs | Coding guidelines | `.cstl/spec/` |
 | Commands | Slash command prompts | `.claude/commands/` |
-| Scripts | Automation utilities | `.trellis/scripts/` (core subset) |
+| Scripts | Automation utilities | `.cstl/scripts/` (core subset) |
 
 ---
 
@@ -27,7 +27,7 @@ All core systems are **file-based**:
 ┌─────────────────────────────────────────────────────────────┐
 │                    CORE SYSTEMS (File-Based)                 │
 │                                                              │
-│  .trellis/                                                   │
+│  .cstl/                                                   │
 │  ├── workspace/     → Journals, session history              │
 │  ├── tasks/         → Task directories, PRDs, context files  │
 │  ├── spec/          → Coding guidelines                      │
@@ -48,9 +48,9 @@ All core systems work automatically with hook integration.
 
 ### Cursor
 Read files manually at session start:
-1. Read `.trellis/workflow.md`
-2. Read relevant specs from `.trellis/spec/`
-3. Run `python3 .trellis/scripts/task.py current --source` for active work
+1. Read `.cstl/workflow.md`
+2. Read relevant specs from `.cstl/spec/`
+3. Run `python3 .cstl/scripts/task.py current --source` for active work
 4. Read JSONL files for context
 
 ### Other Platforms
@@ -62,7 +62,7 @@ Same as Cursor - manual file reading.
 
 | Document | Content |
 |----------|---------|
-| `files.md` | All files in `.trellis/` with purposes |
+| `files.md` | All files in `.cstl/` with purposes |
 | `workspace.md` | Workspace system, journals, developer identity |
 | `tasks.md` | Task system, directories, JSONL context files |
 | `specs.md` | Spec system, guidelines organization |

@@ -12,7 +12,7 @@ These scripts require:
 - `--resume` for session persistence
 
 ```
-.trellis/scripts/
+.cstl/scripts/
 ├── common/
 │   ├── worktree.py         # Worktree utilities
 │   └── registry.py         # Agent registry
@@ -34,7 +34,7 @@ These scripts require:
 Launch Plan Agent to create task configuration.
 
 ```bash
-python3 .trellis/scripts/multi_agent/plan.py \
+python3 .cstl/scripts/multi_agent/plan.py \
   --name <task-name> \
   --type <dev-type> \
   --requirement "<requirement text>"
@@ -58,7 +58,7 @@ python3 .trellis/scripts/multi_agent/plan.py \
 Start agent in a new worktree.
 
 ```bash
-python3 .trellis/scripts/multi_agent/start.py <task-dir>
+python3 .cstl/scripts/multi_agent/start.py <task-dir>
 ```
 
 **Actions:**
@@ -89,19 +89,19 @@ Monitor running sessions.
 
 ```bash
 # Overview of all sessions
-python3 .trellis/scripts/multi_agent/status.py
+python3 .cstl/scripts/multi_agent/status.py
 
 # Detailed view
-python3 .trellis/scripts/multi_agent/status.py --detail <task-name>
+python3 .cstl/scripts/multi_agent/status.py --detail <task-name>
 
 # Watch mode (auto-refresh)
-python3 .trellis/scripts/multi_agent/status.py --watch <task-name>
+python3 .cstl/scripts/multi_agent/status.py --watch <task-name>
 
 # View logs
-python3 .trellis/scripts/multi_agent/status.py --log <task-name>
+python3 .cstl/scripts/multi_agent/status.py --log <task-name>
 
 # Show registry
-python3 .trellis/scripts/multi_agent/status.py --registry
+python3 .cstl/scripts/multi_agent/status.py --registry
 ```
 
 **Output:**
@@ -122,12 +122,12 @@ Active Sessions:
 Create pull request from worktree changes.
 
 ```bash
-python3 .trellis/scripts/multi_agent/create_pr.py [--dry-run]
+python3 .cstl/scripts/multi_agent/create_pr.py [--dry-run]
 ```
 
 **Actions:**
 1. Stage changes: `git add -A`
-2. Exclude workspace: `git reset .trellis/workspace/`
+2. Exclude workspace: `git reset .cstl/workspace/`
 3. Commit with conventional format
 4. Push to remote
 5. Create Draft PR via `gh pr create --draft`
@@ -141,17 +141,17 @@ Clean up completed worktrees.
 
 ```bash
 # Specific worktree
-python3 .trellis/scripts/multi_agent/cleanup.py <branch-name>
+python3 .cstl/scripts/multi_agent/cleanup.py <branch-name>
 
 # All merged worktrees
-python3 .trellis/scripts/multi_agent/cleanup.py --merged
+python3 .cstl/scripts/multi_agent/cleanup.py --merged
 
 # All worktrees (with confirmation)
-python3 .trellis/scripts/multi_agent/cleanup.py --all
+python3 .cstl/scripts/multi_agent/cleanup.py --all
 ```
 
 **Actions:**
-1. Archive task to `.trellis/tasks/archive/YYYY-MM/`
+1. Archive task to `.cstl/tasks/archive/YYYY-MM/`
 2. Remove from registry
 3. Remove worktree: `git worktree remove <path>`
 4. Optionally delete branch
@@ -187,7 +187,7 @@ from common.registry import (
 )
 ```
 
-**Registry file:** `.trellis/workspace/<developer>/.agents/registry.json`
+**Registry file:** `.cstl/workspace/<developer>/.agents/registry.json`
 
 ```json
 {
@@ -197,7 +197,7 @@ from common.registry import (
       "worktree_path": "/abs/path/to/worktrees/feature/add-login",
       "pid": 12345,
       "started_at": "2026-01-31T10:30:00",
-      "task_dir": ".trellis/tasks/01-31-add-login-taosu"
+      "task_dir": ".cstl/tasks/01-31-add-login-taosu"
     }
   ]
 }
@@ -243,7 +243,7 @@ claude --output-format stream-json -p "..."
 
 ```bash
 # Find session info
-python3 .trellis/scripts/multi_agent/status.py --detail <task-name>
+python3 .cstl/scripts/multi_agent/status.py --detail <task-name>
 
 # Resume in worktree
 cd ../worktrees/feature/task-name

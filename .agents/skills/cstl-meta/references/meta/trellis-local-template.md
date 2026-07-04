@@ -149,7 +149,7 @@ Quick reference of what's been modified:
 
 <!-- Template for new spec category:
 #### Category Name
-- **Path**: `.trellis/spec/category-name/`
+- **Path**: `.cstl/spec/category-name/`
 - **Files**: [list of files]
 - **Purpose**: [what standards it covers]
 - **Added**: YYYY-MM-DD
@@ -161,7 +161,7 @@ Quick reference of what's been modified:
 
 <!-- Template for modified spec:
 #### spec-name.md
-- **Path**: `.trellis/spec/category/spec-name.md`
+- **Path**: `.cstl/spec/category/spec-name.md`
 - **Change**: [what was changed]
 - **Date**: YYYY-MM-DD
 - **Reason**: [why it was changed]

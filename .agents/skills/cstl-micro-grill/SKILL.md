@@ -1,4 +1,4 @@
-﻿---
+---
 name: cstl-micro-grill
 description: "Clarifies small underspecified Trellis requests with one high-value question at a time before direct execution. Use when a request is likely small, missing details would materially change the result, and creating a Trellis task would be premature."
 ---

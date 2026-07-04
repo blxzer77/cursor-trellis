@@ -144,7 +144,7 @@ def get_my_agent_context(repo_root, task_dir):
 
 ```markdown
 #### security/
-- **Path**: `.trellis/spec/security/`
+- **Path**: `.cstl/spec/security/`
 - **Purpose**: Security guidelines for the project
 - **Files**:
   - `index.md` - Category overview
@@ -155,7 +155,7 @@ def get_my_agent_context(repo_root, task_dir):
 
 **JSONL Integration**:
 ```jsonl
-{"file": ".trellis/spec/security/index.md", "reason": "Security guidelines"}
+{"file": ".cstl/spec/security/index.md", "reason": "Security guidelines"}
 ```
 ```
 
@@ -165,7 +165,7 @@ def get_my_agent_context(repo_root, task_dir):
 #### Custom Phase Order
 - **What**: Changed default task phases to include research phase
 - **Files Affected**:
-  - `.trellis/scripts/task.py` (init-context function)
+  - `.cstl/scripts/task.py` (init-context function)
   - Default task.json template
 - **Date**: 2026-01-31
 - **Reason**: All tasks in this project need research first

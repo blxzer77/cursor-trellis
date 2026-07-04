@@ -7,7 +7,7 @@ Track work items with phase-based execution.
 ## Directory Structure
 
 ```
-.trellis/tasks/
+.cstl/tasks/
 ├── {MM-DD-slug}/               # Active task directories
 │   ├── task.json               # Metadata, phases, branch
 │   ├── prd.md                  # Requirements document
@@ -137,9 +137,9 @@ List files to inject as context for each phase.
 ### Format
 
 ```jsonl
-{"file": ".trellis/spec/cli/backend/index.md", "reason": "Backend guidelines"}
+{"file": ".cstl/spec/cli/backend/index.md", "reason": "Backend guidelines"}
 {"file": "src/services/auth.ts", "reason": "Existing auth service"}
-{"file": ".trellis/tasks/01-31-add-login/prd.md", "reason": "Requirements"}
+{"file": ".cstl/tasks/01-31-add-login/prd.md", "reason": "Requirements"}
 ```
 
 ### Files
@@ -154,26 +154,26 @@ List files to inject as context for each phase.
 
 ## Session-Scoped Active Task
 
-### `.trellis/.runtime/sessions/<session-key>.json`
+### `.cstl/.runtime/sessions/<session-key>.json`
 
 Stores the active task for one AI session/window.
 
 ```json
 {
-  "current_task": ".trellis/tasks/01-31-add-login"
+  "current_task": ".cstl/tasks/01-31-add-login"
 }
 ```
 
 ### Set Active Task
 
 ```bash
-python3 .trellis/scripts/task.py start <task-dir>
+python3 .cstl/scripts/task.py start <task-dir>
 ```
 
 ### Clear Current Task
 
 ```bash
-python3 .trellis/scripts/task.py finish
+python3 .cstl/scripts/task.py finish
 ```
 
 ---
@@ -183,8 +183,8 @@ python3 .trellis/scripts/task.py finish
 ### Create Task
 
 ```bash
-python3 .trellis/scripts/task.py create "Task name" --slug task-slug
-python3 .trellis/scripts/task.py create "Child task" --slug child --parent <parent-dir>
+python3 .cstl/scripts/task.py create "Task name" --slug task-slug
+python3 .cstl/scripts/task.py create "Child task" --slug child --parent <parent-dir>
 ```
 
 Options: `--assignee <name>`, `--priority P0|P1|P2|P3`, `--description "text"`, `--parent <dir>`
@@ -192,9 +192,9 @@ Options: `--assignee <name>`, `--priority P0|P1|P2|P3`, `--description "text"`, 
 ### List Tasks
 
 ```bash
-python3 .trellis/scripts/task.py list
-python3 .trellis/scripts/task.py list --mine
-python3 .trellis/scripts/task.py list --status planning
+python3 .cstl/scripts/task.py list
+python3 .cstl/scripts/task.py list --mine
+python3 .cstl/scripts/task.py list --status planning
 ```
 
 Tasks with a `parent` are displayed indented under their parent.
@@ -203,19 +203,19 @@ Parent tasks show children progress: `(planning) [2/3 done]`.
 ### Start Task
 
 ```bash
-python3 .trellis/scripts/task.py start <task-dir>
+python3 .cstl/scripts/task.py start <task-dir>
 ```
 
 ### Finish (Clear Current Task)
 
 ```bash
-python3 .trellis/scripts/task.py finish
+python3 .cstl/scripts/task.py finish
 ```
 
 ### Initialize Context
 
 ```bash
-python3 .trellis/scripts/task.py init-context <task-dir> <dev-type>
+python3 .cstl/scripts/task.py init-context <task-dir> <dev-type>
 ```
 
 Dev types: `frontend`, `backend`, `fullstack`, `test`, `docs`
@@ -223,7 +223,7 @@ Dev types: `frontend`, `backend`, `fullstack`, `test`, `docs`
 ### Add Subtask
 
 ```bash
-python3 .trellis/scripts/task.py add-subtask <parent-dir> <child-dir>
+python3 .cstl/scripts/task.py add-subtask <parent-dir> <child-dir>
 ```
 
 Links an existing task as a child of another task. Errors if the child already has a parent.
@@ -231,7 +231,7 @@ Links an existing task as a child of another task. Errors if the child already h
 ### Remove Subtask
 
 ```bash
-python3 .trellis/scripts/task.py remove-subtask <parent-dir> <child-dir>
+python3 .cstl/scripts/task.py remove-subtask <parent-dir> <child-dir>
 ```
 
 Removes the parent-child link between two tasks.
@@ -239,7 +239,7 @@ Removes the parent-child link between two tasks.
 ### Archive Task
 
 ```bash
-python3 .trellis/scripts/task.py archive <task-dir>
+python3 .cstl/scripts/task.py archive <task-dir>
 ```
 
 When archiving a child task, the child name remains in the parent's `children` list. The list is historical so parent progress stays stable after completed children move to `archive/`.
@@ -249,14 +249,14 @@ When archiving a parent task, active children remain in place and keep their own
 ### Other Commands
 
 ```bash
-python3 .trellis/scripts/task.py set-branch <dir> <branch>
-python3 .trellis/scripts/task.py set-base-branch <dir> <branch>
-python3 .trellis/scripts/task.py set-scope <dir> <scope>
-python3 .trellis/scripts/task.py add-context <dir> <jsonl> <path> [reason]
-python3 .trellis/scripts/task.py validate <dir>
-python3 .trellis/scripts/task.py list-context <dir>
-python3 .trellis/scripts/task.py list-archive [month]
-python3 .trellis/scripts/task.py create-pr [dir] [--dry-run]
+python3 .cstl/scripts/task.py set-branch <dir> <branch>
+python3 .cstl/scripts/task.py set-base-branch <dir> <branch>
+python3 .cstl/scripts/task.py set-scope <dir> <scope>
+python3 .cstl/scripts/task.py add-context <dir> <jsonl> <path> [reason]
+python3 .cstl/scripts/task.py validate <dir>
+python3 .cstl/scripts/task.py list-context <dir>
+python3 .cstl/scripts/task.py list-archive [month]
+python3 .cstl/scripts/task.py create-pr [dir] [--dry-run]
 ```
 
 ---
@@ -266,10 +266,10 @@ python3 .trellis/scripts/task.py create-pr [dir] [--dry-run]
 Display session runtime including task information.
 
 ```bash
-python3 .trellis/scripts/get_context.py                      # Default text (full context)
-python3 .trellis/scripts/get_context.py --json                # Default JSON
-python3 .trellis/scripts/get_context.py --mode record         # Record text (my tasks focus)
-python3 .trellis/scripts/get_context.py --mode record --json  # Record JSON
+python3 .cstl/scripts/get_context.py                      # Default text (full context)
+python3 .cstl/scripts/get_context.py --json                # Default JSON
+python3 .cstl/scripts/get_context.py --mode record         # Record text (my tasks focus)
+python3 .cstl/scripts/get_context.py --mode record --json  # Record JSON
 ```
 
 `--mode` controls content scope, `--json` controls output format. Can be combined.
