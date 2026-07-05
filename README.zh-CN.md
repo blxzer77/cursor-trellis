@@ -58,18 +58,6 @@
 | **本仓库** | https://github.com/blxzer77/cursor-trellis |
 | **原版 Trellis** | [mindfold-ai/Trellis](https://github.com/mindfold-ai/Trellis) |
 
-## 快速体验（约 5 分钟）
-
-在不污染本源码树的前提下，用空目录体验 init 流程：
-
-```bash
-npm install -g @blxzer/cursor-trellis
-cd examples/minimal-agent-app
-./demo.sh          # Windows 用 demo.ps1
-```
-
-脚本执行 `cstl init --cursor -y` → `cstl validate-rules` → 列出 `.cstl/` 与 `.cursor/`。详见 [examples/minimal-agent-app/README.md](examples/minimal-agent-app/README.md)。Agent 工具层叙事（CLI / MCP / Hook / Rule）：[docs/agent-tooling-narrative.zh-CN.md](docs/agent-tooling-narrative.zh-CN.md)。
-
 ## 快速开始（Cursor）
 
 **1. 安装 CLI**（全局或项目内）：
@@ -226,7 +214,6 @@ pnpm mirror-check   # dogfood .cursor 与模板同步（贡献者）
 | [docs/skills.zh-CN.md](docs/skills.zh-CN.md) | 内部技能参考手册 |
 | [docs/subagents.zh-CN.md](docs/subagents.zh-CN.md) | 子 Agent 派发设计 |
 | [docs/agent-tooling-narrative.zh-CN.md](docs/agent-tooling-narrative.zh-CN.md) | CLI / MCP / Hook / Rule 分层叙事 |
-| [examples/minimal-agent-app/](examples/minimal-agent-app/) | 5 分钟 init 演示 |
 | [docs/spec-system.zh-CN.md](docs/spec-system.zh-CN.md) | 渐进式 spec 系统 |
 | [docs/task-system.zh-CN.md](docs/task-system.zh-CN.md) | 任务工件、门禁、Parent/Child |
 | [packages/cli/README.zh-CN.md](packages/cli/README.zh-CN.md) | CLI / npm 参考 |

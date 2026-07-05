@@ -38,18 +38,6 @@ Fresh installs use `.cstl/` directly. Projects on 0.3.0 run `cstl update --migra
 - **Cursor++ safety** — Method 2.5 patch requires explicit `--approve`; `--check-compat` pre-flight; `smoke.py` health check (no secrets)
 - **Evidence pack** — finish/check cite `retrieval-pack-latest.json` when present; research prompts include provider relevance caveats
 
-## Quick demo (~5 min)
-
-Try Trellis on an empty app directory without touching this source tree:
-
-```bash
-npm install -g @blxzer/cursor-trellis
-cd examples/minimal-agent-app
-./demo.sh          # or demo.ps1 on Windows
-```
-
-The script runs `cstl init --cursor -y` → `cstl validate-rules` → lists `.cstl/` and `.cursor/`. Details: [examples/minimal-agent-app/README.md](examples/minimal-agent-app/README.md). Agent tooling narrative (CLI / MCP / Hook / Rule): [docs/agent-tooling-narrative.zh-CN.md](docs/agent-tooling-narrative.zh-CN.md).
-
 ## Quick start (Cursor)
 
 **1. Install the CLI** (global or project-local):
@@ -226,7 +214,6 @@ Local harness layout (`D:\MyHarness`), Git remote policy, release/publish, and d
 | [docs/skills.md](docs/skills.md) | Internal skills reference |
 | [docs/subagents.md](docs/subagents.md) | Subagent dispatch design |
 | [docs/agent-tooling-narrative.zh-CN.md](docs/agent-tooling-narrative.zh-CN.md) | CLI / MCP / Hook / Rule layering (ZH) |
-| [examples/minimal-agent-app/](examples/minimal-agent-app/) | 5-minute init demo |
 | [docs/spec-system.md](docs/spec-system.md) | Progressive spec system |
 | [docs/task-system.md](docs/task-system.md) | Task artifacts, gates, Parent/Child |
 | [packages/cli/README.md](packages/cli/README.md) | CLI / npm reference |
