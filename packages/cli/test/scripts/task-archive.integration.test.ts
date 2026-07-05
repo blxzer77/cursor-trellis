@@ -156,7 +156,7 @@ describe.skipIf(!hasPython())(
 
       // task-b dirty change still in working tree.
       const status = git(tmp, "status", "--porcelain");
-      expect(status).toMatch(/M\s+\.trellis\/tasks\/task-b\/prd\.md/);
+      expect(status).toMatch(/M\s+\.cstl\/tasks\/task-b\/prd\.md/);
     });
 
     it(

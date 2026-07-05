@@ -33,10 +33,10 @@ jobs:
 
       - name: Materialize dogfood for tests
         run: |
-          mkdir -p .cursor/rules .cursor/agents .trellis/scripts
+          mkdir -p .cursor/rules .cursor/agents .cstl/scripts
           cp packages/cli/src/templates/cursor/rules/* .cursor/rules/
           cp packages/cli/src/templates/cursor/agents/* .cursor/agents/
-          cp -r packages/cli/src/templates/trellis/scripts/* .trellis/scripts/
+          cp -r packages/cli/src/templates/trellis/scripts/* .cstl/scripts/
 
       - name: Test
         run: pnpm test
