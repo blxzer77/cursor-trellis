@@ -37,6 +37,7 @@ Fresh installs use `.cstl/` directly. Projects on 0.3.0 run `cstl update --migra
 - **Retrieval compliance** — BYOK/Native split with conservative `unknown` routing; LSP overpromises softened to codegraph + Read; telemetry separates planned vs executed semantic
 - **Cursor++ safety** — Method 2.5 patch requires explicit `--approve`; `--check-compat` pre-flight; `smoke.py` health check (no secrets)
 - **Evidence pack** — finish/check cite `retrieval-pack-latest.json` when present; research prompts include provider relevance caveats
+- **Session rename (0.3.4+)** — after `task.py select` or `start-execution --approved`, the main Agent chat tab is renamed to the task **directory name** (best-effort via `cursor-app-control`; silent skip if MCP unavailable)
 
 ## Quick demo (~5 min)
 
@@ -69,6 +70,18 @@ cstl init --cursor
 **3. Open the project in Cursor** and use Agent mode. User-facing slash commands include `/cstl-continue` and `/cstl-finish-work`. Request Triage is enforced via `.cursor/rules/cstl-triage.mdc`.
 
 Optional: `cstl init --cursor --cursor2plus` materializes a **per-repo** Cursor++ BYOK bundle (not a global either/or choice). Native and BYOK can coexist across projects on one machine — see [Native and BYOK coexistence](docs/cursor.md#native-and-byok-coexistence-not-eitheror).
+
+## Keep up to date (0.3.2+)
+
+On **0.3.2 or later**, routine bumps do not need `--migrate`:
+
+```bash
+npm install -g @blxzer/cursor-trellis@latest
+cd /path/to/your-app
+cstl update
+```
+
+**0.3.4** adds main-session rename after task select / execution approval — see [Cursor integration](docs/cursor.md#session-rename-one-task-per-main-chat). Details: [CHANGELOG](packages/cli/CHANGELOG.md#034---2026-07-04).
 
 ## Upgrade from 0.3.0 (v0.3.1)
 
