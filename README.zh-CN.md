@@ -37,7 +37,6 @@
 - **检索合规** — BYOK/Native 分叉 + `unknown` 保守路由；LSP 过度承诺软化为 codegraph + Read；telemetry 区分 planned vs executed semantic
 - **Cursor++ 安全** — Method 2.5 patch 需显式 `--approve`；`--check-compat` 预检；`smoke.py` 健康检查（不读 secret）
 - **证据 pack** — finish/check 在 `retrieval-pack-latest.json` 存在时引用；research prompt 含 provider 相关性提示
-- **会话重命名（0.3.4+）** — `task.py select` 或 `start-execution --approved` 后，主 Agent 会话标签改为任务**目录名**（尽力通过 `cursor-app-control`；MCP 不可用时静默跳过）
 
 ## 常用命令
 
@@ -90,18 +89,6 @@ cstl init --cursor
 **3. 用 Cursor 打开项目**，使用 Agent 模式。用户可见斜杠命令包括 `/cstl-continue`、`/cstl-finish-work`。Request Triage 由 `.cursor/rules/cstl-triage.mdc` 强制执行。
 
 可选：`cstl init --cursor --cursor2plus` 物化**按仓库**的 Cursor++ BYOK 包（非全局二选一）。同一机器上 Native 与 BYOK 可并存 —— 见 [Native 与 BYOK 并存](docs/cursor.zh-CN.md#native-与-byok-并存非二选一)。
-
-## 保持最新（0.3.2+）
-
-已在 **0.3.2 及以上** 的项目，日常升级**不需要** `--migrate`：
-
-```bash
-npm install -g @blxzer/cursor-trellis@latest
-cd /path/to/your-app
-cstl update
-```
-
-**0.3.4** 新增：任务 select / 执行批准后自动重命名主会话 —— 见 [Cursor 集成](docs/cursor.zh-CN.md#会话重命名鼓励一任务一主会话)。详情：[CHANGELOG](packages/cli/CHANGELOG.md#034---2026-07-04)。
 
 ## 从 0.3.0 升级（v0.3.1）
 
