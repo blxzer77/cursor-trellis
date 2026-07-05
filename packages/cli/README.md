@@ -1,22 +1,66 @@
-# @blxzer/cursor-trellis
+# cursor-trellis
 
-[English](README.md) | 简体中文
+<p>
+  <a href="https://github.com/blxzer77/cursor-trellis/actions/workflows/ci.yml">
+    <img src="https://github.com/blxzer77/cursor-trellis/actions/workflows/ci.yml/badge.svg" alt="CI">
+  </a>
+  <a href="https://www.npmjs.com/package/@blxzer/cursor-trellis">
+    <img src="https://img.shields.io/npm/v/@blxzer/cursor-trellis?label=npm%20latest" alt="npm latest">
+  </a>
+  <a href="https://www.npmjs.com/package/@blxzer/smart-search">
+    <img src="https://img.shields.io/npm/v/@blxzer/smart-search?label=smart-search" alt="smart-search">
+  </a>
+</p>
 
-npm package for the Trellis CLI. Repository overview: [../../README.md](../../README.md). Cursor workflow: [../../docs/workflow.md](../../docs/workflow.md).
+English | [简体中文](README.zh-CN.md)
 
-**Why `cstl` and `.cstl/`?** The CLI is `cstl` (not `trellis`), and the runtime directory is `.cstl/` (not `.trellis/`), so cursor-trellis can coexist with upstream Trellis in the same repository. See [repository README](../../README.md#why-cstl-and-cstl).
+**Trellis** is a progressive context management system for AI coding agents. It structures agent instructions as `.cstl/` (workflow, specs, tasks, workspace) instead of a single large file, and generates platform-specific integration files (`.cursor/` for Cursor).
 
-## Install
+Based on the [Trellis framework by mindfold-ai](https://github.com/mindfold-ai/Trellis), this version is adapted for Cursor with rules, commands, agents, and hooks.
+
+## Why `cstl` and `.cstl/`?
+
+To avoid clashing with upstream [mindfold-ai/Trellis](https://github.com/mindfold-ai/Trellis) in the same repo or on the same machine:
+
+- **CLI command `cstl`** (since v0.3.0) — replaces the `trellis` / `tl` bins so you can install and run cursor-trellis alongside upstream Trellis tooling.
+- **Runtime directory `.cstl/`** (since v0.3.1) — holds workflow, spec, tasks, and scripts. Upstream Trellis keeps **`.trellis/`**; both trees can coexist in one repository without overwriting each other.
+
+Fresh installs use `.cstl/` directly. Projects on 0.3.0 run `cstl update --migrate` to rename `.trellis/` → `.cstl/` (history preserved).
+
+## What it does
+
+- Task artifacts (PRD, design, implementation plan) persist in `.cstl/tasks/`
+- Resume work across chat sessions with `/cstl-continue`
+- Load specs progressively based on files being edited
+- Route requests through structured workflow: triage → plan → gate → execute → verify
+- **Validated gates** — `cstl validate-rules` + `pnpm mirror-check` enforce dogfood/template sync; `init`/`update` throw on regression
+- **Retrieval compliance** — BYOK/Native split with conservative `unknown` routing; LSP overpromises softened to codegraph + Read; telemetry separates planned vs executed semantic
+- **Cursor++ safety** — Method 2.5 patch requires explicit `--approve`; `--check-compat` pre-flight; `smoke.py` health check (no secrets)
+- **Evidence pack** — finish/check cite `retrieval-pack-latest.json` when present; research prompts include provider relevance caveats
+
+## Quick start (Cursor)
+
+**1. Install the CLI** (global or project-local):
 
 ```bash
 npm install -g @blxzer/cursor-trellis
+cstl --version
 ```
 
-Requires **Node.js ≥ 18.17**. Hooks materialized in generated projects need **Python ≥ 3.9** on the machine running Cursor.
+**2. Initialize your application repo** (not the Trellis source tree):
+
+```bash
+cd /path/to/your-app
+cstl init --cursor
+```
+
+**3. Open the project in Cursor** and use Agent mode. User-facing slash commands include `/cstl-continue` and `/cstl-finish-work`. Request Triage is enforced via `.cursor/rules/cstl-triage.mdc`.
+
+Optional: `cstl init --cursor --cursor2plus` materializes a **per-repo** Cursor++ BYOK bundle (not a global either/or choice). Native and BYOK can coexist across projects on one machine — see [Native and BYOK coexistence](docs/cursor.md#native-and-byok-coexistence-not-eitheror).
 
 ## Upgrade from 0.3.0 (v0.3.1)
 
-v0.3.1 moves the cursor-trellis **runtime directory** from `.trellis/` to **`.cstl/`**.
+v0.3.1 moves the cursor-trellis **runtime directory** from `.trellis/` to **`.cstl/`** so upstream [mindfold-ai/Trellis](https://github.com/mindfold-ai/Trellis) can keep `.trellis/` in the same repository. AGENTS.md managed blocks use `<!-- CSTL:START -->` markers.
 
 ```bash
 npm install -g @blxzer/cursor-trellis@latest
@@ -24,7 +68,7 @@ cd /path/to/your-app
 cstl update --migrate
 ```
 
-`--migrate` is **required** — history is preserved via directory rename. Script paths become `python ./.cstl/scripts/...`.
+`--migrate` is **required** — history is preserved via directory rename, not delete-recreate. Script paths become `python ./.cstl/scripts/...`.
 
 ## Upgrade from 0.2.x (v0.3.0)
 
@@ -49,127 +93,59 @@ After 0.3.0, routine CLI bumps can use `cstl upgrade`. The old `trellis upgrade`
 
 **Cursor++ BYOK** (optional, `.cstl/local/cursor2plus/` only): update `trellis-task-models.json5` keys from `trellis-research/implement/check` to `cstl-research/implement/check`, then re-run `patch_wpelc8.py --apply`. Use `/cstl-cursor2plus-setup` in Agent mode.
 
-Details: [CHANGELOG](./CHANGELOG.md#030---2026-07-01).
+Details: [CHANGELOG](packages/cli/CHANGELOG.md#030---2026-07-01).
 
-## Executables
+## After init: what appears
 
-| Bin | Purpose |
-| --- | --- |
-| `cstl` | Initialize, update, and manage Trellis in a project |
-| `smart-search` | Bundled web-research CLI (see [smart-search](#smart-search-integration)) |
-
-```bash
-cstl --version
-smart-search --version
+```text
+your-app/
+  .cstl/          workflow, spec, tasks, workspace, scripts
+  AGENTS.md          Trellis-managed agent entry
+  .cursor/           commands, rules, agents, hooks (Cursor)
 ```
 
-## Command summary
+Details: [Cursor integration](docs/cursor.md).
 
-| Command | Purpose |
+## Core concepts
+
+| Path | Role |
 | --- | --- |
-| `init` | Create `.cstl/` and platform directories |
-| `update` | Sync templates to the installed CLI version |
-| `uninstall` | Remove Trellis-managed files from the project |
-| `upgrade` | Upgrade the global CLI npm package |
-| `rollout` | Batch `update` across multiple project paths |
-| `workflow` | Workflow template tooling (advanced) |
+| `.cstl/workflow.md` | Lifecycle: triage, plan, execute, finish, learning |
+| `.cstl/spec/` | Layer/package coding guidelines |
+| `.cstl/tasks/` | PRD, design, implement, verify artifacts |
+| `.cstl/workspace/` | Developer journals and session traces |
 
-**Channel** commands serve advanced multi-agent workflows and are outside Cursor-first public docs. Full list: `cstl --help`.
+## Workflow (summary)
 
-The sections below detail **`init`**, **`update`**, and **`uninstall`**.
+1. **Triage** every request (`No Task` → `Parent Task`).
+2. **Plan** with task artifacts for durable work (especially Full Tasks).
+3. **Gate**: `task.py validate` + `start-execution --check`.
+4. **Approve** execution explicitly, then `start-execution --approved`.
+5. **Verify** and finish (`/cstl-finish-work`).
 
----
+Walkthrough: [workflow.md](docs/workflow.md) — Triage decision tree, Task Ladder, upgrade/downgrade rules, Parent/Child task trees, Phase 1–3 lifecycle.
 
-## `cstl init`
+## Cursor support
 
-Run at the **target project root**:
+- **Rules** — reliable always-on policy (including Triage and retrieval routing).
+- **Commands** — small `/` palette (`commands-only` policy; skills not copied to `.cursor/skills/` by default).
+- **Agents** — `cstl-research`, `cstl-implement`, `cstl-check`.
+- **Hooks** — Python scripts for session, shell, and subagent context.
 
-```bash
-cstl init --cursor
-```
+Deep dive: [docs/cursor.md](docs/cursor.md) — Native vs Cursor++ BYOK environments, subagent dispatch Methods 1–4, environment detection. Retrieval layer design: [docs/retrieval.md](docs/retrieval.md).
 
-### Platform flags
+## When to use
 
-| Flag | Platform |
-| --- | --- |
-| `--cursor` | Cursor (`.cursor/`) — default documented path |
-| `--cursor2plus` | Cursor++ BYOK local bundle (requires `--cursor`) |
+- Multi-file refactoring that needs architecture consistency
+- Long-running feature development spanning multiple sessions
+- Projects with custom coding standards agents must follow
+- Tasks requiring research → design → implement → verify workflow
 
-This fork's `init` and public docs are **Cursor-only**: [../../docs/cursor.md](../../docs/cursor.md).
-
-### Common flags
-
-| Flag | Description |
-| --- | --- |
-| `-y, --yes` | Non-interactive defaults |
-| `-f, --force` | Overwrite existing managed files |
-| `-s, --skip-existing` | Skip files that already exist |
-| `--cursor2plus` | Materialize Cursor++ BYOK bundle (requires `--cursor`) |
-| `-u, --user <name>` | Developer identity |
-| `--skip-readiness` | Skip smart-search / capability readiness |
-| `--capability <id>` | Enable optional capability (repeatable; `all` = all optional) |
-| `--workflow <id>` | `.cstl/workflow.md` workflow template |
-| `-t, --template <name>` | Remote spec template |
-| `-r, --registry <source>` | Custom template registry |
-| `--monorepo` / `--no-monorepo` | Monorepo detection override |
-
-### Generated layout
-
-- `.cstl/` — workflow, spec, tasks, workspace, scripts, template hashes
-- `AGENTS.md` — managed instruction block
-- Platform directory — under Cursor: `.cursor/commands`, `rules`, `agents`, `hooks`, `hooks.json`, `worktrees.json`
-
----
-
-## `cstl update`
-
-At a project root that already has `.cstl/`:
-
-```bash
-cstl update
-cstl update --dry-run
-```
-
-### Flags
-
-| Flag | Description |
-| --- | --- |
-| `--dry-run` | Preview only; no writes |
-| `-f, --force` | Overwrite all changed managed files |
-| `-s, --skip-all` | Skip all changed files |
-| `-n, --create-new` | Write `.new` copies for changed files |
-| `--migrate` | Apply pending path migrations (rename/delete) |
-| `--allow-downgrade` | Allow template version below recorded version |
-| `--skip-readiness` | Skip readiness re-check |
-| `--json` | Single-line JSON rollout evidence |
-| `--skip-post-update-smoke` | Skip post-apply Python smoke script |
-
-Typical flow: upgrade global CLI → enter project → `cstl update` (first jump from 0.2.x to 0.3.0 requires `--migrate`) → review diff if you customized workflow or rules.
-
----
-
-## `cstl uninstall`
-
-```bash
-cstl uninstall
-cstl uninstall --dry-run
-cstl uninstall -y
-```
-
-### Flags
-
-| Flag | Description |
-| --- | --- |
-| `-y, --yes` | Skip confirmation |
-| `--dry-run` | List files that would be deleted/scrubbed only |
-
-Removes managed platform files and `.cstl/` via hash manifest and structured scrubbers. **Back up** custom workflow or rules before uninstalling.
-
----
+Not needed for quick one-file edits or exploratory coding.
 
 ## smart-search integration
 
-Trellis integrates with [smart-search](https://github.com/blxzer77/smart-search), a CLI for agents to retrieve current information from the web. smart-search is installed automatically as a dependency when you install cursor-trellis.
+Trellis integrates with [smart-search](https://github.com/blxzer77/smart-search), a CLI tool for agents to retrieve current information from the web. smart-search is automatically installed as a dependency when you install cursor-trellis.
 
 **Installation:**
 
@@ -182,32 +158,71 @@ smart-search --version
 ```
 
 **Links:**
-
 - npm package: https://www.npmjs.com/package/@blxzer/smart-search
 - GitHub repository: https://github.com/blxzer77/smart-search
 
 The workflow routes external fact queries to smart-search when available. See the repository for configuration and usage details.
 
----
+## Common commands
 
-## Maintainer scripts (this package)
-
-For **contributors editing this repository** — end users do not need these:
-
-| Script | Purpose |
+| Command | Purpose |
 | --- | --- |
-| `pnpm build` | `tsc` + copy templates |
-| `pnpm test` | Vitest |
-| `pnpm mirror-check` | Dogfood `.cursor` / `.agents` vs templates |
-| `pnpm run sync:smart-search` | Refresh vendor |
+| `cstl init --cursor` | Create `.cstl/` + `.cursor/` in the current project |
+| `cstl update` | Refresh templates from the installed CLI version |
+| `cstl uninstall` | Remove Trellis-managed files from the project |
 
-Release and npm publish procedures are **not** in the public README; see internal maintainer docs.
+Full CLI reference: [packages/cli/README.md](packages/cli/README.md).
 
----
+## Package information
 
-## Further reading
+| | |
+| --- | --- |
+| **npm CLI** | `@blxzer/cursor-trellis` (`cstl`) |
+| **Core SDK** | `@blxzer/cursor-trellis-core` |
+| **smart-search** | `@blxzer/smart-search` (auto-installed dependency) |
+| **Repository** | https://github.com/blxzer77/cursor-trellis |
+| **Original Trellis** | [mindfold-ai/Trellis](https://github.com/mindfold-ai/Trellis) |
 
-- [Repository README](../../README.md)
-- [Cursor integration](../../docs/cursor.md)
-- [Architecture overview](../../docs/architecture.md)
-- [CHANGELOG](./CHANGELOG.md)
+## Development and verification
+
+Contributors working on **this** repository:
+
+```bash
+pnpm install
+pnpm build
+pnpm test
+pnpm mirror-check   # dogfood .cursor vs templates (contributors)
+```
+
+CI runs the same pipeline on push/PR (see badge above).
+
+Package-level detail: [packages/cli/README.md](packages/cli/README.md). Agent-oriented codebase guide: [AGENTS.md](AGENTS.md).
+
+## Maintainer note
+
+Local harness layout (`D:\MyHarness`), Git remote policy, release/publish, and deep implementation notes are **internal** — see the internal maintainer handbook (not in the public repo; gitignored). Public docs intentionally omit npm publish and private remote procedures.
+
+## Read more
+
+| Doc | Topic |
+| --- | --- |
+| [docs/workflow.md](docs/workflow.md) | Task lifecycle in Cursor |
+| [docs/cursor.md](docs/cursor.md) | Generated Cursor files |
+| [docs/cursor-platform-limitations-and-trellis-adaptation.md](docs/cursor-platform-limitations-and-trellis-adaptation.md) | Cursor platform limits & trellis adaptation (users/devs) |
+| [docs/retrieval.md](docs/retrieval.md) | Retrieval layer design |
+| [docs/architecture.md](docs/architecture.md) | High-level structure + smart-search |
+| [docs/skills.md](docs/skills.md) | Internal skills reference |
+| [docs/subagents.md](docs/subagents.md) | Subagent dispatch design |
+| [docs/agent-tooling-narrative.zh-CN.md](docs/agent-tooling-narrative.zh-CN.md) | CLI / MCP / Hook / Rule layering (ZH) |
+| [docs/spec-system.md](docs/spec-system.md) | Progressive spec system |
+| [docs/task-system.md](docs/task-system.md) | Task artifacts, gates, Parent/Child |
+| [packages/cli/README.md](packages/cli/README.md) | CLI / npm reference |
+| [CHANGELOG](packages/cli/CHANGELOG.md) | Package history |
+
+## Community
+
+[LINUX DO](https://linux.do)
+
+## License
+
+AGPL-3.0-only — see package metadata in `packages/cli/package.json`.
