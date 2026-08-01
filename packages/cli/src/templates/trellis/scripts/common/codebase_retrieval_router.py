@@ -75,6 +75,16 @@ POLICY_PATTERNS = [
     re.compile(r"\bresponsibilit(y|ies)\b", re.I),
     re.compile(r"不能"),
     re.compile(r"规则"),
+    # Workflow / task-ladder docs (AGENTS.md, workflow.md) — not code-search first
+    re.compile(r"\bFull\s+Task\b", re.I),
+    re.compile(r"\bLite\s+Task\b", re.I),
+    re.compile(r"\bMicro-Grill\b", re.I),
+    re.compile(r"\bParent\s+Task\b", re.I),
+    re.compile(r"\bChild\s+Task\b", re.I),
+    re.compile(r"\bTriage\b"),
+    re.compile(r"\btask\s+ladder\b", re.I),
+    re.compile(r"任务阶梯"),
+    re.compile(r"工作流"),
 ]
 
 CONCEPTUAL_PATTERNS = [
@@ -152,6 +162,10 @@ EXACT_PATTERNS = [
     re.compile(r"`[^`]+`"),
     re.compile(r"\b[\w.-]+\.(ts|tsx|js|jsx|py|rs|go|swift|kt|md|json|yaml|yml)\b", re.I),
     re.compile(r"\b(?:src|packages|extensions)/[\w./-]+", re.I),
+    # Meta / router-implementation queries → lexical exact (not policy docs)
+    re.compile(r"检索(意图)?路由"),
+    re.compile(r"\bintent\s*rout(?:e|ing)?\b", re.I),
+    re.compile(r"codebase[_-]?retrieval[_-]?router", re.I),
 ]
 
 

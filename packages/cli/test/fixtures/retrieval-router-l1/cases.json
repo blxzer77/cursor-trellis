@@ -1,0 +1,261 @@
+{
+  "version": 1,
+  "description": "L1 golden: query → expected intents + primary route order (CI hard gate)",
+  "cases": [
+    {
+      "id": "L1-semantic-en-01",
+      "bucket": "semantic",
+      "query": "how does retry work across modules",
+      "cursorEnv": "native",
+      "expect": {
+        "intentsInclude": ["cross-cutting-discovery"],
+        "intentsExclude": ["exact-symbol-path"],
+        "primaryRouteIdsPrefix": ["platform-semantic"],
+        "maxOrder": { "platform-semantic": 2 },
+        "semanticBackend": "cursor-builtin"
+      }
+    },
+    {
+      "id": "L1-semantic-byok-01",
+      "bucket": "semantic",
+      "query": "how does retry work across modules",
+      "cursorEnv": "byok",
+      "expect": {
+        "intentsInclude": ["cross-cutting-discovery"],
+        "primaryRouteIdsPrefix": ["platform-semantic"],
+        "maxOrder": { "platform-semantic": 2 },
+        "semanticBackend": "fast-context-mcp"
+      }
+    },
+    {
+      "id": "L1-semantic-zh-01",
+      "bucket": "semantic",
+      "query": "重试机制跨模块如何工作",
+      "cursorEnv": "native",
+      "expect": {
+        "intentsInclude": ["cross-cutting-discovery"],
+        "intentsExclude": ["exact-symbol-path"],
+        "routeIdPresent": ["platform-semantic"],
+        "maxOrder": { "platform-semantic": 2 }
+      }
+    },
+    {
+      "id": "L1-semantic-policy-zh-01",
+      "bucket": "semantic",
+      "query": "storage policy 如何跨模块生效",
+      "cursorEnv": "native",
+      "expect": {
+        "intentsInclude": ["policy-document", "cross-cutting-discovery"],
+        "primaryRouteIdsPrefix": ["policy-docs-rg", "platform-semantic"],
+        "maxOrder": { "platform-semantic": 2 }
+      }
+    },
+    {
+      "id": "L1-lexical-policy-zh-01",
+      "bucket": "lexical",
+      "query": "为什么不能把 sidecar 当默认存储",
+      "cursorEnv": "native",
+      "expect": {
+        "intentsInclude": ["policy-document"],
+        "routeIdPresent": ["policy-docs-rg"]
+      }
+    },
+    {
+      "id": "L1-lexical-policy-en-01",
+      "bucket": "lexical",
+      "query": "must not import from internal packages",
+      "cursorEnv": "native",
+      "expect": {
+        "intentsInclude": ["policy-document"],
+        "routeIdPresent": ["policy-docs-rg"]
+      }
+    },
+    {
+      "id": "L1-lexical-exact-policy-01",
+      "bucket": "lexical",
+      "query": "routeCodebaseRetrieval storage policy sidecar forbidden in AGENTS.md",
+      "cursorEnv": "native",
+      "expect": {
+        "intentsInclude": ["exact-symbol-path", "policy-document"],
+        "primaryRouteIdsPrefix": ["exact-rg-primary"],
+        "routeIdPresent": ["policy-docs-rg"],
+        "fallbackSubstring": "no corroborated file/range candidates"
+      }
+    },
+    {
+      "id": "L1-lexical-env-01",
+      "bucket": "lexical",
+      "query": "OPENCLAW_E2E env var in e2e bench startup script",
+      "cursorEnv": "native",
+      "expect": {
+        "intentsInclude": ["env-config-literal"],
+        "routeIdPresent": ["env-scripts-rg"]
+      }
+    },
+    {
+      "id": "L1-lexical-policy-rule-zh-01",
+      "bucket": "lexical",
+      "query": "项目规则里对持久化有什么要求",
+      "cursorEnv": "native",
+      "expect": {
+        "intentsInclude": ["policy-document"]
+      }
+    },
+    {
+      "id": "L1-lexical-boundary-en-01",
+      "bucket": "lexical",
+      "query": "module boundary between core and plugins",
+      "cursorEnv": "native",
+      "expect": {
+        "intentsInclude": ["policy-document"]
+      }
+    },
+    {
+      "id": "L1-structural-caller-en-01",
+      "bucket": "structural",
+      "query": "who calls routeCodebaseRetrieval",
+      "cursorEnv": "native",
+      "expect": {
+        "intentsInclude": ["caller-chain", "exact-symbol-path"],
+        "primaryRouteIdsPrefix": ["caller-chain-ast"],
+        "routeIdPresent": ["caller-rg-followup"]
+      }
+    },
+    {
+      "id": "L1-structural-caller-zh-01",
+      "bucket": "structural",
+      "query": "谁调用 deliverPayload",
+      "cursorEnv": "native",
+      "expect": {
+        "intentsInclude": ["caller-chain"],
+        "primaryRouteIdsPrefix": ["caller-chain-ast"]
+      }
+    },
+    {
+      "id": "L1-structural-trap-01",
+      "bucket": "structural",
+      "query": "trap demotion packages/foo-core vs src/agents overlay",
+      "cursorEnv": "native",
+      "expect": {
+        "intentsInclude": ["trap-package-disambiguation"],
+        "primaryRouteIdsPrefix": ["trap-demote-codegraph"],
+        "routeIdPresent": ["trap-demote-rg"]
+      }
+    },
+    {
+      "id": "L1-structural-extension-01",
+      "bucket": "structural",
+      "query": "legacyConfigRules across extensions/ trees",
+      "cursorEnv": "native",
+      "expect": {
+        "intentsInclude": ["extension-shared-symbol"],
+        "primaryRouteIdsPrefix": ["extension-codegraph"],
+        "routeIdPresent": ["extension-rg"]
+      }
+    },
+    {
+      "id": "L1-structural-caller-conceptual-zh-01",
+      "bucket": "structural",
+      "query": "如何实现 caller chain 分析",
+      "cursorEnv": "native",
+      "expect": {
+        "intentsInclude": ["caller-chain"],
+        "primaryRouteIdsPrefix": ["caller-chain-ast"]
+      }
+    },
+    {
+      "id": "L1-structural-facade-en-01",
+      "bucket": "structural",
+      "query": "Which modules invoke the facade loader and list call sites?",
+      "cursorEnv": "native",
+      "expect": {
+        "intentsInclude": ["caller-chain"],
+        "routeIdPresent": ["caller-chain-ast"]
+      }
+    },
+    {
+      "id": "L1-preserve-protocol-01",
+      "bucket": "preserve",
+      "query": "packages/gateway-protocol schema contract constant",
+      "cursorEnv": "native",
+      "expect": {
+        "intentsInclude": ["protocol-platform-preserve"],
+        "primaryRouteIdsPrefix": ["exact-rg-primary"],
+        "intentsExclude": []
+      }
+    },
+    {
+      "id": "L1-preserve-no-policy-first-01",
+      "bucket": "preserve",
+      "query": "packages/gateway-protocol schema contract constant",
+      "cursorEnv": "native",
+      "expect": {
+        "intentsInclude": ["protocol-platform-preserve"],
+        "routeIdAbsent": ["policy-docs-rg"]
+      }
+    },
+    {
+      "id": "L1-confusion-workflow-full-lite-01",
+      "bucket": "confusion",
+      "query": "Full Task 和 Lite Task 的区别在哪",
+      "cursorEnv": "native",
+      "expect": {
+        "intentsInclude": ["policy-document"],
+        "routeIdPresent": ["policy-docs-rg"],
+        "intentsExclude": []
+      }
+    },
+    {
+      "id": "L1-confusion-workflow-triage-01",
+      "bucket": "confusion",
+      "query": "Triage 分类是什么意思",
+      "cursorEnv": "native",
+      "expect": {
+        "intentsInclude": ["policy-document"],
+        "routeIdPresent": ["policy-docs-rg"]
+      }
+    },
+    {
+      "id": "L1-confusion-meta-improve-zh-01",
+      "bucket": "confusion",
+      "query": "改进检索意图路由怎么做",
+      "cursorEnv": "native",
+      "expect": {
+        "intentsInclude": ["exact-symbol-path"],
+        "intentsExclude": ["policy-document"],
+        "primaryRouteIdsPrefix": ["exact-rg-primary"]
+      }
+    },
+    {
+      "id": "L1-confusion-meta-tune-zh-01",
+      "bucket": "confusion",
+      "query": "把路由改得更准一点",
+      "cursorEnv": "native",
+      "expect": {
+        "intentsExclude": ["policy-document"],
+        "primaryRouteIdsPrefix": ["exact-rg-primary"]
+      }
+    },
+    {
+      "id": "L1-confusion-microgrill-01",
+      "bucket": "confusion",
+      "query": "什么时候用 Micro-Grill 而不是 Full Task",
+      "cursorEnv": "native",
+      "expect": {
+        "intentsInclude": ["policy-document"],
+        "routeIdPresent": ["policy-docs-rg"]
+      }
+    },
+    {
+      "id": "L1-confusion-no-false-policy-caller-01",
+      "bucket": "confusion",
+      "query": "who calls deliverPayload in server-runtime",
+      "cursorEnv": "native",
+      "expect": {
+        "intentsInclude": ["caller-chain"],
+        "intentsExclude": ["policy-document"],
+        "primaryRouteIdsPrefix": ["caller-chain-ast"]
+      }
+    }
+  ]
+}
