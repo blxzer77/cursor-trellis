@@ -151,6 +151,16 @@ const POLICY_SIGNALS: readonly RegExp[] = [
   /\bresponsibilit(y|ies)\b/i,
   /不能/,
   /规则/,
+  // Workflow / task-ladder docs (AGENTS.md, workflow.md) — not code-search first
+  /\bFull\s+Task\b/i,
+  /\bLite\s+Task\b/i,
+  /\bMicro-Grill\b/i,
+  /\bParent\s+Task\b/i,
+  /\bChild\s+Task\b/i,
+  /\bTriage\b/,
+  /\btask\s+ladder\b/i,
+  /任务阶梯/,
+  /工作流/,
 ];
 
 const CONCEPTUAL_SIGNALS: readonly RegExp[] = [
@@ -228,6 +238,10 @@ const EXACT_SYMBOL_SIGNALS: readonly RegExp[] = [
   /`[^`]+`/,
   /\b[\w.-]+\.(ts|tsx|js|jsx|py|rs|go|swift|kt|md|json|yaml|yml)\b/i,
   /\b(?:src|packages|extensions)\/[\w./-]+/i,
+  // Meta / router-implementation queries → lexical exact (not policy docs)
+  /检索(意图)?路由/,
+  /\bintent\s*rout(?:e|ing)?\b/i,
+  /codebase[_-]?retrieval[_-]?router/i,
 ];
 
 function normalizeQuery(query: string): string {
