@@ -15,6 +15,7 @@ import {
   WorkflowCommandError,
 } from "../commands/workflow.js";
 // import { registerChannelCommand } from "../commands/channel/index.js";
+import { registerRpcCommand } from "../commands/rpc/index.js";
 import { runValidateRules } from "../commands/validate-rules.js";
 import { isWorkflowInitialized, workflowPath } from "../utils/workflow-dir.js";
 import { PACKAGE_NAME, VERSION } from "../constants/version.js";
@@ -362,6 +363,9 @@ program
 
 // Cursor-only product: multi-agent `channel` runtime is upstream Trellis scope; not registered.
 // registerChannelCommand(program);
+
+// Localhost RPC-FULL CORE control plane (Track B). Not a substitute for durable channel logs.
+registerRpcCommand(program);
 
 program
   .command("validate-rules")
