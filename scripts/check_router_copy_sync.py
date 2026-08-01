@@ -64,6 +64,15 @@ CLI_TEMPLATE_LAUNCHER = (
     / "scripts"
     / "route_codebase_retrieval.py"
 )
+L1_GOLDEN_JSON = (
+    TRELLIS_ROOT
+    / "packages"
+    / "cli"
+    / "test"
+    / "fixtures"
+    / "retrieval-router-l1"
+    / "cases.json"
+)
 
 
 @dataclass
@@ -152,43 +161,52 @@ def check_launcher_hash(report: SyncReport) -> None:
 # Golden route smoke fixtures (O1 / O2 / O3)
 # ---------------------------------------------------------------------------
 
-GOLDEN_FIXTURES: list[dict[str, Any]] = [
-    {
-        "label": "O1-conceptual-semantic-order",
-        "query": "how does retry work across modules",
-        "assertions": [
-            {"kind": "intent-present", "intentId": "cross-cutting-discovery"},
-            {"kind": "route-order", "routeId": "semantic-fast-context", "maxOrder": 2},
-        ],
-    },
-    {
-        "label": "O3-chinese-policy-signal",
-        "query": "为什么不能把 sidecar 当默认存储",
-        "assertions": [
-            {"kind": "intent-present", "intentId": "policy-document"},
-        ],
-    },
-    {
-        "label": "O2-exact-plus-policy-branch-fallback",
-        "query": "routeCodebaseRetrieval storage policy sidecar forbidden in AGENTS.md",
-        "assertions": [
-            {"kind": "intent-present", "intentId": "exact-symbol-path"},
-            {"kind": "intent-present", "intentId": "policy-document"},
-            {"kind": "route-present", "routeId": "policy-docs-rg"},
-            {"kind": "fallback-present", "substring": "no corroborated file/range candidates"},
-        ],
-    },
-]
+def load_l1_golden_cases() -> list[dict[str, Any]]:
+    """Load shared L1 golden cases (same file Vitest consumes)."""
+    if not L1_GOLDEN_JSON.is_file():
+        return []
+    payload = json.loads(L1_GOLDEN_JSON.read_text(encoding="utf-8"))
+    cases = payload.get("cases", [])
+    if not isinstance(cases, list):
+        return []
+    return [c for c in cases if isinstance(c, dict)]
 
 
-def run_ts_router(query: str) -> dict[str, Any] | None:
+def golden_fixtures() -> list[dict[str, Any]]:
+    """Normalize L1 JSON cases into sync-script fixture shape."""
+    fixtures: list[dict[str, Any]] = []
+    for case in load_l1_golden_cases():
+        case_id = str(case.get("id", "unknown"))
+        query = case.get("query")
+        if not isinstance(query, str) or not query.strip():
+            continue
+        expect = case.get("expect") or {}
+        if not isinstance(expect, dict):
+            expect = {}
+        fixtures.append(
+            {
+                "label": case_id,
+                "query": query,
+                "cursorEnv": case.get("cursorEnv"),
+                "expect": expect,
+            }
+        )
+    return fixtures
+
+
+def run_ts_router(
+    query: str, cursor_env: str | None = None
+) -> dict[str, Any] | None:
     """Run the TS router via the built CLI dist and return the plan envelope."""
     dist_path = TRELLIS_ROOT / "packages" / "cli" / "dist" / "utils" / "codebase-retrieval-router.js"
     if not dist_path.is_file():
         return None
+    input_obj: dict[str, Any] = {"query": query}
+    if cursor_env in ("native", "byok", "unknown"):
+        input_obj["cursorEnv"] = cursor_env
     wrapper = f"""
 import {{ routeCodebaseRetrieval }} from "./packages/cli/dist/utils/codebase-retrieval-router.js";
-const plan = routeCodebaseRetrieval({{ query: {json.dumps(query)} }});
+const plan = routeCodebaseRetrieval({json.dumps(input_obj)});
 console.log(JSON.stringify(plan));
 """
     try:
@@ -206,15 +224,22 @@ console.log(JSON.stringify(plan));
         return None
 
 
-def run_py_router(query: str) -> dict[str, Any] | None:
+def run_py_router(
+    query: str, cursor_env: str | None = None
+) -> dict[str, Any] | None:
     """Run the Python router (workspace copy) and return the plan envelope."""
     if not WORKSPACE_PY.is_file():
         return None
+    # Package import: common.* lives under .cstl/scripts/
+    scripts_root = WORKSPACE_PY.parent.parent
+    kwargs = ""
+    if cursor_env in ("native", "byok", "unknown"):
+        kwargs = f", cursor_env={json.dumps(cursor_env)}"
     script = (
         "import json, sys; "
-        f"sys.path.insert(0, r'{WORKSPACE_PY.parent}'); "
-        "from codebase_retrieval_router import route_codebase_retrieval; "
-        f"print(json.dumps(route_codebase_retrieval({json.dumps(query)}), ensure_ascii=False))"
+        f"sys.path.insert(0, r'{scripts_root}'); "
+        "from common.codebase_retrieval_router import route_codebase_retrieval; "
+        f"print(json.dumps(route_codebase_retrieval({json.dumps(query)}{kwargs}), ensure_ascii=False))"
     )
     python_cmds = ["python", "python3"] if sys.platform == "win32" else ["python3", "python"]
     for cmd in python_cmds:
@@ -235,87 +260,131 @@ def run_py_router(query: str) -> dict[str, Any] | None:
 def assert_fixture(
     envelope: dict[str, Any], fixture: dict[str, Any]
 ) -> list[str]:
-    """Check fixture assertions against one envelope; returns list of failures."""
+    """Check L1 expect block against one envelope; returns list of failures."""
     failures: list[str] = []
     label = fixture["label"]
-    for assertion in fixture["assertions"]:
-        kind = assertion["kind"]
-        if kind == "intent-present":
-            intent_ids = [i.get("id") for i in envelope.get("intents", [])]
-            if assertion["intentId"] not in intent_ids:
+    expect = fixture.get("expect") or {}
+    if not isinstance(expect, dict):
+        return [f"[{label}] expect block missing or invalid"]
+
+    intent_ids = [i.get("id") for i in envelope.get("intents", [])]
+    routes = envelope.get("routes", [])
+    route_ids = [r.get("id") for r in routes]
+
+    for intent_id in expect.get("intentsInclude") or []:
+        if intent_id not in intent_ids:
+            failures.append(
+                f"[{label}] intentsInclude: expected '{intent_id}', got {intent_ids}"
+            )
+    for intent_id in expect.get("intentsExclude") or []:
+        if intent_id in intent_ids:
+            failures.append(
+                f"[{label}] intentsExclude: unexpected '{intent_id}' in {intent_ids}"
+            )
+    for route_id in expect.get("routeIdPresent") or []:
+        if route_id not in route_ids:
+            failures.append(
+                f"[{label}] routeIdPresent: expected '{route_id}', got {route_ids}"
+            )
+    for route_id in expect.get("routeIdAbsent") or []:
+        if route_id in route_ids:
+            failures.append(
+                f"[{label}] routeIdAbsent: unexpected '{route_id}' in {route_ids}"
+            )
+    prefix = expect.get("primaryRouteIdsPrefix") or []
+    if prefix:
+        got_prefix = route_ids[: len(prefix)]
+        if got_prefix != prefix:
+            failures.append(
+                f"[{label}] primaryRouteIdsPrefix: expected {prefix}, got {got_prefix}"
+            )
+    max_order = expect.get("maxOrder") or {}
+    if isinstance(max_order, dict):
+        for route_id, max_val in max_order.items():
+            match = next((r for r in routes if r.get("id") == route_id), None)
+            if match is None:
+                failures.append(f"[{label}] maxOrder: route '{route_id}' not found")
+            elif match.get("order", 999) > max_val:
                 failures.append(
-                    f"[{label}] intent-present: expected '{assertion['intentId']}', "
-                    f"got {intent_ids}"
+                    f"[{label}] maxOrder: '{route_id}' order={match.get('order')} "
+                    f"> max={max_val}"
                 )
-        elif kind == "route-order":
-            routes = envelope.get("routes", [])
-            for r in routes:
-                if r.get("id") == assertion["routeId"]:
-                    if r.get("order", 999) > assertion["maxOrder"]:
-                        failures.append(
-                            f"[{label}] route-order: '{assertion['routeId']}' "
-                            f"order={r.get('order')} > maxOrder={assertion['maxOrder']}"
-                        )
-                    break
-            else:
-                failures.append(
-                    f"[{label}] route-order: route '{assertion['routeId']}' not found"
-                )
-        elif kind == "route-present":
-            routes = envelope.get("routes", [])
-            route_ids = [r.get("id") for r in routes]
-            if assertion["routeId"] not in route_ids:
-                failures.append(
-                    f"[{label}] route-present: expected '{assertion['routeId']}', "
-                    f"got {route_ids}"
-                )
-        elif kind == "fallback-present":
-            fallbacks = envelope.get("fallback", [])
-            texts = [f.get("when", "") for f in fallbacks]
-            if not any(assertion["substring"] in t for t in texts):
-                failures.append(
-                    f"[{label}] fallback-present: no fallback 'when' contains "
-                    f"'{assertion['substring']}'; fallbacks={texts}"
-                )
+    semantic_backend = expect.get("semanticBackend")
+    if semantic_backend:
+        semantic = next((r for r in routes if r.get("id") == "platform-semantic"), None)
+        got = semantic.get("semanticBackend") if semantic else None
+        if got != semantic_backend:
+            failures.append(
+                f"[{label}] semanticBackend: expected '{semantic_backend}', got '{got}'"
+            )
+    fallback_sub = expect.get("fallbackSubstring")
+    if fallback_sub:
+        texts = [f.get("when", "") for f in envelope.get("fallback", [])]
+        if not any(fallback_sub in t for t in texts):
+            failures.append(
+                f"[{label}] fallbackSubstring: no fallback 'when' contains "
+                f"'{fallback_sub}'; fallbacks={texts}"
+            )
     return failures
 
 
 def check_ts_golden(report: SyncReport) -> None:
-    """Check 3: TS golden route behavior smoke (O1/O2/O3 fixtures)."""
+    """Check 3: TS L1 golden route behavior."""
+    fixtures = golden_fixtures()
+    if not fixtures:
+        report.checks.append(
+            CheckResult("ts-golden-smoke", False, f"L1 golden missing: {L1_GOLDEN_JSON}")
+        )
+        return
     all_failures: list[str] = []
-    for fixture in GOLDEN_FIXTURES:
-        envelope = run_ts_router(fixture["query"])
+    for fixture in fixtures:
+        envelope = run_ts_router(fixture["query"], fixture.get("cursorEnv"))
         if envelope is None:
             all_failures.append(f"[{fixture['label']}] TS router execution failed")
             continue
         all_failures.extend(assert_fixture(envelope, fixture))
 
     passed = len(all_failures) == 0
-    detail = "all O1/O2/O3 fixtures passed" if passed else "\n".join(all_failures)
+    detail = (
+        f"all {len(fixtures)} L1 fixtures passed"
+        if passed
+        else "\n".join(all_failures)
+    )
     report.checks.append(CheckResult("ts-golden-smoke", passed, detail))
 
 
 def check_py_golden(report: SyncReport) -> None:
-    """Check 4: Python golden route behavior smoke (O1/O2/O3 fixtures)."""
+    """Check 4: Python L1 golden route behavior."""
+    fixtures = golden_fixtures()
+    if not fixtures:
+        report.checks.append(
+            CheckResult("py-golden-smoke", False, f"L1 golden missing: {L1_GOLDEN_JSON}")
+        )
+        return
     all_failures: list[str] = []
-    for fixture in GOLDEN_FIXTURES:
-        envelope = run_py_router(fixture["query"])
+    for fixture in fixtures:
+        envelope = run_py_router(fixture["query"], fixture.get("cursorEnv"))
         if envelope is None:
             all_failures.append(f"[{fixture['label']}] Python router execution failed")
             continue
         all_failures.extend(assert_fixture(envelope, fixture))
 
     passed = len(all_failures) == 0
-    detail = "all O1/O2/O3 fixtures passed" if passed else "\n".join(all_failures)
+    detail = (
+        f"all {len(fixtures)} L1 fixtures passed"
+        if passed
+        else "\n".join(all_failures)
+    )
     report.checks.append(CheckResult("py-golden-smoke", passed, detail))
 
 
 def check_ts_py_parity(report: SyncReport) -> None:
     """Check 5: TS and Python envelopes agree on intent ids for each fixture."""
+    fixtures = golden_fixtures()
     all_failures: list[str] = []
-    for fixture in GOLDEN_FIXTURES:
-        ts_env = run_ts_router(fixture["query"])
-        py_env = run_py_router(fixture["query"])
+    for fixture in fixtures:
+        ts_env = run_ts_router(fixture["query"], fixture.get("cursorEnv"))
+        py_env = run_py_router(fixture["query"], fixture.get("cursorEnv"))
         if ts_env is None or py_env is None:
             all_failures.append(
                 f"[{fixture['label']}] parity: one or both routers failed to execute"
