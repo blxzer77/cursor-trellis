@@ -1382,6 +1382,36 @@ def cmd_parent_status(args: argparse.Namespace) -> int:
     return 0
 
 
+
+def cmd_publish_pack(args: argparse.Namespace) -> int:
+    """Publish HYBRID campaign PACK (ready list + child prompts)."""
+    from .parent_orchestration import build_publish_pack
+
+    repo_root = get_repo_root()
+    parent_dir = resolve_task_dir(args.parent_dir, repo_root)
+    mode = getattr(args, "mode", "inline") or "inline"
+    if mode not in ("inline", "subagent"):
+        print(colored("Error: --mode must be inline or subagent", Colors.RED), file=sys.stderr)
+        return 1
+
+    summary, errors = build_publish_pack(
+        parent_dir,
+        stage_id=getattr(args, "stage", None),
+        mode=mode,
+        dry_run=bool(getattr(args, "dry_run", False)),
+    )
+    if errors:
+        for item in errors:
+            print(f"  - {item}", file=sys.stderr)
+        print(colored("Error: publish-pack failed", Colors.RED), file=sys.stderr)
+        return 1
+    if summary is None:
+        print(colored("Error: publish-pack produced no summary", Colors.RED), file=sys.stderr)
+        return 1
+    print(summary)
+    return 0
+
+
 def cmd_review_child(args: argparse.Namespace) -> int:
     """Review child handoff and optionally advance parent integration states."""
     from .parent_orchestration import (
