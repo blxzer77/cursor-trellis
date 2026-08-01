@@ -289,6 +289,246 @@ def build_child_prompt(
     return "\n".join(lines), errors
 
 
+
+def _children_by_id(data: dict) -> dict[str, dict]:
+    return {
+        item.get("id"): item
+        for item in data.get("children", [])
+        if isinstance(item, dict) and isinstance(item.get("id"), str)
+    }
+
+
+def _normalize_stages(data: dict) -> tuple[list[dict], list[str], bool]:
+    """Return (stages, errors, used_legacy_default)."""
+    errors: list[str] = []
+    children = _children_by_id(data)
+    raw_stages = data.get("stages") or []
+    if not isinstance(raw_stages, list):
+        return [], ["task-map stages must be a list"], False
+
+    if not raw_stages:
+        units = list(children.keys())
+        return (
+            [{"id": "default", "title": "All children (no stages declared)", "units": units}],
+            [],
+            True,
+        )
+
+    stages: list[dict] = []
+    seen_units: set[str] = set()
+    for idx, stage in enumerate(raw_stages):
+        if not isinstance(stage, dict):
+            errors.append(f"stages[{idx}] must be a mapping")
+            continue
+        stage_id = stage.get("id")
+        if not isinstance(stage_id, str) or not stage_id.strip():
+            errors.append(f"stages[{idx}] missing id")
+            continue
+        units = stage.get("units") or []
+        if not isinstance(units, list):
+            errors.append(f"stage `{stage_id}` units must be a list")
+            continue
+        norm_units: list[str] = []
+        for unit in units:
+            if not isinstance(unit, str) or not unit.strip():
+                errors.append(f"stage `{stage_id}` has invalid unit entry")
+                continue
+            if unit not in children:
+                errors.append(f"stage `{stage_id}` unit `{unit}` not in children[]")
+                continue
+            if unit in seen_units:
+                errors.append(f"unit `{unit}` appears in multiple stages")
+                continue
+            seen_units.add(unit)
+            norm_units.append(unit)
+        stages.append(
+            {
+                "id": stage_id,
+                "title": stage.get("title") if isinstance(stage.get("title"), str) else "",
+                "units": norm_units,
+            }
+        )
+    return stages, errors, False
+
+
+def _unit_readiness(
+    unit_id: str,
+    children_by_id: dict[str, dict],
+) -> tuple[str, list[str]]:
+    entry = children_by_id.get(unit_id) or {}
+    blocked = _unmet_dependencies(entry, children_by_id)
+    return ("ready" if not blocked else "blocked", blocked)
+
+
+def build_publish_pack(
+    parent_dir: Path,
+    *,
+    stage_id: str | None = None,
+    mode: str = "inline",
+    dry_run: bool = False,
+) -> tuple[str | None, list[str]]:
+    """Build campaign PACK index + per-unit prompts under child-prompts/."""
+    errors: list[str] = []
+    repo_root = get_repo_root()
+    parent_rel = _repo_rel(parent_dir, repo_root)
+
+    if not (parent_dir / "task.json").is_file():
+        return None, [f"parent task.json missing: {parent_dir}"]
+
+    data, _ = load_task_map(parent_dir)
+    if data is None:
+        return None, ["parent task-map.md missing or invalid"]
+
+    stages, stage_errors, legacy = _normalize_stages(data)
+    errors.extend(stage_errors)
+    if errors:
+        return None, errors
+
+    if stage_id:
+        stages = [s for s in stages if s.get("id") == stage_id]
+        if not stages:
+            return None, [f"unknown stage id: {stage_id}"]
+
+    children_by_id = _children_by_id(data)
+    prompts_dir = parent_dir / "child-prompts"
+    ready_rows: list[tuple[str, str, str]] = []
+    blocked_rows: list[tuple[str, str, list[str]]] = []
+
+    pack_lines = [
+        f"# Campaign PACK — `{parent_dir.name}`",
+        "",
+        f"- Parent: `{parent_rel}`",
+        f"- Generated: {_utc_now()}",
+        f"- Mode: `{mode}`",
+        "- Path rule: every worker must `task.py select <explicit-child-path>`; "
+        "do not rely on selected_task inheritance across windows.",
+        "",
+        "## Manual window path (PACK)",
+        "",
+        "1. Run `publish-pack` (this file) on the Parent.",
+        "2. For each **ready** unit: IDE **New Chat** or Agents Window → paste `child-prompts/<child>.md`.",
+        "3. In that session run `python ./.cstl/scripts/task.py select <child-path>`.",
+        "4. Parent retains `review-child` / `integrate-child`. PACK is not RUN auto-dispatch.",
+        "",
+        "## Stages",
+        "",
+    ]
+    if legacy:
+        pack_lines.append(
+            "> Warning: no `stages:` in task-map; using implicit `default` stage "
+            "with all children. Declare `stages:` for HYBRID campaign packs."
+        )
+        pack_lines.append("")
+
+    written: list[str] = []
+    for stage in stages:
+        sid = stage["id"]
+        title = stage.get("title") or ""
+        heading = f"### `{sid}`" + (f" — {title}" if title else "")
+        pack_lines.append(heading)
+        pack_lines.append("")
+        for unit in stage.get("units") or []:
+            readiness, blocked = _unit_readiness(unit, children_by_id)
+            child_dir = parent_dir.parent / unit
+            child_rel = _repo_rel(child_dir, repo_root)
+            state = (children_by_id.get(unit) or {}).get("state", "?")
+            if readiness == "ready":
+                prompt, prompt_errors = build_child_prompt(
+                    parent_dir,
+                    child_dir,
+                    include_artifacts=False,
+                    mode=mode,
+                )
+                if prompt_errors or not prompt:
+                    errors.extend(prompt_errors or [f"could not build prompt for `{unit}`"])
+                    continue
+                out_name = f"{unit}.md"
+                out_rel = f"{parent_rel}/child-prompts/{out_name}"
+                if not dry_run:
+                    prompts_dir.mkdir(parents=True, exist_ok=True)
+                    (prompts_dir / out_name).write_text(prompt + "\n", encoding="utf-8")
+                    written.append(out_rel)
+                ready_rows.append((sid, unit, out_rel))
+                pack_lines.append(
+                    f"- `{unit}` — `{state}` — **ready** — prompt: `child-prompts/{out_name}` "
+                    f"(select `{child_rel}`)"
+                )
+            else:
+                blocked_rows.append((sid, unit, blocked))
+                stub = "\n".join(
+                    [
+                        f"# BLOCKED — `{unit}`",
+                        "",
+                        f"- Parent: `{parent_rel}`",
+                        f"- Child: `{child_rel}`",
+                        f"- Stage: `{sid}`",
+                        "- Do not start implementation until dependencies reach "
+                        "`integrated` or `cancelled`.",
+                        "",
+                        "Unmet dependencies:",
+                        *[f"- {item}" for item in blocked],
+                        "",
+                    ]
+                )
+                out_name = f"{unit}.md"
+                out_rel = f"{parent_rel}/child-prompts/{out_name}"
+                if not dry_run:
+                    prompts_dir.mkdir(parents=True, exist_ok=True)
+                    (prompts_dir / out_name).write_text(stub, encoding="utf-8")
+                    written.append(out_rel)
+                pack_lines.append(
+                    f"- `{unit}` — `{state}` — **blocked** — {', '.join(blocked)}"
+                )
+        pack_lines.append("")
+
+    pack_lines.extend(["## Ready", ""])
+    if ready_rows:
+        for sid, unit, path in ready_rows:
+            pack_lines.append(f"- `{sid}` / `{unit}` → `{path}`")
+    else:
+        pack_lines.append("(none)")
+    pack_lines.extend(["", "## Blocked", ""])
+    if blocked_rows:
+        for sid, unit, deps in blocked_rows:
+            pack_lines.append(f"- `{sid}` / `{unit}` — {', '.join(deps)}")
+    else:
+        pack_lines.append("(none)")
+    pack_lines.append("")
+
+    pack_body = "\n".join(pack_lines)
+    pack_rel = f"{parent_rel}/child-prompts/PACK.md"
+    if not dry_run:
+        prompts_dir.mkdir(parents=True, exist_ok=True)
+        (prompts_dir / "PACK.md").write_text(pack_body + "\n", encoding="utf-8")
+        written.append(pack_rel)
+
+    if errors:
+        return None, errors
+
+    summary = [
+        f"# publish-pack — `{parent_dir.name}`",
+        "",
+        f"- Parent: `{parent_rel}`",
+        f"- dry_run: {dry_run}",
+        f"- legacy_no_stages: {legacy}",
+        f"- ready: {len(ready_rows)}",
+        f"- blocked: {len(blocked_rows)}",
+        f"- pack_index: `{pack_rel}`",
+        "",
+    ]
+    if written:
+        summary.append("## Written")
+        summary.append("")
+        for path in written:
+            summary.append(f"- `{path}`")
+        summary.append("")
+    elif dry_run:
+        summary.append("(dry-run: no files written)")
+        summary.append("")
+    summary.append(pack_body)
+    return "\n".join(summary), []
+
+
 def build_parent_status(parent_dir: Path) -> str:
     """Render a parent task-map status summary for the reviewer."""
     repo_root = get_repo_root()
@@ -305,9 +545,36 @@ def build_parent_status(parent_dir: Path) -> str:
         f"- execution_topology: {data.get('execution_topology', '?')}",
         f"- merge_limit: {data.get('merge_limit', '?')}",
         "",
-        "## Children",
-        "",
     ]
+
+    children_by_id = _children_by_id(data)
+    stages, stage_errors, legacy = _normalize_stages(data)
+    lines.append("## Stages")
+    lines.append("")
+    if stage_errors:
+        for err in stage_errors:
+            lines.append(f"- error: {err}")
+        lines.append("")
+    elif legacy:
+        lines.append("stages: (none declared — implicit `default` for publish-pack)")
+        lines.append("")
+    else:
+        for stage in stages:
+            sid = stage["id"]
+            title = stage.get("title") or ""
+            heading = f"### `{sid}`" + (f" — {title}" if title else "")
+            lines.append(heading)
+            for unit in stage.get("units") or []:
+                entry = children_by_id.get(unit) or {}
+                state = entry.get("state", "?")
+                readiness, blocked = _unit_readiness(unit, children_by_id)
+                if readiness == "ready":
+                    lines.append(f"- `{unit}` — `{state}` — ready")
+                else:
+                    lines.append(f"- `{unit}` — `{state}` — blocked ({', '.join(blocked)})")
+            lines.append("")
+
+    lines.extend(["## Children", ""])
 
     children = data.get("children") or []
     if not children:
@@ -354,6 +621,7 @@ def build_parent_status(parent_dir: Path) -> str:
     lines.append("")
     lines.append("```bash")
     lines.append(f"python ./.cstl/scripts/task.py parent-status {parent_rel}")
+    lines.append(f"python ./.cstl/scripts/task.py publish-pack {parent_rel}")
     lines.append(f"python ./.cstl/scripts/task.py generate-child-prompt {parent_rel} <child> --mode subagent")
     lines.append(f"python ./.cstl/scripts/task.py generate-child-prompt {parent_rel} <child> --mode inline")
     lines.append(f"python ./.cstl/scripts/task.py review-child {parent_rel} <child> --check")
