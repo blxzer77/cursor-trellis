@@ -30,6 +30,7 @@ Usage:
     python task.py generate-child-prompt <parent-dir> <child-dir> [--mode inline|subagent]
     python task.py generate-dispatch-prompt <task-dir> <role> [--scope TEXT] [--finish] [--max-chars N]
     python task.py parent-status <parent-dir>
+    python task.py publish-pack <parent-dir> [--stage <id>] [--mode inline|subagent] [--dry-run]
     python task.py review-child <parent-dir> <child-dir> [--check] [--decision accept|changes|cancel|integrate-through]
 """
 
@@ -94,6 +95,7 @@ from common.task_store import (
     cmd_generate_dispatch_prompt,
     cmd_suggest_execution_strategy,
     cmd_parent_status,
+    cmd_publish_pack,
     cmd_review_child,
 )
 from common.task_context import (
@@ -573,6 +575,8 @@ Examples:
   python task.py integrate-child parent-task child-task integrated --evidence task-map.md --ref child-branch --execute-merge
   python task.py generate-child-prompt parent-task child-task --mode inline
   python task.py parent-status parent-task
+  python task.py publish-pack parent-task
+  python task.py publish-pack parent-task --stage stage-1 --dry-run
   python task.py review-child parent-task child-task --check
   python task.py review-child parent-task child-task --decision accept --ref child-branch
   python task.py list                               # List all active tasks
@@ -839,6 +843,28 @@ def main() -> int:
     p_parent_status = subparsers.add_parser("parent-status", help="Show parent task-map orchestration status")
     p_parent_status.add_argument("parent_dir", help="Parent task directory")
 
+    # publish-pack
+    p_publish_pack = subparsers.add_parser(
+        "publish-pack",
+        help="Publish HYBRID campaign PACK (stage ready list + child-prompts)",
+    )
+    p_publish_pack.add_argument("parent_dir", help="Parent task directory")
+    p_publish_pack.add_argument(
+        "--stage",
+        help="Restrict pack to one stage id from task-map stages:",
+    )
+    p_publish_pack.add_argument(
+        "--mode",
+        choices=["inline", "subagent"],
+        default="inline",
+        help="Prompt delivery mode forwarded to generate-child-prompt builder",
+    )
+    p_publish_pack.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print ready/blocked summary without writing child-prompts/",
+    )
+
     # review-child
     p_review_child = subparsers.add_parser(
         "review-child",
@@ -902,6 +928,7 @@ def main() -> int:
         "generate-dispatch-prompt": cmd_generate_dispatch_prompt,
         "suggest-execution-strategy": cmd_suggest_execution_strategy,
         "parent-status": cmd_parent_status,
+        "publish-pack": cmd_publish_pack,
         "review-child": cmd_review_child,
         "list": cmd_list,
         "list-archive": cmd_list_archive,

@@ -78,6 +78,7 @@ def ensure_task_map(
             "execution_topology": "serial",
             "merge_limit": 1,
             "children": [],
+            "stages": [],
             "integration_queue": [],
         }
         body = _default_body()
@@ -87,6 +88,7 @@ def ensure_task_map(
     data.setdefault("execution_topology", "serial")
     data.setdefault("merge_limit", 1)
     data.setdefault("children", [])
+    data.setdefault("stages", [])
     data.setdefault("integration_queue", [])
 
     existing = {
@@ -491,37 +493,49 @@ def _split_frontmatter(content: str) -> tuple[str | None, str]:
 
 
 def _parse_frontmatter(frontmatter: str) -> dict:
-    data: dict = {"children": []}
-    current_child: dict | None = None
-    in_children = False
+    """Parse the small YAML subset written by this module.
+
+    Supports top-level scalars plus list-of-maps for ``children:`` and optional
+    ``stages:`` (same indentation style).
+    """
+    data: dict = {"children": [], "stages": []}
+    current_item: dict | None = None
+    list_key: str | None = None
 
     for raw_line in frontmatter.splitlines():
         if not raw_line.strip():
             continue
 
         if raw_line.startswith("children:"):
-            in_children = True
+            list_key = "children"
             data["children"] = []
-            current_child = None
+            current_item = None
             continue
 
-        if in_children and raw_line.startswith("  - "):
-            current_child = {}
-            data["children"].append(current_child)
+        if raw_line.startswith("stages:"):
+            list_key = "stages"
+            data["stages"] = []
+            current_item = None
+            continue
+
+        if list_key and raw_line.startswith("  - "):
+            current_item = {}
+            data[list_key].append(current_item)
             item = raw_line[4:].strip()
             if ":" in item:
                 key, value = item.split(":", 1)
-                current_child[key.strip()] = _parse_value(value.strip())
+                current_item[key.strip()] = _parse_value(value.strip())
             continue
 
-        if in_children and raw_line.startswith("    ") and current_child is not None:
+        if list_key and raw_line.startswith("    ") and current_item is not None:
             item = raw_line.strip()
             if ":" in item:
                 key, value = item.split(":", 1)
-                current_child[key.strip()] = _parse_value(value.strip())
+                current_item[key.strip()] = _parse_value(value.strip())
             continue
 
-        in_children = False
+        list_key = None
+        current_item = None
         if ":" in raw_line:
             key, value = raw_line.split(":", 1)
             data[key.strip()] = _parse_value(value.strip())
@@ -575,6 +589,16 @@ def _format_frontmatter(data: dict) -> str:
                 lines.append(f"    evidence: {_format_value(child.get('evidence'))}")
             if child.get("reason"):
                 lines.append(f"    reason: {_format_value(child.get('reason'))}")
+    stages = data.get("stages") or []
+    if isinstance(stages, list) and stages:
+        lines.append("stages:")
+        for stage in stages:
+            if not isinstance(stage, dict):
+                continue
+            lines.append(f"  - id: {_format_value(stage.get('id'))}")
+            if stage.get("title"):
+                lines.append(f"    title: {_format_value(stage.get('title'))}")
+            lines.append(f"    units: {_format_value(stage.get('units', []))}")
     lines.append(f"integration_queue: {_format_value(data.get('integration_queue', []))}")
     return "\n".join(lines) + "\n"
 
