@@ -22,6 +22,11 @@
       "import": "./dist/task/index.js",
       "default": "./dist/task/index.js"
     },
+    "./rpc": {
+      "types": "./dist/rpc/index.d.ts",
+      "import": "./dist/rpc/index.js",
+      "default": "./dist/rpc/index.js"
+    },
     "./testing": {
       "types": "./dist/testing/index.d.ts",
       "import": "./dist/testing/index.js",
