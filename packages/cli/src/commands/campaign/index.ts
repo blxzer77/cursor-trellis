@@ -3,6 +3,11 @@ import path from "node:path";
 import { type Command } from "commander";
 
 import { resolveRpcUrl } from "../rpc/client.js";
+import {
+  defaultCanvasPath,
+  renderCampaignCanvasTsx,
+  writeCampaignCanvas,
+} from "./canvas-render.js";
 import { composeCampaignStatus } from "./compose.js";
 import { runCampaignMcpServer } from "./mcp-server.js";
 import {
@@ -13,6 +18,11 @@ import {
 
 export { composeCampaignStatus } from "./compose.js";
 export { capLabelForKind } from "./kind-map.js";
+export {
+  defaultCanvasPath,
+  renderCampaignCanvasTsx,
+  writeCampaignCanvas,
+} from "./canvas-render.js";
 export {
   renderCampaignStatusMarkdown,
   writeCampaignPanel,
@@ -38,7 +48,7 @@ export function registerCampaignCommand(program: Command): void {
   const campaign = program
     .command("campaign")
     .description(
-      "Campaign observation MIX (CMD + MCP). Trellis task-map + optional RPC status. Read-only; no HITL bypass. Canvas Should deferred.",
+      "Campaign observation MIX (CMD + MCP + Canvas). Trellis task-map + optional RPC status. Read-only; no HITL bypass.",
     );
 
   campaign
@@ -107,4 +117,36 @@ export function registerCampaignCommand(program: Command): void {
       }
       await runCampaignMcpServer();
     });
+
+  campaign
+    .command("canvas")
+    .description(
+      "Write a Cursor Canvas (.canvas.tsx) with embedded campaign snapshot; print absolute path",
+    )
+    .option("--parent <dir>", "Parent task directory (or TRELLIS_CAMPAIGN_PARENT)")
+    .option("--url <url>", "RPC broker base URL (or TRELLIS_RPC_URL)")
+    .option(
+      "--out <path>",
+      "Canvas output path (default: Cursor projects/.../canvases/campaign-<id>.canvas.tsx)",
+    )
+    .action(
+      async (opts: { parent?: string; url?: string; out?: string }) => {
+        try {
+          const parentDir = resolveParentDir(opts.parent);
+          const snapshot = await composeCampaignStatus({
+            parentDir,
+            rpcUrl: opts.url,
+          });
+          const out =
+            opts.out?.trim() || defaultCanvasPath(snapshot, parentDir);
+          const abs = writeCampaignCanvas(snapshot, out);
+          console.log(abs);
+        } catch (error) {
+          console.error(
+            error instanceof Error ? error.message : String(error),
+          );
+          process.exitCode = 1;
+        }
+      },
+    );
 }
