@@ -529,6 +529,77 @@ def build_publish_pack(
     return "\n".join(summary), []
 
 
+def build_parent_status_dict(parent_dir: Path) -> dict | None:
+    """Machine-readable parent orchestration snapshot (campaign UI / MCP)."""
+    repo_root = get_repo_root()
+    parent_rel = _repo_rel(parent_dir, repo_root)
+    data, _ = load_task_map(parent_dir)
+    if data is None:
+        return None
+
+    children_by_id = _children_by_id(data)
+    stages, stage_errors, legacy = _normalize_stages(data)
+
+    stage_rows: list[dict] = []
+    for stage in stages:
+        units: list[dict] = []
+        for unit in stage.get("units") or []:
+            entry = children_by_id.get(unit) or {}
+            readiness, blocked = _unit_readiness(unit, children_by_id)
+            units.append(
+                {
+                    "id": unit,
+                    "state": entry.get("state", "?"),
+                    "readiness": readiness,
+                    "blockedBy": blocked,
+                }
+            )
+        stage_rows.append(
+            {
+                "id": stage["id"],
+                "title": stage.get("title") or "",
+                "units": units,
+            }
+        )
+
+    children_rows: list[dict] = []
+    for child in data.get("children") or []:
+        if not isinstance(child, dict):
+            continue
+        cid = child.get("id")
+        if not isinstance(cid, str):
+            continue
+        child_dir = parent_dir.parent / cid
+        children_rows.append(
+            {
+                "id": cid,
+                "state": child.get("state", "?"),
+                "dependsOn": child.get("depends_on") or [],
+                "touches": child.get("touches") or [],
+                "isolation": child.get("isolation"),
+                "branch": child.get("branch"),
+                "worktreePath": child.get("worktree_path"),
+                "evidence": child.get("evidence"),
+                "ref": child.get("ref"),
+                "verifyMd": (child_dir / "verify.md").is_file(),
+                "handoffMd": (child_dir / "handoff.md").is_file(),
+            }
+        )
+
+    return {
+        "id": parent_dir.name,
+        "path": parent_rel,
+        "contractEpoch": data.get("contract_epoch"),
+        "executionTopology": data.get("execution_topology"),
+        "mergeLimit": data.get("merge_limit"),
+        "stages": stage_rows,
+        "children": children_rows,
+        "integrationQueue": data.get("integration_queue") or [],
+        "stageErrors": stage_errors,
+        "legacyStages": legacy,
+    }
+
+
 def build_parent_status(parent_dir: Path) -> str:
     """Render a parent task-map status summary for the reviewer."""
     repo_root = get_repo_root()
