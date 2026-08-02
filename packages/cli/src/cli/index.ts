@@ -15,6 +15,7 @@ import {
   WorkflowCommandError,
 } from "../commands/workflow.js";
 // import { registerChannelCommand } from "../commands/channel/index.js";
+import { registerCampaignCommand } from "../commands/campaign/index.js";
 import { registerRpcCommand } from "../commands/rpc/index.js";
 import { runValidateRules } from "../commands/validate-rules.js";
 import { isWorkflowInitialized, workflowPath } from "../utils/workflow-dir.js";
@@ -366,6 +367,9 @@ program
 
 // Localhost RPC-FULL CORE control plane (Track B). Not a substitute for durable channel logs.
 registerRpcCommand(program);
+
+// Campaign observation MIX (CMD + MCP). Read-only; Canvas Should deferred.
+registerCampaignCommand(program);
 
 program
   .command("validate-rules")

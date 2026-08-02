@@ -842,6 +842,11 @@ def main() -> int:
     # parent-status
     p_parent_status = subparsers.add_parser("parent-status", help="Show parent task-map orchestration status")
     p_parent_status.add_argument("parent_dir", help="Parent task directory")
+    p_parent_status.add_argument(
+        "--json",
+        action="store_true",
+        help="Emit machine-readable JSON snapshot (campaign UI / MCP)",
+    )
 
     # publish-pack
     p_publish_pack = subparsers.add_parser(
