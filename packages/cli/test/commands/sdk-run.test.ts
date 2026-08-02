@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { startRpcServe } from "../../src/commands/rpc/index.js";
 import { runSdkRun } from "../../src/commands/sdk/run.js";
+import { collectSdkStatus } from "../../src/commands/sdk/status.js";
 
 const handles: { close(): Promise<void> }[] = [];
 const tempDirs: string[] = [];
@@ -93,5 +94,43 @@ describe("cstl sdk run", () => {
     expect(result.rpc.ok).toBe(false);
     expect(fs.existsSync(result.evidencePath)).toBe(true);
     expect(result.errors.some((e) => e.startsWith("rpc:"))).toBe(true);
+  });
+});
+
+describe("cstl sdk status", () => {
+  it("reports missing key without echoing secrets", async () => {
+    const prev = process.env.CURSOR_API_KEY;
+    delete process.env.CURSOR_API_KEY;
+    try {
+      const status = await collectSdkStatus(makeTaskDir());
+      expect(status.keyPresent).toBe(false);
+      expect(status.ok).toBe(false);
+      // Mentions the env var name; must not embed a secret-looking value.
+      expect(JSON.stringify(status)).toMatch(/CURSOR_API_KEY/);
+      expect(JSON.stringify(status)).not.toMatch(/sk-[A-Za-z0-9]{10,}/);
+    } finally {
+      if (prev === undefined) {
+        delete process.env.CURSOR_API_KEY;
+      } else {
+        process.env.CURSOR_API_KEY = prev;
+      }
+    }
+  });
+
+  it("reports present key when env is set", async () => {
+    const prev = process.env.CURSOR_API_KEY;
+    process.env.CURSOR_API_KEY = "unit-test-key-value";
+    try {
+      const status = await collectSdkStatus(makeTaskDir());
+      expect(status.keyPresent).toBe(true);
+      expect(status.ok).toBe(true);
+      expect(JSON.stringify(status)).not.toContain("unit-test-key-value");
+    } finally {
+      if (prev === undefined) {
+        delete process.env.CURSOR_API_KEY;
+      } else {
+        process.env.CURSOR_API_KEY = prev;
+      }
+    }
   });
 });
