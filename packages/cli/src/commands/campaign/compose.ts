@@ -11,7 +11,7 @@ import type {
 const DEFAULT_NOTES = [
   "Read-only observation. HITL gates remain task.py / human.",
   "capLabel is advisory; Task ≠ Agent window (CAP MATRIX).",
-  "Canvas Should is deferred for this MIX surface.",
+  "Refresh Canvas: cstl campaign canvas --parent <parent-task-dir>.",
 ];
 
 export type TrellisLoader = (
