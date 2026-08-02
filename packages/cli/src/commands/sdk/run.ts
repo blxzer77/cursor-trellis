@@ -81,7 +81,11 @@ async function runLiveAgent(
   const apiKey = process.env.CURSOR_API_KEY?.trim();
   if (!apiKey) {
     throw new Error(
-      "Live SDK RUN requires CURSOR_API_KEY (and prior user consent to use it). Use --mock or omit --live.",
+      [
+        "Live SDK RUN requires CURSOR_API_KEY (and prior user consent to use it).",
+        "Use --mock or omit --live.",
+        "Discovery: run `cstl sdk status` for setup steps (never commit the key).",
+      ].join(" "),
     );
   }
 

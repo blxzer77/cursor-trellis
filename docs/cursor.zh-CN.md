@@ -163,6 +163,25 @@ Cursor 上命令引用前缀为 `/trellis-`(见 `packages/cli/src/types/ai-tools
 - **检索**（`route_codebase_retrieval.py`）：`cursorEnv` 决定 Native 内置语义 vs BYOK `fast_context_search`。勾选 `codebase-retrieval` 的项目会在 `.cursor/mcp.json` 写入**项目级** fast-context + codegraph（BYOK 概念检索常需要）。
 - **派发**（Task 子 Agent）：Method 2.5 patch 在**机器级** Cursor++ `extension.js`；json5 映射全局，可用 per-repo 覆盖。Method 4 临时 frontmatter **仅 Native**。
 
+### 可选能力：Cursor SDK + Campaign MCP
+
+init/update 还可勾选：
+
+| 能力 id | 作用 | 门禁 |
+| --- | --- | --- |
+| `cursor-sdk` | 记录 SDK RUN 启用与 readiness；使用 **CLI 自带** `@cursor/sdk`（不向业务项目加 npm 依赖） | 需要当前进程有 `CURSOR_API_KEY`。选项始终展示；无 key 时**跳过启用**并打印设置指引。 |
+| `campaign-mcp` | 把 `trellis-campaign`（`cstl campaign mcp`）**merge** 进项目 `.cursor/mcp.json` | 无需 API key。**不**把 `TRELLIS_CAMPAIGN_PARENT` 写入 mcp.json——请自行设 env / `--parent` / 工具参数。 |
+
+MCP 写入为 **merge**：Trellis 托管的 server 名按当前选择 upsert/删除；用户自有 server 保留。
+
+发现入口（不猜测 Cursor 登录态）：
+
+```powershell
+cstl sdk status
+```
+
+**Native / BYOK 与 SDK live：** IDE 模型路由与 `cstl sdk run --live` 所需的 `CURSOR_API_KEY` 是不同通道。切勿把 key 提交进仓库。
+
 ### Method 2.5 vs Method 4（并存速查）
 
 | 目标 | 环境 | 用法 |
