@@ -45,23 +45,26 @@ cstl campaign status --parent .cstl/tasks/<campaign-parent> --panel
 
 ## MCP path (in-session)
 
-Add to project or user `.cursor/mcp.json`:
+**Preferred:** select the `campaign-mcp` optional capability during `cstl init` / capability update. Trellis **merges** this entry into project `.cursor/mcp.json` without wiping other servers:
 
 ```json
 {
   "mcpServers": {
     "trellis-campaign": {
       "command": "cstl",
-      "args": ["campaign", "mcp"],
-      "env": {
-        "TRELLIS_CAMPAIGN_PARENT": ".cstl/tasks/08-01-trellis-intent-multisession"
-      }
+      "args": ["campaign", "mcp"]
     }
   }
 }
 ```
 
-Then call tool **`campaign_status`** (optional args: `parent`, `rpcUrl`).
+Trellis does **not** embed `TRELLIS_CAMPAIGN_PARENT` in that template (avoids committing a wrong Parent path). Set the parent via:
+
+- process env `TRELLIS_CAMPAIGN_PARENT`, or
+- `cstl campaign mcp --parent <dir>`, or
+- optional `parent` argument on tool **`campaign_status`**.
+
+You may still hand-edit `.cursor/mcp.json` to add `env` if you want a fixed default Parent for the MCP process.
 
 Equivalent CLI for the MCP process:
 

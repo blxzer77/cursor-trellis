@@ -2,6 +2,7 @@ import type { Command } from "commander";
 
 import { resolveRpcToken, resolveRpcUrl } from "../rpc/client.js";
 import { runSdkRunCommand, type SdkRunMode } from "./run.js";
+import { runSdkStatusCommand } from "./status.js";
 
 /**
  * Register `cstl sdk` — Trellis↔Cursor SDK RUN path (CAP: safe-task/SDK only).
@@ -13,6 +14,21 @@ export function registerSdkCommand(program: Command): void {
     .description(
       "Cursor SDK RUN bridge for Trellis (explicit --task; mock/live; RPC kind=sdk). Non-goals: IDE chat tab, Parent integrate, MIX UI.",
     );
+
+  sdk
+    .command("status")
+    .description(
+      "Show whether CURSOR_API_KEY is present and whether cursor-sdk can be enabled (never prints the key)",
+    )
+    .option("--cwd <dir>", "Project directory to inspect for capabilities.json")
+    .option("--json", "Print machine-readable status JSON")
+    .action(async (opts: { cwd?: string; json?: boolean }) => {
+      const code = await runSdkStatusCommand({
+        cwd: opts.cwd,
+        json: opts.json === true,
+      });
+      process.exitCode = code;
+    });
 
   sdk
     .command("run")
@@ -69,3 +85,8 @@ export function registerSdkCommand(program: Command): void {
 }
 
 export { runSdkRun, runSdkRunCommand, type SdkRunOptions, type SdkRunResult } from "./run.js";
+export {
+  collectSdkStatus,
+  runSdkStatusCommand,
+  type SdkStatusResult,
+} from "./status.js";

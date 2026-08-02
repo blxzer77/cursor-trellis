@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   applyCodexCapabilityConfig,
+  applyCursorSdkSelectionGate,
   buildProjectCapabilityTemplates,
   loadProjectCapabilities,
   loadStoredCapabilityStates,
@@ -29,7 +30,30 @@ describe("project capabilities", () => {
       "codebase-retrieval",
       "github-mcp",
       "playwright-mcp",
+      "cursor-sdk",
+      "campaign-mcp",
     ]);
+
+    expect(parseProjectCapabilities(["sdk", "trellis-campaign"])).toEqual([
+      "cursor-sdk",
+      "campaign-mcp",
+    ]);
+  });
+
+  it("applies cursor-sdk selection gate from CURSOR_API_KEY (D1)", () => {
+    const skipped = applyCursorSdkSelectionGate(
+      ["campaign-mcp", "cursor-sdk"],
+      {},
+    );
+    expect(skipped.skippedSdk).toBe(true);
+    expect(skipped.selected).toEqual(["campaign-mcp"]);
+    expect(skipped.message).toMatch(/CURSOR_API_KEY/);
+
+    const enabled = applyCursorSdkSelectionGate(["cursor-sdk"], {
+      CURSOR_API_KEY: "test-key-not-a-secret-for-unit",
+    });
+    expect(enabled.enabledSdk).toBe(true);
+    expect(enabled.selected).toEqual(["cursor-sdk"]);
   });
 
   it("rejects unknown capability ids", () => {
@@ -91,6 +115,67 @@ describe("project capabilities", () => {
     expect(JSON.stringify(parsed)).not.toMatch(
       /gh[pousr]_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9_-]{20,}|test-token/i,
     );
+  });
+
+  it("merges mcp.json preserving foreign servers and upserting trellis-campaign (M1)", () => {
+    const merged = JSON.parse(
+      renderMcpJson(["campaign-mcp"], {
+        "user-custom": {
+          command: "node",
+          args: ["custom-server.js"],
+        },
+        github: {
+          command: "npx",
+          args: ["-y", "@modelcontextprotocol/server-github"],
+        },
+      }),
+    ) as {
+      mcpServers: Record<string, { command: string; args: string[] }>;
+    };
+
+    expect(merged.mcpServers["user-custom"]).toEqual({
+      command: "node",
+      args: ["custom-server.js"],
+    });
+    expect(merged.mcpServers["trellis-campaign"]).toEqual({
+      command: "cstl",
+      args: ["campaign", "mcp"],
+    });
+    // managed github deselected → removed
+    expect(merged.mcpServers.github).toBeUndefined();
+    expect(JSON.stringify(merged)).not.toMatch(/TRELLIS_CAMPAIGN_PARENT/);
+  });
+
+  it("loads existing mcp.json when building cursor templates", () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-mcp-merge-"));
+    try {
+      fs.mkdirSync(path.join(tmpDir, ".cursor"), { recursive: true });
+      fs.writeFileSync(
+        path.join(tmpDir, ".cursor", "mcp.json"),
+        JSON.stringify({
+          mcpServers: {
+            keepme: { command: "echo", args: ["ok"] },
+          },
+        }),
+      );
+
+      const files = buildProjectCapabilityTemplates(
+        ["campaign-mcp"],
+        ["cursor"],
+        undefined,
+        { cwd: tmpDir },
+      );
+      const parsed = JSON.parse(files.get(".cursor/mcp.json")!) as {
+        mcpServers: Record<string, { command: string; args: string[] }>;
+      };
+      expect(parsed.mcpServers.keepme).toEqual({
+        command: "echo",
+        args: ["ok"],
+      });
+      expect(parsed.mcpServers["trellis-campaign"].command).toBe("cstl");
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
   });
 
   it("renders role-based retrieval adapters and fallback guidance without credentials", () => {

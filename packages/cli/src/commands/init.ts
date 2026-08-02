@@ -67,6 +67,7 @@ import {
   checkSmartSearchReadiness,
 } from "../utils/readiness.js";
 import {
+  applyCursorSdkSelectionGate,
   getProjectCapability,
   getProjectCapabilityChoices,
   loadProjectCapabilities,
@@ -1657,6 +1658,16 @@ export async function init(options: InitOptions): Promise<void> {
       },
     ]);
     selectedCapabilities = capabilityAnswers.capabilities ?? [];
+  }
+
+  const sdkGate = applyCursorSdkSelectionGate(selectedCapabilities);
+  selectedCapabilities = sdkGate.selected;
+  if (sdkGate.message) {
+    if (sdkGate.skippedSdk) {
+      console.warn(chalk.yellow(sdkGate.message));
+    } else {
+      console.log(chalk.green(sdkGate.message));
+    }
   }
 
   await checkSmartSearchReadinessForInit({
