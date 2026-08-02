@@ -16,6 +16,7 @@ import {
 } from "../commands/workflow.js";
 // import { registerChannelCommand } from "../commands/channel/index.js";
 import { registerRpcCommand } from "../commands/rpc/index.js";
+import { registerSdkCommand } from "../commands/sdk/index.js";
 import { runValidateRules } from "../commands/validate-rules.js";
 import { isWorkflowInitialized, workflowPath } from "../utils/workflow-dir.js";
 import { PACKAGE_NAME, VERSION } from "../constants/version.js";
@@ -366,6 +367,9 @@ program
 
 // Localhost RPC-FULL CORE control plane (Track B). Not a substitute for durable channel logs.
 registerRpcCommand(program);
+
+// Cursor SDK RUN bridge (Track B). Explicit --task; mock/live; never fakes IDE tabs or Parent integrate.
+registerSdkCommand(program);
 
 program
   .command("validate-rules")
