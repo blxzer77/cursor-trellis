@@ -1374,10 +1374,26 @@ def cmd_generate_child_prompt(args: argparse.Namespace) -> int:
 
 def cmd_parent_status(args: argparse.Namespace) -> int:
     """Show parent task-map orchestration status."""
-    from .parent_orchestration import build_parent_status
+    import json
+
+    from .parent_orchestration import build_parent_status, build_parent_status_dict
 
     repo_root = get_repo_root()
     parent_dir = resolve_task_dir(args.parent_dir, repo_root)
+    if getattr(args, "json", False):
+        payload = build_parent_status_dict(parent_dir)
+        if payload is None:
+            print(
+                json.dumps(
+                    {
+                        "error": "task-map.md missing or invalid",
+                        "path": str(parent_dir),
+                    }
+                )
+            )
+            return 1
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        return 0
     print(build_parent_status(parent_dir))
     return 0
 
