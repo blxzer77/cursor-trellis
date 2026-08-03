@@ -5,7 +5,10 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { startRpcServe } from "../../src/commands/rpc/index.js";
-import { runSdkRun } from "../../src/commands/sdk/run.js";
+import {
+  buildSdkRunPrompt,
+  runSdkRun,
+} from "../../src/commands/sdk/run.js";
 import { collectSdkStatus } from "../../src/commands/sdk/status.js";
 
 const handles: { close(): Promise<void> }[] = [];
@@ -29,6 +32,31 @@ function makeTaskDir(): string {
   return dir;
 }
 
+describe("buildSdkRunPrompt", () => {
+  it("embeds absolute --task path and BOUND semantics", () => {
+    const task = makeTaskDir();
+    const prompt = buildSdkRunPrompt(task);
+    expect(prompt).toContain(task);
+    expect(prompt).toContain(path.join(task, "prd.md"));
+    expect(prompt).toMatch(/Binding status: \*\*BOUND\*\*/);
+    expect(prompt).toMatch(/Bound via CLI `--task`/);
+    expect(prompt).toMatch(/Do \*\*not\*\* report unbound solely because SessionStart/);
+    expect(prompt).toMatch(/Selected task: none/);
+    // Must not instruct the worker that missing selected_task means unbound.
+    expect(prompt).not.toMatch(/hence unbound|therefore unbound|unbound because Selected task/i);
+  });
+
+  it("keeps binding preamble when custom --prompt replaces instruction body", () => {
+    const task = makeTaskDir();
+    const custom = "Custom worker body: echo only READY.";
+    const prompt = buildSdkRunPrompt(task, custom);
+    expect(prompt).toContain(task);
+    expect(prompt).toMatch(/Binding status: \*\*BOUND\*\*/);
+    expect(prompt).toContain(custom);
+    expect(prompt).not.toContain("summarize readiness in one short paragraph");
+  });
+});
+
 describe("cstl sdk run", () => {
   it("rejects missing --task directory / prd.md", async () => {
     await expect(
@@ -39,6 +67,22 @@ describe("cstl sdk run", () => {
         noRpc: true,
       }),
     ).rejects.toThrow(/not a directory|missing prd\.md/);
+  });
+
+  it("mock RUN prompt binding reaches agent (path in mock result length path via evidence)", async () => {
+    const task = makeTaskDir();
+    const result = await runSdkRun({
+      task,
+      campaign: "sdk-test",
+      mode: "mock",
+      noRpc: true,
+    });
+    expect(result.ok).toBe(true);
+    expect(result.taskPath).toBe(path.resolve(task));
+    // Mock agent reports prompt length; binding preamble makes prompt longer than DEFAULT alone.
+    const bound = buildSdkRunPrompt(task);
+    expect(result.agent.result).toContain(String(bound.length));
+    expect(bound.length).toBeGreaterThan(200);
   });
 
   it("mock RUN writes dogfood and skips RPC when --no-rpc", async () => {
