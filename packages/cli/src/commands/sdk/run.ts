@@ -46,7 +46,7 @@ export interface SdkRunResult {
 }
 
 const DEFAULT_PROMPT =
-  "Trellis SDK RUN (S1 worker): confirm task path binding; do not call integrate-child or start-execution --approved; summarize readiness in one short paragraph.";
+  "Trellis SDK RUN (S1 worker): confirm task path binding by restating the absolute taskPath; do not call integrate-child or start-execution --approved; summarize readiness in one short paragraph.";
 
 function resolveTaskPath(taskArg: string): string {
   return path.resolve(process.cwd(), taskArg);
@@ -59,9 +59,33 @@ function assertTaskDir(taskPath: string): void {
   const prd = path.join(taskPath, "prd.md");
   if (!fs.existsSync(prd)) {
     throw new Error(
-      `Task path missing prd.md (refusing unbound SDK RUN): ${prd}`,
+      `Task path missing prd.md (refusing unbound SDK RUN; pass --task <dir> that contains prd.md): ${prd}`,
     );
   }
+}
+
+/**
+ * Build the Agent prompt for SDK RUN. Always prepends an explicit --task binding
+ * block so SessionStart "Selected task: none" cannot be misread as unbound.
+ */
+export function buildSdkRunPrompt(
+  taskPath: string,
+  userPrompt?: string,
+): string {
+  const absoluteTask = path.resolve(taskPath);
+  const prdPath = path.join(absoluteTask, "prd.md");
+  const instruction = userPrompt?.trim() || DEFAULT_PROMPT;
+  return [
+    "## SDK RUN task binding (authoritative)",
+    `- Bound via CLI \`--task\` (not \`selected_task\` / SessionStart).`,
+    `- taskPath (absolute): \`${absoluteTask}\``,
+    `- prd.md (absolute): \`${prdPath}\``,
+    `- Binding status: **BOUND**.`,
+    `- Do **not** report unbound solely because SessionStart says \`Selected task: none\` — that pointer is irrelevant for SDK RUN.`,
+    "",
+    "## Instructions",
+    instruction,
+  ].join("\n");
 }
 
 async function runMockAgent(prompt: string): Promise<{
@@ -241,7 +265,7 @@ export async function runSdkRun(options: SdkRunOptions): Promise<SdkRunResult> {
   assertTaskDir(taskPath);
 
   const cwd = options.cwd ? path.resolve(options.cwd) : process.cwd();
-  const prompt = options.prompt?.trim() ?? DEFAULT_PROMPT;
+  const prompt = buildSdkRunPrompt(taskPath, options.prompt);
   const evidencePath =
     options.evidencePath ??
     path.join(taskPath, "research", "sdk-run-dogfood.md");
