@@ -5,7 +5,10 @@ import { type Command } from "commander";
 import { resolveRpcUrl } from "../rpc/client.js";
 import {
   defaultCanvasPath,
-  renderCampaignCanvasTsx,
+  defaultCanvasUsesWorkspaceFallback,
+  evaluateCanvasWritePath,
+  resolveCanvasesDir,
+  resolveHarnessForCanvas,
   writeCampaignCanvas,
 } from "./canvas-render.js";
 import { composeCampaignStatus } from "./compose.js";
@@ -20,7 +23,10 @@ export { composeCampaignStatus } from "./compose.js";
 export { capLabelForKind } from "./kind-map.js";
 export {
   defaultCanvasPath,
+  evaluateCanvasWritePath,
+  isUnderCanvasDir,
   renderCampaignCanvasTsx,
+  resolveCanvasesDir,
   writeCampaignCanvas,
 } from "./canvas-render.js";
 export {
@@ -137,10 +143,26 @@ export function registerCampaignCommand(program: Command): void {
             parentDir,
             rpcUrl: opts.url,
           });
+          const explicitOut = opts.out?.trim();
           const out =
-            opts.out?.trim() || defaultCanvasPath(snapshot, parentDir);
+            explicitOut || defaultCanvasPath(snapshot, parentDir);
+          const usedWorkspaceFallback =
+            !explicitOut && defaultCanvasUsesWorkspaceFallback(parentDir);
           const abs = writeCampaignCanvas(snapshot, out);
+          const canvasDir = resolveCanvasesDir(
+            resolveHarnessForCanvas(parentDir),
+          );
+          const evaluation = evaluateCanvasWritePath(abs, canvasDir, {
+            usedWorkspaceFallback,
+          });
+          // stdout: absolute path only (script-friendly)
           console.log(abs);
+          for (const warning of evaluation.warnings) {
+            console.warn(warning);
+          }
+          for (const hint of evaluation.hints) {
+            console.warn(`Hint: ${hint}`);
+          }
         } catch (error) {
           console.error(
             error instanceof Error ? error.message : String(error),
