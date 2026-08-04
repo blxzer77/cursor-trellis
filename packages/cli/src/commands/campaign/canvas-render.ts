@@ -134,7 +134,8 @@ const OPEN_HINT =
   "Cursor only renders .canvas.tsx under ~/.cursor/projects/<slug>/canvases/ " +
   "(or TRELLIS_CAMPAIGN_CANVAS_DIR / CURSOR_CANVAS_DIR). " +
   "Opening outside that folder in a normal editor shows source only — no graphics. " +
-  "Use --open to best-effort launch Cursor on the file; use --quiet to suppress hints.";
+  "By default the CLI also opens this file via the Cursor shell command. " +
+  "Use --no-open to skip, --quiet for scripts (no hints, no open).";
 
 /**
  * Evaluate write destination for warnings/hints after `campaign canvas` succeeds.
@@ -212,11 +213,16 @@ export function tryOpenCanvasFile(absPath: string): CanvasOpenAttempt {
     };
   }
   try {
+    // Prefer argv form without shell when bin is an absolute .exe/.cmd path.
+    const useShell =
+      process.platform === "win32" &&
+      !path.isAbsolute(bin) &&
+      !/\.(exe|cmd|bat)$/i.test(bin);
     const child = spawn(bin, [abs], {
       detached: true,
       stdio: "ignore",
       windowsHide: true,
-      shell: process.platform === "win32",
+      shell: useShell,
     });
     child.unref();
     return {
@@ -236,10 +242,18 @@ export function tryOpenCanvasFile(absPath: string): CanvasOpenAttempt {
 
 export function shouldAutoOpenCanvas(opts?: {
   open?: boolean;
+  noOpen?: boolean;
+  quiet?: boolean;
 }): boolean {
+  // Scripts: --quiet means path-only, do not pop the IDE.
+  if (opts?.quiet === true) return false;
+  if (opts?.noOpen === true) return false;
   if (opts?.open === true) return true;
   const env = process.env.TRELLIS_CAMPAIGN_CANVAS_OPEN?.trim().toLowerCase();
-  return env === "1" || env === "true" || env === "yes";
+  if (env === "0" || env === "false" || env === "no") return false;
+  if (env === "1" || env === "true" || env === "yes") return true;
+  // Default ON: writing a canvas is useless if the user never sees it.
+  return true;
 }
 
 export function resolveHarnessForCanvas(parentDir: string): string | null {

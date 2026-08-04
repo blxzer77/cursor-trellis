@@ -61,23 +61,26 @@ Overrides (portable escape hatches):
 | --- | --- |
 | `TRELLIS_CAMPAIGN_CANVAS_DIR` / `CURSOR_CANVAS_DIR` | Absolute canvases directory |
 | `TRELLIS_CURSOR_PROJECT_SLUG` | Force `~/.cursor/projects/<slug>/canvases` when auto-slug is wrong |
-| `TRELLIS_CAMPAIGN_CANVAS_OPEN=1` | Same as `--open` |
+| `TRELLIS_CAMPAIGN_CANVAS_OPEN=0` | Disable default auto-open (`1` forces open) |
 | `CURSOR_BIN` | Cursor CLI binary when not on PATH |
 
 ```powershell
+# Interactive (default): write + best-effort open in Cursor
+cstl campaign canvas --parent .cstl/tasks/<campaign-parent>
+
 # Optional: pin --out ONLY when the path stays under *your* canvases dir
 cstl campaign canvas --parent .cstl/tasks/<campaign-parent> --out "$env:USERPROFILE\.cursor\projects\<your-slug>\canvases\campaign-<id>.canvas.tsx"
 
-# Script-friendly: stdout = path only
+# Script-friendly: stdout = path only, no IDE popup
 cstl campaign canvas --parent .cstl/tasks/<campaign-parent> --quiet
 
-# Best-effort open via Cursor CLI (may still open as text; use Canvas view if needed)
-cstl campaign canvas --parent .cstl/tasks/<campaign-parent> --open
+# Write without opening (still prints hints unless --quiet)
+cstl campaign canvas --parent .cstl/tasks/<campaign-parent> --no-open
 ```
 
 **Do not** use `--out` to dump into `.cstl/workspace/...` or other repo paths unless you only want a source copy — the CLI still writes the file but prints a **warning**, and a normal editor will not render Canvas graphics.
 
-After a successful write, stdout prints the absolute path; stderr prints open hints (and a warning when the path is outside canvases) unless `--quiet`. Re-run the same command to refresh.
+After a successful write, stdout prints the absolute path. By default the CLI also tries to open the file via the Cursor shell command so you can see the Canvas UI. Use `--quiet` in scripts. Re-run the same command to refresh.
 
 **Native and BYOK:** Canvas is IDE-local React compiled from `.canvas.tsx`; it works for both Native and BYOK sessions (does not depend on the official model billing channel).
 

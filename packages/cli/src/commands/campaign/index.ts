@@ -142,11 +142,11 @@ export function registerCampaignCommand(program: Command): void {
     )
     .option(
       "-q, --quiet",
-      "Suppress stderr hints/warnings (stdout still prints the absolute path)",
+      "Suppress stderr hints/warnings and skip auto-open (stdout still prints the absolute path)",
     )
     .option(
-      "--open",
-      "Best-effort open the file via Cursor CLI (or TRELLIS_CAMPAIGN_CANVAS_OPEN=1)",
+      "--no-open",
+      "Do not launch Cursor after writing the canvas file (auto-open is on by default)",
     )
     .action(
       async (opts: {
@@ -184,13 +184,19 @@ export function registerCampaignCommand(program: Command): void {
               console.warn(`Hint: ${hint}`);
             }
           }
-          if (shouldAutoOpenCanvas({ open: opts.open === true })) {
+          // Commander: --no-open ⇒ open:false; absent ⇒ undefined (default open).
+          if (
+            shouldAutoOpenCanvas({
+              noOpen: opts.open === false,
+              quiet: opts.quiet === true,
+            })
+          ) {
             const openResult = tryOpenCanvasFile(abs);
             if (!opts.quiet) {
               if (openResult.ok) {
                 console.warn(
-                  `Hint: launched Cursor CLI on the canvas file (${openResult.detail}). ` +
-                    "If you still see source only, use Open as Canvas in the IDE.",
+                  `Hint: opened canvas file via Cursor CLI (${openResult.detail}). ` +
+                    "If the tab shows source only, use Open as Canvas / reopen from the canvases path.",
                 );
               } else {
                 console.warn(

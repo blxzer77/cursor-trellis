@@ -237,10 +237,15 @@ describe("resolveCanvasesDir / defaultCanvasPath", () => {
 });
 
 describe("shouldAutoOpenCanvas", () => {
-  it("respects --open and TRELLIS_CAMPAIGN_CANVAS_OPEN", () => {
-    expect(shouldAutoOpenCanvas({})).toBe(false);
+  it("defaults to open; quiet/noOpen/env can disable", () => {
+    expect(shouldAutoOpenCanvas({})).toBe(true);
     expect(shouldAutoOpenCanvas({ open: true })).toBe(true);
+    expect(shouldAutoOpenCanvas({ quiet: true })).toBe(false);
+    expect(shouldAutoOpenCanvas({ noOpen: true })).toBe(false);
+    process.env.TRELLIS_CAMPAIGN_CANVAS_OPEN = "0";
+    expect(shouldAutoOpenCanvas({})).toBe(false);
     process.env.TRELLIS_CAMPAIGN_CANVAS_OPEN = "1";
+    expect(shouldAutoOpenCanvas({ quiet: true })).toBe(false);
     expect(shouldAutoOpenCanvas({})).toBe(true);
   });
 });
