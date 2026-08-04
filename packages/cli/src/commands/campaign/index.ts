@@ -5,7 +5,12 @@ import { type Command } from "commander";
 import { resolveRpcUrl } from "../rpc/client.js";
 import {
   defaultCanvasPath,
-  renderCampaignCanvasTsx,
+  defaultCanvasUsesWorkspaceFallback,
+  evaluateCanvasWritePath,
+  resolveCanvasesDir,
+  resolveHarnessForCanvas,
+  shouldAutoOpenCanvas,
+  tryOpenCanvasFile,
   writeCampaignCanvas,
 } from "./canvas-render.js";
 import { composeCampaignStatus } from "./compose.js";
@@ -20,7 +25,13 @@ export { composeCampaignStatus } from "./compose.js";
 export { capLabelForKind } from "./kind-map.js";
 export {
   defaultCanvasPath,
+  evaluateCanvasWritePath,
+  isUnderCanvasDir,
+  looksLikeCursorCanvasesPath,
   renderCampaignCanvasTsx,
+  resolveCanvasesDir,
+  softMatchCanvasesDir,
+  tryOpenCanvasFile,
   writeCampaignCanvas,
 } from "./canvas-render.js";
 export {
@@ -129,18 +140,72 @@ export function registerCampaignCommand(program: Command): void {
       "--out <path>",
       "Canvas output path (default: Cursor projects/.../canvases/campaign-<id>.canvas.tsx)",
     )
+    .option(
+      "-q, --quiet",
+      "Suppress stderr hints/warnings and skip auto-open (stdout still prints the absolute path)",
+    )
+    .option(
+      "--no-open",
+      "Do not launch Cursor after writing the canvas file (auto-open is on by default)",
+    )
     .action(
-      async (opts: { parent?: string; url?: string; out?: string }) => {
+      async (opts: {
+        parent?: string;
+        url?: string;
+        out?: string;
+        quiet?: boolean;
+        open?: boolean;
+      }) => {
         try {
           const parentDir = resolveParentDir(opts.parent);
           const snapshot = await composeCampaignStatus({
             parentDir,
             rpcUrl: opts.url,
           });
+          const explicitOut = opts.out?.trim();
           const out =
-            opts.out?.trim() || defaultCanvasPath(snapshot, parentDir);
+            explicitOut || defaultCanvasPath(snapshot, parentDir);
+          const usedWorkspaceFallback =
+            !explicitOut && defaultCanvasUsesWorkspaceFallback(parentDir);
           const abs = writeCampaignCanvas(snapshot, out);
+          const canvasDir = resolveCanvasesDir(
+            resolveHarnessForCanvas(parentDir),
+          );
+          const evaluation = evaluateCanvasWritePath(abs, canvasDir, {
+            usedWorkspaceFallback,
+          });
+          // stdout: absolute path only (script-friendly)
           console.log(abs);
+          if (!opts.quiet) {
+            for (const warning of evaluation.warnings) {
+              console.warn(warning);
+            }
+            for (const hint of evaluation.hints) {
+              console.warn(`Hint: ${hint}`);
+            }
+          }
+          // Commander: --no-open ⇒ open:false; absent ⇒ undefined (default open).
+          if (
+            shouldAutoOpenCanvas({
+              noOpen: opts.open === false,
+              quiet: opts.quiet === true,
+            })
+          ) {
+            const openResult = tryOpenCanvasFile(abs);
+            if (!opts.quiet) {
+              if (openResult.ok) {
+                console.warn(
+                  `Hint: opened canvas file via Cursor CLI (${openResult.detail}). ` +
+                    "If the tab shows source only, use Open as Canvas / reopen from the canvases path.",
+                );
+              } else {
+                console.warn(
+                  `⚠ Warning: could not auto-open Canvas (${openResult.detail}). ` +
+                    "Open the printed path in Cursor Canvas view manually.",
+                );
+              }
+            }
+          }
         } catch (error) {
           console.error(
             error instanceof Error ? error.message : String(error),
