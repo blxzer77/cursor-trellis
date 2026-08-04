@@ -70,8 +70,8 @@ cstl campaign canvas --parent .cstl/tasks/<campaign-parent>
 {
   "mcpServers": {
     "trellis-campaign": {
-      "command": "cstl",
-      "args": ["campaign", "mcp"]
+      "command": "npx",
+      "args": ["-y", "@blxzer/cursor-trellis", "campaign", "mcp"]
     }
   }
 }

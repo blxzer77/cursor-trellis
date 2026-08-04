@@ -56,9 +56,12 @@ function checkForUpdates(cwd: string): void {
   }
 }
 
-// Check for updates at CLI startup when a workflow dir exists
+// Check for updates at CLI startup when a workflow dir exists.
+// Never print to stdout when running an MCP stdio server — Cursor hosts
+// treat any non-framed stdout as a handshake failure.
 const cwd = process.cwd();
-if (isWorkflowInitialized(cwd)) {
+const isStdioMcp = process.argv.slice(2).includes("mcp");
+if (isWorkflowInitialized(cwd) && !isStdioMcp) {
   checkForUpdates(cwd);
 }
 
