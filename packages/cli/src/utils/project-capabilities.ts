@@ -352,8 +352,10 @@ export const PROJECT_CAPABILITIES: readonly ProjectCapability[] = [
     mcpServers: [
       {
         name: "trellis-campaign",
-        command: "cstl",
-        args: ["campaign", "mcp"],
+        // Match other optional MCP entries: npx -y <published package> …
+        // (Bare `cstl` breaks on Windows shims and unpublished global installs.)
+        command: "npx",
+        args: ["-y", "@blxzer/cursor-trellis", "campaign", "mcp"],
       },
     ],
   },
