@@ -16,21 +16,27 @@ const cliRoot = path.resolve(
 );
 const distCli = path.join(cliRoot, "dist", "cli", "index.js");
 const harnessRoot = path.resolve(cliRoot, "../../../..");
-const parent = path.join(
-  harnessRoot,
-  ".cstl",
-  "tasks",
-  "08-01-trellis-intent-multisession",
-);
+const parentCandidates = [
+  path.join(
+    harnessRoot,
+    ".cstl",
+    "tasks",
+    "archive",
+    "2026-08",
+    "08-01-trellis-intent-multisession",
+  ),
+  path.join(harnessRoot, ".cstl", "tasks", "08-01-trellis-intent-multisession"),
+];
+const parent =
+  parentCandidates.find((p) => fs.existsSync(p)) ?? parentCandidates[0];
 
+/** Official MCP TS SDK stdio dialect: one JSON-RPC object per line. */
 function encodeMcp(message: unknown): Buffer {
-  const body = JSON.stringify(message);
-  const header = `Content-Length: ${Buffer.byteLength(body, "utf8")}\r\n\r\n`;
-  return Buffer.from(header + body, "utf8");
+  return Buffer.from(`${JSON.stringify(message)}\n`, "utf8");
 }
 
 class McpClient {
-  private buffer = Buffer.alloc(0);
+  private buffer = "";
   private waiters: {
     resolve: (value: unknown) => void;
     reject: (error: Error) => void;
@@ -38,42 +44,25 @@ class McpClient {
   }[] = [];
 
   constructor(private readonly child: ReturnType<typeof spawn>) {
-    child.stdout?.on("data", (chunk: Buffer) => {
-      this.buffer = Buffer.concat([this.buffer, chunk]);
+    child.stdout?.setEncoding("utf8");
+    child.stdout?.on("data", (chunk: string) => {
+      this.buffer += chunk;
       this.drain();
     });
   }
 
-  private splitHeader(buf: Buffer): { headerEnd: number; sepLen: number } | null {
-    const crlf = buf.indexOf("\r\n\r\n");
-    if (crlf !== -1) return { headerEnd: crlf, sepLen: 4 };
-    const lf = buf.indexOf("\n\n");
-    if (lf !== -1) return { headerEnd: lf, sepLen: 2 };
-    return null;
-  }
-
   private drain(): void {
     while (this.waiters.length > 0) {
-      const split = this.splitHeader(this.buffer);
-      if (!split) return;
-      const header = this.buffer.subarray(0, split.headerEnd).toString("utf8");
-      const match = /Content-Length:\s*(\d+)/i.exec(header);
-      if (!match) {
-        this.buffer = this.buffer.subarray(split.headerEnd + split.sepLen);
-        continue;
-      }
-      const length = Number(match[1]);
-      const bodyStart = split.headerEnd + split.sepLen;
-      if (this.buffer.length < bodyStart + length) return;
-      const body = this.buffer
-        .subarray(bodyStart, bodyStart + length)
-        .toString("utf8");
-      this.buffer = this.buffer.subarray(bodyStart + length);
+      const index = this.buffer.indexOf("\n");
+      if (index === -1) return;
+      const line = this.buffer.slice(0, index).replace(/\r$/, "").trim();
+      this.buffer = this.buffer.slice(index + 1);
+      if (!line) continue;
       const waiter = this.waiters.shift();
       if (!waiter) return;
       clearTimeout(waiter.timer);
       try {
-        waiter.resolve(JSON.parse(body));
+        waiter.resolve(JSON.parse(line));
       } catch (error) {
         waiter.reject(
           error instanceof Error ? error : new Error(String(error)),
@@ -180,5 +169,5 @@ describe("campaign mcp stdio", () => {
     } finally {
       client.close();
     }
-  }, 45_000);
+  });
 });
