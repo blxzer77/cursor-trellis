@@ -1,3 +1,4 @@
+import { execFileSync, spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -33,7 +34,9 @@ export function resolveCanvasesDir(harnessRoot: string | null): string | null {
   if (fromEnv) return path.resolve(fromEnv);
 
   if (!harnessRoot) return null;
-  const slug = cursorProjectSlug(harnessRoot);
+  const slug =
+    process.env.TRELLIS_CURSOR_PROJECT_SLUG?.trim() ||
+    cursorProjectSlug(harnessRoot);
   const candidate = path.join(
     os.homedir(),
     ".cursor",
@@ -43,23 +46,54 @@ export function resolveCanvasesDir(harnessRoot: string | null): string | null {
   );
   if (fs.existsSync(candidate)) return candidate;
 
-  // Soft match: prefer an existing project dir with matching slug (case).
-  // If ~/.cursor/projects is missing, still return the candidate so write can mkdir.
+  // Soft match unusual project folder names; if projects root is missing, still
+  // return the candidate so write can mkdir.
   const projectsRoot = path.join(os.homedir(), ".cursor", "projects");
   if (fs.existsSync(projectsRoot)) {
-    try {
-      const entries = fs.readdirSync(projectsRoot, { withFileTypes: true });
-      const exact = entries.find(
-        (e) => e.isDirectory() && e.name.toLowerCase() === slug.toLowerCase(),
-      );
-      if (exact) {
-        return path.join(projectsRoot, exact.name, "canvases");
-      }
-    } catch {
-      // ignore — fall through to candidate
-    }
+    const soft = softMatchCanvasesDir(projectsRoot, slug, harnessRoot);
+    if (soft) return soft;
   }
   return candidate;
+}
+
+/**
+ * Soft-match `~/.cursor/projects/<name>/canvases` when the exact slug folder
+ * is missing or differently cased / hyphenated.
+ * Does **not** pick longer nested names (e.g. `d-MyHarness-Trellis` for harness
+ * `D:\\MyHarness`) — those would steal writes from the canonical slug mkdir path.
+ * Skips pure-numeric agent project ids.
+ */
+export function softMatchCanvasesDir(
+  projectsRoot: string,
+  slug: string,
+  _harnessRoot: string,
+): string | null {
+  let entries: fs.Dirent[];
+  try {
+    entries = fs.readdirSync(projectsRoot, { withFileTypes: true });
+  } catch {
+    return null;
+  }
+  const dirs = entries.filter((e) => e.isDirectory()).map((e) => e.name);
+  const slugLower = slug.toLowerCase();
+  const slugNorm = slugLower.replace(/_/g, "-");
+
+  const exact = dirs.find((n) => n.toLowerCase() === slugLower);
+  if (exact) {
+    return path.join(projectsRoot, exact, "canvases");
+  }
+
+  // Same path slug with `_` vs `-` (or mixed), not a longer nested project name.
+  const normalized = dirs.find((n) => {
+    const lower = n.toLowerCase();
+    if (/^\d+$/.test(lower)) return false;
+    return lower.replace(/_/g, "-") === slugNorm;
+  });
+  if (normalized) {
+    return path.join(projectsRoot, normalized, "canvases");
+  }
+
+  return null;
 }
 
 /** True when `absPath` is under `canvasDir` (Windows case-insensitive). */
@@ -79,6 +113,15 @@ export function isUnderCanvasDir(
   return rel !== "" && !rel.startsWith("..") && !path.isAbsolute(rel);
 }
 
+/**
+ * Heuristic: path sits under `~/.cursor/projects/<any>/canvases/` even when
+ * `resolveCanvasesDir` returned null (no harness / no env).
+ */
+export function looksLikeCursorCanvasesPath(absPath: string): boolean {
+  const normalized = path.resolve(absPath).replace(/\\/g, "/").toLowerCase();
+  return /\/\.cursor\/projects\/[^/]+\/canvases\//.test(`${normalized}/`);
+}
+
 export type CanvasWriteEvaluation = {
   underCanvasDir: boolean;
   usedWorkspaceFallback: boolean;
@@ -90,7 +133,8 @@ const OPEN_HINT =
   "Open this file in Cursor Canvas view (not a normal text editor). " +
   "Cursor only renders .canvas.tsx under ~/.cursor/projects/<slug>/canvases/ " +
   "(or TRELLIS_CAMPAIGN_CANVAS_DIR / CURSOR_CANVAS_DIR). " +
-  "Opening outside that folder in a normal editor shows source only — no graphics.";
+  "Opening outside that folder in a normal editor shows source only — no graphics. " +
+  "Use --open to best-effort launch Cursor on the file; use --quiet to suppress hints.";
 
 /**
  * Evaluate write destination for warnings/hints after `campaign canvas` succeeds.
@@ -101,7 +145,8 @@ export function evaluateCanvasWritePath(
   canvasDir: string | null,
   opts?: { usedWorkspaceFallback?: boolean },
 ): CanvasWriteEvaluation {
-  const underCanvasDir = isUnderCanvasDir(absOut, canvasDir);
+  const underCanvasDir =
+    isUnderCanvasDir(absOut, canvasDir) || looksLikeCursorCanvasesPath(absOut);
   const usedWorkspaceFallback = opts?.usedWorkspaceFallback === true;
   const warnings: string[] = [];
   if (!underCanvasDir) {
@@ -124,6 +169,77 @@ export function evaluateCanvasWritePath(
     warnings,
     hints: [OPEN_HINT],
   };
+}
+
+export type CanvasOpenAttempt = {
+  attempted: boolean;
+  ok: boolean;
+  detail: string;
+};
+
+/**
+ * Best-effort open of a `.canvas.tsx` via the Cursor CLI (`cursor` / `CURSOR_BIN`).
+ * Does not guarantee Canvas view (IDE may open as text); callers still print hints.
+ */
+export function resolveCursorCliBin(): string | null {
+  const fromEnv = process.env.CURSOR_BIN?.trim();
+  if (fromEnv) return fromEnv;
+  try {
+    const finder = process.platform === "win32" ? "where.exe" : "which";
+    const out = execFileSync(finder, ["cursor"], {
+      encoding: "utf8",
+      windowsHide: true,
+    });
+    const first = out
+      .split(/\r?\n/)
+      .map((s) => s.trim())
+      .find(Boolean);
+    return first ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export function tryOpenCanvasFile(absPath: string): CanvasOpenAttempt {
+  const abs = path.resolve(absPath);
+  const bin = resolveCursorCliBin();
+  if (!bin) {
+    return {
+      attempted: true,
+      ok: false,
+      detail:
+        "Cursor CLI not found on PATH (set CURSOR_BIN or install the `cursor` shell command)",
+    };
+  }
+  try {
+    const child = spawn(bin, [abs], {
+      detached: true,
+      stdio: "ignore",
+      windowsHide: true,
+      shell: process.platform === "win32",
+    });
+    child.unref();
+    return {
+      attempted: true,
+      ok: true,
+      detail: `spawned ${bin} ${abs}`,
+    };
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    return {
+      attempted: true,
+      ok: false,
+      detail: `failed to spawn Cursor CLI (${bin}): ${msg}`,
+    };
+  }
+}
+
+export function shouldAutoOpenCanvas(opts?: {
+  open?: boolean;
+}): boolean {
+  if (opts?.open === true) return true;
+  const env = process.env.TRELLIS_CAMPAIGN_CANVAS_OPEN?.trim().toLowerCase();
+  return env === "1" || env === "true" || env === "yes";
 }
 
 export function resolveHarnessForCanvas(parentDir: string): string | null {
