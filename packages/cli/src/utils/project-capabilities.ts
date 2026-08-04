@@ -1061,7 +1061,21 @@ export function buildProjectCapabilityTemplates(
         : options?.cwd
           ? loadExistingMcpServers(options.cwd)
           : null;
-    files.set(".cursor/mcp.json", renderMcpJson(selectedIds, existing));
+    const desiredServers = uniqueMcpServers(selectedIds);
+    const existingKeys = Object.keys(existing ?? {});
+    const mcpPathExists =
+      typeof options?.cwd === "string" &&
+      fs.existsSync(path.join(options.cwd, ".cursor", "mcp.json"));
+    // Do not create an empty `.cursor/mcp.json` on fresh Cursor init with no
+    // MCP capabilities selected — that leaves a useless file and breaks
+    // uninstall "project is clean" expectations.
+    if (
+      desiredServers.length > 0 ||
+      existingKeys.length > 0 ||
+      mcpPathExists
+    ) {
+      files.set(".cursor/mcp.json", renderMcpJson(selectedIds, existing));
+    }
   }
 
   return files;
