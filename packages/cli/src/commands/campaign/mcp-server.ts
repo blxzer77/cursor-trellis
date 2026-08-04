@@ -9,10 +9,12 @@ interface JsonRpcRequest {
   params?: unknown;
 }
 
+/**
+ * MCP stdio framing used by @modelcontextprotocol/sdk (and Cursor host):
+ * one JSON-RPC message per line (NDJSON). Not LSP Content-Length.
+ */
 function writeMessage(message: unknown): void {
-  const body = JSON.stringify(message);
-  const header = `Content-Length: ${Buffer.byteLength(body, "utf8")}\r\n\r\n`;
-  process.stdout.write(header + body);
+  process.stdout.write(`${JSON.stringify(message)}\n`);
 }
 
 function ok(id: JsonRpcId, result: unknown): void {
@@ -83,14 +85,26 @@ async function callCampaignStatus(params: unknown): Promise<string> {
   return JSON.stringify(snapshot, null, 2);
 }
 
+function negotiatedProtocolVersion(params: unknown): string {
+  const p =
+    params && typeof params === "object"
+      ? (params as Record<string, unknown>)
+      : {};
+  const requested =
+    typeof p.protocolVersion === "string" ? p.protocolVersion.trim() : "";
+  return requested || "2024-11-05";
+}
+
 async function handleRequest(msg: JsonRpcRequest): Promise<void> {
   const method = msg.method ?? "";
   const id = msg.id ?? null;
 
   if (method === "initialize") {
     ok(id, {
-      protocolVersion: "2024-11-05",
-      capabilities: { tools: {} },
+      protocolVersion: negotiatedProtocolVersion(msg.params),
+      capabilities: {
+        tools: {},
+      },
       serverInfo: { name: "trellis-campaign", version: "0.1.0" },
     });
     return;
@@ -107,6 +121,16 @@ async function handleRequest(msg: JsonRpcRequest): Promise<void> {
 
   if (method === "tools/list") {
     ok(id, toolList());
+    return;
+  }
+
+  if (method === "resources/list") {
+    ok(id, { resources: [] });
+    return;
+  }
+
+  if (method === "prompts/list") {
+    ok(id, { prompts: [] });
     return;
   }
 
@@ -139,35 +163,23 @@ async function handleRequest(msg: JsonRpcRequest): Promise<void> {
 }
 
 /**
- * Run minimal MCP stdio server (Content-Length framing).
+ * Run MCP stdio server (newline-delimited JSON-RPC, SDK dialect).
  * Blocks until stdin closes.
  */
 export async function runCampaignMcpServer(): Promise<void> {
-  let buffer = Buffer.alloc(0);
+  let buffer = "";
+  let chain: Promise<void> = Promise.resolve();
 
-  const processBuffer = async (): Promise<void> => {
+  const processLines = async (): Promise<void> => {
     while (true) {
-      let headerEnd = buffer.indexOf("\r\n\r\n");
-      let sepLen = 4;
-      if (headerEnd === -1) {
-        headerEnd = buffer.indexOf("\n\n");
-        sepLen = 2;
-      }
-      if (headerEnd === -1) return;
-      const header = buffer.subarray(0, headerEnd).toString("utf8");
-      const match = /Content-Length:\s*(\d+)/i.exec(header);
-      if (!match) {
-        buffer = buffer.subarray(headerEnd + sepLen);
-        continue;
-      }
-      const length = Number(match[1]);
-      const bodyStart = headerEnd + sepLen;
-      if (buffer.length < bodyStart + length) return;
-      const body = buffer.subarray(bodyStart, bodyStart + length).toString("utf8");
-      buffer = buffer.subarray(bodyStart + length);
+      const index = buffer.indexOf("\n");
+      if (index === -1) return;
+      const line = buffer.slice(0, index).replace(/\r$/, "").trim();
+      buffer = buffer.slice(index + 1);
+      if (!line) continue;
       let msg: JsonRpcRequest;
       try {
-        msg = JSON.parse(body) as JsonRpcRequest;
+        msg = JSON.parse(line) as JsonRpcRequest;
       } catch {
         continue;
       }
@@ -175,9 +187,14 @@ export async function runCampaignMcpServer(): Promise<void> {
     }
   };
 
-  process.stdin.on("data", (chunk: Buffer) => {
-    buffer = Buffer.concat([buffer, chunk]);
-    void processBuffer();
+  if (typeof process.stdin.resume === "function") {
+    process.stdin.resume();
+  }
+  process.stdin.setEncoding("utf8");
+
+  process.stdin.on("data", (chunk: string | Buffer) => {
+    buffer += typeof chunk === "string" ? chunk : chunk.toString("utf8");
+    chain = chain.then(() => processLines()).catch(() => undefined);
   });
 
   await new Promise<void>((resolve) => {

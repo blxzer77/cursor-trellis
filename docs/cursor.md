@@ -171,7 +171,7 @@ Init/update can also select:
 | Capability id | What it does | Gate |
 | --- | --- | --- |
 | `cursor-sdk` | Records SDK RUN enablement + readiness; uses the **CLI-bundled** `@cursor/sdk` (does not add npm deps to your app) | Requires `CURSOR_API_KEY` in the **current process**. Checkbox stays visible; without a key Trellis **skips enablement** and prints setup steps. |
-| `campaign-mcp` | Merges `trellis-campaign` (`cstl campaign mcp`) into project `.cursor/mcp.json` | No API key. Does **not** write `TRELLIS_CAMPAIGN_PARENT` into mcp.json — set env / `--parent` / tool args yourself. |
+| `campaign-mcp` | Merges `trellis-campaign` (`npx -y @blxzer/cursor-trellis campaign mcp`) into project `.cursor/mcp.json` | No API key. Does **not** write `TRELLIS_CAMPAIGN_PARENT` into mcp.json — set env / `--parent` / tool args yourself. |
 
 MCP writes **merge** into existing `.cursor/mcp.json`: Trellis-managed server names are upserted/removed from the current selection; unrelated servers are preserved.
 

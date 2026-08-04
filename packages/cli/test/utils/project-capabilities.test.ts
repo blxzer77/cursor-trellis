@@ -138,8 +138,8 @@ describe("project capabilities", () => {
       args: ["custom-server.js"],
     });
     expect(merged.mcpServers["trellis-campaign"]).toEqual({
-      command: "cstl",
-      args: ["campaign", "mcp"],
+      command: "npx",
+      args: ["-y", "@blxzer/cursor-trellis", "campaign", "mcp"],
     });
     // managed github deselected → removed
     expect(merged.mcpServers.github).toBeUndefined();
@@ -172,7 +172,7 @@ describe("project capabilities", () => {
         command: "echo",
         args: ["ok"],
       });
-      expect(parsed.mcpServers["trellis-campaign"].command).toBe("cstl");
+      expect(parsed.mcpServers["trellis-campaign"].command).toBe("npx");
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }
