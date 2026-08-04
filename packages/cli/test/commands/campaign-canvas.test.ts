@@ -9,8 +9,11 @@ import {
   defaultCanvasPath,
   evaluateCanvasWritePath,
   isUnderCanvasDir,
+  looksLikeCursorCanvasesPath,
   renderCampaignCanvasTsx,
   resolveCanvasesDir,
+  shouldAutoOpenCanvas,
+  softMatchCanvasesDir,
   writeCampaignCanvas,
 } from "../../src/commands/campaign/canvas-render.js";
 import { composeCampaignStatus } from "../../src/commands/campaign/compose.js";
@@ -52,6 +55,9 @@ const fixtureParent: CampaignParentSnapshot = {
 const envKeys = [
   "TRELLIS_CAMPAIGN_CANVAS_DIR",
   "CURSOR_CANVAS_DIR",
+  "TRELLIS_CURSOR_PROJECT_SLUG",
+  "TRELLIS_CAMPAIGN_CANVAS_OPEN",
+  "CURSOR_BIN",
 ] as const;
 
 afterEach(() => {
@@ -62,12 +68,18 @@ afterEach(() => {
 });
 
 describe("cursorProjectSlug", () => {
-  it("maps Windows harness roots to Cursor project slugs", () => {
+  it("maps drive-letter roots to Cursor-style slugs (encoding only)", () => {
     expect(cursorProjectSlug("D:\\MyHarness")).toBe("d-MyHarness");
+  });
+
+  it("maps POSIX absolute paths when resolved without a Windows drive", () => {
+    // On Windows, path.resolve("/home/...") becomes "<drive>:/home/..." — skip.
+    if (process.platform === "win32") return;
+    expect(cursorProjectSlug("/home/user/acme")).toBe("home-user-acme");
   });
 });
 
-describe("isUnderCanvasDir / evaluateCanvasWritePath", () => {
+describe("isUnderCanvasDir / looksLike / evaluateCanvasWritePath", () => {
   it("detects paths under the canvases directory", () => {
     const canvasDir = path.join(os.tmpdir(), "canvases-under-test");
     const inside = path.join(canvasDir, "campaign-x.canvas.tsx");
@@ -75,6 +87,38 @@ describe("isUnderCanvasDir / evaluateCanvasWritePath", () => {
     expect(isUnderCanvasDir(inside, canvasDir)).toBe(true);
     expect(isUnderCanvasDir(outside, canvasDir)).toBe(false);
     expect(isUnderCanvasDir(inside, null)).toBe(false);
+  });
+
+  it("looksLikeCursorCanvasesPath matches any ~/.cursor/projects/*/canvases file", () => {
+    const fakeHome = fs.mkdtempSync(path.join(os.tmpdir(), "canvas-like-"));
+    const inside = path.join(
+      fakeHome,
+      ".cursor",
+      "projects",
+      "any-user-slug",
+      "canvases",
+      "campaign.canvas.tsx",
+    );
+    expect(looksLikeCursorCanvasesPath(inside)).toBe(true);
+    expect(
+      looksLikeCursorCanvasesPath(
+        path.join(fakeHome, "workspace", "out.canvas.tsx"),
+      ),
+    ).toBe(false);
+  });
+
+  it("does not false-warn when canvasDir is null but --out is under canvases", () => {
+    const under = path.join(
+      os.homedir(),
+      ".cursor",
+      "projects",
+      "user-workspace",
+      "canvases",
+      "campaign.canvas.tsx",
+    );
+    const evalUnder = evaluateCanvasWritePath(under, null);
+    expect(evalUnder.underCanvasDir).toBe(true);
+    expect(evalUnder.warnings).toHaveLength(0);
   });
 
   it("warns when outside canvases and always includes open hint", () => {
@@ -107,6 +151,27 @@ describe("isUnderCanvasDir / evaluateCanvasWritePath", () => {
   });
 });
 
+describe("softMatchCanvasesDir", () => {
+  it("matches case and underscore variants, not longer nested names", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "soft-canvas-"));
+    fs.mkdirSync(path.join(root, "D_Acme_App", "canvases"), { recursive: true });
+    fs.mkdirSync(path.join(root, "d-Acme-App-extra", "canvases"), {
+      recursive: true,
+    });
+    fs.mkdirSync(path.join(root, "1234567890", "canvases"), { recursive: true });
+
+    const matched = softMatchCanvasesDir(root, "d-Acme-App", root);
+    expect(matched).toBe(path.join(root, "D_Acme_App", "canvases"));
+
+    // No exact/normalized match → null (caller mkdir's canonical slug)
+    const empty = fs.mkdtempSync(path.join(os.tmpdir(), "soft-empty-"));
+    fs.mkdirSync(path.join(empty, "d-Acme-App-extra", "canvases"), {
+      recursive: true,
+    });
+    expect(softMatchCanvasesDir(empty, "d-Acme-App", empty)).toBeNull();
+  });
+});
+
 describe("resolveCanvasesDir / defaultCanvasPath", () => {
   it("honors TRELLIS_CAMPAIGN_CANVAS_DIR", () => {
     const dir = path.join(os.tmpdir(), "env-canvas-dir");
@@ -114,13 +179,24 @@ describe("resolveCanvasesDir / defaultCanvasPath", () => {
     expect(resolveCanvasesDir(null)).toBe(path.resolve(dir));
   });
 
+  it("honors TRELLIS_CURSOR_PROJECT_SLUG when harness is known", () => {
+    const fakeHome = fs.mkdtempSync(path.join(os.tmpdir(), "canvas-slug-"));
+    vi.spyOn(os, "homedir").mockReturnValue(fakeHome);
+    process.env.TRELLIS_CURSOR_PROJECT_SLUG = "custom-user-slug";
+    const harness = path.join(fakeHome, "WhateverRoot");
+    expect(resolveCanvasesDir(harness)).toBe(
+      path.join(fakeHome, ".cursor", "projects", "custom-user-slug", "canvases"),
+    );
+  });
+
   it("returns canvases candidate when harness is known even if projects dir is missing", () => {
     const fakeHome = fs.mkdtempSync(path.join(os.tmpdir(), "canvas-home-"));
-    const harness = "D:\\MyHarness";
+    const harness = path.join(fakeHome, "AcmeApp");
     vi.spyOn(os, "homedir").mockReturnValue(fakeHome);
+    const slug = cursorProjectSlug(harness);
     const resolved = resolveCanvasesDir(harness);
     expect(resolved).toBe(
-      path.join(fakeHome, ".cursor", "projects", "d-MyHarness", "canvases"),
+      path.join(fakeHome, ".cursor", "projects", slug, "canvases"),
     );
     expect(fs.existsSync(path.join(fakeHome, ".cursor", "projects"))).toBe(
       false,
@@ -136,14 +212,36 @@ describe("resolveCanvasesDir / defaultCanvasPath", () => {
       },
     });
     const fakeHome = fs.mkdtempSync(path.join(os.tmpdir(), "canvas-home2-"));
+    const harnessRoot = path.join(fakeHome, "PortableHarness");
+    // findHarnessRoot requires .cstl/scripts/task.py (not merely .cstl/)
+    const taskPy = path.join(harnessRoot, ".cstl", "scripts", "task.py");
+    fs.mkdirSync(path.dirname(taskPy), { recursive: true });
+    fs.writeFileSync(taskPy, "# test fixture\n", "utf8");
     vi.spyOn(os, "homedir").mockReturnValue(fakeHome);
-    // parentDir with .cstl so findHarnessRoot can walk — use real harness if available
-    const harnessRoot = path.resolve("D:/MyHarness");
+    const slug = cursorProjectSlug(harnessRoot);
     const out = defaultCanvasPath(snapshot, harnessRoot);
-    expect(out.replace(/\\/g, "/")).toMatch(
-      /\/\.cursor\/projects\/d-MyHarness\/canvases\/campaign-08-01-demo-parent\.canvas\.tsx$/,
+    expect(out.replace(/\\/g, "/")).toBe(
+      path
+        .join(
+          fakeHome,
+          ".cursor",
+          "projects",
+          slug,
+          "canvases",
+          "campaign-08-01-demo-parent.canvas.tsx",
+        )
+        .replace(/\\/g, "/"),
     );
     expect(out).not.toMatch(/campaign-status/);
+  });
+});
+
+describe("shouldAutoOpenCanvas", () => {
+  it("respects --open and TRELLIS_CAMPAIGN_CANVAS_OPEN", () => {
+    expect(shouldAutoOpenCanvas({})).toBe(false);
+    expect(shouldAutoOpenCanvas({ open: true })).toBe(true);
+    process.env.TRELLIS_CAMPAIGN_CANVAS_OPEN = "1";
+    expect(shouldAutoOpenCanvas({})).toBe(true);
   });
 });
 

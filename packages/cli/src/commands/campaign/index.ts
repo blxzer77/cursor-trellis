@@ -9,6 +9,8 @@ import {
   evaluateCanvasWritePath,
   resolveCanvasesDir,
   resolveHarnessForCanvas,
+  shouldAutoOpenCanvas,
+  tryOpenCanvasFile,
   writeCampaignCanvas,
 } from "./canvas-render.js";
 import { composeCampaignStatus } from "./compose.js";
@@ -25,8 +27,11 @@ export {
   defaultCanvasPath,
   evaluateCanvasWritePath,
   isUnderCanvasDir,
+  looksLikeCursorCanvasesPath,
   renderCampaignCanvasTsx,
   resolveCanvasesDir,
+  softMatchCanvasesDir,
+  tryOpenCanvasFile,
   writeCampaignCanvas,
 } from "./canvas-render.js";
 export {
@@ -135,8 +140,22 @@ export function registerCampaignCommand(program: Command): void {
       "--out <path>",
       "Canvas output path (default: Cursor projects/.../canvases/campaign-<id>.canvas.tsx)",
     )
+    .option(
+      "-q, --quiet",
+      "Suppress stderr hints/warnings (stdout still prints the absolute path)",
+    )
+    .option(
+      "--open",
+      "Best-effort open the file via Cursor CLI (or TRELLIS_CAMPAIGN_CANVAS_OPEN=1)",
+    )
     .action(
-      async (opts: { parent?: string; url?: string; out?: string }) => {
+      async (opts: {
+        parent?: string;
+        url?: string;
+        out?: string;
+        quiet?: boolean;
+        open?: boolean;
+      }) => {
         try {
           const parentDir = resolveParentDir(opts.parent);
           const snapshot = await composeCampaignStatus({
@@ -157,11 +176,29 @@ export function registerCampaignCommand(program: Command): void {
           });
           // stdout: absolute path only (script-friendly)
           console.log(abs);
-          for (const warning of evaluation.warnings) {
-            console.warn(warning);
+          if (!opts.quiet) {
+            for (const warning of evaluation.warnings) {
+              console.warn(warning);
+            }
+            for (const hint of evaluation.hints) {
+              console.warn(`Hint: ${hint}`);
+            }
           }
-          for (const hint of evaluation.hints) {
-            console.warn(`Hint: ${hint}`);
+          if (shouldAutoOpenCanvas({ open: opts.open === true })) {
+            const openResult = tryOpenCanvasFile(abs);
+            if (!opts.quiet) {
+              if (openResult.ok) {
+                console.warn(
+                  `Hint: launched Cursor CLI on the canvas file (${openResult.detail}). ` +
+                    "If you still see source only, use Open as Canvas in the IDE.",
+                );
+              } else {
+                console.warn(
+                  `⚠ Warning: could not auto-open Canvas (${openResult.detail}). ` +
+                    "Open the printed path in Cursor Canvas view manually.",
+                );
+              }
+            }
           }
         } catch (error) {
           console.error(

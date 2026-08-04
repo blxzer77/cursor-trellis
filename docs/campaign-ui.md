@@ -40,6 +40,12 @@ Broker down is OK: Trellis stages/children still render; RPC section shows `reac
 > If you open the same `.canvas.tsx` from elsewhere (for example `.cstl/workspace/...`)
 > in a normal editor tab, you will see **TypeScript source only** — not the campaign UI.
 > Always open the printed path in the Cursor **Canvas** view.
+>
+> **User environments differ.** Do not assume a specific machine path, drive letter, or
+> Cursor project folder name. Prefer the CLI default (derived from the harness root +
+> `os.homedir()`). If Cursor’s project slug does not match the derived one, set
+> `TRELLIS_CURSOR_PROJECT_SLUG` or point `TRELLIS_CAMPAIGN_CANVAS_DIR` at the canvases
+> folder that your IDE actually uses.
 
 Generate or refresh a Cursor Canvas with an **embedded** campaign snapshot (no `fetch()` inside the canvas):
 
@@ -49,16 +55,29 @@ cstl campaign canvas --parent .cstl/tasks/<campaign-parent>
 ```
 
 Default write target: `~/.cursor/projects/<workspace-slug>/canvases/campaign-<parentId>.canvas.tsx`  
-(override with env `TRELLIS_CAMPAIGN_CANVAS_DIR` / `CURSOR_CANVAS_DIR`).
+Overrides (portable escape hatches):
+
+| Env | Purpose |
+| --- | --- |
+| `TRELLIS_CAMPAIGN_CANVAS_DIR` / `CURSOR_CANVAS_DIR` | Absolute canvases directory |
+| `TRELLIS_CURSOR_PROJECT_SLUG` | Force `~/.cursor/projects/<slug>/canvases` when auto-slug is wrong |
+| `TRELLIS_CAMPAIGN_CANVAS_OPEN=1` | Same as `--open` |
+| `CURSOR_BIN` | Cursor CLI binary when not on PATH |
 
 ```powershell
-# Optional: pin --out ONLY when the path stays under canvases (or your env canvas dir)
-cstl campaign canvas --parent .cstl/tasks/<campaign-parent> --out "$env:USERPROFILE\.cursor\projects\d-MyHarness\canvases\campaign-<id>.canvas.tsx"
+# Optional: pin --out ONLY when the path stays under *your* canvases dir
+cstl campaign canvas --parent .cstl/tasks/<campaign-parent> --out "$env:USERPROFILE\.cursor\projects\<your-slug>\canvases\campaign-<id>.canvas.tsx"
+
+# Script-friendly: stdout = path only
+cstl campaign canvas --parent .cstl/tasks/<campaign-parent> --quiet
+
+# Best-effort open via Cursor CLI (may still open as text; use Canvas view if needed)
+cstl campaign canvas --parent .cstl/tasks/<campaign-parent> --open
 ```
 
 **Do not** use `--out` to dump into `.cstl/workspace/...` or other repo paths unless you only want a source copy — the CLI still writes the file but prints a **warning**, and a normal editor will not render Canvas graphics.
 
-After a successful write, stdout prints the absolute path; stderr prints open hints (and a warning when the path is outside canvases). Re-run the same command to refresh.
+After a successful write, stdout prints the absolute path; stderr prints open hints (and a warning when the path is outside canvases) unless `--quiet`. Re-run the same command to refresh.
 
 **Native and BYOK:** Canvas is IDE-local React compiled from `.canvas.tsx`; it works for both Native and BYOK sessions (does not depend on the official model billing channel).
 
