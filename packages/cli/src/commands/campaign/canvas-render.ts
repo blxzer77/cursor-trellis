@@ -20,7 +20,13 @@ export function cursorProjectSlug(absPath: string): string {
   return normalized.replace(/^\//, "").replace(/\/+/g, "-");
 }
 
-function resolveCanvasesDir(harnessRoot: string | null): string | null {
+/**
+ * Resolve the Cursor canvases directory for a harness root.
+ * When harness is known, always returns `~/.cursor/projects/<slug>/canvases`
+ * (directory need not exist yet — callers mkdir on write).
+ * Returns null only when neither env override nor harness root is available.
+ */
+export function resolveCanvasesDir(harnessRoot: string | null): string | null {
   const fromEnv =
     process.env.TRELLIS_CAMPAIGN_CANVAS_DIR?.trim() ||
     process.env.CURSOR_CANVAS_DIR?.trim();
@@ -37,38 +43,112 @@ function resolveCanvasesDir(harnessRoot: string | null): string | null {
   );
   if (fs.existsSync(candidate)) return candidate;
 
-  // Soft match: any project dir whose name ends with the slug or contains harness basename
+  // Soft match: prefer an existing project dir with matching slug (case).
+  // If ~/.cursor/projects is missing, still return the candidate so write can mkdir.
   const projectsRoot = path.join(os.homedir(), ".cursor", "projects");
-  if (!fs.existsSync(projectsRoot)) return null;
-  try {
-    const entries = fs.readdirSync(projectsRoot, { withFileTypes: true });
-    const exact = entries.find(
-      (e) => e.isDirectory() && e.name.toLowerCase() === slug.toLowerCase(),
-    );
-    if (exact) {
-      return path.join(projectsRoot, exact.name, "canvases");
+  if (fs.existsSync(projectsRoot)) {
+    try {
+      const entries = fs.readdirSync(projectsRoot, { withFileTypes: true });
+      const exact = entries.find(
+        (e) => e.isDirectory() && e.name.toLowerCase() === slug.toLowerCase(),
+      );
+      if (exact) {
+        return path.join(projectsRoot, exact.name, "canvases");
+      }
+    } catch {
+      // ignore — fall through to candidate
     }
-  } catch {
-    // ignore
   }
   return candidate;
+}
+
+/** True when `absPath` is under `canvasDir` (Windows case-insensitive). */
+export function isUnderCanvasDir(
+  absPath: string,
+  canvasDir: string | null,
+): boolean {
+  if (!canvasDir) return false;
+  const file = path.resolve(absPath);
+  const root = path.resolve(canvasDir);
+  if (process.platform === "win32") {
+    const f = file.toLowerCase();
+    const r = root.toLowerCase().replace(/[/\\]+$/, "");
+    return f.startsWith(`${r}\\`) || f.startsWith(`${r}/`);
+  }
+  const rel = path.relative(root, file);
+  return rel !== "" && !rel.startsWith("..") && !path.isAbsolute(rel);
+}
+
+export type CanvasWriteEvaluation = {
+  underCanvasDir: boolean;
+  usedWorkspaceFallback: boolean;
+  warnings: string[];
+  hints: string[];
+};
+
+const OPEN_HINT =
+  "Open this file in Cursor Canvas view (not a normal text editor). " +
+  "Cursor only renders .canvas.tsx under ~/.cursor/projects/<slug>/canvases/ " +
+  "(or TRELLIS_CAMPAIGN_CANVAS_DIR / CURSOR_CANVAS_DIR). " +
+  "Opening outside that folder in a normal editor shows source only — no graphics.";
+
+/**
+ * Evaluate write destination for warnings/hints after `campaign canvas` succeeds.
+ * Does not change exit code; callers print warnings on stderr.
+ */
+export function evaluateCanvasWritePath(
+  absOut: string,
+  canvasDir: string | null,
+  opts?: { usedWorkspaceFallback?: boolean },
+): CanvasWriteEvaluation {
+  const underCanvasDir = isUnderCanvasDir(absOut, canvasDir);
+  const usedWorkspaceFallback = opts?.usedWorkspaceFallback === true;
+  const warnings: string[] = [];
+  if (!underCanvasDir) {
+    warnings.push(
+      "⚠ Warning: output is outside the Cursor canvases directory" +
+        (canvasDir ? ` (${canvasDir})` : "") +
+        ". Opening this path in a normal editor shows TypeScript source only — no Canvas UI.",
+    );
+  }
+  if (usedWorkspaceFallback) {
+    warnings.push(
+      "⚠ Warning: fell back to .cstl/workspace/campaign-status/ because no harness root " +
+        "and no TRELLIS_CAMPAIGN_CANVAS_DIR / CURSOR_CANVAS_DIR were available. " +
+        "Prefer the default path under ~/.cursor/projects/<slug>/canvases/.",
+    );
+  }
+  return {
+    underCanvasDir,
+    usedWorkspaceFallback,
+    warnings,
+    hints: [OPEN_HINT],
+  };
+}
+
+export function resolveHarnessForCanvas(parentDir: string): string | null {
+  return findHarnessRoot(parentDir) ?? findHarnessRoot(process.cwd());
 }
 
 export function defaultCanvasPath(
   snapshot: CampaignStatusSnapshot,
   parentDir: string,
 ): string {
-  const harness =
-    findHarnessRoot(parentDir) ?? findHarnessRoot(process.cwd());
+  const harness = resolveHarnessForCanvas(parentDir);
   const canvases = resolveCanvasesDir(harness);
   const fileName = `campaign-${snapshot.parent.id}.canvas.tsx`;
   if (canvases) {
     return path.join(canvases, fileName);
   }
-  const base = harness
-    ? path.join(harness, ".cstl", "workspace", "campaign-status")
-    : path.join(process.cwd(), ".cstl", "workspace", "campaign-status");
+  // Last resort: no harness and no env canvas dir.
+  const base = path.join(process.cwd(), ".cstl", "workspace", "campaign-status");
   return path.join(base, fileName);
+}
+
+/** Whether `defaultCanvasPath` would use the workspace fallback for this parent. */
+export function defaultCanvasUsesWorkspaceFallback(parentDir: string): boolean {
+  const harness = resolveHarnessForCanvas(parentDir);
+  return resolveCanvasesDir(harness) === null;
 }
 
 /** Escape a JSON text so it is safe as a JS/TS expression. */

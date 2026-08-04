@@ -31,19 +31,34 @@ Broker down is OK: Trellis stages/children still render; RPC section shows `reac
 
 ## Canvas path (IDE-local)
 
+> **Critical — where Canvas actually renders**
+>
+> Cursor only shows the **graphical** Canvas UI for files under:
+> `~/.cursor/projects/<workspace-slug>/canvases/*.canvas.tsx`
+> (or a directory set via `TRELLIS_CAMPAIGN_CANVAS_DIR` / `CURSOR_CANVAS_DIR`).
+>
+> If you open the same `.canvas.tsx` from elsewhere (for example `.cstl/workspace/...`)
+> in a normal editor tab, you will see **TypeScript source only** — not the campaign UI.
+> Always open the printed path in the Cursor **Canvas** view.
+
 Generate or refresh a Cursor Canvas with an **embedded** campaign snapshot (no `fetch()` inside the canvas):
 
 ```powershell
+# Preferred: write to the default canvases path (CLI mkdir if needed)
 cstl campaign canvas --parent .cstl/tasks/<campaign-parent>
-
-# Or pin the output path (recommended when auto-detect misses the project folder)
-cstl campaign canvas --parent .cstl/tasks/<campaign-parent> --out "$env:USERPROFILE\.cursor\projects\d-MyHarness\canvases\campaign-<id>.canvas.tsx"
 ```
 
 Default write target: `~/.cursor/projects/<workspace-slug>/canvases/campaign-<parentId>.canvas.tsx`  
-(override with `--out`, or env `TRELLIS_CAMPAIGN_CANVAS_DIR` / `CURSOR_CANVAS_DIR`).
+(override with env `TRELLIS_CAMPAIGN_CANVAS_DIR` / `CURSOR_CANVAS_DIR`).
 
-Open the printed `.canvas.tsx` beside chat (Cursor Canvas). Re-run the same command to refresh.
+```powershell
+# Optional: pin --out ONLY when the path stays under canvases (or your env canvas dir)
+cstl campaign canvas --parent .cstl/tasks/<campaign-parent> --out "$env:USERPROFILE\.cursor\projects\d-MyHarness\canvases\campaign-<id>.canvas.tsx"
+```
+
+**Do not** use `--out` to dump into `.cstl/workspace/...` or other repo paths unless you only want a source copy — the CLI still writes the file but prints a **warning**, and a normal editor will not render Canvas graphics.
+
+After a successful write, stdout prints the absolute path; stderr prints open hints (and a warning when the path is outside canvases). Re-run the same command to refresh.
 
 **Native and BYOK:** Canvas is IDE-local React compiled from `.canvas.tsx`; it works for both Native and BYOK sessions (does not depend on the official model billing channel).
 
