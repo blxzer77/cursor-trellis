@@ -119,7 +119,8 @@ smart-search --version
 ### Integration in Trellis
 
 **Technical details:**
-- **Dependency**: `@blxzer/cursor-trellis` depends on `@blxzer/smart-search@^0.1.0`
+- **Dependency**: `@blxzer/cursor-trellis` depends on `@blxzer/smart-search@^0.2.0` (npm; not vendored source)
+- **Bin wrapper**: `packages/cli/bin/smart-search.js` forwards to `node_modules/@blxzer/smart-search`
 - **Workflow routing**: `.cstl/workflow.md` and generated agent rules route external fact queries to smart-search first when healthy
 - **Readiness validation**: Project readiness checks run on `init`/`update` (skip with `--skip-readiness`)
 - **Not an MCP server**: Agents invoke the shell command directly (via workflow + project policy on Cursor)
