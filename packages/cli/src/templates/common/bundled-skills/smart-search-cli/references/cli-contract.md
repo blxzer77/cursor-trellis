@@ -21,14 +21,13 @@
 - `smart-search fetch URL [--format json|markdown|content] [--output PATH]`
 - `smart-search exa-search QUERY [--num-results N] [--search-type neural|keyword|auto] [--include-text] [--include-highlights] [--start-published-date YYYY-MM-DD] [--include-domains DOMAIN...] [--exclude-domains DOMAIN...] [--category NAME] [--format json|markdown|content] [--output PATH]`
 - `smart-search exa-similar URL [--num-results N] [--format json|markdown|content] [--output PATH]`
-- `smart-search zhipu-search QUERY [--count N] [--search-engine NAME] [--search-recency-filter VALUE] [--search-domain-filter DOMAIN] [--content-size medium|high] [--format json|markdown|content] [--output PATH]` — **DEPRECATED**: emits a stderr warning on every invocation; the subcommand, the `research_discovery` zhipu branch, and `providers/zhipu.py` will be removed on the schedule in README § "Deprecation notices".
 - `smart-search context7-library NAME [QUERY] [--format json|markdown|content] [--output PATH]`
 - `smart-search context7-docs LIBRARY_ID QUERY [--format json|markdown|content] [--output PATH]`
 - `smart-search research QUERY [--budget quick|standard|deep] [--locale-scope cn|en|both] [--evidence-dir PATH] [--fallback auto|off] [--dry-run] [--progress] [--format json|markdown|content] [--output PATH]`
 - `smart-search map URL [--instructions TEXT] [--max-depth N] [--max-breadth N] [--limit N] [--timeout SECONDS] [--format json|markdown|content] [--output PATH]`
 - `smart-search doctor [--format json|markdown|content] [--output PATH]`
 - `smart-search diagnose openai-compatible [--timeout SECONDS] [--format json|markdown] [--output PATH]`
-- `smart-search setup [--lang zh|en] [--advanced] [--non-interactive] [--openai-compatible-api-url URL] [--openai-compatible-api-key KEY] [--openai-compatible-model ID] [--openai-compatible-stream true|false] [--validation-level fast|balanced|strict] [--fallback-mode auto|off] [--minimum-profile standard|off] [--exa-key KEY] [--context7-key KEY] [--zhipu-key KEY] [--zhipu-api-url URL] [--zhipu-search-engine ENGINE] [--jina-key KEY] [--jina-reader-api-url URL] [--jina-respond-with MODE] [--jina-timeout SECONDS] [--tavily-api-url URL] [--tavily-key KEY] [--firecrawl-api-url URL] [--firecrawl-key KEY] [--format json|markdown|content] [--output PATH]`
+- `smart-search setup [--lang zh|en] [--advanced] [--non-interactive] [--openai-compatible-api-url URL] [--openai-compatible-api-key KEY] [--openai-compatible-model ID] [--openai-compatible-stream true|false] [--validation-level fast|balanced|strict] [--fallback-mode auto|off] [--minimum-profile standard|off] [--exa-key KEY] [--context7-key KEY] [--jina-key KEY] [--jina-reader-api-url URL] [--jina-respond-with MODE] [--jina-timeout SECONDS] [--tavily-api-url URL] [--tavily-key KEY] [--firecrawl-api-url URL] [--firecrawl-key KEY] [--format json|markdown|content] [--output PATH]`
 - `smart-search config path [--format json|markdown|content] [--output PATH]`
 - `smart-search config list [--format json|markdown|content] [--output PATH]`
 - `smart-search config set KEY VALUE [--format json|markdown|content] [--output PATH]`
@@ -47,7 +46,6 @@ Top-level aliases must normalize to the same service behavior as their full comm
 | `map` | `m` |
 | `exa-search` | `exa`, `x` |
 | `exa-similar` | `xs` |
-| `zhipu-search` | `z`, `zp` |
 | `context7-library` | `c7`, `ctx7` |
 | `context7-docs` | `c7d`, `c7docs`, `ctx7-docs` |
 | `research` | `rs` |
@@ -71,7 +69,7 @@ Successful search output includes `ok`, `query`, `primary_api_mode`, `content`, 
 
 `--format json` is the stable machine-readable contract for agents and scripts. JSON output remains parseable and uses readable non-ASCII text when the terminal encoding supports it.
 
-`--format markdown` is the human-readable report format. `doctor --format markdown` must render a detailed diagnostic report with overall status, active/default/legacy config paths, log path resolution, evidence path resolution, file-logging status, masked config values with sources, minimum profile, capability status, main-search provider checks, provider connectivity checks, model metadata, and full long error/message detail instead of falling back to raw JSON. `diagnose openai-compatible --format markdown` must render a short copy-pasteable troubleshooting report with masked config, quick chat check, real search-shape `stream=false` and `stream=true` checks, a plain-language summary, and a next command. Provider list commands such as `exa-search`, `exa-similar`, `zhipu-search`, `context7-library`, and `map` render result lists or a clear no-results message.
+`--format markdown` is the human-readable report format. `doctor --format markdown` must render a detailed diagnostic report with overall status, active/default/legacy config paths, log path resolution, evidence path resolution, file-logging status, masked config values with sources, minimum profile, capability status, main-search provider checks, provider connectivity checks, model metadata, and full long error/message detail instead of falling back to raw JSON. `diagnose openai-compatible --format markdown` must render a short copy-pasteable troubleshooting report with masked config, quick chat check, real search-shape `stream=false` and `stream=true` checks, a plain-language summary, and a next command. Provider list commands such as `exa-search`, `exa-similar`, `context7-library`, and `map` render result lists or a clear no-results message.
 
 `--format content` prints only the `content` field for content-bearing commands such as `search`, `fetch`, `context7-docs`, and `research`. Commands without a `content` field, including `doctor` and `config`, must print a compact non-empty text summary rather than an empty stdout.
 
@@ -90,17 +88,9 @@ Exa domain filters:
 
 Fetch output includes `ok`, `url`, `provider`, `content`, `provider_attempts`, `fallback_used`, and `elapsed_ms`.
 
-Zhipu Web Search API legacy setup:
+Tavily setup notes:
 
-- `ZHIPU_API_URL` defaults to `https://open.bigmodel.cn/api`.
-- `ZHIPU_SEARCH_ENGINE` defaults to `search_std`.
-- Official Web Search API service values include `search_std`, `search_pro`, `search_pro_sogou`, and `search_pro_quark`.
-- `smart-search setup --zhipu-api-url URL --zhipu-search-engine ENGINE` saves these values in non-interactive mode.
-- Interactive setup no longer recommends or prompts for Zhipu in the default flow. Use `config set` or non-interactive flags only for explicit manual legacy compatibility.
-- `config set ZHIPU_SEARCH_ENGINE VALUE` must remain free-form so newly added official services do not require a CLI release.
-- `zhipu-search` corresponds to Zhipu Web Search API, not Zhipu Chat Completions `tools=[web_search]`, not Search Agent, and not the MCP Server.
-- `zhipu-search` is deprecated and not used by default routing because quota may be unavailable. Default source discovery uses bilingual `search` through Tavily / Firecrawl when configured.
-- `TAVILY_API_URL` only affects Tavily and does not proxy Zhipu.
+- `TAVILY_API_URL` only affects Tavily.
 - `TAVILY_TIMEOUT_SECONDS` controls the Tavily `doctor` connectivity timeout. It defaults to `60` so slower pooled/community endpoints are not incorrectly marked unhealthy by the diagnostic check.
 
 Jina Reader setup:
@@ -124,15 +114,13 @@ Exa HTTP `400` or `422` failures are returned as `ok=false` with `error_type=par
 
 Exa similar output includes `ok`, `url`, `results`, `total`, and `elapsed_ms` when successful.
 
-Zhipu search output includes `ok`, `query`, `provider`, `search_engine`, `results`, `total`, and `elapsed_ms` when successful.
-
 Context7 library output includes `ok`, `query`, `provider`, `results`, `total`, and `elapsed_ms` when successful. Context7 docs output includes `ok`, `library_id`, `query`, `provider`, `results`, `total`, `content`, and `elapsed_ms` when successful.
 
 Map output includes `ok`, `base_url`, `results`, `response_time`, `url`, and `elapsed_ms` when successful.
 
 Research executor output includes `ok`, `mode=deep_research_execution`, `query_mode=research`, `question`, `budget`, `research_plan`, `routing_decision`, `stage_results`, `discovery_sources`, `final_answer`, `content`, `citations`, `evidence_items`, `gap_check`, `provider_attempts`, `providers_used`, `fallback_used`, `degraded`, `route_policy_version`, `evidence_dir`, `minimum_profile_ok`, `capability_status`, and `elapsed_ms`. The embedded `research_plan` carries `intent_signals`, `decomposition`, `capability_plan`, `evidence_policy`, `steps`, and `gap_check`. Citations must come only from fetched/read `evidence_items`; discovery sources are candidates until fetched. If evidence cannot close, `research` returns degraded gaps instead of unsupported claims.
 
-Diagnostic output masks keys, reports `config_file` / `config_dir` / `config_dir_source` / `default_config_file` / Windows legacy config metadata / `config_dir_override_value` / `config_dir_override_matches_default` / `log_dir_config_value` / `resolved_log_dir` / `evidence_dir_config_value` / `resolved_evidence_dir` / `file_logging_enabled` / `config_sources` / `primary_api_mode` / `primary_api_mode_source` / provider timeout values / `capability_status` / `minimum_profile_ok`, and includes `main_search_connection_tests` plus connection test objects for Exa, Tavily, Zhipu, Context7, and Firecrawl. `primary_connection_test` remains as a backward-compatible alias for the first configured main provider check. OpenAI-compatible provider health must be validated through `/chat/completions`; `/models` is supplementary metadata and must not be the health gate. Firecrawl currently reports whether `FIRECRAWL_API_KEY` is configured; it is not a live Firecrawl request.
+Diagnostic output masks keys, reports `config_file` / `config_dir` / `config_dir_source` / `default_config_file` / Windows legacy config metadata / `config_dir_override_value` / `config_dir_override_matches_default` / `log_dir_config_value` / `resolved_log_dir` / `evidence_dir_config_value` / `resolved_evidence_dir` / `file_logging_enabled` / `config_sources` / `primary_api_mode` / `primary_api_mode_source` / provider timeout values / `capability_status` / `minimum_profile_ok`, and includes `main_search_connection_tests` plus connection test objects for Exa, Tavily, Context7, and Firecrawl. `primary_connection_test` remains as a backward-compatible alias for the first configured main provider check. OpenAI-compatible provider health must be validated through `/chat/completions`; `/models` is supplementary metadata and must not be the health gate. xAI Responses health is validated through `/responses` (a lightweight probe in `doctor`; `diagnose xai` adds a search-shape probe with server-side tools). Firecrawl currently reports whether `FIRECRAWL_API_KEY` is configured; it is not a live Firecrawl request.
 
 When a Windows user reports that different versions seem to use different config paths, diagnose in this order: `config_dir_source`, `config_dir_override_value`, `config_dir_override_matches_default`, then `legacy_windows_config_exists`. A source of `environment` with `config_dir_override_matches_default=true` means the active path is pinned by `SMART_SEARCH_CONFIG_DIR` but is functionally the same as the current default. Do not delete either config file or the user-level override until the upgraded CLI has been verified with `config path` and `doctor` checks.
 
@@ -163,7 +151,6 @@ Each `steps[]` item must include `id`, `subquestion_id`, `tool`, `purpose`, `com
 Capability boundaries:
 
 - `search`: broad bilingual discovery and synthesis through `main_search`; use returned `routing_decision`, `provider_attempts`, `fallback_used`, and `source_warning` as orchestration signals, not as claim proof.
-- `zhipu-search`: deprecated manual compatibility command. Do not include it in default research plans.
 - `context7-library` and `context7-docs`: library, SDK, API, framework, and documentation intent. Prefer Context7 before Exa for docs/API questions.
 - `exa-search`: low-noise source discovery for official domains, papers, product pages, known domains, and trusted pages. It is not the default second hop for every high-risk or verification task.
 - `exa-similar`: adjacent-source discovery when a known reliable URL is available.
@@ -258,15 +245,15 @@ Agent timeout handling contract:
 
 ## Provider Routing
 
-- `search` builds `main_search` from `OPENAI_COMPATIBLE_API_URL` + `OPENAI_COMPATIBLE_API_KEY`, which registers OpenAI-compatible Chat Completions.
+- `search` builds `main_search` from `XAI_API_KEY` (xAI Responses with server-side `web_search`/`x_search` tools) and/or `OPENAI_COMPATIBLE_API_URL` + `OPENAI_COMPATIBLE_API_KEY` (Chat Completions). One is enough; when both are configured, `SMART_SEARCH_MAIN_SEARCH_ROUTE` (ordered CSV of `xai-responses,openai-compatible`) sets priority, and a single entry disables cross-route fallback.
 - OpenAI-compatible relays/gateways use Chat Completions `/chat/completions` through `OPENAI_COMPATIBLE_*`.
 - `OPENAI_COMPATIBLE_STREAM` and `search --stream/--no-stream` affect only the OpenAI-compatible Chat Completions transport for search/fetch. They do not change provider-internal ranking/URL description tasks.
 - Legacy `SMART_SEARCH_API_URL`, `SMART_SEARCH_API_KEY`, `SMART_SEARCH_API_MODE`, and `SMART_SEARCH_MODEL` are unsupported config keys. `config set` / `config unset` must return a parameter error for them.
 - Standard minimum profile requires `main_search`, `docs_search`, and fetch capability. Missing required capabilities produce a configuration error.
 - Jina satisfies fetch capability only when `JINA_API_KEY` is configured. Anonymous Jina Reader does not satisfy `standard`.
 - Same-capability fallback is allowed; cross-capability fallback is not. Context7 is not used for unrelated broad web queries, and page extraction providers are not used as docs search providers.
-- `main_search`: OpenAI-compatible Chat Completions.
-- `web_search`: `search` runs bilingual web_search source discovery through Tavily / Firecrawl when configured. Zhipu is deprecated from default routing and is not selected automatically for Chinese/current/domestic searches.
+- `main_search`: xAI Responses (`XAI_*`) or OpenAI-compatible Chat Completions (`OPENAI_COMPATIBLE_*`), ordered by `SMART_SEARCH_MAIN_SEARCH_ROUTE` when both are configured (default `xai-responses -> openai-compatible`).
+- `web_search`: `search` runs bilingual web_search source discovery through Tavily / Firecrawl when configured.
 - `docs_search`: explicit keyword-based docs/API/library/framework intent. Context7 is first for library/API/docs intent, then Exa for official-domain, paper, product-page, trusted-site, or low-noise supplemental discovery.
 - Fetch capability: Tavily first, then Jina Reader with `JINA_API_KEY`, then Firecrawl.
 - `search --validation strict` uses the same bilingual web_search policy as balanced mode when source discovery providers are configured. Strict queries without primary, docs, fetch, or explicit source evidence can still fail with `evidence_error`; use `--extra-sources N`, source-first commands such as `exa-search`, or `fetch` when citable evidence is required.
@@ -278,17 +265,16 @@ Agent timeout handling contract:
 - `research` uses capability-first plus provider-advantage routing. Fallback remains same-capability only; low-quality fetches, challenge pages, empty content, auth/rate/timeout/provider errors, and runtime errors are failed attempts that may trigger same-capability fallback.
 - `map` uses Tavily only.
 - `exa-search` and `exa-similar` use Exa only.
-- `zhipu-search` uses Zhipu only and is retained as a deprecated manual compatibility command.
 - `context7-library` and `context7-docs` use Context7 only.
 - Runtime config priority is environment variables first, then local config file, then defaults.
 - `setup` and `config` read/write the local Smart Search config file and do not call providers.
-- Use `config set OPENAI_COMPATIBLE_MODEL ...` to change the main-search model.
+- Use `config set OPENAI_COMPATIBLE_MODEL ...` (or `XAI_MODEL ...` for the xAI route) to change the main-search model; use `config set SMART_SEARCH_MAIN_SEARCH_ROUTE ...` to change route priority.
 
 ## Routing Heuristics
 
 - Use `exa-search --include-domains` when official documentation domains are known.
 - Use `context7-library` / `context7-docs` for explicit docs/API/SDK/library/framework intent when Context7 is configured.
-- Use the bilingual `search` pair for Chinese, domestic, current, or mixed-language source discovery. Do not use Zhipu unless the user explicitly asks for the deprecated manual route.
+- Use the bilingual `search` pair for Chinese, domestic, current, or mixed-language source discovery.
 - Use `exa-search --start-published-date` for recency-constrained source discovery.
 - Use `exa-similar` when a known good page is available and adjacent sources are needed.
 - Use `search --format content` when a human wants only the generated answer body.

@@ -198,7 +198,7 @@ smart-search --version
 | `pnpm build` | `tsc` + 拷贝模板 |
 | `pnpm test` | Vitest |
 | `pnpm mirror-check` | Dogfood `.cursor` / `.agents` vs templates |
-| `pnpm run sync:smart-search` | 刷新 vendor |
+| `pnpm run sync:smart-search` | 刷新 bundled `smart-search-cli` skill（从 smart-search 仓库拷贝；非 vendor 源码） |
 
 Release 与 npm 发布流程**不在**公开 README 中；见内部维护文档。
 
