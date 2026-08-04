@@ -31,19 +31,56 @@ Broker down is OK: Trellis stages/children still render; RPC section shows `reac
 
 ## Canvas path (IDE-local)
 
+> **Critical — where Canvas actually renders**
+>
+> Cursor only shows the **graphical** Canvas UI for files under:
+> `~/.cursor/projects/<workspace-slug>/canvases/*.canvas.tsx`
+> (or a directory set via `TRELLIS_CAMPAIGN_CANVAS_DIR` / `CURSOR_CANVAS_DIR`).
+>
+> If you open the same `.canvas.tsx` from elsewhere (for example `.cstl/workspace/...`)
+> in a normal editor tab, you will see **TypeScript source only** — not the campaign UI.
+> Always open the printed path in the Cursor **Canvas** view.
+>
+> **User environments differ.** Do not assume a specific machine path, drive letter, or
+> Cursor project folder name. Prefer the CLI default (derived from the harness root +
+> `os.homedir()`). If Cursor’s project slug does not match the derived one, set
+> `TRELLIS_CURSOR_PROJECT_SLUG` or point `TRELLIS_CAMPAIGN_CANVAS_DIR` at the canvases
+> folder that your IDE actually uses.
+
 Generate or refresh a Cursor Canvas with an **embedded** campaign snapshot (no `fetch()` inside the canvas):
 
 ```powershell
+# Preferred: write to the default canvases path (CLI mkdir if needed)
 cstl campaign canvas --parent .cstl/tasks/<campaign-parent>
-
-# Or pin the output path (recommended when auto-detect misses the project folder)
-cstl campaign canvas --parent .cstl/tasks/<campaign-parent> --out "$env:USERPROFILE\.cursor\projects\d-MyHarness\canvases\campaign-<id>.canvas.tsx"
 ```
 
 Default write target: `~/.cursor/projects/<workspace-slug>/canvases/campaign-<parentId>.canvas.tsx`  
-(override with `--out`, or env `TRELLIS_CAMPAIGN_CANVAS_DIR` / `CURSOR_CANVAS_DIR`).
+Overrides (portable escape hatches):
 
-Open the printed `.canvas.tsx` beside chat (Cursor Canvas). Re-run the same command to refresh.
+| Env | Purpose |
+| --- | --- |
+| `TRELLIS_CAMPAIGN_CANVAS_DIR` / `CURSOR_CANVAS_DIR` | Absolute canvases directory |
+| `TRELLIS_CURSOR_PROJECT_SLUG` | Force `~/.cursor/projects/<slug>/canvases` when auto-slug is wrong |
+| `TRELLIS_CAMPAIGN_CANVAS_OPEN=0` | Disable default auto-open (`1` forces open) |
+| `CURSOR_BIN` | Cursor CLI binary when not on PATH |
+
+```powershell
+# Interactive (default): write + best-effort open in Cursor
+cstl campaign canvas --parent .cstl/tasks/<campaign-parent>
+
+# Optional: pin --out ONLY when the path stays under *your* canvases dir
+cstl campaign canvas --parent .cstl/tasks/<campaign-parent> --out "$env:USERPROFILE\.cursor\projects\<your-slug>\canvases\campaign-<id>.canvas.tsx"
+
+# Script-friendly: stdout = path only, no IDE popup
+cstl campaign canvas --parent .cstl/tasks/<campaign-parent> --quiet
+
+# Write without opening (still prints hints unless --quiet)
+cstl campaign canvas --parent .cstl/tasks/<campaign-parent> --no-open
+```
+
+**Do not** use `--out` to dump into `.cstl/workspace/...` or other repo paths unless you only want a source copy — the CLI still writes the file but prints a **warning**, and a normal editor will not render Canvas graphics.
+
+After a successful write, stdout prints the absolute path. By default the CLI also tries to open the file via the Cursor shell command so you can see the Canvas UI. Use `--quiet` in scripts. Re-run the same command to refresh.
 
 **Native and BYOK:** Canvas is IDE-local React compiled from `.canvas.tsx`; it works for both Native and BYOK sessions (does not depend on the official model billing channel).
 
