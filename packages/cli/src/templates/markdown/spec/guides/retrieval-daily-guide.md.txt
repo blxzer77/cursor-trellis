@@ -6,6 +6,20 @@
 
 For **external / current / web facts**, **smart-search** (`run_smart_search.py`) is the **mandatory first choice**. Platform built-in web tools (Cursor `WebSearch` / `WebFetch`) are **downgrade-only**: use them solely when smart-search is unavailable (`doctor` not ok, `not_configured` / `failed`, or timeout). Never reach for built-in web search while smart-search is healthy. This rule overrides any general "use available tools" instinct — web retrieval strength is routed inside Trellis, not left to the platform default.
 
+## External-knowledge gate (search-or-not)
+
+Ask: *If this answer were wrong because the world or a third-party API moved, would that matter?*
+
+| Decision | Action |
+| --- | --- |
+| **YES** (freshness / third-party surface) | Run `run_smart_search.py` — prefer `docs` / `official-source` / `broad-search` when cheap; use `deep-research` when multi-source or claim-risk is high |
+| **NO** (truth lives in this workspace) | Use rg / codegraph / `.cstl/spec` / task artifacts only — do **not** default to web |
+| **Ambiguous** | Prefer a **cheap** external probe over guessing; do not skip solely to save a call |
+
+**YES examples:** library/SDK current API or version; changelog / release notes; CVE / GitHub issue status; pricing / product status; live URLs; industry practice when designing policy.  
+**NO examples:** symbol location / call chains; in-repo Trellis contracts; behavior of the code you are editing; pure rename/lint inside known files.  
+After search: persist under `{TASK}/research/` with a **provider label**; treat hits as candidates until corroborated (repo, test, or second source).
+
 ## Quick matrix
 
 | Need | Tool | Notes |

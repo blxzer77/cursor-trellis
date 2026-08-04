@@ -56,4 +56,4 @@ Use codegraph for **call chains**, **cross-package trap disambiguation**, **exte
 
 ## External facts
 
-Web/current events: **smart-search** first per `.cstl/spec/guides/retrieval-daily-guide.md`.
+Web/current events: **smart-search** first per `.cstl/spec/guides/retrieval-daily-guide.md` (see **External-knowledge gate** for search-or-not).

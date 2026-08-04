@@ -23,6 +23,8 @@ Only a handful of Trellis entry points are meant for **manual `/` invocation**. 
 
 For **any external / current / web fact**, run **`python ./.cstl/scripts/run_smart_search.py "<question>" --intent deep-research --json`** first. That script is the **only** Trellis web-research evidence entrypoint (it shells out to the `smart-search` CLI). Do not guess paths under package source trees or sibling repos. Platform built-in web tools (Cursor `WebSearch` / `WebFetch`, or native web tools elsewhere) are **downgrade-only fallbacks**, used solely when smart-search is unavailable (`doctor` not ok, status `not_configured` / `failed`, or search timeout). Do not reach for built-in web search while smart-search is healthy. On Cursor, `smart-search-cli` is an **internal workflow skill name** only (not shipped under `.cursor/skills/`); follow `.cstl/spec/guides/retrieval-daily-guide.md` and `.cursor/rules/retrieval-routing.mdc` for the executable contract.
 
+**External-knowledge gate:** If the answer would be wrong because the **world or a third-party API moved** and that matters → use smart-search (cheap `docs` / `broad-search` when enough; `deep-research` when multi-source). If truth lives only in this workspace → do not default to web. When unsure, prefer a cheap probe over guessing. See retrieval-daily-guide § External-knowledge gate.
+
 Managed by cursor-trellis. Edits outside this block are preserved; edits inside may be overwritten by a future `cstl update`.
 
 <!-- CSTL:END -->
