@@ -11,6 +11,23 @@ SemVer: [semver.org](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.5] - 2026-08-05
+
+### Added
+
+- **feat(sdk)**: `cstl sdk run` injects an explicit `--task` binding into the agent prompt (BOUND contract).
+- **feat(campaign)**: Campaign Canvas open-path guard — default write under `~/.cursor/projects/<slug>/canvases/`; auto-open via Cursor CLI after write; `--quiet` / `--no-open`; env overrides `TRELLIS_CAMPAIGN_CANVAS_DIR` / `CURSOR_CANVAS_DIR` / `TRELLIS_CURSOR_PROJECT_SLUG` / `CURSOR_BIN` / `TRELLIS_CAMPAIGN_CANVAS_OPEN`.
+- **feat(cli)**: Adapt to **@blxzer/smart-search ^0.2.0**; External-knowledge gate in bundled agents/skills and retrieval docs (search when the world/API moved; skip when truth is in-repo).
+
+### Fixed
+
+- **fix(campaign)**: Campaign MCP stdio speaks **NDJSON** (Cursor / MCP SDK host), not LSP Content-Length framing.
+- **fix(cli)**: Do not create an empty `.cursor/mcp.json` on Cursor init when no MCP capabilities are selected (uninstall / clean-project gate).
+
+### Changed
+
+- **docs(campaign)**: `docs/campaign-ui.md` — portable canvases path, open-by-default, `--out` anti-pattern (source-only outside canvases).
+
 ## [0.3.4] - 2026-07-04
 
 ### Added
