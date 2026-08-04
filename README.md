@@ -58,6 +58,19 @@ cstl init --cursor
 
 Optional: `cstl init --cursor --cursor2plus` materializes a **per-repo** Cursor++ BYOK bundle (not a global either/or choice). Native and BYOK can coexist across projects on one machine — see [Native and BYOK coexistence](docs/cursor.md#native-and-byok-coexistence-not-eitheror).
 
+## Upgrade to 0.3.5
+
+```powershell
+npm install -g @blxzer/cursor-trellis@0.3.5
+# or: cstl upgrade
+cd /path/to/project
+cstl update -f --migrate
+# optional full capabilities:
+cstl init --cursor --capability all -y -f
+```
+
+Highlights: Campaign Canvas path/open guard (see [campaign-ui](docs/campaign-ui.md)), campaign MCP NDJSON host fix, smart-search **0.2** + External-knowledge gate, `cstl sdk run` explicit `--task` binding. Details: [CHANGELOG](packages/cli/CHANGELOG.md#035---2026-08-05).
+
 ## Upgrade from 0.3.0 (v0.3.1)
 
 v0.3.1 moves the cursor-trellis **runtime directory** from `.trellis/` to **`.cstl/`** so upstream [mindfold-ai/Trellis](https://github.com/mindfold-ai/Trellis) can keep `.trellis/` in the same repository. AGENTS.md managed blocks use `<!-- CSTL:START -->` markers.
