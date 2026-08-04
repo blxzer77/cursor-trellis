@@ -14,8 +14,8 @@ importers:
         specifier: workspace:*
         version: link:../core
       '@blxzer/smart-search':
-        specifier: ^0.1.15
-        version: 0.1.15
+        specifier: ^0.2.0
+        version: 0.2.0
       '@cursor/sdk':
         specifier: ^1.0.26
         version: 1.0.26
@@ -119,8 +119,8 @@ packages:
     resolution: {integrity: sha512-6zABk/ECA/QYSCQ1NGiVwwbQerUCZ+TQbp64Q3AgmfNvurHH0j8TtXa1qbShXA6qqkpAj4V5W8pP6mLe1mcMqA==}
     engines: {node: '>=18'}
 
-  '@blxzer/smart-search@0.1.15':
-    resolution: {integrity: sha512-GnAucKTpYAKf/lUKMXLkBFjceyxDIPm1ALWfGvm3hAEG5E6dd/8AKp9yQo16b+msfk+xV4DCTZzDkpGay9tx6w==}
+  '@blxzer/smart-search@0.2.0':
+    resolution: {integrity: sha512-9VsEOs3fZYHP5wb+9SmmvtQwmdm1z/FMKNCB4UUMA6OIZffXgY/6HXzpI6OGvN7beCSPiBve8DrUOUOwHIfemw==}
     engines: {node: '>=18'}
     hasBin: true
 
@@ -1407,7 +1407,7 @@ snapshots:
 
   '@bcoe/v8-coverage@1.0.2': {}
 
-  '@blxzer/smart-search@0.1.15': {}
+  '@blxzer/smart-search@0.2.0': {}
 
   '@bufbuild/protobuf@1.10.0': {}
 

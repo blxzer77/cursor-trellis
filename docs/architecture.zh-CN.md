@@ -95,18 +95,17 @@ Trellis 将代码库与外部事实问题通过一个**检索层**路由，而�
 
 ## smart-search 集成
 
-CLI 包提供第三个可执行文件：
+Trellis 将 [smart-search](https://github.com/blxzer77/smart-search) 作为 **npm 依赖**（`@blxzer/smart-search@^0.2.0`）调用，不是源码 vendor。
 
 ```bash
 smart-search --version
 ```
 
-- **目录**：`packages/cli/vendor/smart-search/`，经 `packages/cli/bin/smart-search.js` 暴露。
-- **用途**：面向 Agent 的 CLI 式网页检索（search、fetch、doctor、research 等），见 vendor [README](../packages/cli/vendor/smart-search/README.zh-CN.md)。
+- **转发**：`packages/cli/bin/smart-search.js` → `node_modules/@blxzer/smart-search`。
+- **用途**：面向 Agent 的 CLI 式网页检索（search、fetch、doctor、research 等）。
 - **与 Trellis**：workflow 约定外部事实优先走 smart-search；`init`/`update` 默认做 readiness 检查（可用 `--skip-readiness` 跳过）。
 - **不是 MCP**：通过 Shell 调用；在 Cursor 上依赖 workflow 与项目规则指引。
-
-维护者同步 vendor 见内部维护者手册（未公开，已 gitignore）。
+- **Skill 同步**：`packages/cli/src/templates/common/bundled-skills/smart-search-cli/` 从 smart-search 仓库 skill 树复制。
 
 ## Fork 关系
 
