@@ -30,6 +30,12 @@ import {
 } from "./state.js";
 import { evaluateTaskTriggers, shouldCreateGoalRootTask } from "./task-triggers.js";
 import { checkWalls, markNoProgressRound, markProgress } from "./walls.js";
+import type { GoalActionPacket } from "./action-packet.js";
+import {
+  buildWorkerTurnContext,
+  resolveWorkerAdapter,
+  type GoalWorkerKind,
+} from "./worker.js";
 import { DIR_NAMES } from "../constants/paths.js";
 import { workflowPath } from "../utils/workflow-dir.js";
 
@@ -49,6 +55,7 @@ export interface GoalRunOptions {
   cwd: string;
   goalId: string;
   mockWorker?: boolean;
+  worker?: GoalWorkerKind;
   maxSteps?: number;
 }
 
@@ -241,10 +248,7 @@ export async function runGoalLoop(
       total_turns: state.total_turns + 1,
     };
 
-    if (opts.mockWorker) {
-      state = markProgress(state);
-      appendAuditLine(opts.cwd, state.goal_id, "L0", `mock worker step ${step + 1}`);
-    } else if (state.mode === "window") {
+    if (state.mode === "window" && !opts.mockWorker && opts.worker !== "mock") {
       appendAuditLine(
         opts.cwd,
         state.goal_id,
@@ -255,13 +259,44 @@ export async function runGoalLoop(
       return state;
     }
 
-    const sampleAction = packAction(state, {
-      summary: "Run focused validation for goal step",
-      kind: "shell",
-      digest: "pnpm test goal/",
-      axes: { A: false, B: false, C: true },
-      hardDenyCandidates: [],
+    const adapter = resolveWorkerAdapter({
+      mockWorker: opts.mockWorker,
+      worker: opts.worker,
     });
+    state = { ...state, last_worker_adapter: adapter.id };
+    appendAuditLine(
+      opts.cwd,
+      state.goal_id,
+      "L0",
+      `worker ${adapter.id} turn ${step + 1} start`,
+    );
+
+    const turnResult = await adapter.runTurn(
+      buildWorkerTurnContext(opts.cwd, state, step + 1),
+    );
+    appendAuditLine(opts.cwd, state.goal_id, "L0", turnResult.summary);
+
+    if (turnResult.kind === "error") {
+      state = markNoProgressRound(state);
+      writeGoalState(opts.cwd, state);
+      continue;
+    }
+
+    if (turnResult.kind === "status") {
+      state = markProgress(state);
+      writeGoalState(opts.cwd, state);
+      continue;
+    }
+
+    const sampleAction: GoalActionPacket =
+      turnResult.packet ??
+      packAction(state, {
+        summary: "Run focused validation for goal step",
+        kind: "shell",
+        digest: "pnpm test goal/",
+        axes: { A: false, B: false, C: true },
+        hardDenyCandidates: [],
+      });
 
     const packetPath = writePacketFiles(
       opts.cwd,
