@@ -29,12 +29,17 @@ export const expectedRules: ExpectedRule[] = [
   },
   {
     filename: "retrieval-routing.mdc",
-    requiredSections: ["Native", "BYOK", "codegraph", "smart-search"],
+    requiredSections: ["Prefer", "Adapt", "Own", "Native", "BYOK", "codegraph", "smart-search"],
     minBytes: 600,
   },
   {
     filename: "cstl-session-rename.mdc",
     requiredSections: ["rename_chat", "select", "start-execution", "skip silently"],
     minBytes: 300,
+  },
+  {
+    filename: "cstl-cursor-modes.mdc",
+    requiredSections: ["Prefer Cursor native modes", "Quick routing", "Hard boundaries", "Rollback"],
+    minBytes: 400,
   },
 ];
