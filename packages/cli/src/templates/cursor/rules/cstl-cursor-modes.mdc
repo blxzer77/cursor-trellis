@@ -1,27 +1,31 @@
 ---
-description: "Prefer Cursor native modes (Plan/Ask/Debug/Agent/Multitask) mapped to Trellis phases — orchestrate, don't replace"
+description: "Prefer Cursor native modes — task-driven; quiet cstl spine fallback"
 alwaysApply: true
 ---
 
 # Prefer Cursor native modes (P1 — orchestrate, don't replace)
 
-cstl **prefers** Cursor's built-in modes and maps them to Trellis Triage/phases. **Do not replace** Cursor UI. Full table + citations: `.cstl/spec/guides/cursor-native-modes-guide.md` · evidence: `{TASK}/research/cursor-modes-external.md`.
+cstl **prefers** Cursor native modes and maps them to Trellis Triage/phases. **Do not** replace Cursor UI or invent a parallel Plan/Ask/Debug product. Full table: `.cstl/spec/guides/cursor-native-modes-guide.md` · evidence: `{TASK}/research/modes-callability-matrix.md`.
 
 ## Quick routing
 
 | Situation | Prefer | Trellis anchor |
 | --- | --- | --- |
-| Read-only explain / lookup | **Ask** (`Shift+Tab`) | `[Triage: No Task]` — no edits; side chat OK for tangents during Agent |
-| Scope / design before code | **Plan** | Phase 1; **Save to workspace** → `prd.md` / `design.md` / `implement.md`; then `--check` |
-| Approved build / verify | **Agent** | Phase 2–3; `execution_mode`; `SwitchMode` → agent after Plan |
-| Runtime / repeat failure | **Debug** (`Shift+Tab`) | Evidence → `verify.md`; `cstl-break-loop` if looped |
-| Independent Parent children (post-approval) | **Multitask** / Build in Parallel | Explicit `.cstl/tasks/<dir>` per worker; Parent integrates |
+| Read-only explain / lookup | **Ask** when reachable; else No Task in Agent | `[Triage: No Task]` — no durable edits |
+| Scope / design before code | **Try `SwitchMode(plan)`**; if poor, write artifacts in Agent | Phase 1 → `prd.md` / `design.md` / `implement.md`; `--check` |
+| Approved build / verify | **Agent**; `SwitchMode(agent)` after Plan | Phase 2–3; `execution_mode` |
+| Runtime / repeat failure | **Debug** when reachable; else verify + break-loop | Evidence → `verify.md` |
+| Independent Parent children (post-approval) | **Multitask** / `Task` parallel when useful | Explicit `.cstl/tasks/<dir>` per worker; Parent integrates |
+
+## Quiet fallback
+
+When native cannot be task-driven well: continue on the **cstl spine** (Triage / Phase / artifacts / gates). Do **not** add user-facing “本版本不适配某 mode” copy. Do **not** center guidance on “please open the mode picker.”
 
 ## Hard boundaries
 
-- Plan default save = **home dir** — not Trellis task paths until user saves/maps.
-- Multitask/subagents: **never** rely on `selected_task`; no collision guarantee — worktrees + Parent review.
-- Agent `SwitchMode`: **plan/agent only**; Ask/Debug = user `Shift+Tab` / picker.
+- Plan default save = **home dir** until Save to workspace → map into task files.
+- Multitask/subagents: **never** rely on `selected_task`; worktrees + Parent review.
+- Agent `SwitchMode`: **`plan` / `agent` only** (Ask/Debug not in the tool enum).
 
 ## Rollback
 

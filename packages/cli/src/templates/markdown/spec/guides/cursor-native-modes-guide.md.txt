@@ -1,141 +1,125 @@
 # Cursor native modes — Prefer & orchestrate (don't replace)
 
-> **Purpose**: Map Cursor **Plan / Ask / Debug / Agent / Multitask** to Trellis phases, Triage, and task artifacts. cstl **orchestrates and prefers** these surfaces; it does **not** reimplement them.
+> **Purpose**: Task-drive Cursor **Plan / Ask / Debug / Agent / Multitask** into Trellis phases and artifacts. Prefer native when callable; **quietly** fall back to the cstl spine when not. Do **not** reimplement modes or publish an “unsupported mode” list.
 >
-> **Product anchor**: `.cstl/workspace/cursor-trellis-product-positioning.md` (P1 — Prefer Cursor 适配).
+> **Product anchor**: `.cstl/workspace/cursor-trellis-product-positioning.md` (P1).
 >
-> **External evidence (2026-08-05)**: `{TASK}/research/cursor-modes-external.md` + `research/smart-search/fetch-*.md`.
+> **Design lock**: Parent `research/task-driven-modes-design-lock-2026-08-06.md`.
 >
-> **Rollback**: see [Rollback](#rollback) — delete listed files or restore from `cstl update` templates.
+> **Evidence**: `{TASK}/research/cursor-modes-external.md`, `{TASK}/research/modes-callability-matrix.md`.
+>
+> **Rollback**: [Rollback](#rollback).
 
 ---
 
 ## Principle
 
-| Layer | Owner |
+| Layer | Duty |
 | --- | --- |
-| **Cursor mode UI** (Plan / Ask / Debug / Agent / Multitask) | Cursor — how this window works |
-| **Trellis lifecycle** (Triage, phases, gates, artifacts, Parent/Child integration) | cstl — how work becomes durable engineering |
+| **Cursor native** | Plan / Ask / Debug / Agent / Multitask — **try task-driven use first** |
+| **cstl spine** | Triage / Phase / gates / artifacts / Parent integration — **quiet fallback** when native cannot be driven well |
 
-**Prefer native when it fits.** Fall back to cstl skills/commands (`cstl-brainstorm`, `cstl-break-loop`, Task subagents) when the native mode is unavailable (BYOK gaps, platform limits) or when Trellis gates require explicit CLI steps.
+**Prefer native. Invent less.** Failures drop to existing cstl paths with little commentary — never a user-facing “本版本不适配某 mode” section.
 
 ---
 
 ## Prefer / Adapt table (mode × Trellis × artifacts)
 
-| Cursor mode | Official purpose (2026) | Prefer when (trigger) | Trellis Triage / Phase | cstl orchestration (Prefer) | Durable artifacts | cstl does **not** |
-| --- | --- | --- | --- | --- | --- | --- |
-| **Ask** | Read-only exploration; no file edits ([help](https://cursor.com/help/ai-features/ask-mode), [CLI](https://cursor.com/docs/cli/using#ask-mode)) | Explain / lookup / understand code with **no** durable repo change | **No Task** (read-only follow-up on selected task OK) | User: **`Shift+Tab`** / mode picker → Ask; emit `[Triage: No Task]`; optional **side chat** (3.11) for tangents during Agent runs | None in task dir (chat only) | Force Lite/Full task for pure questions |
-| **Plan** | Research + **implementation plan** before code; review then **Build** ([plan-mode](https://cursor.com/docs/agent/plan-mode)) | Scope/architecture/tradeoffs; multi-file design; Parent/Child split | **Micro-Grill → Full/Parent**; **Phase 1** | **`Shift+Tab`** / picker → Plan; pair with `cstl-brainstorm`; **Save plan to workspace** → map to task files; stop at `--check` | `prd.md`, `design.md`, `implement.md`, `research/` (manual map from plan markdown) | Assume plan auto-lands in `.cstl/tasks/` (default save = **home dir**) |
-| **Agent** | Full agent: tools, terminal, edits ([overview](https://cursor.com/docs/agent/overview)) | Approved execution after `--approved` | **Lite / Full**; **Phase 2–3** | Default builder; follow `execution_mode`; Agent `SwitchMode` → **agent** when returning from Plan | Code diff, `verify.md`, gates | Replace Agent as Cursor's default builder |
-| **Debug** | Hypotheses + instrumentation + runtime logs → targeted fix ([debug-mode](https://cursor.com/docs/agent/debug-mode)) | Reproducible bug; race/timing; regressions | **Phase 2–3**; optional **3.2** | User: **`Shift+Tab`** / picker → Debug; parallel `cstl-break-loop` if looped; evidence → `verify.md` | Debug notes, logs, repro in `verify.md` / `research/` | Replace Debug UI; claim `SwitchMode` opens Debug |
-| **Multitask** | **`/multitask`** + Plan **Build in Parallel** — async subagents, not a chat-mode picker ([help](https://cursor.com/help/ai-features/multi-agent), [changelog 3.2](https://cursor.com/changelog/04-24-26)) | Independent Parent children post-approval; parallel research shards | **Parent Task** | After approval: Agents Window `/multitask` or Build in Parallel; **explicit `.cstl/tasks/<dir>`** in every worker prompt; Parent **`integrate-child`** | Per-child `verify.md`, `handoff.md`; Parent `task-map.md` | Replace lifecycle/gates; rely on collision prevention |
+| Cursor mode | Prefer when | Task-driven Prefer | Quiet cstl fallback | Durable artifacts |
+| --- | --- | --- | --- | --- |
+| **Ask** | Explain / lookup; **no** durable change | Prefer Ask UI / side chat when the user is already there; Agent cannot `SwitchMode`→Ask | In-session **No Task** behavior (read-only, no `task.py create` without consent) | None |
+| **Plan** | Scope / design / tradeoffs before code | **Try `SwitchMode(plan)`**; after review, `SwitchMode(agent)` or Build; **Save to workspace** → map into task files | Keep writing `prd.md` / `design.md` / `implement.md` + `cstl-brainstorm` in Agent | Phase 1 files |
+| **Agent** | Approved build / verify | Default; `SwitchMode(agent)` when returning from Plan | — | Diff, `verify.md`, gates |
+| **Debug** | Repro / runtime / regressions | Prefer real Cursor Debug when the user/session can reach it | Evidence → `verify.md`; `cstl-break-loop` if looped | Notes / logs in `verify.md` |
+| **Multitask** | Independent Parent children post-approval | Prefer `/multitask` / Build in Parallel / Agent `Task` background workers **when useful** | Explicit `.cstl/tasks/<dir>` prompts + Parent `integrate-child` | Child `verify`/`handoff`; Parent `task-map` |
 
 ### Phase quick map
 
 ```
-Triage (No Task / Micro-Grill)     → Ask (or side chat during Agent)
-Phase 1 Plan                        → Plan (+ cstl-brainstorm); Save to workspace → task artifacts
-Phase 2 Execute                     → Agent (+ worker Task subagents when contracted)
-Phase 2–3 stuck / repeat failure    → Debug (+ cstl-break-loop)
-Parent parallel children            → Multitask / Build in Parallel (post-approval)
+Triage (No Task / Micro-Grill)  → Ask surface if present; else No Task in Agent
+Phase 1                         → SwitchMode(plan) when useful; else write artifacts in Agent
+Phase 2–3                       → Agent (+ workers when contracted)
+Stuck / repeat failure          → Debug when reachable; else verify.md + break-loop
+Parent parallel children        → Multitask / Task parallel when useful; Parent integrates
 ```
 
 ---
 
 ## Mode-specific contracts
 
-### Ask ↔ No Task boundary
+### Ask ↔ No Task
 
-- **Official Ask**: searches/reads; **does not edit files** (E1). Switch via **`Shift+Tab`** or mode picker; CLI `/ask` or `--mode=ask` (E2).
-- **Trellis**: classify **No Task** for pure Q&A; **no** `task.py create` without consent.
-- **Side chats (3.11)**: `/side` or `/btw` — read/search/answer **alongside** a running Agent thread; complements Ask; still **not** Trellis artifacts.
-- **Upgrade**: durable change needed → consent → **Plan** (Phase 1) or **Agent** (post-approval).
+- Official Ask does not edit files. Agent tools cannot switch into Ask.
+- Classify **No Task** for pure Q&A; no task creation without consent.
+- Side chats (3.11) complement Ask during Agent runs — still not Trellis artifacts.
 
-### Plan ↔ Phase 1 artifacts
+### Plan ↔ Phase 1
 
-- Plan produces a **reviewable implementation plan** (chat + markdown); **Build** runs Agent implementation (E3).
-- **Default save location is the user's home directory** — click **“Save to workspace”** before mapping into `{TASK}/prd.md`, `design.md`, `implement.md`.
-- Plan does **not** skip `start-execution --check` / user execution approval.
-- **`cstl-brainstorm`** remains for PRD grill — Plan complements it.
+- Prefer **`SwitchMode(plan)`** for design-heavy Phase 1; care about switch-back quality.
+- Default plan save = **home directory** — **Save to workspace**, then map to `{TASK}/prd.md`, `design.md`, `implement.md`.
+- Does **not** skip `start-execution --check` / execution approval.
+- If Plan switch or save flow is poor: **quietly** author the same files in Agent.
 
 ### Debug ↔ evidence
 
-- Debug adds **instrumentation** → user reproduces → agent analyzes logs → **targeted fix** → removes instrumentation (E4).
-- Trellis still requires **`verify.md`** proof; scope/contract change → Return-to-Planning.
+- Prefer Cursor Debug instrumentation when reachable.
+- Always land proof in **`verify.md`**. Contract change → Return-to-Planning.
 
 ### Multitask ↔ Parent/Child
 
-1. **Trellis = source of truth** for status, gates, integration (E6–E7).
-2. **Subagents = own context** — prompt must include task path, role, output files (E9); never rely on `selected_task`.
-3. **Worktrees**: UI-native isolation in **Agents Window**; IDE uses `/worktree` skills (E8).
-4. **No guaranteed collision prevention** on parallel `/multitask` (forum v0, E11) — worktrees + Parent review.
-5. **Build in Parallel**: independent plan steps parallel; **dependent steps stay ordered** (E6).
-
-See: `cursor-subagent-policy.md`, `execution-strategy.md`, `research/cursor-modes-external.md`.
+1. Trellis remains source of truth for status, gates, integration.
+2. Prefer native parallel surfaces to support independent Children when they help isolation/throughput.
+3. Every worker prompt includes **explicit `.cstl/tasks/<dir>`** — never rely on `selected_task`.
+4. Parent alone `integrate-child`; no collision guarantee without worktrees + review.
 
 ---
 
-## Switching modes (user vs Agent tool)
+## Callability (Agent tool table)
 
-| Surface | Plan | Agent (builder) | Ask | Debug |
-| --- | --- | --- | --- | --- |
-| **User UI** | `Shift+Tab`, mode picker | same | same | same |
-| **Cursor CLI** | `/plan`, `--mode=plan` | default | `/ask`, `--mode=ask` | (editor-focused in docs) |
-| **Agent `SwitchMode` tool** | Yes → `plan` | Yes → `agent` | **No** — user UI | **No** — user UI |
+| Surface | Plan | Agent | Ask | Debug | Parallel Children |
+| --- | --- | --- | --- | --- | --- |
+| Agent `SwitchMode` | Yes → `plan` | Yes → `agent` | — | — | — |
+| Agent `Task` / Multitask | — | workers | — | — | Prefer when useful |
+| User / CLI modes | Plan UI / `/plan` | default | Ask UI / `/ask` | Debug UI | `/multitask`, Build in Parallel |
 
-When the Agent tool cannot switch, state the recommendation and continue via the closest cstl skill path.
-
----
-
-## 2026 changelog hooks (Trellis mapping)
-
-| Entry | Implication for cstl |
-| --- | --- |
-| **3.2 Multitask / worktrees / multi-root** ([changelog](https://cursor.com/changelog/04-24-26)) | Parent parallel execution via `/multitask`; cross-repo Parent tasks need explicit workspace setup |
-| **3.11 Side chats** ([changelog](https://cursor.com/changelog/side-chat)) | Prefer for read-only tangents during Phase 2 Agent — does not replace `verify.md` |
-| **3.5 Worktree cleanup** ([worktrees doc](https://cursor.com/docs/configuration/worktrees)) | Child worktrees may be cleaned; record refs in `handoff.md` |
+Details: `research/modes-callability-matrix.md`.
 
 ---
 
 ## What cstl must not claim
 
-See full table in `research/cursor-modes-external.md` § Q5. Short list:
-
-- Plans auto-save into Trellis task directories.
-- Multitask exposes a stable programmatic API or inherits `selected_task`.
+- Plans auto-save into `.cstl/tasks/`.
+- Multitask inherits `selected_task` or exposes a stable programmatic mode API.
 - Parallel agents cannot conflict without Trellis/worktree discipline.
-- `SwitchMode` replaces user Ask/Debug switching.
+- `SwitchMode` can open Ask or Debug.
+- Shipping a parallel fake Plan/Ask/Debug product, or documenting gaps as “本版本不适配”.
 
 ---
 
-## Dogfood checklist (Native verification)
+## Dogfood / probes
 
-| Mode | Probe | Pass when |
+| Mode | Minimum probe | Pass when |
 | --- | --- | --- |
-| **Ask** | Ask-mode help scenario: “how does X work?” | `[Triage: No Task]`; no edits; no task without consent |
-| **Plan** | Plan → **Save to workspace** → copy into task `prd.md` | Execution **not** started without `--approved` |
-| **Debug** | Reproduce bug in Debug mode | Evidence in `verify.md`; instrumentation removed after fix |
-| **Multitask** | Two independent children post-approval | Each writes to child path; Parent alone integrates |
-
-Record results in `{TASK}/verify.md`.
+| **Plan** | Schema or live `SwitchMode(plan)` note in verify | Prefer path documented; quiet Agent fallback if unused |
+| **Ask / Debug** | Callability matrix | Quiet spine behavior; no “不适配” section |
+| **Multitask** | Task parallel or doc contract | Explicit child paths; Parent integrates |
+| **Agent** | Session implements under contract | Artifacts on disk |
 
 ---
 
 ## Rollback
 
-P1 adaptation is **docs + rules only**. To revert:
+Docs + rules only:
 
 1. Delete `.cursor/rules/cstl-cursor-modes.mdc` and `.cstl/spec/guides/cursor-native-modes-guide.md`.
-2. Remove guide row from `guides/index.md` and workflow mode rows (or `cstl update` from pre-P1 templates).
-3. **cursor-trellis**: revert template commit before this Child's `--ref`, or delete mirrored paths under `packages/cli/src/templates/`.
+2. Drop related `guides/index.md` / `workflow.md` rows, or `cstl update` from pre-P1 templates.
+3. **cursor-trellis**: revert this Child’s tip or delete mirrored template paths.
 
 ---
 
-## Related docs
+## Related
 
-- `{TASK}/research/cursor-modes-external.md` — evidence ledger + deltas
-- `.cstl/workflow.md` — phases, Parent/Child
-- `.cursor/rules/cstl-cursor-modes.mdc` — slim per-turn Prefer routing
-- `.cursor/rules/cstl-triage.mdc` — classification gate
-- `.cstl/spec/guides/cursor-subagent-policy.md` — Task vs Multitask
+- `{TASK}/research/modes-callability-matrix.md`
+- `{TASK}/research/cursor-modes-external.md`
+- `.cursor/rules/cstl-cursor-modes.mdc`
+- `.cstl/spec/guides/cursor-subagent-policy.md`
