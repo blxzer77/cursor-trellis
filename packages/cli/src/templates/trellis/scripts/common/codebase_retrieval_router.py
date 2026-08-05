@@ -681,7 +681,7 @@ def _ordered_routes(
             ],
             "rationale": (
                 "Prefer Cursor native: Grep for named-symbol definition, then Read "
-                "to verify (GO_TO_DEFINITION not in Agent tool table)."
+                "to verify (GO_TO_DEFINITION not in Agent tool table per cursor.com/docs/agent/overview)."
             ),
             "platformNative": True,
         })

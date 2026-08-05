@@ -9,15 +9,17 @@ Before answering **code-location / architecture / caller-chain / config-schema**
 
 ## Prefer / Adapt / Own (code intelligence)
 
-| Need | **Prefer** (Cursor native) | **Adapt** (route by intent / `cursorEnv`) | **Own** (codegraph / MCP) |
+**Three surfaces (do not conflate):** (1) **IDE Editor** — full extension LSP; (2) **Agents Window (Glass)** — staff-reported partial LSP vs Editor ([forum](https://forum.cursor.com/t/cursor-agents-window-lsp-not-working-with-typescript/156772)); (3) **Agent autonomous tools** — [official list](https://cursor.com/docs/agent/overview.md) is search/read/edit/shell/web — **no** `GO_TO_DEFINITION` / raw LSP tool. Trellis routes **Agent tool table** only. See `retrieval-daily-guide.md` § Prefer/Adapt/Own evidence (2026-08-05 smart-search + Native probe).
+
+| Need | **Prefer** (Cursor native, Agent-reachable) | **Adapt** (route by intent / `cursorEnv`) | **Own** (codegraph / MCP) |
 | --- | --- | --- | --- |
 | Exact literal / path | **Grep** | — | — |
-| Named-symbol definition (known identifier) | **Grep → Read** | Add path hints from semantic when file unknown | codegraph when cross-package trap, overload ambiguity, or blast context needed |
-| IDE diagnostics | **ReadLints** | — | — |
-| Conceptual / how does X work | **Native:** built-in `@codebase` / semantic search | **BYOK:** **fast_context_search** (fast-context MCP). Plans show `cursorEnv`. | — |
+| Named-symbol definition (known identifier) | **Grep → Read** | Path hints from semantic when file unknown | codegraph when cross-package trap, overload ambiguity, or blast context needed |
+| Agent-session diagnostics | **ReadLints** (when in tool table) | — | — |
+| Conceptual / how does X work | **Native:** built-in `@codebase` / semantic search (index embeddings; ≠ LSP) | **BYOK:** **fast_context_search** (fast-context MCP). Plans show `cursorEnv`. | — |
 | Caller chain / blast radius | Grep for imports/callbacks (gap-fill) | — | **codegraph_callers** / **codegraph_explore** |
 | Cross-package trap / extension symbol | Grep scoped by package or `extensions/` | — | **codegraph_search** / **codegraph_explore** |
-| Raw LSP / GO_TO_DEFINITION | **Not in Agent tool table** (re-probe before claiming Prefer) | — | codegraph as **product fallback** when native Grep+Read is insufficient |
+| Raw LSP / GO_TO_DEFINITION **as Agent tool** | **Not in Agent tool table** (official docs + Native probe 2026-08-05) | IDE Editor has LSP; Agents Window may lack parity — human UI, not Agent routing | codegraph when Grep+Read insufficient |
 
 **Rollback:** revert this rule + `retrieval-daily-guide.md` Prefer rows to the pre-P1 codegraph-first definition wording; keep codegraph MCP enabled.
 
@@ -67,7 +69,9 @@ When the plan block includes **结果层排序**, apply it **after** collecting 
 
 ## codegraph-only value (Own layer)
 
-Use codegraph for **call chains**, **cross-package trap disambiguation**, **extension symbol resolution**, **impact/blast radius**, and **definition/reference when native Grep+Read is ambiguous** — not for pure literal search (Grep), simple single-package definition jump (Grep+Read), BYOK concept Primary (use fast-context), or IDE diagnostics (ReadLints).
+Use codegraph for **call chains**, **cross-package trap disambiguation**, **extension symbol resolution**, **impact/blast radius**, and **definition/reference when native Grep+Read is ambiguous** — not for pure literal search (Grep), simple single-package definition jump (Grep+Read), BYOK concept Primary (use fast-context), Agent diagnostics (ReadLints), or **replacing IDE Editor LSP** (human surface).
+
+**Re-probe gate:** Before elevating raw LSP to Prefer, verify Agent tool table + `retrieval-daily-guide.md` evidence notes; if external docs add LSP tools but Native probe fails, **keep fallback** and document the gap.
 
 ## External facts
 
