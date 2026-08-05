@@ -219,7 +219,8 @@ To get structured package info, run: `python ./{DIR_WORKFLOW}/scripts/get_contex
 - Spec files: `{spec_path}/**/*.md`
 - Code search: Use Glob and Grep tools
 - External facts / docs: load `smart-search-cli` skill and use Bash (`smart-search` CLI), not Cursor WebSearch/WebFetch by default"""
-    return project_structure
+    context_parts.append(project_structure)
+    return "\n\n".join(context_parts)
 
 
 def build_implement_prompt(original_prompt: str, context: str) -> str:
