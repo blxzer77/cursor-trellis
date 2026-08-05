@@ -227,15 +227,16 @@ Before executing an upgrade that creates artifacts, changes task mode, adds gate
 
 ### Cursor native modes (Prefer — don't replace)
 
-Full map: `.cstl/spec/guides/cursor-native-modes-guide.md` · per-turn slim rule: `.cursor/rules/cstl-cursor-modes.mdc`.
+Full map: `.cstl/spec/guides/cursor-native-modes-guide.md` · per-turn slim rule: `.cursor/rules/cstl-cursor-modes.mdc`.  
+Task-driven: try callable native first (`SwitchMode` plan/agent, Multitask/`Task` when useful); **quiet cstl spine fallback** when not — no user-facing “不适配 mode” list.
 
 | Situation | Prefer Cursor mode | Trellis phase / note |
 | --- | --- | --- |
-| Read-only explain / lookup | **Ask** | No Task; no durable edits without consent |
-| Scope / design before code | **Plan** | Phase 1; artifacts → `prd.md` / `design.md` / `implement.md` |
+| Read-only explain / lookup | **Ask** (or No Task in Agent) | No Task; no durable edits without consent |
+| Scope / design before code | **Plan** (`SwitchMode(plan)` when useful) | Phase 1; artifacts → `prd.md` / `design.md` / `implement.md` |
 | Approved build / verify | **Agent** | Phase 2–3; `execution_mode` contract |
-| Repeat failure / runtime debug | **Debug** | Evidence → `verify.md`; loops → `cstl-break-loop` |
-| Independent Parent children (post-approval) | **Multitask** / Build in Parallel | Explicit task path per worker; Parent integrates |
+| Repeat failure / runtime debug | **Debug** when reachable | Evidence → `verify.md`; loops → `cstl-break-loop` |
+| Independent Parent children (post-approval) | **Multitask** / Build in Parallel when useful | Explicit task path per worker; Parent integrates |
 
 Details: archived `06-15-child-phase3-task-ladder` → `research/task-ladder-iteration.md`.
 
