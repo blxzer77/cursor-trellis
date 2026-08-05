@@ -34,6 +34,8 @@ After search: persist under `{TASK}/research/` with a **provider label**; treat 
 
 **Rollback:** restore pre-P1 codegraph-first definition rows in this guide + `.cursor/rules/retrieval-routing.mdc`; keep codegraph MCP enabled.
 
+**Evidence (2026-08-05):** `research/cursor-code-intel-external.md` — official Agent tools = search/read/edit (no LSP); semantic (@codebase) ≠ LSP; Agents Window LSP gap staff-confirmed on forum.
+
 ## Quick matrix
 
 | Need | Tool | Notes |
@@ -57,7 +59,7 @@ The planner emits **`platform-semantic`** with backend chosen by **`cursorEnv`**
 - **native:** built-in `@codebase` / agent semantic search — **do not** use fast-context as Primary.
 - **byok:** **fast-context MCP** (`fast_context_search`) — built-in semantic is not in the agent tool list.
 
-Definition / reference jumps: **Prefer Grep → Read** for named symbols; **codegraph** when cross-package trap, overload ambiguity, or blast context (GO_TO_DEFINITION / raw LSP not in Agent tool table — re-probe before changing default).
+Definition / reference jumps (Agent): **Prefer Grep → Read** for named symbols; **codegraph** when trap/blast/ambiguity. **Not** raw LSP: `GO_TO_DEFINITION` absent from [Agent tool overview](https://cursor.com/docs/agent/overview.md) (2026-08-05). Semantic / `@codebase` is a separate Prefer path for concepts (embedding index), not LSP. IDE Editor F12 ≠ Agent tool routing.
 
 ## Token economy signals
 
