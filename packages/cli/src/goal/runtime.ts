@@ -213,7 +213,12 @@ export async function runGoalLoop(
   opts: GoalRunOptions,
   reviewCaller: ReviewCaller = async (packetPath) => {
     const raw = JSON.parse(fs.readFileSync(packetPath, "utf-8"));
-    return minimalReviewFallback(raw);
+    const result = reviewGoalActionPacket(raw);
+    if (!result.valid || !result.decision) {
+      // Invalid packet / decision: fall back so walls can retry or pause.
+      return minimalReviewFallback(raw);
+    }
+    return result.decision;
   },
 ): Promise<GoalState> {
   let state = readGoalState(opts.cwd, opts.goalId);
