@@ -1,0 +1,28 @@
+---
+description: "Prefer Cursor native modes (Plan/Ask/Debug/Agent/Multitask) mapped to Trellis phases — orchestrate, don't replace"
+alwaysApply: true
+---
+
+# Prefer Cursor native modes (P1 — orchestrate, don't replace)
+
+cstl **prefers** Cursor's built-in **Plan / Ask / Debug / Agent / Multitask** surfaces and maps them to Trellis Triage and phases. **Do not reimplement or replace** these modes. Full table: `.cstl/spec/guides/cursor-native-modes-guide.md`.
+
+## Quick routing
+
+| Situation | Prefer Cursor mode | Trellis anchor |
+| --- | --- | --- |
+| Read-only explain / lookup / status | **Ask** | `[Triage: No Task]` — no durable edits; no task without consent |
+| Scope, architecture, tradeoffs before code | **Plan** (+ `cstl-brainstorm`) | Phase 1 → `prd.md` / `design.md` / `implement.md`; stop at `--check` + execution approval |
+| Approved implementation / verification | **Agent** | Phase 2–3; follow `execution_mode`; persist `verify.md` |
+| Repeat failure / runtime evidence | **Debug** (+ `cstl-break-loop` if looped) | Evidence in `verify.md` / `research/`; contract change → Return-to-Planning |
+| Independent Parent children post-approval | **Multitask** / Build in Parallel | Explicit `.cstl/tasks/<dir>` in every worker prompt; Parent owns `integrate-child` |
+
+## Hard boundaries
+
+- Plan / Multitask output **feeds** Trellis artifacts — does **not** skip gates, `start-execution --approved`, or Parent integration.
+- Multitask workers: **never** rely on live `selected_task`; include task path + role + output files in the prompt.
+- Agent may `SwitchMode` to **plan** / **agent** only; suggest user switch for **Ask** / **Debug**.
+
+## Rollback
+
+Delete this file and `cursor-native-modes-guide.md` to restore pre-P1 behavior (see guide Rollback section).
