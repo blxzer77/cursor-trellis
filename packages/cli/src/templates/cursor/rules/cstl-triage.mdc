@@ -1,5 +1,5 @@
 ---
-description: "Trellis Request Triage — mandatory classification before any work (Cursor sessionStart additional_context is broken; this rule is the reliable injection channel)"
+description: "Trellis Request Triage — mandatory classification before any work (Cursor: alwaysApply rule is the per-turn reliable channel; sessionStart is session-level only)"
 alwaysApply: true
 ---
 
@@ -33,6 +33,4 @@ If the user declines a task for a simple request, skip Trellis for this session.
 
 ## Why this rule exists
 
-Cursor's `sessionStart` hook has a confirmed bug (#158452): `additional_context` is never injected into the agent's system context. The Triage rules in `.cstl/workflow.md` therefore never reach you via that channel. This `.cursor/rules` file is the reliable workaround — Cursor prepends rules to your context before every prompt, independent of the broken sessionStart path.
-
-Full decision-tree details, trigger-signal keywords, and the Task Ladder table: see `.cstl/workflow.md` → `### Request Triage`.
+Request Triage must be visible **on every turn**, not only at session start. `.cursor/rules` with `alwaysApply: true` is the reliable per-turn channel on Cursor. `sessionStart` `additional_context` delivers session-level orientation (dashboard, workflow summary) once per session — useful but insufficient for a per-turn hard gate. The full decision tree also lives in `.cstl/workflow.md` for on-demand loading via `get_context.py` / `cstl-continue`.
