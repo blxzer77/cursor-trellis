@@ -85,11 +85,11 @@
     },
     {
       "id": "P-10",
-      "label": "Definition / reference via codegraph (LSP not in Agent tool table)",
+      "label": "Definition / reference — Prefer Grep+Read; codegraph when ambiguous",
       "nature": "local-mcp",
       "expected_byok": "pass",
-      "native": { "status": "pass", "evidence": "codegraph_search + node; def route_codebase_retrieval L791; GO_TO_DEFINITION none", "actual_tool": "codegraph_search", "probed_at": "2026-06-23" },
-      "byok":   { "status": "pass", "evidence": "codegraph_node at def route_codebase_retrieval; GO_TO_DEFINITION none", "actual_tool": "codegraph_node", "probed_at": "2026-06-23" }
+      "native": { "status": "pass", "evidence": "Grep def route_codebase_retrieval L805 codebase_retrieval_router.py; Read confirm; GO_TO_DEFINITION none; codegraph optional", "actual_tool": "Grep", "probed_at": "2026-08-05" },
+      "byok":   { "status": "pass", "evidence": "Grep+Read same as native; GO_TO_DEFINITION none", "actual_tool": "Grep", "probed_at": "2026-08-05" }
     },
     {
       "id": "P-08-SA",
