@@ -251,36 +251,38 @@ verdict rules:
 
 ---
 
---- PROBE P-10: Definition / reference (codegraph — Agent LSP not exposed)
+--- PROBE P-10: Definition / reference (Prefer Grep+Read; codegraph when ambiguous)
 
 Cursor Agent does **not** expose GO_TO_DEFINITION in the tool table (Native/BYOK).
-Trellis routes definition/reference to **codegraph**. This probe measures the
-**product path**, not raw LSP.
+Trellis **Prefers** native **Grep → Read** for named-symbol definition; **codegraph**
+is the **Own** fallback when Grep is ambiguous or structural context is required.
 
-You are a retrieval capability probe. Use **codegraph_node** or **codegraph_search**
-as the **primary** path. Do NOT use Grep as the first step. Use **Read** only to
-confirm line numbers after codegraph returns a definition.
+You are a retrieval capability probe.
 
 Task: Locate the **definition** of `route_codebase_retrieval` (Python function).
 
+**Step 1 (Prefer):** Use **Grep** for `def route_codebase_retrieval` — do NOT use codegraph first.
+**Step 2:** Use **Read** to confirm the definition line and body start.
+**Step 3 (only if Grep ambiguous):** codegraph_explore / codegraph_search.
+
 Expected: definition in `.cstl/scripts/common/codebase_retrieval_router.py`
-(`def route_codebase_retrieval(`).
+(`def route_codebase_retrieval(` at line ~805).
 
 Reply in this exact format:
 
 ```
 P-10 RESULT
-tool_invoked: <exact tool name — codegraph_node, codegraph_search, or "none">
+tool_invoked: <primary tool — Grep, Read, codegraph_explore, or "none">
 definition_file: <path>
 definition_line: <line number or "unknown">
 verdict: pass|fail|environment_limitation
-notes: <if you tried GO_TO_DEFINITION and it was unavailable, say so; pass when codegraph + Read confirm def>
+notes: <GO_TO_DEFINITION availability; did Grep+Read succeed before any codegraph?>
 ```
 
 verdict rules:
-- **pass**: codegraph (or equivalent MCP) returned the correct `def route_codebase_retrieval` file.
-- **environment_limitation**: only when codegraph MCP/index is missing; not when LSP is missing.
-- **fail**: wrong file or no structural tool executed.
+- **pass**: Grep (+ Read) returned the correct `def route_codebase_retrieval` file; codegraph optional.
+- **environment_limitation**: only when Grep/Read are unavailable in the host (not when LSP is missing).
+- **fail**: wrong file, or codegraph used as first step without Grep attempt.
 
 ---
 

@@ -7,13 +7,27 @@ alwaysApply: true
 
 Before answering **code-location / architecture / caller-chain / config-schema** questions in this repo, use the retrieval layer deliberately. On Cursor, **`.cursor/rules` is the reliable per-turn policy channel**; the **`beforeSubmitPrompt`** hook (`.cursor/hooks/inject-retrieval-plan.py`) runs **telemetry-only** — it does **not** inject `## 代码库检索计划` blocks. Generate a plan via `route_codebase_retrieval.py --instructions` when needed, or follow the default tool order below. Do **not** depend on end-of-turn retrieval-pack hooks for plans.
 
+## Prefer / Adapt / Own (code intelligence)
+
+| Need | **Prefer** (Cursor native) | **Adapt** (route by intent / `cursorEnv`) | **Own** (codegraph / MCP) |
+| --- | --- | --- | --- |
+| Exact literal / path | **Grep** | — | — |
+| Named-symbol definition (known identifier) | **Grep → Read** | Add path hints from semantic when file unknown | codegraph when cross-package trap, overload ambiguity, or blast context needed |
+| IDE diagnostics | **ReadLints** | — | — |
+| Conceptual / how does X work | **Native:** built-in `@codebase` / semantic search | **BYOK:** **fast_context_search** (fast-context MCP). Plans show `cursorEnv`. | — |
+| Caller chain / blast radius | Grep for imports/callbacks (gap-fill) | — | **codegraph_callers** / **codegraph_explore** |
+| Cross-package trap / extension symbol | Grep scoped by package or `extensions/` | — | **codegraph_search** / **codegraph_explore** |
+| Raw LSP / GO_TO_DEFINITION | **Not in Agent tool table** (re-probe before claiming Prefer) | — | codegraph as **product fallback** when native Grep+Read is insufficient |
+
+**Rollback:** revert this rule + `retrieval-daily-guide.md` Prefer rows to the pre-P1 codegraph-first definition wording; keep codegraph MCP enabled.
+
 ## When a retrieval plan block is present
 
 If the user message or Trellis context contains a block starting with `## 代码库检索计划` or `## Codebase retrieval plan`:
 
 1. Execute steps **in order** before stating file paths or behavior claims.
 2. Treat each step as mandatory tooling (not suggestions).
-3. Finish with **Read** verification on cited sources (definition jumps use **codegraph_node**, not LSP).
+3. Finish with **Read** verification on cited sources (definition jumps: **Grep → Read** first; **codegraph** when the plan lists structural/trap routes or Grep is ambiguous).
 
 Generate a fresh plan when needed:
 
@@ -32,12 +46,13 @@ python ./.cstl/scripts/route_codebase_retrieval.py "<question>" --json
 | Need | Tool (Cursor) |
 | --- | --- |
 | Exact string / path | **Grep** (Instant Grep) |
-| Who calls / blast radius | **codegraph_callers** → Grep for imports/callbacks |
+| Named-symbol definition | **Grep** → **Read** (Prefer native); **codegraph_explore** / **codegraph_search** when trap, overload, or blast context needed |
+| IDE diagnostics | **ReadLints** on touched or cited files |
+| Who calls / blast radius | **codegraph_callers** / **codegraph_explore** → Grep for imports/callbacks |
 | Same name across packages (trap) | **codegraph_search** / **codegraph_explore** → Grep |
 | Extension symbols | **codegraph_search** under `extensions/` |
 | Conceptual / how does X work | **Native:** built-in `@codebase` / semantic search. **BYOK:** **fast_context_search** (fast-context MCP). Plans show `cursorEnv`. |
 | Policy / architecture / boundaries / storage rules | **Grep** on `AGENTS.md`, `**/AGENTS.md`, `.cstl/spec/**`, `README.md` (router `policy-docs-rg`) before implementation modules |
-| Definition jump | **codegraph_node** / **codegraph_search**, then **Read** (Agent does not expose GO_TO_DEFINITION / LSP) |
 | Wide cross-cutting explore | **Native:** DEEP_SEARCH or Explore subagent. **BYOK:** **Task explore** subagent, then Grep/codegraph/Read |
 
 ## Semantic on Cursor (`platform-semantic`)
@@ -50,9 +65,9 @@ python ./.cstl/scripts/route_codebase_retrieval.py "<question>" --json
 
 When the plan block includes **结果层排序**, apply it **after** collecting path candidates and **before** stating Top-1 / Top-5: caller concrete sites over assembly files; trap demotion; env scripts/e2e/bench over generic `src/auth`/`paths`. Offline reorder: `rank_retrieval_candidates.py`.
 
-## codegraph-only value
+## codegraph-only value (Own layer)
 
-Use codegraph for **call chains**, **cross-package trap disambiguation**, **extension symbol resolution**, **impact**, and **definition/reference** (replaces unavailable Agent LSP) — not for pure literal search (Grep) or BYOK concept Primary (use fast-context).
+Use codegraph for **call chains**, **cross-package trap disambiguation**, **extension symbol resolution**, **impact/blast radius**, and **definition/reference when native Grep+Read is ambiguous** — not for pure literal search (Grep), simple single-package definition jump (Grep+Read), BYOK concept Primary (use fast-context), or IDE diagnostics (ReadLints).
 
 ## External facts
 

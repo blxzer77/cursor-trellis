@@ -138,10 +138,15 @@ def _cursor_step_for_route(
         return (
             f"使用 **codegraph_search**，路径侧重 `extensions/`，符号 `{symbol}`。"
         )
+    if route_id == "definition-jump-native":
+        return (
+            f"**Prefer 原生**：用 **Grep** 定位 `{symbol}` 的定义行，再用 **Read** 验证文件与行号 "
+            "（Agent 无 GO_TO_DEFINITION）。仅当跨包 trap、重载歧义或需 blast 时再上 codegraph。"
+        )
     if route_id == "lsp-navigation":
         return (
-            f"使用 **codegraph_node**（`includeCode=true`）或 **codegraph_search** 定位 `{symbol}` "
-            "的定义/引用（Agent 无 GO_TO_DEFINITION）；再用 **Read** 验证行号与正文。"
+            f"**Own/codegraph**：用 **codegraph_explore** / **codegraph_search** 定位 `{symbol}` "
+            "的定义/引用（Grep+Read 不足或计划含 trap/blast 时）；再用 **Read** 验证行号与正文。"
         )
     if role == "ast" or route_id in ("ast-codegraph",):
         return (
@@ -294,7 +299,8 @@ def render_agent_instructions(
 
     lines.append("")
     lines.append(
-        "**codegraph 独用场景**：调用链、跨包 trap、extension 符号、影响面、定义/引用定位；"
+        "**Prefer / Adapt / Own**：定义跳转 Prefer **Grep → Read**；诊断 **ReadLints**；"
+        "codegraph 独用调用链、跨包 trap、extension 符号、影响面，以及 Grep+Read 歧义时的定义/引用；"
         "纯字面搜索用 Grep（勿用 GO_TO_DEFINITION，Agent 未暴露）。"
     )
 
