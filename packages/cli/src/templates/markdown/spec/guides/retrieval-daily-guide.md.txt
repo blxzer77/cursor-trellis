@@ -20,12 +20,28 @@ Ask: *If this answer were wrong because the world or a third-party API moved, wo
 **NO examples:** symbol location / call chains; in-repo Trellis contracts; behavior of the code you are editing; pure rename/lint inside known files.  
 After search: persist under `{TASK}/research/` with a **provider label**; treat hits as candidates until corroborated (repo, test, or second source).
 
+## Prefer / Adapt / Own (code intelligence)
+
+| Need | **Prefer** (Cursor native) | **Adapt** | **Own** (codegraph / MCP) |
+| --- | --- | --- | --- |
+| Exact literal / path | **Grep** (`rg`) | — | — |
+| Named-symbol definition | **Grep → Read** | Path hints from semantic when file unknown | codegraph when trap/overload/blast context |
+| IDE diagnostics | **ReadLints** | — | — |
+| Conceptual discovery | **@codebase** / built-in semantic (Native) | **fast_context_search** (BYOK) | — |
+| Caller chain / blast radius | Grep gap-fill | — | **codegraph** MCP |
+| Cross-package trap / extension | Grep scoped | — | **codegraph** MCP |
+| Raw LSP / GO_TO_DEFINITION | **Not in Agent tool table** — re-probe before claiming Prefer | — | codegraph product fallback |
+
+**Rollback:** restore pre-P1 codegraph-first definition rows in this guide + `.cursor/rules/retrieval-routing.mdc`; keep codegraph MCP enabled.
+
 ## Quick matrix
 
 | Need | Tool | Notes |
 | --- | --- | --- |
 | Exact string / path / log line | **rg** (Grep) | Fast literal match in repo |
-| Symbol, callers, edit blast radius | **codegraph** MCP | Structure-first for caller/trap/extension intents |
+| Named-symbol definition | **Grep → Read** (Prefer); **codegraph** when trap/blast | Native first; structure when ambiguous |
+| IDE diagnostics | **ReadLints** | Cursor-native linter/diagnostic surface |
+| Symbol, callers, edit blast radius | **codegraph** MCP | Own layer: structure-first for caller/trap/extension intents |
 | Unknown keywords, semantic discovery | **@codebase** (Cursor Native) / **fast-context** (Cursor++ BYOK) | Native: built-in semantic; BYOK: `fast_context_search` MCP (see `cursorEnv` in plans) |
 | External / current facts | **smart-search-cli** | **Mandatory first** — built-in web tools are downgrade-only (see rule above) |
 | Trellis durable docs | **artifact-search** | `search_artifacts.py` |
@@ -41,7 +57,7 @@ The planner emits **`platform-semantic`** with backend chosen by **`cursorEnv`**
 - **native:** built-in `@codebase` / agent semantic search — **do not** use fast-context as Primary.
 - **byok:** **fast-context MCP** (`fast_context_search`) — built-in semantic is not in the agent tool list.
 
-Definition / reference jumps: **codegraph** (not GO_TO_DEFINITION; Agent LSP unavailable).
+Definition / reference jumps: **Prefer Grep → Read** for named symbols; **codegraph** when cross-package trap, overload ambiguity, or blast context (GO_TO_DEFINITION / raw LSP not in Agent tool table — re-probe before changing default).
 
 ## Token economy signals
 

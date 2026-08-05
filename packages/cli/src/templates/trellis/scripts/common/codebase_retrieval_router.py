@@ -672,16 +672,32 @@ def _ordered_routes(
                 "rationale": cg_rationale,
             })
         append({
+            "id": "definition-jump-native",
+            "role": "exact",
+            "sourceFamily": "rg",
+            "commands": [
+                "rg <symbol> --glob '*.{py,ts,tsx,js}'",
+                "Read <file> at matched definition line range",
+            ],
+            "rationale": (
+                "Prefer Cursor native: Grep for named-symbol definition, then Read "
+                "to verify (GO_TO_DEFINITION not in Agent tool table)."
+            ),
+            "platformNative": True,
+        })
+        append({
             "id": "lsp-navigation",
             "role": "ast",
             "sourceFamily": "codegraph",
             "commands": [
+                "codegraph_explore <symbol-or-question>",
                 "codegraph_node <symbol> --includeCode",
                 "codegraph_search <symbol>",
             ],
             "rationale": (
-                "Definition/reference via codegraph (Cursor Agent does not expose "
-                "GO_TO_DEFINITION); corroborate with Read on returned line ranges."
+                "Own/codegraph: structural definition/reference when Grep+Read is "
+                "ambiguous (cross-package traps, overloads) or blast/caller context "
+                "is needed; GO_TO_DEFINITION not exposed in Agent."
             ),
             "platformNative": False,
         })
@@ -707,7 +723,26 @@ def _ordered_routes(
         others = [r for r in routes if r.get("role") not in ("ast",)]
         routes = structural + others
 
+    routes = _prefer_native_definition_before_codegraph(routes)
+
     return [{**route, "order": index + 1} for index, route in enumerate(routes)]
+
+
+def _prefer_native_definition_before_codegraph(
+    routes: list[dict[str, object]],
+) -> list[dict[str, object]]:
+    """Keep definition-jump-native (Grep+Read) before lsp-navigation (codegraph)."""
+    ids = {str(r.get("id", "")) for r in routes}
+    if "definition-jump-native" not in ids or "lsp-navigation" not in ids:
+        return routes
+    native = next(r for r in routes if str(r.get("id")) == "definition-jump-native")
+    rest = [r for r in routes if str(r.get("id")) != "definition-jump-native"]
+    lsp_idx = next(
+        (i for i, r in enumerate(rest) if str(r.get("id")) == "lsp-navigation"),
+        len(rest),
+    )
+    rest.insert(lsp_idx, native)
+    return rest
 
 
 def _fallback_hints(
