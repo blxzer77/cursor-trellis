@@ -31,7 +31,7 @@ After search: persist under `{TASK}/research/` with a **provider label**; treat 
 | Trellis durable docs | **artifact-search** | `search_artifacts.py` |
 | Past sessions | **session-memory** | Historical; verify against tasks/spec |
 | Intent hint for code questions | **router** | `route_codebase_retrieval.py` — plan JSON + `agentInstructions`; `--instructions` for steps only |
-| Agent follows plan on Cursor | **`beforeSubmitPrompt` → `inject-retrieval-plan.py`** + **`.cursor/rules/retrieval-routing.mdc`** | Per-turn plan block from router `--instructions`; Rules enforce execution; not `sessionStart` (#158452) |
+| Agent follows retrieval policy on Cursor | **`.cursor/rules/retrieval-routing.mdc`** + **`route_codebase_retrieval.py`** | Rules enforce default tool order; `beforeSubmitPrompt` hook is telemetry-only (no plan injection); sessionStart is session-level orientation |
 | Score collected evidence | **retrieval-pack** | `get_context.py --mode retrieval-pack` — does **not** search |
 
 ## Semantic routing (Cursor)
@@ -92,7 +92,7 @@ When `smart-search doctor` is not ok or `run_smart_search.py` status is `not_con
 
 **CLI discovery (Cursor):** `TRELLIS_SMART_SEARCH_COMMAND` / `smart_search.command` → PATH `smart-search` → project `node_modules/.bin/smart-search` (when installed as a dependency). Agent entrypoint is always `./.cstl/scripts/run_smart_search.py`.
 
-**Research flags (smart-search ≥ 0.1.15):** pass through `run_smart_search.py` for `--intent deep-research`:
+**Research flags (smart-search ≥ 0.2.0; flags also on 0.1.15+):** pass through `run_smart_search.py` for `--intent deep-research`:
 
 | Flag | Values | Use |
 | --- | --- | --- |
@@ -108,7 +108,7 @@ Research JSON may include `output_schema_version: 1` and structured `citations` 
 
 `route_codebase_retrieval.py` returns **intent + route suggestions** and **`agentInstructions`** (numbered steps with Cursor-native tool names). **codebase-evidence** is **candidate** until confirmed by Read/Git/tests.
 
-On **Cursor**, per-query plans come from **`beforeSubmitPrompt` → `inject-retrieval-plan.py`**; durable execution policy lives in **`.cursor/rules/retrieval-routing.mdc`** (`alwaysApply`). Do **not** rely on `sessionStart` hook injection (#158452) or end-of-turn **retrieval-pack** for plans — retrieval-pack **scores** collected evidence; it does not search.
+On **Cursor**, retrieval policy lives in **`.cursor/rules/retrieval-routing.mdc`** (`alwaysApply`) plus on-demand **`route_codebase_retrieval.py`**. The **`beforeSubmitPrompt`** hook is **telemetry-only** (no plan injection). `sessionStart` delivers session-level orientation (dashboard, workflow summary). Do **not** rely on end-of-turn **retrieval-pack** for plans — retrieval-pack **scores** collected evidence; it does not search.
 
 ### Result-layer ranking (B / E / D — REC-05)
 
@@ -120,7 +120,7 @@ After Grep/codegraph/semantic produce **path candidates**, reorder before choosi
 | `trap-package-disambiguation` | Demote snapshot/registry/`src/agents/` trap paths unless Read confirms the asked layer. |
 | `env-config-literal` | Prefer `scripts/`, `e2e/`, `bench/`, `test/` over generic `src/auth` / `src/paths`. |
 
-- **Agent plans**: `render_agent_instructions` / `inject-retrieval-plan.py` append a **结果层排序** block when these intents appear.
+- **Agent plans**: `render_agent_instructions` / `route_codebase_retrieval.py --instructions` append a **结果层排序** block when these intents appear.
 - **Offline reorder**: `python ./.cstl/scripts/rank_retrieval_candidates.py --candidates fixtures.json --intents caller-chain --top-k 5 --pretty`
 - **Library**: `common/retrieval_result_ranking.py` (Python mirror used by router and rank script).
 

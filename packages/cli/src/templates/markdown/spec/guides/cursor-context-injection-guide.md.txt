@@ -4,29 +4,29 @@
 
 ---
 
-## The channel matrix (verified 2026-06-19)
+## The channel matrix (verified 2026-08-05, Cursor Native 3.8.x)
 
-Cursor has **four** channels that can put text in front of the model. They are **not** equally reliable:
+Cursor has **several** channels that can put text in front of the model. They are **not** equally reliable:
 
 | Channel | How it loads | Reliable on Cursor? | Trellis content here |
 |---|---|---|---|
-| `.cursor/rules/*.mdc` (`alwaysApply: true`) | Prepended before **every** prompt, independent path | ✅ **Yes** | `cstl-triage.mdc` (Request Triage hard gate) |
-| `beforeSubmitPrompt` hook → `additional_context` | Per user message; router emits `## 代码库检索计划` | ⚠️ **Verify on your Cursor build** (docs list field; forum reports vary) | `inject-retrieval-plan.py` + `retrieval-routing.mdc` enforcement |
-| `AGENTS.md` (repo root + nested) | Read automatically, treated as an always-on rule | ✅ **Yes** | smart-search-first rule, command surface, remote policy (the `<!-- TRELLIS:START -->` block) |
-| `sessionStart` hook → `additional_context` | Hook fires, JSON parsed... **but content never reaches the model's system context** | ❌ **No (confirmed bug)** | workflow.md Phase Index + Task Dashboard + first-reply notice |
+| `.cursor/rules/*.mdc` (`alwaysApply: true`) | Prepended before **every** prompt, independent path | ✅ **Yes** | `cstl-triage.mdc` (Request Triage hard gate), `retrieval-routing.mdc` |
+| `AGENTS.md` (repo root + nested) | Read automatically, treated as an always-on rule | ✅ **Yes** | smart-search-first rule, command surface (the `<!-- CSTL:START -->` block) |
+| `sessionStart` hook → `additional_context` | Once per session; delivered via `hooks_context` | ✅ **Yes** (fixed — verified 2026-08-05; was #158452) | Task Dashboard, workflow Phase Index summary, first-reply notice |
+| `beforeSubmitPrompt` hook → `additional_context` | Per user message; router would emit `## 代码库检索计划` | ❌ **No (telemetry-only since 2026-06-24)** | `inject-retrieval-plan.py` logs to `.cstl/.runtime/retrieval-plan-events.log`; **no injection** |
 | `.cstl/workflow.md` (read on demand) | Only if the agent explicitly runs `get_context.py` or reads the file | ⚠️ Depends on agent taking action | Full Request Triage section, Task Ladder, workflow-state breadcrumbs |
 | **`task.py generate-dispatch-prompt` → Task `prompt`** (CLI Layer 2) | Main session runs Trellis script before `Task(...)` | ✅ **Yes (primary for subagent task context on Cursor)** | Full embed: marker, `Selected task:`, prd/jsonl/spec bodies |
 
-**Key takeaway**: anything that must reach the model **every turn without the agent choosing to load it** must live in `.cursor/rules` or `AGENTS.md`. Subagent task context on Cursor uses **CLI Layer 2** before Task dispatch; `preToolUse` hook injection is best-effort only (see forum reports + 2026-06-22 spike). Anything in `workflow.md` that depends on `sessionStart` injection is **invisible to Cursor agents** until the bug is fixed.
+**Key takeaway**: anything that must reach the model **every turn** must live in `.cursor/rules` or `AGENTS.md`. `sessionStart` is reliable for **session-level** orientation (dashboard, workflow summary) but fires only once. Retrieval plans: use **Rules default tool order** or run `route_codebase_retrieval.py --instructions` on demand — do **not** rely on `beforeSubmitPrompt` injection. Subagent task context uses **CLI Layer 2** before Task dispatch.
 
 ---
 
-## The sessionStart bug (why this guide exists)
+## The sessionStart bug (#158452) — history and current status
 
-- **Bug**: Cursor forum #158452 — `sessionStart` hook `additional_context` is executed and JSON-parsed correctly, but the value is **never added to the agent's initial system context**.
-- **Status**: Confirmed by Cursor team (deanrie), internal bug filed, **no ETA** as of 2026-06-19.
-- **Scope**: Affects `sessionStart` and `postToolUse` `additional_context` on Cursor IDE. The `env` field of the same hook **does** work (separate storage path).
-- **Symptom**: hook runs (verifiable via side-channel log), valid JSON emitted, but the agent has zero awareness of the injected text (e.g. won't say a first-reply notice phrase).
+- **Bug**: Cursor forum #158452 — `sessionStart` hook `additional_context` was executed and JSON-parsed correctly, but the value was **not added to the agent's initial system context** (through ~2026-06).
+- **Status (2026-08-05)**: **Fixed** on Cursor Native 3.8.x — first-reply-notice probe passes; `hooks_context` contains full SessionStart payload. Re-verify after major Cursor upgrades.
+- **Historical scope**: Also affected `postToolUse` `additional_context` on some builds. The `env` field of the same hook uses a separate storage path.
+- **Routing implication**: Even with sessionStart working, **per-turn hard gates** (Triage, retrieval policy) stay in `.cursor/rules` — sessionStart fires only once per session.
 
 ### How to diagnose "is sessionStart injection actually reaching the model?"
 
@@ -38,23 +38,25 @@ Cursor has **four** channels that can put text in front of the model. They are *
 
 ## Trellis routing rules on Cursor
 
-Because of the bug, Trellis routes content by reliability on Cursor:
+Trellis routes content by reliability on Cursor:
 
 | Trellis content | Where it lives | Why |
 |---|---|---|
-| **Request Triage hard gate** (classify every turn, emit `[Triage: <Mode>]`) | `.cursor/rules/cstl-triage.mdc` (`alwaysApply: true`) | Must be visible every turn; sessionStart path is broken |
-| **smart-search-first web routing** | `AGENTS.md` (TRELLIS:START block) | AGENTS.md is a reliable always-on channel |
-| **Command surface** (what's user-invocable vs internal skill) | `AGENTS.md` (TRELLIS:START block) | Same |
-| **Workflow phases, Task Ladder, workflow-state breadcrumbs** | `.cstl/workflow.md` | Loaded on demand via `get_context.py` / `cstl-start` / `cstl-continue`; NOT auto-injected on Cursor |
+| **Request Triage hard gate** (classify every turn, emit `[Triage: <Mode>]`) | `.cursor/rules/cstl-triage.mdc` (`alwaysApply: true`) | Must be visible **every turn**; sessionStart is once-per-session |
+| **Codebase retrieval policy** | `.cursor/rules/retrieval-routing.mdc` + `route_codebase_retrieval.py` | `beforeSubmitPrompt` injection is telemetry-only; Rules + router CLI |
+| **smart-search-first web routing** | `AGENTS.md` (CSTL block) | AGENTS.md is a reliable always-on channel |
+| **Command surface** (what's user-invocable vs internal skill) | `AGENTS.md` (CSTL block) | Same |
+| **Session orientation** (dashboard, workflow summary, first-reply notice) | `sessionStart` hook → `additional_context` | Reliable on Cursor 3.8.x+; session-level only |
+| **Workflow phases, Task Ladder, workflow-state breadcrumbs** | `.cstl/workflow.md` + sessionStart summary | Full detail on demand via `get_context.py` / `cstl-continue` |
 
-**If a new "must-always-be-visible" rule is added to Trellis**: ship it as a `.cursor/rules/*.mdc` (Cursor) — do **not** rely on adding it to `workflow.md` and expecting sessionStart to deliver it.
+**If a new "must-always-be-visible" rule is added to Trellis**: ship it as a `.cursor/rules/*.mdc` (Cursor) — do **not** rely on `workflow.md` or sessionStart alone for per-turn enforcement.
 
 ---
 
 ## When to update this guide
 
-- Cursor ships a fix for forum #158452 → mark the sessionStart row as "✅ Yes (fixed in version X)" and re-evaluate whether workflow.md content can move back to sessionStart-only.
-- A new Cursor injection channel appears (e.g. a working per-turn `beforeSubmitPrompt.additional_context`) → add a row to the matrix.
+- Cursor major upgrade → re-run sessionStart first-reply-notice probe and update the matrix date.
+- `beforeSubmitPrompt.additional_context` becomes reliable on a future build → re-enable injection in `inject-retrieval-plan.py` and update this guide.
 - Trellis adds a new `.cursor/rules/*.mdc` → add a row to the routing table.
 
 ---
