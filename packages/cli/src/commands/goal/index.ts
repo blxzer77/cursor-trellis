@@ -79,21 +79,40 @@ export function registerGoalCommand(program: Command): void {
 
   goal
     .command("run")
-    .description("Run goal loop (mock worker by default)")
+    .description(
+      "Run goal loop (SDK worker when CURSOR_API_KEY is set; use --mock-worker for CI)",
+    )
     .argument("<goalId>", "Goal id")
     .option("--mock-worker", "Simulate worker turns without IDE/SDK")
+    .option("--worker <kind>", "Worker adapter: sdk or mock")
     .option("--max-steps <n>", "Max loop steps", "3")
     .option("--json", "Machine-readable final state")
     .action(
       async (
         goalId: string,
-        opts: { mockWorker?: boolean; maxSteps?: string; json?: boolean },
+        opts: {
+          mockWorker?: boolean;
+          worker?: string;
+          maxSteps?: string;
+          json?: boolean;
+        },
       ) => {
         try {
+          const worker =
+            opts.worker === "sdk" || opts.worker === "mock"
+              ? opts.worker
+              : undefined;
+          if (
+            opts.worker != null &&
+            worker === undefined
+          ) {
+            throw new Error("--worker must be sdk or mock");
+          }
           const state = await runGoalLoop({
             cwd: process.cwd(),
             goalId,
             mockWorker: opts.mockWorker === true,
+            worker,
             maxSteps: Number(opts.maxSteps ?? "3"),
           });
           if (opts.json) {
