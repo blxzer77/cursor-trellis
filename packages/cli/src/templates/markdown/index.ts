@@ -111,3 +111,6 @@ export const guidesExecutionStrategyContent: string = readLocalTemplate(
 );
 export const guidesCursorContextInjectionGuideContent: string =
   readLocalTemplate("spec/guides/cursor-context-injection-guide.md.txt");
+export const guidesCursorNativeModesGuideContent: string = readLocalTemplate(
+  "spec/guides/cursor-native-modes-guide.md.txt",
+);

@@ -37,6 +37,7 @@ import {
   guidesCursorSubagentPolicyContent,
   guidesExecutionStrategyContent,
   guidesCursorContextInjectionGuideContent,
+  guidesCursorNativeModesGuideContent,
 } from "../templates/markdown/index.js";
 
 import { writeFile, ensureDir } from "../utils/file-writer.js";
@@ -287,6 +288,10 @@ async function createSpecTemplates(
     {
       name: "cursor-context-injection-guide.md",
       content: guidesCursorContextInjectionGuideContent,
+    },
+    {
+      name: "cursor-native-modes-guide.md",
+      content: guidesCursorNativeModesGuideContent,
     },
   ];
   for (const doc of guidesDocs) {

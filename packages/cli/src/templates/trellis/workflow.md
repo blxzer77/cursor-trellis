@@ -225,6 +225,18 @@ Before executing an upgrade that creates artifacts, changes task mode, adds gate
 | Planning / PRD | `cstl-brainstorm` |
 | Parent with parallel children | `generate-child-prompt --mode subagent`; writable Agent; see `.cstl/spec/guides/cursor-subagent-policy.md` |
 
+### Cursor native modes (Prefer — don't replace)
+
+Full map: `.cstl/spec/guides/cursor-native-modes-guide.md` · per-turn slim rule: `.cursor/rules/cstl-cursor-modes.mdc`.
+
+| Situation | Prefer Cursor mode | Trellis phase / note |
+| --- | --- | --- |
+| Read-only explain / lookup | **Ask** | No Task; no durable edits without consent |
+| Scope / design before code | **Plan** | Phase 1; artifacts → `prd.md` / `design.md` / `implement.md` |
+| Approved build / verify | **Agent** | Phase 2–3; `execution_mode` contract |
+| Repeat failure / runtime debug | **Debug** | Evidence → `verify.md`; loops → `cstl-break-loop` |
+| Independent Parent children (post-approval) | **Multitask** / Build in Parallel | Explicit task path per worker; Parent integrates |
+
 Details: archived `06-15-child-phase3-task-ladder` → `research/task-ladder-iteration.md`.
 
 ### Planning Artifacts
@@ -352,9 +364,12 @@ Code committed. Run `/cstl:finish-work`; if dirty, return to Phase 3.4 first.
 When a user request matches one of these intents inside a selected task, route first, then load the detailed phase step if needed.
 
 
-- Planning or unclear requirements -> `cstl-brainstorm`.
-- `in_progress` implementation/check -> if contract `execution_mode: worker`, dispatch `cstl-implement` / `cstl-check`; if `inline`, main session; if `child-task`, Child/Parent orchestration.
-- Repeated debugging -> `cstl-break-loop`; spec updates -> `cstl-update-spec`.
+- Planning or unclear requirements -> **Prefer Plan** when designing scope; load `cstl-brainstorm` for PRD grill (see `cursor-native-modes-guide.md`).
+- Read-only questions with no durable change -> **Prefer Ask**; classify No Task; do not create artifacts without consent.
+- `in_progress` implementation/check -> **Agent** default; if contract `execution_mode: worker`, dispatch `cstl-implement` / `cstl-check`; if `inline`, main session; if `child-task`, Child/Parent orchestration.
+- Repeated debugging / runtime evidence -> **Prefer Debug**; load `cstl-break-loop` when the same issue recurred; persist evidence in `verify.md`.
+- Parent parallel independent children (after execution approval) -> **Multitask** / Build in Parallel with explicit `.cstl/tasks/<dir>` in each worker prompt; Parent retains integration authority.
+- Spec updates after learning decision -> `cstl-update-spec`.
 
 
 

@@ -10,7 +10,7 @@ Cursor has **several** channels that can put text in front of the model. They ar
 
 | Channel | How it loads | Reliable on Cursor? | Trellis content here |
 |---|---|---|---|
-| `.cursor/rules/*.mdc` (`alwaysApply: true`) | Prepended before **every** prompt, independent path | ✅ **Yes** | `cstl-triage.mdc` (Request Triage hard gate), `retrieval-routing.mdc` |
+| `.cursor/rules/*.mdc` (`alwaysApply: true`) | Prepended before **every** prompt, independent path | ✅ **Yes** | `cstl-triage.mdc` (Request Triage hard gate), `retrieval-routing.mdc`, `cstl-cursor-modes.mdc` (Prefer native modes) |
 | `AGENTS.md` (repo root + nested) | Read automatically, treated as an always-on rule | ✅ **Yes** | smart-search-first rule, command surface (the `<!-- CSTL:START -->` block) |
 | `sessionStart` hook → `additional_context` | Once per session; delivered via `hooks_context` | ✅ **Yes** (fixed — verified 2026-08-05; was #158452) | Task Dashboard, workflow Phase Index summary, first-reply notice |
 | `beforeSubmitPrompt` hook → `additional_context` | Per user message; router would emit `## 代码库检索计划` | ❌ **No (telemetry-only since 2026-06-24)** | `inject-retrieval-plan.py` logs to `.cstl/.runtime/retrieval-plan-events.log`; **no injection** |
@@ -44,6 +44,7 @@ Trellis routes content by reliability on Cursor:
 |---|---|---|
 | **Request Triage hard gate** (classify every turn, emit `[Triage: <Mode>]`) | `.cursor/rules/cstl-triage.mdc` (`alwaysApply: true`) | Must be visible **every turn**; sessionStart is once-per-session |
 | **Codebase retrieval policy** | `.cursor/rules/retrieval-routing.mdc` + `route_codebase_retrieval.py` | `beforeSubmitPrompt` injection is telemetry-only; Rules + router CLI |
+| **Prefer Cursor native modes** (Plan/Ask/Debug/Agent/Multitask × Trellis) | `.cursor/rules/cstl-cursor-modes.mdc` + `cursor-native-modes-guide.md` | P1 orchestration; full table on demand in guide |
 | **smart-search-first web routing** | `AGENTS.md` (CSTL block) | AGENTS.md is a reliable always-on channel |
 | **Command surface** (what's user-invocable vs internal skill) | `AGENTS.md` (CSTL block) | Same |
 | **Session orientation** (dashboard, workflow summary, first-reply notice) | `sessionStart` hook → `additional_context` | Reliable on Cursor 3.8.x+; session-level only |
@@ -64,6 +65,7 @@ Trellis routes content by reliability on Cursor:
 ## Related
 
 - `cursor-subagent-policy.md` — Task tool scenes, model routing (this guide is about **context injection**, that one is about **subagent dispatch**).
+- `cursor-native-modes-guide.md` — Prefer Plan/Ask/Debug/Agent/Multitask; pairs with `cstl-cursor-modes.mdc`.
 - `.cstl/workflow.md` → `### Request Triage` — the full Triage decision tree (the rule in `.cursor/rules/cstl-triage.mdc` is the slim always-apply version pointing here).
 - Task `06-19-cursor-rules-triage` (archive) — the investigation that produced this guide.
 - Cursor forum thread: https://forum.cursor.com/t/sessionstart-hook-additional-context-is-never-injected-into-agents-initial-system-context/158452
