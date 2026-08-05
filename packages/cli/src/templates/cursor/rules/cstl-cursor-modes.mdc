@@ -5,24 +5,24 @@ alwaysApply: true
 
 # Prefer Cursor native modes (P1 — orchestrate, don't replace)
 
-cstl **prefers** Cursor's built-in **Plan / Ask / Debug / Agent / Multitask** surfaces and maps them to Trellis Triage and phases. **Do not reimplement or replace** these modes. Full table: `.cstl/spec/guides/cursor-native-modes-guide.md`.
+cstl **prefers** Cursor's built-in modes and maps them to Trellis Triage/phases. **Do not replace** Cursor UI. Full table + citations: `.cstl/spec/guides/cursor-native-modes-guide.md` · evidence: `{TASK}/research/cursor-modes-external.md`.
 
 ## Quick routing
 
-| Situation | Prefer Cursor mode | Trellis anchor |
+| Situation | Prefer | Trellis anchor |
 | --- | --- | --- |
-| Read-only explain / lookup / status | **Ask** | `[Triage: No Task]` — no durable edits; no task without consent |
-| Scope, architecture, tradeoffs before code | **Plan** (+ `cstl-brainstorm`) | Phase 1 → `prd.md` / `design.md` / `implement.md`; stop at `--check` + execution approval |
-| Approved implementation / verification | **Agent** | Phase 2–3; follow `execution_mode`; persist `verify.md` |
-| Repeat failure / runtime evidence | **Debug** (+ `cstl-break-loop` if looped) | Evidence in `verify.md` / `research/`; contract change → Return-to-Planning |
-| Independent Parent children post-approval | **Multitask** / Build in Parallel | Explicit `.cstl/tasks/<dir>` in every worker prompt; Parent owns `integrate-child` |
+| Read-only explain / lookup | **Ask** (`Shift+Tab`) | `[Triage: No Task]` — no edits; side chat OK for tangents during Agent |
+| Scope / design before code | **Plan** | Phase 1; **Save to workspace** → `prd.md` / `design.md` / `implement.md`; then `--check` |
+| Approved build / verify | **Agent** | Phase 2–3; `execution_mode`; `SwitchMode` → agent after Plan |
+| Runtime / repeat failure | **Debug** (`Shift+Tab`) | Evidence → `verify.md`; `cstl-break-loop` if looped |
+| Independent Parent children (post-approval) | **Multitask** / Build in Parallel | Explicit `.cstl/tasks/<dir>` per worker; Parent integrates |
 
 ## Hard boundaries
 
-- Plan / Multitask output **feeds** Trellis artifacts — does **not** skip gates, `start-execution --approved`, or Parent integration.
-- Multitask workers: **never** rely on live `selected_task`; include task path + role + output files in the prompt.
-- Agent may `SwitchMode` to **plan** / **agent** only; suggest user switch for **Ask** / **Debug**.
+- Plan default save = **home dir** — not Trellis task paths until user saves/maps.
+- Multitask/subagents: **never** rely on `selected_task`; no collision guarantee — worktrees + Parent review.
+- Agent `SwitchMode`: **plan/agent only**; Ask/Debug = user `Shift+Tab` / picker.
 
 ## Rollback
 
-Delete this file and `cursor-native-modes-guide.md` to restore pre-P1 behavior (see guide Rollback section).
+Delete this file + `cursor-native-modes-guide.md` (see guide Rollback).
