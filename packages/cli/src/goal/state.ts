@@ -37,7 +37,10 @@ export interface GoalState {
   reroute_counts: Record<string, number>;
   walls: GoalWallCounters;
   channel_name: string | null;
+  last_worker_adapter?: GoalWorkerKind | null;
 }
+
+export type GoalWorkerKind = "sdk" | "mock";
 
 export function defaultWalls(mode: GoalRunMode): GoalWallCounters {
   return { ...GOAL_WALL_DEFAULTS[mode] };
@@ -62,6 +65,7 @@ export function createDraftState(
     reroute_counts: {},
     walls: defaultWalls(mode),
     channel_name: null,
+    last_worker_adapter: null,
   };
 }
 
