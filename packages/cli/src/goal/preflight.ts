@@ -34,8 +34,8 @@ export function modeNotice(mode: GoalRunMode): string {
     );
   }
   return (
-    "**Runner 模式：** goal 由后台 runner 调度 subagent，主窗可用于查看状态与接手。" +
-    "默认墙钟上限 **3 小时**。"
+    "**Runner 模式：** goal 由后台 runner 调度 subagent（`@cursor/sdk`，需当前进程配置 `CURSOR_API_KEY`），" +
+    "主窗可用于查看状态与接手。默认墙钟上限 **3 小时**。无密钥时请使用 `--mock-worker` 或窗内模式。"
   );
 }
 

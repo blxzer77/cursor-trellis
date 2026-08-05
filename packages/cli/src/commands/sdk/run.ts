@@ -102,51 +102,8 @@ async function runLiveAgent(
   prompt: string,
   cwd: string,
 ): Promise<{ status: string; result: string }> {
-  const apiKey = process.env.CURSOR_API_KEY?.trim();
-  if (!apiKey) {
-    throw new Error(
-      [
-        "Live SDK RUN requires CURSOR_API_KEY (and prior user consent to use it).",
-        "Use --mock or omit --live.",
-        "Discovery: run `cstl sdk status` for setup steps (never commit the key).",
-      ].join(" "),
-    );
-  }
-
-  interface CursorAgent {
-    prompt: (
-      p: string,
-      opts: {
-        apiKey: string;
-        model: { id: string };
-        local: { cwd: string };
-      },
-    ) => Promise<{ status?: string; result?: string }>;
-  }
-  let Agent: CursorAgent;
-  try {
-    // Avoid static resolution so mock/CI builds do not require @cursor/sdk installed.
-    const dynamicImport = new Function(
-      "specifier",
-      "return import(specifier)",
-    ) as (specifier: string) => Promise<{ Agent: CursorAgent }>;
-    const mod = await dynamicImport("@cursor/sdk");
-    Agent = mod.Agent;
-  } catch {
-    throw new Error(
-      "@cursor/sdk is not installed. After explicit consent, add the optional dependency, or use --mock.",
-    );
-  }
-
-  const outcome = await Agent.prompt(prompt, {
-    apiKey,
-    model: { id: "composer-2.5" },
-    local: { cwd },
-  });
-  return {
-    status: outcome.status ?? "unknown",
-    result: outcome.result ?? "",
-  };
+  const { promptCursorAgent } = await import("../../goal/sdk-client.js");
+  return promptCursorAgent(prompt, cwd);
 }
 
 function writeDogfoodEvidence(options: {
