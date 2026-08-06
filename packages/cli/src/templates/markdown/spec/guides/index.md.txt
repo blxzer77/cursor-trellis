@@ -23,6 +23,7 @@ These guides help you **ask the right questions before coding**.
 |-------|---------|-------------|
 | [Durable Learning Decision Guide](./durable-learning-decision-guide.md) | Choose no-learning vs spec update vs learning artifact before archive | Finishing a task, parent review, or after `/cstl:break-loop` |
 | [Verification Strength Guide](./verification-strength-guide.md) | Graded verify depth (Lite/Full/Parent × verification_profile); false-green probes; **not** TDD | Phase 3.1, writing `verify.md`, choosing check depth, archive prep |
+| [Injection Budget Guide](./injection-budget-guide.md) | Per-channel caps, jsonl manifest limits, Layer 2 defaults; matrix-aligned | Adding alwaysApply rules, curating jsonl, subagent dispatch |
 | [Code Reuse Thinking Guide](./code-reuse-thinking-guide.md) | Identify patterns and reduce duplication | When you notice repeated patterns |
 | [Cross-Layer Thinking Guide](./cross-layer-thinking-guide.md) | Think through data flow across layers | Features spanning multiple layers |
 | [Retrieval daily guide](./retrieval-daily-guide.md) | rg / codegraph / fast-context / smart-search / pack / router | Planning, research, finish verification |

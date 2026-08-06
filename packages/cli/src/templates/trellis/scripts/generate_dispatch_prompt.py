@@ -66,7 +66,8 @@ def main() -> int:
         "--max-chars",
         type=int,
         default=None,
-        help="Truncate injected context at this character count.",
+        help="Truncate injected context at this character count. "
+        "When omitted, uses role default from injection-budget-guide.",
     )
     args = parser.parse_args()
 
@@ -94,6 +95,7 @@ def main() -> int:
         sys.path.insert(1, str(scripts_dir))
 
     from common.subagent_dispatch import build_dispatch_prompt  # type: ignore[import-not-found]
+    from common.injection_budget import DISPATCH_DEFAULT_MAX_CHARS  # type: ignore[import-not-found]
 
     # Resolve task directory
     if args.task:
@@ -115,12 +117,16 @@ def main() -> int:
         print(f"ERROR: task directory not found: {task_dir}", file=sys.stderr)
         return 1
 
+    max_chars = args.max_chars
+    if max_chars is None:
+        max_chars = DISPATCH_DEFAULT_MAX_CHARS.get(args.agent)
+
     prompt, warnings, errors = build_dispatch_prompt(
         repo_root,
         task_dir,
         args.agent,
         finish=args.finish,
-        max_chars=args.max_chars,
+        max_chars=max_chars,
         require_in_progress=False,
     )
 

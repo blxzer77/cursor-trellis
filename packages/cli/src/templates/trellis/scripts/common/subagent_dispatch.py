@@ -12,6 +12,11 @@ import sys
 from pathlib import Path
 from typing import Literal
 
+from .injection_budget import (
+    JSONL_MAX_ENTRIES,
+    JSONL_MAX_FILE_CHARS,
+    JSONL_MAX_TOTAL_CHARS,
+)
 from .io import read_json
 from .paths import FILE_TASK_JSON
 
@@ -87,7 +92,8 @@ def read_jsonl_entries(
     jsonl_path: str,
     *,
     warn_prefix: str = "subagent-dispatch",
-) -> list[tuple[str, str]]:
+    apply_budget: bool = True,
+) -> tuple[list[tuple[str, str]], list[str]]:
     full_path = os.path.join(base_path, jsonl_path)
     if not os.path.exists(full_path):
         print(
@@ -95,10 +101,13 @@ def read_jsonl_entries(
             "sub-agent will receive only task artifacts",
             file=sys.stderr,
         )
-        return []
+        return [], []
 
     results: list[tuple[str, str]] = []
+    skipped: list[str] = []
     saw_real_entry = False
+    loaded_entries = 0
+    total_chars = 0
     try:
         with open(full_path, "r", encoding="utf-8") as f:
             for line in f:
@@ -112,12 +121,38 @@ def read_jsonl_entries(
                     if not file_path:
                         continue
                     saw_real_entry = True
+                    if apply_budget and loaded_entries >= JSONL_MAX_ENTRIES:
+                        skipped.append(f"{file_path}: entry cap ({JSONL_MAX_ENTRIES})")
+                        continue
+
+                    expanded: list[tuple[str, str]] = []
                     if entry_type == "directory":
-                        results.extend(read_directory_contents(base_path, file_path))
+                        expanded = read_directory_contents(base_path, file_path)
                     else:
                         content = read_file_content(base_path, file_path)
                         if content:
-                            results.append((file_path, content))
+                            expanded = [(file_path, content)]
+
+                    if not expanded:
+                        skipped.append(f"{file_path}: missing or empty")
+                        continue
+
+                    block_chars = sum(len(content) for _, content in expanded)
+                    if apply_budget and block_chars > JSONL_MAX_FILE_CHARS:
+                        skipped.append(
+                            f"{file_path}: file cap ({block_chars}>{JSONL_MAX_FILE_CHARS} chars)"
+                        )
+                        continue
+                    if apply_budget and total_chars + block_chars > JSONL_MAX_TOTAL_CHARS:
+                        skipped.append(
+                            f"{file_path}: total cap "
+                            f"({total_chars + block_chars}>{JSONL_MAX_TOTAL_CHARS})"
+                        )
+                        continue
+
+                    results.extend(expanded)
+                    total_chars += block_chars
+                    loaded_entries += 1
                 except json.JSONDecodeError:
                     continue
     except OSError:
@@ -129,13 +164,23 @@ def read_jsonl_entries(
             "(only seed / empty) — sub-agent will receive only task artifacts.",
             file=sys.stderr,
         )
-    return results
+    elif apply_budget and (results or skipped):
+        loaded_paths = ", ".join(path for path, _ in results) or "(none)"
+        print(
+            f"[{warn_prefix}] injection-budget: {jsonl_path} "
+            f"loaded {loaded_entries} entries ({total_chars} chars): {loaded_paths}",
+            file=sys.stderr,
+        )
+        for reason in skipped:
+            print(f"[{warn_prefix}] injection-budget: skipped {reason}", file=sys.stderr)
+    return results, skipped
 
 
 def get_agent_context(repo_root: str, task_dir: str, agent_type: str) -> str:
     context_parts: list[str] = []
     agent_jsonl = f"{task_dir}/{agent_type}.jsonl"
-    for file_path, content in read_jsonl_entries(repo_root, agent_jsonl):
+    entries, _ = read_jsonl_entries(repo_root, agent_jsonl)
+    for file_path, content in entries:
         context_parts.append(f"=== {file_path} ===\n{content}")
     return "\n\n".join(context_parts)
 
@@ -166,7 +211,8 @@ def get_implement_context(repo_root: str, task_dir: str) -> str:
 
 def get_check_context(repo_root: str, task_dir: str) -> str:
     context_parts: list[str] = []
-    for file_path, content in read_jsonl_entries(repo_root, f"{task_dir}/check.jsonl"):
+    entries, _ = read_jsonl_entries(repo_root, f"{task_dir}/check.jsonl")
+    for file_path, content in entries:
         context_parts.append(f"=== {file_path} ===\n{content}")
 
     prd_content = read_file_content(repo_root, f"{task_dir}/prd.md")
@@ -192,7 +238,25 @@ def get_finish_context(repo_root: str, task_dir: str) -> str:
 
 
 def get_research_context(repo_root: str, task_dir: str | None) -> str:
-    _ = task_dir
+    context_parts: list[str] = []
+
+    if task_dir:
+        entries, _ = read_jsonl_entries(repo_root, f"{task_dir}/research.jsonl")
+        for file_path, content in entries:
+            context_parts.append(f"=== {file_path} ===\n{content}")
+
+        prd_content = read_file_content(repo_root, f"{task_dir}/prd.md")
+        if prd_content:
+            context_parts.append(
+                f"=== {task_dir}/prd.md (Requirements) ===\n{prd_content}"
+            )
+
+        design_content = read_file_content(repo_root, f"{task_dir}/design.md")
+        if design_content:
+            context_parts.append(
+                f"=== {task_dir}/design.md (Technical Design) ===\n{design_content}"
+            )
+
     spec_path = f"{DIR_WORKFLOW}/{DIR_SPEC}"
     spec_root = Path(repo_root) / DIR_WORKFLOW / DIR_SPEC
 

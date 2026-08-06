@@ -24,6 +24,11 @@ from pathlib import Path
 from .log import Colors, colored
 from .paths import get_repo_root
 from .task_utils import resolve_task_dir
+from .injection_budget import (
+    JSONL_MAX_ENTRIES,
+    JSONL_MAX_TOTAL_CHARS,
+    measure_jsonl_manifest,
+)
 
 
 # =============================================================================
@@ -159,6 +164,19 @@ def _validate_jsonl(jsonl_file: Path, repo_root: Path) -> int:
 
     if errors == 0:
         print(f"  {colored(f'{file_name}: ✓ ({real_entries} entries)', Colors.GREEN)}")
+        budget = measure_jsonl_manifest(repo_root, jsonl_file.parent, file_name)
+        if real_entries > JSONL_MAX_ENTRIES:
+            print(
+                f"  {colored(f'{file_name}: budget WARN — {real_entries} entries (max {JSONL_MAX_ENTRIES})', Colors.YELLOW)}"
+            )
+        if budget.expanded_chars > JSONL_MAX_TOTAL_CHARS:
+            print(
+                f"  {colored(f'{file_name}: budget WARN — expanded {budget.expanded_chars} chars (max {JSONL_MAX_TOTAL_CHARS})', Colors.YELLOW)}"
+            )
+        elif budget.skipped:
+            print(
+                f"  {colored(f'{file_name}: budget WARN — {len(budget.skipped)} entries would be skipped at dispatch', Colors.YELLOW)}"
+            )
     else:
         print(f"  {colored(f'{file_name}: ✗ ({errors} errors)', Colors.RED)}")
 
