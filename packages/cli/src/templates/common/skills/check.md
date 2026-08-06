@@ -45,11 +45,14 @@ Run the project's lint, type-check, and test commands. Fix any failures before p
 - [ ] No debug logging left in?
 - [ ] No suppressed warnings or type-safety bypasses?
 
-### Test Coverage
+### Test Coverage (verification strength — not TDD)
 
-- [ ] New function → unit test added?
-- [ ] Bug fix → regression test added?
-- [ ] Changed behavior → existing tests updated?
+Follow `.cstl/spec/guides/verification-strength-guide.md` for **graded** validation depth by closeout profile. cstl does **not** mandate red-green TDD or per-function unit tests.
+
+- [ ] **Lite:** focused validation on touched behavior recorded in `verify.md` (`Validation:` line + result)
+- [ ] **Full:** above + `Check evidence:` + `Reviewed change-set:` when contract requires code-review gate
+- [ ] New function / bug fix → add or update tests **when the project's norms and task scope require it** — not as automatic TDD ceremony
+- [ ] `python ./.cstl/scripts/task.py validate <task>` passing JSONL schema **≠** task acceptance; substantive `verify.md` signals still required
 
 ### Durable Learning (Phase 3.3)
 

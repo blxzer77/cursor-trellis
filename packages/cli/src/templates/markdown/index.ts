@@ -114,3 +114,6 @@ export const guidesCursorContextInjectionGuideContent: string =
 export const guidesCursorNativeModesGuideContent: string = readLocalTemplate(
   "spec/guides/cursor-native-modes-guide.md.txt",
 );
+export const guidesVerificationStrengthGuideContent: string = readLocalTemplate(
+  "spec/guides/verification-strength-guide.md.txt",
+);

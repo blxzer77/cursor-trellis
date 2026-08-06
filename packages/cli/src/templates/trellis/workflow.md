@@ -651,6 +651,8 @@ Use `contextPack.selected` / `scoredEvidence` to order citations in `verify.md`.
 
 #### 3.1 Quality verification `[required · repeatable]`
 
+**Verification strength:** match closeout depth to task risk per `.cstl/spec/guides/verification-strength-guide.md` (Lite / Full / Parent × `verification_profile`; not TDD). Use `verify_evidence_probe.py` fixtures when validating gate behavior.
+
 Verification / Review is evidence and judgment, not a hidden implementation loop. Load the `cstl-check` skill or agent and do a final review:
 - Spec compliance
 - lint / type-check / tests
