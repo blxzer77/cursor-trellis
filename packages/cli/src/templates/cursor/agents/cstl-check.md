@@ -48,6 +48,7 @@ Look for the `<!-- cstl-hook-injected -->` marker in your input above.
 
 Before checking, read:
 - `.cstl/spec/` - Development guidelines
+- `.cstl/spec/guides/verification-strength-guide.md` - Graded verify depth (Lite/Full/Parent; not TDD)
 - Task `prd.md` - Requirements document
 - Task `design.md` - Technical design (if exists)
 - Task `implement.md` - Execution plan (if exists)

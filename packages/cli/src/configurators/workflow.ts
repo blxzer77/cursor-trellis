@@ -38,6 +38,7 @@ import {
   guidesExecutionStrategyContent,
   guidesCursorContextInjectionGuideContent,
   guidesCursorNativeModesGuideContent,
+  guidesVerificationStrengthGuideContent,
 } from "../templates/markdown/index.js";
 
 import { writeFile, ensureDir } from "../utils/file-writer.js";
@@ -292,6 +293,10 @@ async function createSpecTemplates(
     {
       name: "cursor-native-modes-guide.md",
       content: guidesCursorNativeModesGuideContent,
+    },
+    {
+      name: "verification-strength-guide.md",
+      content: guidesVerificationStrengthGuideContent,
     },
   ];
   for (const doc of guidesDocs) {
