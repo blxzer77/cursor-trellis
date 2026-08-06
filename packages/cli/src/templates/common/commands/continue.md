@@ -19,7 +19,19 @@ If the output says `Selected task: none`, do not auto-resume a previous or uniqu
 - inspect details
 - continue without a task for No Task / Micro-Grill work
 
-## Step 2: Load the Phase Index
+## Step 2: Search Session Memory
+
+**Skip this step** if Step 1 reported `Selected task: none`.
+
+When a task is selected, search past session memory so resume work can reuse journal context instead of re-asking the user:
+
+```bash
+{{PYTHON_CMD}} ./.cstl/scripts/search_memory.py --query "<task topic or title>" --json
+```
+
+Use the selected task's title or topic as the query. From the JSON results, summarize **1–3** most relevant hits for the user (title, summary, and next steps when present). Carry that context into the rest of the continue flow.
+
+## Step 3: Load the Phase Index
 
 ```bash
 {{PYTHON_CMD}} ./.cstl/scripts/get_context.py --mode phase
@@ -27,7 +39,7 @@ If the output says `Selected task: none`, do not auto-resume a previous or uniqu
 
 Shows the Phase Index (Plan / Execute / Finish) with routing + skill mapping.
 
-## Step 3: Decide Where You Are
+## Step 4: Decide Where You Are
 
 When a task is selected, `get_context.py` shows the selected task's `status` field. Route by `status` + artifact presence. This command replaces the user needing to remember the Trellis flow; it does not itself approve implementation.
 
@@ -46,7 +58,7 @@ Phase rules (full detail in `.cstl/workflow.md`):
 2. `[once]` steps are already done if the required output exists. `prd.md` alone can be enough only for lightweight tasks; complex tasks also need `design.md` and `implement.md`.
 3. You may go back to an earlier phase if discoveries require it
 
-## Step 4: Load the Specific Step
+## Step 5: Load the Specific Step
 
 Once you know which step to resume at:
 
