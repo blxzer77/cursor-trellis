@@ -39,6 +39,7 @@ import {
   guidesCursorContextInjectionGuideContent,
   guidesCursorNativeModesGuideContent,
   guidesVerificationStrengthGuideContent,
+  guidesInjectionBudgetGuideContent,
 } from "../templates/markdown/index.js";
 
 import { writeFile, ensureDir } from "../utils/file-writer.js";
@@ -297,6 +298,10 @@ async function createSpecTemplates(
     {
       name: "verification-strength-guide.md",
       content: guidesVerificationStrengthGuideContent,
+    },
+    {
+      name: "injection-budget-guide.md",
+      content: guidesInjectionBudgetGuideContent,
     },
   ];
   for (const doc of guidesDocs) {

@@ -67,6 +67,9 @@ export const commonParentOrchestration = readTemplate(
 export const commonSubagentDispatch = readTemplate(
   "scripts/common/subagent_dispatch.py",
 );
+export const commonInjectionBudget = readTemplate(
+  "scripts/common/injection_budget.py",
+);
 export const commonArtifactSearch = readTemplate(
   "scripts/common/artifact_search.py",
 );
@@ -110,6 +113,9 @@ export const rankRetrievalCandidatesScript = readTemplate(
   "scripts/rank_retrieval_candidates.py",
 );
 export const scoreEvidenceScript = readTemplate("scripts/score_evidence.py");
+export const injectionBudgetProbeScript = readTemplate(
+  "scripts/injection_budget_probe.py",
+);
 export const commonRetrievalAdapterMetadata = readTemplate(
   "scripts/common/retrieval_adapter_metadata.py",
 );
@@ -238,6 +244,7 @@ export function getAllScripts(): Map<string, string> {
   scripts.set("common/task_map.py", commonTaskMap);
   scripts.set("common/parent_orchestration.py", commonParentOrchestration);
   scripts.set("common/subagent_dispatch.py", commonSubagentDispatch);
+  scripts.set("common/injection_budget.py", commonInjectionBudget);
   scripts.set("common/artifact_search.py", commonArtifactSearch);
   scripts.set("common/session_memory.py", commonSessionMemory);
   scripts.set("common/smart_search_evidence.py", commonSmartSearchEvidence);
@@ -282,6 +289,7 @@ export function getAllScripts(): Map<string, string> {
   scripts.set("codegraph_session_smoke.py", codegraphSessionSmokeScript);
   scripts.set("rank_retrieval_candidates.py", rankRetrievalCandidatesScript);
   scripts.set("score_evidence.py", scoreEvidenceScript);
+  scripts.set("injection_budget_probe.py", injectionBudgetProbeScript);
 
   return scripts;
 }

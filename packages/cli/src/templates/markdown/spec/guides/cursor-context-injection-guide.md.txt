@@ -15,7 +15,7 @@ Cursor has **several** channels that can put text in front of the model. They ar
 | `sessionStart` hook → `additional_context` | Once per session; delivered via `hooks_context` | ✅ **Yes** (fixed — verified 2026-08-05; was #158452) | Task Dashboard, workflow Phase Index summary, first-reply notice |
 | `beforeSubmitPrompt` hook → `additional_context` | Per user message; router would emit `## 代码库检索计划` | ❌ **No (telemetry-only since 2026-06-24)** | `inject-retrieval-plan.py` logs to `.cstl/.runtime/retrieval-plan-events.log`; **no injection** |
 | `.cstl/workflow.md` (read on demand) | Only if the agent explicitly runs `get_context.py` or reads the file | ⚠️ Depends on agent taking action | Full Request Triage section, Task Ladder, workflow-state breadcrumbs |
-| **`task.py generate-dispatch-prompt` → Task `prompt`** (CLI Layer 2) | Main session runs Trellis script before `Task(...)` | ✅ **Yes (primary for subagent task context on Cursor)** | Full embed: marker, `Selected task:`, prd/jsonl/spec bodies |
+| **`task.py generate-dispatch-prompt` → Task `prompt`** (CLI Layer 2) | Main session runs Trellis script before `Task(...)` | ✅ **Yes (primary for subagent task context on Cursor)** | Full embed: marker, `Selected task:`, prd/jsonl/spec bodies (budgeted — see [injection-budget-guide](./injection-budget-guide.md)) |
 
 **Key takeaway**: anything that must reach the model **every turn** must live in `.cursor/rules` or `AGENTS.md`. `sessionStart` is reliable for **session-level** orientation (dashboard, workflow summary) but fires only once. Retrieval plans: use **Rules default tool order** or run `route_codebase_retrieval.py --instructions` on demand — do **not** rely on `beforeSubmitPrompt` injection. Subagent task context uses **CLI Layer 2** before Task dispatch.
 
@@ -50,7 +50,20 @@ Trellis routes content by reliability on Cursor:
 | **Session orientation** (dashboard, workflow summary, first-reply notice) | `sessionStart` hook → `additional_context` | Reliable on Cursor 3.8.x+; session-level only |
 | **Workflow phases, Task Ladder, workflow-state breadcrumbs** | `.cstl/workflow.md` + sessionStart summary | Full detail on demand via `get_context.py` / `cstl-continue` |
 
-**If a new "must-always-be-visible" rule is added to Trellis**: ship it as a `.cursor/rules/*.mdc` (Cursor) — do **not** rely on `workflow.md` or sessionStart alone for per-turn enforcement.
+**If a new "must-always-be-visible" rule is added to Trellis**: ship it as a `.cursor/rules/*.mdc` (Cursor) — do **not** rely on `workflow.md` or sessionStart alone for per-turn enforcement. Run `injection_budget_probe.py` after adding rules (see [injection-budget-guide](./injection-budget-guide.md)).
+
+---
+
+## Injection budget (P0)
+
+Per-channel caps and jsonl/Layer 2 limits are defined in **[injection-budget-guide](./injection-budget-guide.md)**. Summary from channel matrix (2026-08-06):
+
+- **Per-turn:** C01 Rules + C02 AGENTS only (not C04).
+- **Session once:** C03 sessionStart dashboard/workflow.
+- **Subagent:** C06 Layer 2 with role `max_chars` + jsonl entry/file/total caps.
+- **Retrieval:** C16 Rules + router CLI on demand.
+
+Probe: `python ./.cstl/scripts/injection_budget_probe.py --repo-root .`
 
 ---
 
