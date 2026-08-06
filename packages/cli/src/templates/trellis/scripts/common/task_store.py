@@ -1253,6 +1253,29 @@ def cmd_integrate_child(args: argparse.Namespace) -> int:
     if merge_ref:
         print(f"Merge executed: git merge --no-ff --no-commit {merge_ref}")
     print(f"Parent map: {_repo_relative_path(parent_dir / 'task-map.md', repo_root)}")
+
+    if state == "integrated" and not getattr(args, "no_publish_pack", False):
+        from .parent_orchestration import build_publish_pack
+
+        summary, pack_errors = build_publish_pack(parent_dir)
+        if pack_errors or summary is None:
+            for item in pack_errors:
+                print(f"  - {item}", file=sys.stderr)
+            print(
+                colored(
+                    "Warning: integrate succeeded but publish-pack failed; "
+                    "PACK may be stale (see parent-status stalePack).",
+                    Colors.YELLOW,
+                ),
+                file=sys.stderr,
+            )
+            return 2
+        print(colored("✓ PACK refreshed after integrate", Colors.GREEN))
+        for line in summary.splitlines():
+            if line.startswith("- Generated:"):
+                print(line)
+                break
+
     return 0
 
 
