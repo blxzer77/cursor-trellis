@@ -116,6 +116,7 @@ Treat `prd.md` (+ existing `design.md` fragments) as the **only document surface
 | 7 | **Research & external facts** — smart-search or documented fallback |
 | 8 | **Execution gate & artifacts** — `design.md` / `implement.md` / `verify.md` expectations |
 | 9 | **Durable Learning** — Phase 3.3 will need `update-spec` \| `no-update` \| `unsure` |
+|   | Link: `.cstl/spec/guides/durable-learning-decision-guide.md` § Valid outcomes |
 | 10 | **Platform** — Cursor-first; PRD Grill in-session (no legacy grill-me / grill-with-docs subagent gate) |
 | 11 | **Risk & rollback** for complex tasks |
 | 12 | **Open questions** — only **blocking** strategic/preference items remain |
