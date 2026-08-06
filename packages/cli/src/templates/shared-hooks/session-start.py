@@ -656,6 +656,16 @@ def _build_compact_current_state(
     if spec_index_paths:
         lines.append(f"Spec indexes: {len(spec_index_paths)} available.")
 
+    try:
+        from common.artifact_locale import artifact_locale_summary  # type: ignore[import-not-found]
+
+        task_dir = None
+        if active.task_path:
+            task_dir = _resolve_task_dir(trellis_dir, active.task_path)
+        lines.append(artifact_locale_summary(repo_root, task_dir))
+    except Exception:
+        pass
+
     return "\n".join(lines)
 
 

@@ -59,6 +59,8 @@ Use a concise title from the user's request. Use a slug without a date prefix. `
 
 `task.py create` creates the default `prd.md`. Update that file with the current understanding before asking follow-up questions.
 
+**Artifact language:** Read `.cstl/spec/guides/artifact-locale-guide.md`. Write planning artifacts in the resolved `artifact_locale` (workspace default or task override from `task.py artifact-locale get`).
+
 ## Two-phase planning overview
 
 | Phase | Name | User questions |

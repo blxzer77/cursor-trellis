@@ -435,6 +435,13 @@ def resolve_package(
     return None
 
 
+def get_artifact_locale(repo_root: Path | None = None) -> str:
+    """Get workspace human-reviewed artifact locale (zh | en, default zh)."""
+    from .artifact_locale import get_workspace_artifact_locale
+
+    return get_workspace_artifact_locale(repo_root)
+
+
 def get_spec_scope(repo_root: Path | None = None) -> list[str] | str | None:
     """Get session.spec_scope configuration.
 

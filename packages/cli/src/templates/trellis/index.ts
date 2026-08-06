@@ -43,6 +43,7 @@ export const commonCliEnvironment = readTemplate(
   "scripts/common/cli_environment.py",
 );
 export const commonConfig = readTemplate("scripts/common/config.py");
+export const commonArtifactLocale = readTemplate("scripts/common/artifact_locale.py");
 export const commonIo = readTemplate("scripts/common/io.py");
 export const commonLog = readTemplate("scripts/common/log.py");
 export const commonGit = readTemplate("scripts/common/git.py");
@@ -197,6 +198,12 @@ export function getAllTaskTemplates(): Map<string, string> {
       readTaskTemplate(`release-execution/${file}`),
     );
   }
+  for (const locale of ["zh", "en"] as const) {
+    templates.set(
+      `tasks/locale/${locale}/default-prd.md`,
+      readTemplate(`tasks/locale/${locale}/default-prd.md`),
+    );
+  }
   return templates;
 }
 
@@ -231,6 +238,7 @@ export function getAllScripts(): Map<string, string> {
   scripts.set("common/cli_adapter.py", commonCliAdapter);
   scripts.set("common/cli_environment.py", commonCliEnvironment);
   scripts.set("common/config.py", commonConfig);
+  scripts.set("common/artifact_locale.py", commonArtifactLocale);
   scripts.set("common/io.py", commonIo);
   scripts.set("common/log.py", commonLog);
   scripts.set("common/git.py", commonGit);
