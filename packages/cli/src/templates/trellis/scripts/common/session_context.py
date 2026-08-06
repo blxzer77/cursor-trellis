@@ -21,7 +21,8 @@ from pathlib import Path
 
 from .active_task import resolve_context_key
 from .artifact_locale import artifact_locale_summary, resolve_artifact_locale
-from .config import get_git_packages
+from .config import get_git_packages, get_journal_snippet_enabled
+from .session_memory import get_latest_journal_summary
 from .git import run_git
 from .packages_context import get_packages_section
 from .tasks import iter_active_tasks, load_task, get_all_statuses, children_progress
@@ -824,7 +825,24 @@ def get_context_json(repo_root: Path | None = None) -> dict:
     if pkg_git_info:
         result["packageGit"] = pkg_git_info
 
+    if get_journal_snippet_enabled(repo_root):
+        result["journal"]["snippet"] = _resolve_journal_snippet(
+            repo_root,
+            journal_file,
+            developer,
+        )
+
     return result
+
+
+def _resolve_journal_snippet(
+    repo_root: Path,
+    journal_file: Path | None,
+    developer: str | None,
+) -> str:
+    if not journal_file or not developer:
+        return ""
+    return get_latest_journal_summary(journal_file, repo_root, developer)
 
 
 def output_json(repo_root: Path | None = None) -> None:
@@ -972,6 +990,10 @@ def get_context_text(repo_root: Path | None = None) -> str:
         lines.append(f"Line count: {journal_lines} / 2000")
         if journal_lines > 1800:
             lines.append("[!] WARNING: Approaching 2000 line limit!")
+        if get_journal_snippet_enabled(repo_root):
+            snippet = _resolve_journal_snippet(repo_root, journal_file, developer)
+            if snippet:
+                lines.append(f"Recent snippet: {snippet}")
     else:
         lines.append("No journal file found")
     lines.append("")

@@ -33,6 +33,15 @@ max_journal_lines: 2000
 # session_auto_commit: true
 
 #-------------------------------------------------------------------------------
+# Context injection (opt-in)
+#-------------------------------------------------------------------------------
+
+# Optional get_context enrichment. Default off — JOURNAL FILE stays metadata-only.
+#
+# context_injection:
+#   journal_snippet: false   # opt-in; inject ≤150 token recent journal summary in get_context
+
+#-------------------------------------------------------------------------------
 # Task Lifecycle Hooks
 #-------------------------------------------------------------------------------
 
