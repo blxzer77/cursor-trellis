@@ -127,6 +127,37 @@ def remove_child_from_task_map(
     write_task_map(parent_dir, data, body, f"Unlinked Child `{child_name}`.")
 
 
+def resolve_child_map_id(
+    parent_data: dict,
+    child_dir: Path,
+    child_data: dict | None = None,
+) -> str:
+    """Resolve task-map child id for a child directory (nested slash slugs)."""
+    structural = parent_data.get("children", [])
+    if not isinstance(structural, list):
+        structural = []
+
+    leaf = child_dir.name
+    if leaf in structural:
+        return leaf
+
+    if child_data:
+        for key in ("name", "id"):
+            value = child_data.get(key)
+            if isinstance(value, str) and value in structural:
+                return value
+
+    suffix_matches = [
+        cid
+        for cid in structural
+        if isinstance(cid, str) and (cid == leaf or cid.endswith(f"/{leaf}"))
+    ]
+    if len(suffix_matches) == 1:
+        return suffix_matches[0]
+
+    return leaf
+
+
 def set_child_state(
     parent_dir: Path,
     parent_data: dict,
@@ -183,7 +214,7 @@ def validate_parent_child_integration(
 ) -> list[str]:
     """Validate a Parent-controlled Child integration state transition."""
     errors: list[str] = []
-    child_name = child_dir.name
+    child_name = resolve_child_map_id(parent_data, child_dir, child_data)
     if state not in PARENT_CONTROLLED_STATES:
         errors.append(f"state is not Parent-controlled: {state}")
     if not _short_text(evidence):
@@ -295,10 +326,11 @@ def set_parent_child_integration_state(
     if errors:
         return False, errors
 
+    child_name = resolve_child_map_id(parent_data, child_dir, child_data)
     data = ensure_task_map(parent_dir, parent_data, list(parent_data.get("children", [])))
-    child = get_child_entry(data, child_dir.name)
+    child = get_child_entry(data, child_name)
     if child is None:
-        return False, [f"child missing from task-map.md: {child_dir.name}"]
+        return False, [f"child missing from task-map.md: {child_name}"]
 
     child["state"] = state
     child["evidence"] = evidence
@@ -316,12 +348,12 @@ def set_parent_child_integration_state(
         queue = []
         data["integration_queue"] = queue
     if state == "integrating":
-        if child_dir.name not in queue:
-            queue.append(child_dir.name)
-    elif child_dir.name in queue:
-        data["integration_queue"] = [item for item in queue if item != child_dir.name]
+        if child_name not in queue:
+            queue.append(child_name)
+    elif child_name in queue:
+        data["integration_queue"] = [item for item in queue if item != child_name]
 
-    event = f"Parent set Child `{child_dir.name}` integration state to `{state}`. Evidence: {evidence}."
+    event = f"Parent set Child `{child_name}` integration state to `{state}`. Evidence: {evidence}."
     if ref:
         event = f"{event} Ref: {ref}."
     if merge_ref:
