@@ -353,4 +353,255 @@ integration_queue: []
     expect(stdout).toContain("ready");
     expect(stdout).toContain("publish-pack");
   });
+
+  it("parent-status text includes stalePack and newlyReady", () => {
+    if (!hasPython()) return;
+
+    const tasks = path.join(tmp, ".cstl", "tasks");
+    const parentDir = path.join(tasks, "parent-campaign");
+    writeTask(parentDir, "parent-campaign");
+    writeTask(path.join(tasks, "child-a"), "child-a");
+    writeTask(path.join(tasks, "child-b"), "child-b");
+
+    fs.writeFileSync(
+      path.join(parentDir, "task-map.md"),
+      `---
+parent_id: parent-campaign
+contract_epoch: 1
+execution_topology: parallel
+merge_limit: 1
+children:
+  - id: child-a
+    state: integrated
+    depends_on: []
+    touches: []
+    isolation: none
+    ref: abc
+  - id: child-b
+    state: open
+    depends_on: [child-a]
+    touches: []
+    isolation: none
+    ref: null
+stages:
+  - id: stage-1
+    title: Wave
+    units: [child-a, child-b]
+integration_queue: []
+---
+# Task Map
+
+## Event Log
+
+- 2026-08-01T10:00:00Z - Parent set Child \`child-a\` integration state to \`integrated\`. Evidence: task-map.md. Ref: abc.
+`,
+    );
+
+    const { status, stdout } = runPython(tmp, ".cstl/scripts/task.py", [
+      "parent-status",
+      ".cstl/tasks/parent-campaign",
+    ]);
+    expect(status).toBe(0);
+    expect(stdout).toContain("## Pack freshness");
+    expect(stdout).toContain("stalePack:");
+    expect(stdout).toContain("newlyReady:");
+    expect(stdout).toContain("child-b");
+  });
+
+  it("parent-status --json includes stalePack and newlyReady", () => {
+    if (!hasPython()) return;
+
+    const tasks = path.join(tmp, ".cstl", "tasks");
+    const parentDir = path.join(tasks, "parent-campaign");
+    writeTask(parentDir, "parent-campaign");
+    writeTask(path.join(tasks, "child-a"), "child-a");
+
+    fs.writeFileSync(
+      path.join(parentDir, "task-map.md"),
+      `---
+parent_id: parent-campaign
+contract_epoch: 1
+execution_topology: parallel
+merge_limit: 1
+children:
+  - id: child-a
+    state: working
+    depends_on: []
+    touches: []
+    isolation: none
+    ref: null
+stages:
+  - id: stage-1
+    title: Solo
+    units: [child-a]
+integration_queue: []
+---
+# Task Map
+`,
+    );
+
+    const { status, stdout } = runPython(tmp, ".cstl/scripts/task.py", [
+      "parent-status",
+      ".cstl/tasks/parent-campaign",
+      "--json",
+    ]);
+    expect(status).toBe(0);
+    const payload = JSON.parse(stdout);
+    expect(payload).toHaveProperty("stalePack");
+    expect(payload).toHaveProperty("newlyReady");
+    expect(Array.isArray(payload.newlyReady)).toBe(true);
+  });
+
+  function writeChildEvidence(childDir: string): void {
+    fs.writeFileSync(
+      path.join(childDir, "verify.md"),
+      "# verify\n\n## Execution evidence\n",
+    );
+    fs.writeFileSync(path.join(childDir, "handoff.md"), "# handoff\n");
+  }
+
+  it("integrate-child integrated refreshes PACK by default", () => {
+    if (!hasPython()) return;
+
+    const tasks = path.join(tmp, ".cstl", "tasks");
+    const parentDir = path.join(tasks, "parent-campaign");
+    const childADir = path.join(tasks, "child-a");
+    const childBDir = path.join(tasks, "child-b");
+    writeTask(parentDir, "parent-campaign");
+    writeTask(childADir, "child-a");
+    writeTask(childBDir, "child-b");
+    writeChildEvidence(childADir);
+
+    fs.writeFileSync(
+      path.join(parentDir, "task-map.md"),
+      `---
+parent_id: parent-campaign
+contract_epoch: 1
+execution_topology: parallel
+merge_limit: 1
+children:
+  - id: child-a
+    state: integrating
+    depends_on: []
+    touches: []
+    isolation: none
+    ref: abc123
+  - id: child-b
+    state: open
+    depends_on: [child-a]
+    touches: []
+    isolation: none
+    ref: null
+stages:
+  - id: stage-1
+    title: Wave
+    units: [child-a, child-b]
+integration_queue: [child-a]
+---
+# Task Map
+`,
+    );
+
+    runPython(tmp, ".cstl/scripts/task.py", [
+      "publish-pack",
+      ".cstl/tasks/parent-campaign",
+    ]);
+    const packBefore = fs.readFileSync(
+      path.join(parentDir, "child-prompts", "PACK.md"),
+      "utf-8",
+    );
+    expect(packBefore).toContain("**blocked**");
+
+    const integrated = runPython(tmp, ".cstl/scripts/task.py", [
+      "integrate-child",
+      ".cstl/tasks/parent-campaign",
+      ".cstl/tasks/child-a",
+      "integrated",
+      "--evidence",
+      "task-map.md",
+      "--ref",
+      "abc123",
+    ]);
+    expect(integrated.status).toBe(0);
+    expect(integrated.stdout).toContain("PACK refreshed after integrate");
+    expect(integrated.stdout).toContain("Generated:");
+
+    const packAfter = fs.readFileSync(
+      path.join(parentDir, "child-prompts", "PACK.md"),
+      "utf-8",
+    );
+    expect(packAfter).toContain("child-b");
+    expect(packAfter).toContain("**ready**");
+    expect(packAfter).not.toContain("child-b` — `open` — **blocked**");
+  });
+
+  it("integrate-child --no-publish-pack skips PACK refresh", () => {
+    if (!hasPython()) return;
+
+    const tasks = path.join(tmp, ".cstl", "tasks");
+    const parentDir = path.join(tasks, "parent-campaign");
+    const childADir = path.join(tasks, "child-a");
+    writeTask(parentDir, "parent-campaign");
+    writeTask(childADir, "child-a");
+    writeChildEvidence(childADir);
+
+    fs.writeFileSync(
+      path.join(parentDir, "task-map.md"),
+      `---
+parent_id: parent-campaign
+contract_epoch: 1
+execution_topology: parallel
+merge_limit: 1
+children:
+  - id: child-a
+    state: integrating
+    depends_on: []
+    touches: []
+    isolation: none
+    ref: abc123
+stages:
+  - id: stage-1
+    title: Solo
+    units: [child-a]
+integration_queue: [child-a]
+---
+# Task Map
+`,
+    );
+
+    runPython(tmp, ".cstl/scripts/task.py", [
+      "publish-pack",
+      ".cstl/tasks/parent-campaign",
+    ]);
+    const packBefore = fs.readFileSync(
+      path.join(parentDir, "child-prompts", "PACK.md"),
+      "utf-8",
+    );
+    const generatedBefore = packBefore
+      .split("\n")
+      .find((line) => line.startsWith("- Generated:"));
+
+    const integrated = runPython(tmp, ".cstl/scripts/task.py", [
+      "integrate-child",
+      ".cstl/tasks/parent-campaign",
+      ".cstl/tasks/child-a",
+      "integrated",
+      "--evidence",
+      "task-map.md",
+      "--ref",
+      "abc123",
+      "--no-publish-pack",
+    ]);
+    expect(integrated.status).toBe(0);
+    expect(integrated.stdout).not.toContain("PACK refreshed after integrate");
+
+    const packAfter = fs.readFileSync(
+      path.join(parentDir, "child-prompts", "PACK.md"),
+      "utf-8",
+    );
+    const generatedAfter = packAfter
+      .split("\n")
+      .find((line) => line.startsWith("- Generated:"));
+    expect(generatedAfter).toBe(generatedBefore);
+  });
 });
