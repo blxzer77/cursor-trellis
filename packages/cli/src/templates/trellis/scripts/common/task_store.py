@@ -72,6 +72,7 @@ from .task_map import (
     get_child_state,
     record_child_worktree,
     remove_child_from_task_map,
+    resolve_child_map_id,
     set_child_state,
     set_parent_child_integration_state,
     validate_parent_child_integration,
@@ -1176,10 +1177,11 @@ def cmd_set_child_state(args: argparse.Namespace) -> int:
         )
         return 1
 
+    child_map_id = resolve_child_map_id(parent_data, child_dir, child_data)
     ok, errors = set_child_state(
         parent_dir,
         parent_data,
-        child_dir.name,
+        child_map_id,
         state,
         args.evidence,
         getattr(args, "reason", None),
