@@ -131,6 +131,60 @@ def _builtin_prd_template(locale: str) -> str:
 """
 
 
+def default_verify_content(
+    locale: str | None = None,
+    repo_root: Path | None = None,
+    task_dir: Path | None = None,
+) -> str:
+    """Return the default verify.md skeleton seeded on task create."""
+    root = repo_root or get_repo_root()
+    resolved = normalize_locale(locale) or resolve_artifact_locale(task_dir, root)
+    template_path = locale_template_dir(resolved, root) / "default-verify.md"
+    if template_path.is_file():
+        return template_path.read_text(encoding="utf-8")
+    if resolved == "zh":
+        return """# 验证证据
+
+## Planning check
+
+_可选（Full 任务）— 记录规划阶段审查结果。_
+
+## Execution evidence
+
+### Validation commands
+
+<!-- 示例：Validation commands: <命令> — <结果> -->
+
+### Acceptance
+
+<!-- 示例：Final acceptance evidence: <验收标准达成说明> -->
+
+### Durable learning
+
+<!-- 示例：Durable learning decision: no durable learning -->
+"""
+    return """# Verification Evidence
+
+## Planning check
+
+_Optional for Full tasks — record planning review outcomes._
+
+## Execution evidence
+
+### Validation commands
+
+<!-- Example: Validation commands: <command> — <outcome> -->
+
+### Acceptance
+
+<!-- Example: Final acceptance evidence: <criteria met> -->
+
+### Durable learning
+
+<!-- Example: Durable learning decision: no durable learning -->
+"""
+
+
 def default_prd_content(
     title: str,
     description: str | None = None,
