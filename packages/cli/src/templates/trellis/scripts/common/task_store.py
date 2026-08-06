@@ -25,7 +25,11 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from .artifact_locale import default_prd_content, resolve_artifact_locale
+from .artifact_locale import (
+    default_prd_content,
+    default_verify_content,
+    resolve_artifact_locale,
+)
 from .config import (
     get_packages,
     get_session_auto_commit,
@@ -250,11 +254,10 @@ _SUBAGENT_CONFIG_DIRS: tuple[str, ...] = (
     ".pi",        # Pi Agent
 )
 
-_SEED_EXAMPLE = (
-    "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. "
-    "Put spec/research files only — no code paths. "
-    "Run `python .cstl/scripts/get_context.py --mode packages` to list available specs. "
-    "Delete this line once real entries are added."
+_STABLE_SPEC_SEED_PATHS: tuple[str, ...] = (
+    ".cstl/spec/guides/index.md",
+    ".cstl/spec/guides/verification-strength-guide.md",
+    ".cstl/spec/guides/injection-budget-guide.md",
 )
 
 
@@ -271,15 +274,57 @@ def _has_subagent_platform(repo_root: Path) -> bool:
     return False
 
 
-def _write_seed_jsonl(path: Path) -> None:
-    """Write a one-line seed JSONL file with a self-describing ``_example``.
+def _resolve_seed_spec_paths(
+    repo_root: Path,
+    task_dir: Path,
+    task_data: dict,
+) -> list[str]:
+    """Return 2–3 existing spec file paths for jsonl create seeds."""
+    from .task_gates import suggest_spec_targets
 
-    The seed row has no ``file`` field, so downstream consumers (hooks +
-    preludes) that iterate entries via ``item.get("file")`` naturally skip
-    it. The row exists purely as an in-file prompt for the AI curator.
-    """
-    seed = {"_example": _SEED_EXAMPLE}
-    path.write_text(json.dumps(seed, ensure_ascii=False) + "\n", encoding="utf-8")
+    candidates: list[str] = []
+    for path in suggest_spec_targets(repo_root, task_dir, task_data):
+        if path not in candidates:
+            candidates.append(path)
+    for rel in _STABLE_SPEC_SEED_PATHS:
+        if rel not in candidates:
+            candidates.append(rel)
+
+    existing = [rel for rel in candidates if (repo_root / rel).is_file()]
+    if len(existing) >= 2:
+        return existing[:3]
+
+    fallback = [
+        rel for rel in _STABLE_SPEC_SEED_PATHS if (repo_root / rel).is_file()
+    ]
+    return fallback[:3]
+
+
+def _write_seed_jsonl(
+    path: Path,
+    repo_root: Path,
+    task_dir: Path,
+    task_data: dict,
+) -> None:
+    """Write 2–3 JSONL rows with real spec ``file`` paths for sub-agent context."""
+    spec_paths = _resolve_seed_spec_paths(repo_root, task_dir, task_data)
+    if len(spec_paths) < 2:
+        raise ValueError(
+            "task create requires at least two existing spec guide paths for jsonl seed"
+        )
+
+    lines: list[str] = []
+    for spec_path in spec_paths:
+        lines.append(
+            json.dumps(
+                {
+                    "file": spec_path,
+                    "reason": "default spec seed — curate entries for this task",
+                },
+                ensure_ascii=False,
+            )
+        )
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def _default_prd_content(
@@ -404,6 +449,13 @@ def cmd_create(args: argparse.Namespace) -> int:
             encoding="utf-8",
         )
 
+    verify_path = task_dir / "verify.md"
+    if not verify_path.exists():
+        verify_path.write_text(
+            default_verify_content(repo_root=repo_root, task_dir=task_dir),
+            encoding="utf-8",
+        )
+
     # Seed implement.jsonl / check.jsonl for sub-agent-capable platforms.
     # Agent curates real entries during planning when the task needs them.
     # Agent-less platforms (Kilo / Antigravity / Windsurf) skip this — they
@@ -413,7 +465,7 @@ def cmd_create(args: argparse.Namespace) -> int:
         for jsonl_name in ("implement.jsonl", "check.jsonl"):
             jsonl_path = task_dir / jsonl_name
             if not jsonl_path.exists():
-                _write_seed_jsonl(jsonl_path)
+                _write_seed_jsonl(jsonl_path, repo_root, task_dir, task_data)
         seeded_jsonl = True
 
     # Handle --parent: establish bidirectional link

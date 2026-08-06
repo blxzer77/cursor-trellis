@@ -7,6 +7,7 @@ from pathlib import Path
 
 from .active_task import resolve_selected_task
 from .paths import DIR_TASKS, DIR_WORKFLOW, get_developer, get_repo_root, get_tasks_dir
+from .task_gates import verify_evidence_status
 from .task_map import get_child_state
 from .tasks import (
     children_progress,
@@ -21,6 +22,19 @@ _STATUS_ORDER = ("planning", "in_progress", "review", "blocked")
 
 def _task_path(dir_name: str) -> str:
     return f"{DIR_WORKFLOW}/{DIR_TASKS}/{dir_name}"
+
+
+def format_verify_summary(task_dir: Path, task_data: dict) -> str:
+    """Return a compact verify evidence label for dashboard task lines."""
+    verify_path = task_dir / "verify.md"
+    if not verify_path.is_file():
+        return "[verify: missing]"
+    status = verify_evidence_status(task_dir, task_data)
+    if all(status.values()):
+        return "[verify: ok]"
+    if any(status.values()):
+        return "[verify: partial]"
+    return "[verify: missing]"
 
 
 def _selected_line(
@@ -123,9 +137,10 @@ def _append_task(
         integration_state = get_child_state(parent_dir, name)
     status_display = format_child_task_display(task.status, integration_state)
     assignee = task.assignee or "-"
+    verify_summary = format_verify_summary(task.directory, task.raw or {})
     prefix = "  " * indent + "  - "
     lines.append(
-        f"{prefix}{_task_path(name)} ({status_display}){progress} [{assignee}]"
+        f"{prefix}{_task_path(name)} ({status_display}){progress} [{assignee}] {verify_summary}"
     )
     for child_name in task.children:
         if child_name in all_tasks:
