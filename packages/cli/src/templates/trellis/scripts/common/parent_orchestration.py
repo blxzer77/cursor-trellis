@@ -360,6 +360,136 @@ def _unit_readiness(
     return ("ready" if not blocked else "blocked", blocked)
 
 
+_PACK_GENERATED_RE = re.compile(r"^- Generated:\s*(.+)$", re.MULTILINE)
+_PACK_DASH = r"[\u2014\-]"
+_PACK_UNIT_LINE_RE = re.compile(
+    rf"^- `([^`]+)` {_PACK_DASH} `([^`]+)` {_PACK_DASH} \*\*(ready|blocked)\*\*",
+    re.MULTILINE,
+)
+
+
+def _parse_iso_timestamp(raw: str) -> datetime | None:
+    text = raw.strip()
+    if not text:
+        return None
+    normalized = text[:-1] + "+00:00" if text.endswith("Z") else text
+    try:
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError:
+        try:
+            parsed = datetime.strptime(text, "%Y-%m-%d")
+        except ValueError:
+            return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed
+
+
+def _parse_pack_generated(pack_text: str) -> datetime | None:
+    match = _PACK_GENERATED_RE.search(pack_text)
+    if not match:
+        return None
+    return _parse_iso_timestamp(match.group(1))
+
+
+def _last_integrate_event_time(body: str) -> datetime | None:
+    last: datetime | None = None
+    for line in body.splitlines():
+        stripped = line.strip()
+        if not stripped.startswith("- "):
+            continue
+        remainder = stripped[2:]
+        parts = remainder.split(" - ", 1)
+        if len(parts) != 2:
+            continue
+        ts_raw, message = parts[0].strip(), parts[1]
+        lowered = message.lower()
+        if "integration state" not in message and "integrate-through" not in lowered:
+            continue
+        parsed = _parse_iso_timestamp(ts_raw)
+        if parsed is not None and (last is None or parsed > last):
+            last = parsed
+    return last
+
+
+def _pack_ready_units(pack_text: str) -> set[str]:
+    ready: set[str] = set()
+    for unit_id, _state, readiness in _PACK_UNIT_LINE_RE.findall(pack_text):
+        if readiness == "ready":
+            ready.add(unit_id)
+    return ready
+
+
+def _expected_pack_ready_units(
+    data: dict,
+    children_by_id: dict[str, dict],
+) -> set[str]:
+    stages, _, _ = _normalize_stages(data)
+    ready: set[str] = set()
+    for stage in stages:
+        for unit in stage.get("units") or []:
+            if not isinstance(unit, str):
+                continue
+            readiness, _ = _unit_readiness(unit, children_by_id)
+            if readiness == "ready":
+                ready.add(unit)
+    return ready
+
+
+def _pack_unit_states_mismatch(
+    pack_text: str,
+    children_by_id: dict[str, dict],
+) -> bool:
+    for unit_id, pack_state, _readiness in _PACK_UNIT_LINE_RE.findall(pack_text):
+        entry = children_by_id.get(unit_id) or {}
+        current_state = entry.get("state", "?")
+        if str(current_state) != pack_state:
+            return True
+    return False
+
+
+def _compute_stale_pack(
+    parent_dir: Path,
+    data: dict,
+    body: str,
+    children_by_id: dict[str, dict],
+) -> bool | None:
+    pack_path = parent_dir / "child-prompts" / "PACK.md"
+    if not pack_path.is_file():
+        return None
+    try:
+        pack_text = pack_path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+
+    generated = _parse_pack_generated(pack_text)
+    if generated is None:
+        return None
+
+    stale = False
+    last_integrate = _last_integrate_event_time(body)
+    if last_integrate is not None and generated < last_integrate:
+        stale = True
+    if _pack_unit_states_mismatch(pack_text, children_by_id):
+        stale = True
+    expected_ready = _expected_pack_ready_units(data, children_by_id)
+    if _pack_ready_units(pack_text) != expected_ready:
+        stale = True
+    return stale
+
+
+def _compute_newly_ready(children_by_id: dict[str, dict]) -> list[str]:
+    ready_ids: list[str] = []
+    for unit_id in sorted(children_by_id):
+        entry = children_by_id[unit_id]
+        if entry.get("state") != "open":
+            continue
+        readiness, _ = _unit_readiness(unit_id, children_by_id)
+        if readiness == "ready":
+            ready_ids.append(unit_id)
+    return ready_ids
+
+
 def build_publish_pack(
     parent_dir: Path,
     *,
@@ -539,6 +669,9 @@ def build_parent_status_dict(parent_dir: Path) -> dict | None:
 
     children_by_id = _children_by_id(data)
     stages, stage_errors, legacy = _normalize_stages(data)
+    _, body = load_task_map(parent_dir)
+    stale_pack = _compute_stale_pack(parent_dir, data, body, children_by_id)
+    newly_ready = _compute_newly_ready(children_by_id)
 
     stage_rows: list[dict] = []
     for stage in stages:
@@ -597,6 +730,8 @@ def build_parent_status_dict(parent_dir: Path) -> dict | None:
         "integrationQueue": data.get("integration_queue") or [],
         "stageErrors": stage_errors,
         "legacyStages": legacy,
+        "stalePack": stale_pack,
+        "newlyReady": newly_ready,
     }
 
 
@@ -620,6 +755,17 @@ def build_parent_status(parent_dir: Path) -> str:
 
     children_by_id = _children_by_id(data)
     stages, stage_errors, legacy = _normalize_stages(data)
+    _, body = load_task_map(parent_dir)
+    stale_pack = _compute_stale_pack(parent_dir, data, body, children_by_id)
+    newly_ready = _compute_newly_ready(children_by_id)
+    lines.append("## Pack freshness")
+    lines.append("")
+    lines.append(f"- stalePack: {stale_pack}")
+    if newly_ready:
+        lines.append(f"- newlyReady: {', '.join(newly_ready)}")
+    else:
+        lines.append("- newlyReady: (none)")
+    lines.append("")
     lines.append("## Stages")
     lines.append("")
     if stage_errors:

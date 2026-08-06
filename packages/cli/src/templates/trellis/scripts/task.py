@@ -795,6 +795,11 @@ def main() -> int:
     p_integrate_child.add_argument("--ref", help="Child git ref or reviewed diff reference")
     p_integrate_child.add_argument("--reason", help="Optional short reason")
     p_integrate_child.add_argument("--execute-merge", action="store_true", help="Execute git merge --no-ff --no-commit for an integrated Child")
+    p_integrate_child.add_argument(
+        "--no-publish-pack",
+        action="store_true",
+        help="Skip auto publish-pack after integrated (default: refresh child-prompts/ including evidence-only integrates)",
+    )
     p_integrate_child.add_argument("--check", action="store_true", help="Run non-mutating integration readiness check")
 
     # suggest-execution-strategy
