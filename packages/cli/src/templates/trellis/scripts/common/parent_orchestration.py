@@ -22,6 +22,7 @@ from .task_map import (
     PARENT_TERMINAL_STATES,
     get_child_entry,
     load_task_map,
+    resolve_child_map_id,
     validate_parent_child_integration,
 )
 
@@ -936,7 +937,7 @@ def build_review_report(
     notes: str | None,
 ) -> tuple[str, list[str], dict]:
     """Build review summary and validate integration transitions for a decision."""
-    child_name = child_dir.name
+    child_name = resolve_child_map_id(parent_data, child_dir, child_data)
     summary = _summarize_handoff(child_dir)
     errors: list[str] = []
     actions: dict = {"integrate": None, "gates": []}
