@@ -77,6 +77,15 @@ max_journal_lines: 2000
 # default_package: frontend
 
 #-------------------------------------------------------------------------------
+# Human-reviewed artifact locale (zh | en)
+#-------------------------------------------------------------------------------
+
+# Language for prd/design/implement/verify/handoff and task create seeds.
+# Does NOT translate CLI UI or existing archived tasks.
+#
+# artifact_locale: zh
+
+#-------------------------------------------------------------------------------
 # Smart Search CLI (optional per-machine override)
 #-------------------------------------------------------------------------------
 # run_smart_search.py resolves: env TRELLIS_SMART_SEARCH_COMMAND, then this

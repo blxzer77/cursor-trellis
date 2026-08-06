@@ -20,6 +20,7 @@ import subprocess
 from pathlib import Path
 
 from .active_task import resolve_context_key
+from .artifact_locale import artifact_locale_summary, resolve_artifact_locale
 from .config import get_git_packages
 from .git import run_git
 from .packages_context import get_packages_section
@@ -46,7 +47,7 @@ from .paths import (
 # =============================================================================
 
 _PACKAGE_NAME = "@blxzer/cursor-trellis"
-_PYTHON_CMD = "python3"
+_PYTHON_CMD = "python"
 _UPDATE_CHECK_TIMEOUT_SECONDS = 1.0
 _VERSION_RE = re.compile(
     r"^\s*(\d+)(?:\.(\d+))?(?:\.(\d+))?(?:-([0-9A-Za-z.-]+))?\s*$"
@@ -797,6 +798,10 @@ def get_context_json(repo_root: Path | None = None) -> dict:
 
     result = {
         "developer": developer or "",
+        "artifactLocale": resolve_artifact_locale(
+            repo_root / selected_task if selected_task else None,
+            repo_root,
+        ),
         "git": {
             "isRepo": root_git_info["isRepo"],
             "branch": root_git_info["branch"],
@@ -860,11 +865,12 @@ def get_context_text(repo_root: Path | None = None) -> str:
     lines.append("## DEVELOPER")
     if not developer:
         lines.append(
-            f"ERROR: Not initialized. Run: python3 ./{DIR_WORKFLOW}/{DIR_SCRIPTS}/init_developer.py <name>"
+            f"ERROR: Not initialized. Run: python ./{DIR_WORKFLOW}/{DIR_SCRIPTS}/init_developer.py <name>"
         )
         return "\n".join(lines)
 
     lines.append(f"Name: {developer}")
+    lines.append(artifact_locale_summary(repo_root))
     lines.append("")
 
     root_git_info = _collect_root_git_info(repo_root)
@@ -1085,7 +1091,7 @@ def get_context_text_record(repo_root: Path | None = None) -> str:
     developer = get_developer(repo_root)
     if not developer:
         lines.append(
-            f"ERROR: Not initialized. Run: python3 ./{DIR_WORKFLOW}/{DIR_SCRIPTS}/init_developer.py <name>"
+            f"ERROR: Not initialized. Run: python ./{DIR_WORKFLOW}/{DIR_SCRIPTS}/init_developer.py <name>"
         )
         return "\n".join(lines)
 

@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+﻿#!/usr/bin/env python
 """
 Task CRUD operations.
 
@@ -25,6 +25,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from .artifact_locale import default_prd_content, resolve_artifact_locale
 from .config import (
     get_packages,
     get_session_auto_commit,
@@ -281,30 +282,17 @@ def _write_seed_jsonl(path: Path) -> None:
     path.write_text(json.dumps(seed, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
-def _default_prd_content(title: str, description: str | None = None) -> str:
+def _default_prd_content(
+    title: str,
+    description: str | None = None,
+    *,
+    repo_root: Path | None = None,
+    task_dir: Path | None = None,
+) -> str:
     """Return the default PRD skeleton created with every task."""
-    goal = (description or "").strip() or "TBD."
-    heading = title.strip() or "Untitled task"
-    return f"""# {heading}
-
-## Goal
-
-{goal}
-
-## Requirements
-
-- TBD
-
-## Acceptance Criteria
-
-- [ ] TBD
-
-## Notes
-
-- Keep `prd.md` focused on requirements, constraints, and acceptance criteria.
-- Lightweight tasks can remain PRD-only.
-- For complex tasks, add `design.md` for technical design and `implement.md` for execution planning before `task.py start-execution --check`.
-"""
+    root = repo_root or get_repo_root()
+    locale = resolve_artifact_locale(task_dir, root)
+    return default_prd_content(title, description, locale, root)
 
 
 # =============================================================================
@@ -412,7 +400,7 @@ def cmd_create(args: argparse.Namespace) -> int:
     prd_path = task_dir / "prd.md"
     if not prd_path.exists():
         prd_path.write_text(
-            _default_prd_content(args.title, args.description),
+            _default_prd_content(args.title, args.description, repo_root=repo_root, task_dir=task_dir),
             encoding="utf-8",
         )
 
@@ -1638,3 +1626,43 @@ def cmd_set_scope(args: argparse.Namespace) -> int:
 
     print(colored(f"✓ Scope set to: {scope}", Colors.GREEN))
     return 0
+
+
+# =============================================================================
+# Command: artifact-locale
+# =============================================================================
+
+def cmd_artifact_locale(args: argparse.Namespace) -> int:
+    """Get or set human-reviewed artifact locale (zh | en)."""
+    from .artifact_locale import (
+        resolve_artifact_locale,
+        set_task_artifact_locale,
+        set_workspace_artifact_locale,
+    )
+
+    repo_root = get_repo_root()
+    subcommand = getattr(args, "artifact_locale_command", None)
+
+    if subcommand == "get":
+        task_dir = resolve_task_dir(args.task, repo_root) if args.task else None
+        print(resolve_artifact_locale(task_dir, repo_root))
+        return 0
+
+    if subcommand == "set":
+        try:
+            if args.task:
+                task_dir = resolve_task_dir(args.task, repo_root)
+                set_task_artifact_locale(task_dir, args.locale, repo_root)
+                scope = f"task {task_dir.name}"
+            else:
+                set_workspace_artifact_locale(args.locale, repo_root)
+                scope = "workspace"
+        except (ValueError, FileNotFoundError) as exc:
+            print(colored(f"Error: {exc}", Colors.RED), file=sys.stderr)
+            return 1
+
+        print(colored(f"✓ artifact_locale set to {args.locale} ({scope})", Colors.GREEN))
+        return 0
+
+    print(colored("Error: use artifact-locale get|set", Colors.RED), file=sys.stderr)
+    return 1

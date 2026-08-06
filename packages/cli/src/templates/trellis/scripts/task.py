@@ -97,6 +97,7 @@ from common.task_store import (
     cmd_parent_status,
     cmd_publish_pack,
     cmd_review_child,
+    cmd_artifact_locale,
 )
 from common.task_context import (
     cmd_add_context,
@@ -707,6 +708,18 @@ def main() -> int:
     p_scope.add_argument("dir", help="Task directory")
     p_scope.add_argument("scope", help="Scope name")
 
+    # artifact-locale
+    p_artifact_locale = subparsers.add_parser(
+        "artifact-locale",
+        help="Get or set human-reviewed artifact locale (zh | en)",
+    )
+    locale_sub = p_artifact_locale.add_subparsers(dest="artifact_locale_command")
+    p_locale_get = locale_sub.add_parser("get", help="Print resolved artifact locale")
+    p_locale_get.add_argument("--task", help="Task directory (includes task override)")
+    p_locale_set = locale_sub.add_parser("set", help="Set artifact locale")
+    p_locale_set.add_argument("locale", choices=["zh", "en"], help="Locale code")
+    p_locale_set.add_argument("--task", help="Task directory (task-level override)")
+
     # archive
     p_archive = subparsers.add_parser("archive", help="Archive task")
     p_archive.add_argument("name", help="Task directory or name")
@@ -935,6 +948,7 @@ def main() -> int:
         "parent-status": cmd_parent_status,
         "publish-pack": cmd_publish_pack,
         "review-child": cmd_review_child,
+        "artifact-locale": cmd_artifact_locale,
         "list": cmd_list,
         "list-archive": cmd_list_archive,
     }
