@@ -167,6 +167,7 @@ def _next_content_line(lines: list[str], start: int) -> tuple[int, str]:
 DEFAULT_SESSION_COMMIT_MESSAGE = "chore: record journal"
 DEFAULT_MAX_JOURNAL_LINES = 2000
 DEFAULT_SESSION_AUTO_COMMIT = True
+DEFAULT_JOURNAL_SNIPPET_ENABLED = False
 
 CONFIG_FILE = "config.yaml"
 
@@ -241,6 +242,37 @@ def get_session_auto_commit(repo_root: Path | None = None) -> bool:
         file=sys.stderr,
     )
     return DEFAULT_SESSION_AUTO_COMMIT
+
+
+def get_journal_snippet_enabled(repo_root: Path | None = None) -> bool:
+    """Whether get_context should inject a compact recent journal summary.
+
+    Default: ``False`` (metadata-only JOURNAL FILE section).
+    Set ``context_injection.journal_snippet: true`` in ``.cstl/config.yaml`` to
+    append a ≤150-token summary from the latest session entry in the active
+    journal file.
+
+    Accepts native YAML booleans and the string aliases
+    ``true / false / yes / no / 1 / 0 / on / off`` (case-insensitive).
+    Invalid values fall back to ``False`` with a stderr warning.
+    """
+    config = _load_config(repo_root)
+    block = config.get("context_injection")
+    if not isinstance(block, dict):
+        return DEFAULT_JOURNAL_SNIPPET_ENABLED
+    raw = block.get("journal_snippet", DEFAULT_JOURNAL_SNIPPET_ENABLED)
+    if isinstance(raw, bool):
+        return raw
+    s = str(raw).strip().lower()
+    if s in ("true", "yes", "1", "on"):
+        return True
+    if s in ("false", "no", "0", "off"):
+        return False
+    print(
+        f"[WARN] invalid context_injection.journal_snippet value: {raw!r}; using false (default)",
+        file=sys.stderr,
+    )
+    return DEFAULT_JOURNAL_SNIPPET_ENABLED
 
 
 def get_smart_search_command_config(repo_root: Path | None = None) -> str | None:

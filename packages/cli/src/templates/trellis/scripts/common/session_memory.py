@@ -20,6 +20,7 @@ from .paths import DIR_WORKFLOW, DIR_WORKSPACE, FILE_JOURNAL_PREFIX, get_develop
 
 
 SECTION_NAMES = {"summary", "main changes", "git commits", "testing", "status", "next steps"}
+JOURNAL_SNIPPET_MAX_TOKENS = 150
 FIELD_WEIGHTS = {
     "title": 8,
     "task": 8,
@@ -335,6 +336,31 @@ def tokenize(query: str) -> list[str]:
 
 def normalize_space(value: str) -> str:
     return re.sub(r"\s+", " ", value).strip()
+
+
+def truncate_to_token_budget(text: str, max_tokens: int = JOURNAL_SNIPPET_MAX_TOKENS) -> str:
+    """Collapse whitespace and hard-cap by whitespace-split token count."""
+    normalized = normalize_space(text)
+    if not normalized:
+        return ""
+    tokens = normalized.split()
+    if len(tokens) <= max_tokens:
+        return normalized
+    return " ".join(tokens[:max_tokens])
+
+
+def get_latest_journal_summary(
+    journal_path: Path,
+    repo_root: Path,
+    developer: str,
+    max_tokens: int = JOURNAL_SNIPPET_MAX_TOKENS,
+) -> str:
+    """Return the latest session summary from one journal file (≤ max_tokens)."""
+    entries = parse_journal(journal_path, repo_root, developer)
+    if not entries:
+        return ""
+    summary = entries[-1].sections.get("summary", "")
+    return truncate_to_token_budget(summary, max_tokens)
 
 
 def to_repo_path(path: Path, repo_root: Path) -> str:
