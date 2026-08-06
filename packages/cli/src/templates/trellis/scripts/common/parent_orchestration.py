@@ -12,6 +12,7 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 
+from .io import read_json
 from .paths import get_repo_root
 from .task_gates import (
     build_spec_update_scaffold,
@@ -101,7 +102,7 @@ def _child_prompt_section(
     *,
     include_artifacts: bool,
 ) -> str:
-    child_name = child_dir.name
+    child_name = child_entry.get("id") or child_dir.name
     parent_rel = _repo_rel(parent_dir, repo_root)
     child_rel = _repo_rel(child_dir, repo_root)
     state = child_entry.get("state", "open")
@@ -165,11 +166,14 @@ def build_child_prompt(
     """Build an implementation prompt for a linked child task."""
     errors: list[str] = []
     repo_root = get_repo_root()
-    child_name = child_dir.name
 
     parent_json = parent_dir / "task.json"
     if not parent_json.is_file():
         return None, [f"parent task.json missing: {parent_dir}"]
+
+    parent_data = read_json(parent_json) or {}
+    child_data = read_json(child_dir / "task.json") or {}
+    child_name = resolve_child_map_id(parent_data, child_dir, child_data)
 
     data, body = load_task_map(parent_dir)
     if data is None:
@@ -491,6 +495,11 @@ def _compute_newly_ready(children_by_id: dict[str, dict]) -> list[str]:
     return ready_ids
 
 
+def _child_prompt_filename(unit_id: str) -> str:
+    """Flat filename for child-prompts (nested slash unit ids use `--`)."""
+    return f"{unit_id.replace('/', '--')}.md"
+
+
 def build_publish_pack(
     parent_dir: Path,
     *,
@@ -573,7 +582,7 @@ def build_publish_pack(
                 if prompt_errors or not prompt:
                     errors.extend(prompt_errors or [f"could not build prompt for `{unit}`"])
                     continue
-                out_name = f"{unit}.md"
+                out_name = _child_prompt_filename(unit)
                 out_rel = f"{parent_rel}/child-prompts/{out_name}"
                 if not dry_run:
                     prompts_dir.mkdir(parents=True, exist_ok=True)
@@ -601,7 +610,7 @@ def build_publish_pack(
                         "",
                     ]
                 )
-                out_name = f"{unit}.md"
+                out_name = _child_prompt_filename(unit)
                 out_rel = f"{parent_rel}/child-prompts/{out_name}"
                 if not dry_run:
                     prompts_dir.mkdir(parents=True, exist_ok=True)
