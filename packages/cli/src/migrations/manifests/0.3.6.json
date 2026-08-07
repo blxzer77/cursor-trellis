@@ -1,0 +1,9 @@
+{
+  "version": "0.3.6",
+  "description": "Goal MVP+SDK worker, locale zh/en, pack freshness, observable defaults, continue O1, injection budget",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**@blxzer/cursor-trellis 0.3.6**\n\n- feat(goal): `cstl goal` MVP + deterministic reviewer + SDK worker adapter\n- feat(locale): switchable zh/en artifact_locale + SessionStart summary line\n- feat(orchestration): auto publish-pack after integrate; nested child-id fixes\n- feat(observable): verify headers, dashboard verify summary, real jsonl seeds\n- feat(continue): search_memory step (O1)\n- feat(spec-health): S1 outcomes CLI\n- feat(context): opt-in journal snippet (default off)\n- feat(injection / verify / retrieval / modes): budget caps, graded verify guide, prefer native Grep+modes\n- docs(goal): goal-release-regression-runbook",
+  "migrations": [],
+  "notes": "Run `cstl update` to sync hooks/templates (SessionStart Artifact locale line). No `--migrate` required. BYOK short probe still deferred."
+}

@@ -1,0 +1,9 @@
+{
+  "version": "0.3.5",
+  "description": "SDK task binding, Campaign Canvas open-path, smart-search ^0.2.0, Campaign MCP NDJSON",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**@blxzer/cursor-trellis 0.3.5**\n\n- feat(sdk): `cstl sdk run` injects explicit `--task` binding into agent prompt\n- feat(campaign): Campaign Canvas portable open-path + auto-open; env overrides\n- feat(cli): Adapt to @blxzer/smart-search ^0.2.0; External-knowledge gate\n- fix(campaign): Campaign MCP stdio speaks NDJSON\n- fix(cli): Do not create empty `.cursor/mcp.json` on Cursor init when no MCP selected",
+  "migrations": [],
+  "notes": "Run `cstl update` to sync templates. No `--migrate` required. Retroactive local manifest — 0.3.5 shipped without this file in-repo."
+}
