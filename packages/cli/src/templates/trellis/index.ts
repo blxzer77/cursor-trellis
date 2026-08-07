@@ -117,6 +117,12 @@ export const scoreEvidenceScript = readTemplate("scripts/score_evidence.py");
 export const injectionBudgetProbeScript = readTemplate(
   "scripts/injection_budget_probe.py",
 );
+export const generateDispatchPromptScript = readTemplate(
+  "scripts/generate_dispatch_prompt.py",
+);
+export const specHealthOutcomesScript = readTemplate(
+  "scripts/spec_health_outcomes.py",
+);
 export const commonRetrievalAdapterMetadata = readTemplate(
   "scripts/common/retrieval_adapter_metadata.py",
 );
@@ -214,6 +220,7 @@ export function getAllTaskTemplates(): Map<string, string> {
 export const MAINTAINER_ONLY_SCRIPT_PATHS = new Set([
   "cursor_retrieval_probe.py",
   "common/test_retrieval_arbitration.py",
+  "common/test_observable_defaults.py",
   "hooks/linear_sync.py",
 ]);
 
@@ -298,6 +305,8 @@ export function getAllScripts(): Map<string, string> {
   scripts.set("rank_retrieval_candidates.py", rankRetrievalCandidatesScript);
   scripts.set("score_evidence.py", scoreEvidenceScript);
   scripts.set("injection_budget_probe.py", injectionBudgetProbeScript);
+  scripts.set("generate_dispatch_prompt.py", generateDispatchPromptScript);
+  scripts.set("spec_health_outcomes.py", specHealthOutcomesScript);
 
   return scripts;
 }

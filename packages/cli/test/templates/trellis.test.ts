@@ -392,7 +392,7 @@ describe("getAllScripts", () => {
 describe("getAllTaskTemplates", () => {
   it("returns release-readiness and release-execution template files", () => {
     const templates = getAllTaskTemplates();
-    expect(templates.size).toBe(8);
+    expect(templates.size).toBe(10);
     for (const rel of [
       "tasks/templates/release-readiness/prd.md",
       "tasks/templates/release-readiness/design.md",
@@ -402,6 +402,8 @@ describe("getAllTaskTemplates", () => {
       "tasks/templates/release-execution/design.md",
       "tasks/templates/release-execution/implement.md",
       "tasks/templates/release-execution/handoff-template.md",
+      "tasks/locale/zh/default-prd.md",
+      "tasks/locale/en/default-prd.md",
     ]) {
       expect(templates.has(rel), rel).toBe(true);
       const template = templates.get(rel);
