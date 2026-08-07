@@ -11,6 +11,35 @@ SemVer: [semver.org](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.6] - 2026-08-07
+
+Root npm batch after channel/Goal hardening + next-wave orch/observable/resume Parents (`private/main` tip through `c5825fdd` + this release).
+
+### Added
+
+- **feat(goal)**: `cstl goal` MVP runtime — contract lifecycle, deterministic reviewer, walls, mock worker; real **SDK worker** adapter beside mock.
+- **feat(locale)**: Switchable **zh/en** human-reviewed artifact locale (`artifact_locale`, `task.py artifact-locale`, SessionStart summary line, locale PRD/verify seeds).
+- **feat(orchestration)**: After `integrate-child` → `integrated`, **default auto `publish-pack`** with `--no-publish-pack` escape; nested slash child-id resolution in task-map / prompts.
+- **feat(observable)**: Default verify.md section headers; dashboard `[verify: …]` six-signal summary; real `.cstl/spec/` jsonl seeds (≥2 rows, no isolated `_example`).
+- **feat(continue)**: `search_memory` step between `get_context` and phase index (O1 session memory).
+- **feat(spec-health)**: S1 outcomes CLI for archive `verify.md` (`spec_health_outcomes.py`).
+- **feat(context)**: Opt-in journal snippet in `get_context` (**default off**).
+- **feat(injection)**: Matrix-aligned injection-budget guide + caps; Layer-2 dispatch / probe tooling.
+- **feat(verify)**: Graded verification-strength guide (**non-TDD**).
+- **feat(retrieval / modes)**: Prefer native Grep+Read definition jumps on Cursor Agent; Prefer native modes guide + `cstl-cursor-modes` rule; channel injection matrix synced to rules/guides.
+- **docs(goal)**: `.cstl/spec/guides/goal-release-regression-runbook.md` — npm-gate mock/live checklist (no Goal semantic expansion).
+
+### Changed
+
+- **chore(brainstorm)**: PRD Grill row 9 links durable-learning guide.
+- **fix(dispatch)**: Ship Layer-2 CLI script + research PRD context for subagent dispatch.
+
+### Notes for consumers
+
+- Run `cstl update` (or copy `shared-hooks/session-start.py`) so live SessionStart includes the **Artifact locale** line.
+- Goal mid-run cancel / true overnight SLA remain **out of scope** for this release.
+- BYOK channel short probe still deferred; Native-first matrix exceptions remain documented.
+
 ## [0.3.5] - 2026-08-05
 
 ### Added
