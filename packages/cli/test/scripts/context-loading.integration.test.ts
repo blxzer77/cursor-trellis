@@ -155,16 +155,16 @@ describe.skipIf(pythonCmd === null)("get_context.py retrieval guidance", () => {
     expect(result.stderr).toBe("");
     expect(result.stdout).toContain("## RETRIEVAL GUIDE");
     expect(result.stdout).toContain(
-      'Artifact search: python3 ./.cstl/scripts/search_artifacts.py --query "<topic>" --json',
+      `Artifact search: ${pythonCmd} ./.cstl/scripts/search_artifacts.py --query "<topic>" --json`,
     );
     expect(result.stdout).toContain(
-      'Session memory: python3 ./.cstl/scripts/search_memory.py --query "<topic>" --json',
+      `Session memory: ${pythonCmd} ./.cstl/scripts/search_memory.py --query "<topic>" --json`,
     );
     expect(result.stdout).toContain(
       "Use session memory for reusable prior decisions",
     );
     expect(result.stdout).toContain(
-      'Smart Search evidence: python3 ./.cstl/scripts/run_smart_search.py "<question>" --intent deep-research --json',
+      `Smart Search evidence: ${pythonCmd} ./.cstl/scripts/run_smart_search.py "<question>" --intent deep-research --json`,
     );
     expect(result.stdout).toContain(
       "Run Smart Search evidence only when external/current source evidence is needed",
@@ -190,7 +190,7 @@ describe.skipIf(pythonCmd === null)("get_context.py retrieval guidance", () => {
     );
     expect(result.stdout).toContain("2. artifact-search [high] priority 90");
     expect(result.stdout).toContain(
-      "Action: python3 ./.cstl/scripts/search_artifacts.py --query",
+      `Action: ${pythonCmd} ./.cstl/scripts/search_artifacts.py --query`,
     );
   });
 
@@ -204,16 +204,16 @@ describe.skipIf(pythonCmd === null)("get_context.py retrieval guidance", () => {
     expect(payload.developer).toBe("test-dev");
     expect(payload.tasks.active).toHaveLength(1);
     expect(payload.retrievalGuide.artifactSearch.command).toBe(
-      'python3 ./.cstl/scripts/search_artifacts.py --query "<topic>" --json',
+      `${pythonCmd} ./.cstl/scripts/search_artifacts.py --query "<topic>" --json`,
     );
     expect(payload.retrievalGuide.sessionMemory.command).toBe(
-      'python3 ./.cstl/scripts/search_memory.py --query "<topic>" --json',
+      `${pythonCmd} ./.cstl/scripts/search_memory.py --query "<topic>" --json`,
     );
     expect(payload.retrievalGuide.sessionMemory.purpose).toContain(
       "workspace journals",
     );
     expect(payload.retrievalGuide.smartSearchEvidence.command).toBe(
-      'python3 ./.cstl/scripts/run_smart_search.py "<question>" --intent deep-research --json',
+      `${pythonCmd} ./.cstl/scripts/run_smart_search.py "<question>" --intent deep-research --json`,
     );
     expect(payload.retrievalGuide.smartSearchEvidence.purpose).toContain(
       "task-local evidence manifest",
