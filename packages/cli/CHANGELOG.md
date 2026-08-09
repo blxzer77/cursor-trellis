@@ -11,6 +11,29 @@ SemVer: [semver.org](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.0] - TBD
+
+Minor release: dogfood backfill of **review pool** + **task depends_on Plan A/B** into shipped templates.
+
+### Added
+
+- **feat(pool)**: Review-pool skeleton under `.cstl/pool/` (README + empty `plan.md` + `items/`) and `pool.py` CLI (`validate` / `plan-check` / `link` / `unlink` / `show`, `--root`).
+- **feat(deps)**: Task-level `depends_on` Plan A (warn) / Plan B (`depends_mode: block`) — `task.py set-deps`, `set-depends-mode`, `start-execution --ignore-deps`; dashboard dependency summary; `common/task_dependencies.py` + `pool_store.py`.
+- **feat(verify)**: Ship `verify_evidence_probe.py` referenced by verification-strength / workflow guidance.
+- **docs(spec)**: Guides — `artifact-locale-guide`, `debug-loop-guide`, `prototype-guide`, `test-discipline-guide`, `goal-release-regression-runbook` (0.3.6 changelog commitment), plus refreshed retrieval/verification/subagent/cross-platform index entries.
+
+### Changed
+
+- **workflow**: Review-pool boundary, next-item + fog hygiene, Task dependencies Plan A/B; Parent/child ordering is explicit `depends_on` (not “structure is not a dependency system” as sole doctrine).
+- **docs**: README / task-system / workflow docs describe pool + depends for 0.4.0.
+- **chore(release)**: Migration manifest placeholder `0.4.0.json` (`migrations: []`).
+
+### Notes for consumers
+
+- Run `cstl update` after install to receive scripts, pool skeleton, and workflow.
+- `start-execution --check` still **never FAILs solely for unmet dependencies** (WARN only; block mode applies on `--approved` / `set-child-state working`).
+- Pool ships **mechanism only** — no sample user items. RE reverse-engineering report remains out of default init pack.
+
 ## [0.3.6] - 2026-08-07
 
 Root npm batch after channel/Goal hardening + next-wave orch/observable/resume Parents (`private/main` tip through `c5825fdd` + this release).

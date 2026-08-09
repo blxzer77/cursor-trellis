@@ -177,7 +177,26 @@ python ./.cstl/scripts/task.py add-subtask <parent> <child>      # link existing
 python ./.cstl/scripts/task.py remove-subtask <parent> <child>   # unlink mistake
 ```
 
-Parent/Child is **not** a dependency system. If one child must wait for another, write that ordering in the child `prd.md` / `implement.md` and keep each child's acceptance criteria testable.
+Ordering between deliverables is **explicit**, not implicit Parent/Child edges:
+
+- **Child-level**: Parent `task-map.md` → `children[].depends_on` (satisfied when dependency is `integrated` or `cancelled`)
+- **Task-level**: `task.json` → `depends_on` via `task.py set-deps <task> <dep...>` (satisfied when dependency is `completed`/archived or `cancelled`)
+- Default mode is **Plan A (warn)**: dashboard and `start-execution --check` surface unmet / dangling / cyclic deps as warnings and **never FAIL the check for deps alone**
+- **Plan B (opt-in block)**: `task.py set-depends-mode <task> block` hard-blocks `start-execution --approved` and `set-child-state … working` unless `--ignore-deps` (audit event recorded)
+- Keep each child's acceptance criteria testable; Parent remains integration authority (`parent_orchestration.py` does not inject task-level deps)
+
+### Review pool (candidate queue)
+
+Ideas, directions, and unformed gaps go to `.cstl/pool/` (not straight to a Task). Only `accepted` pool items should become tasks. Maintain links and validate with:
+
+```bash
+python ./.cstl/scripts/pool.py validate
+python ./.cstl/scripts/pool.py plan-check
+python ./.cstl/scripts/pool.py link <item-id> <task-ref>
+python ./.cstl/scripts/pool.py show <item-id>
+```
+
+See `.cstl/pool/README.md` after `cstl init` / `cstl update`.
 
 ### Child states (Child-controlled)
 

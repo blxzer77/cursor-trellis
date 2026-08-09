@@ -33,6 +33,8 @@
 - 通过 `/cstl-continue` 跨会话恢复工作
 - 根据正在编辑的文件渐进式加载规范
 - 结构化工作流路由请求：triage → plan → gate → execute → verify
+- **任务依赖（Plan A/B）** — `task.py set-deps` 显式 `depends_on`；默认仅 WARN；可 `set-depends-mode block`；`--check` 永不因 deps 单独 FAIL
+- **审核池** — `.cstl/pool/` 候选队列 + `pool.py` validate/link/plan-check；仅 `accepted` 条目可建 Task
 - **校验门禁** — `cstl validate-rules` + `pnpm mirror-check` 强制 dogfood/模板同步；`init`/`update` 回归时抛错
 - **检索合规** — BYOK/Native 分叉 + `unknown` 保守路由；LSP 过度承诺软化为 codegraph + Read；telemetry 区分 planned vs executed semantic
 - **Cursor++ 安全** — Method 2.5 patch 需显式 `--approve`；`--check-compat` 预检；`smoke.py` 健康检查（不读 secret）
