@@ -96,19 +96,21 @@ When research is purely **codebase exploration** (no external web search, no fil
 
 ### Method 2.5: Cursor++ BYOK proxy map (publishable bundle)
 
-**What it is:** A reversible patch to Cursor++ `extension.js` resolver `WPeLc8` that maps `subagentType` → BYOK catalog **slug** (`model-xxxxx`), evaluated **before** the inherit-parent branch. Verified 2026-06-18 (Cursor++ v0.0.11).
+**What it is:** A reversible patch to Cursor++ `extension.js` **subagent model resolver** that maps `subagentType` → BYOK catalog **slug** (`model-xxxxx`), evaluated **before** the inherit-parent branch. Obfuscated symbol names change per build (historical `WPeLc8`; 2026-08+ profile `ZiKp4I`). Script uses multi-profile detection.
 
-**Trellis ships (every `cstl init` / `cstl update`, strategy C):** `.cstl/local/cursor2plus/` — `patch_wpelc8.py`, `README.md`, `config.local.json.example`. Native Cursor API users can ignore this directory.
+**Trellis ships (every `cstl init` / `cstl update`, strategy C):** `.cstl/local/cursor2plus/` — `patch_wpelc8.py`, `README.md`, **`UPGRADE-NOTE.md`** (upgrade re-apply), `config.local.json.example`. Native Cursor API users can ignore this directory.
 
 **Operator workflow (Cursor++ BYOK only):**
 
-1. Fill **`~/.ccursor/trellis-task-models.json`** (user-wide) with `subagent_type` → slug from **`~/.ccursor/providers.json`** `id` fields.
-2. Optionally override per repo: **`.cstl/local/subagent-models.json`** (project wins on same key).
+1. Fill **`~/.ccursor/trellis-task-models.json5`** (user-wide) with `subagent_type` → displayName/apiModel from **`~/.ccursor/providers.json`**.
+2. Optionally override per repo: **`.cstl/local/subagent-models.json5`** (project wins on same key).
 3. If paths are not auto-detected: copy `config.local.json.example` → `config.local.json`, or run `python patch_wpelc8.py --bootstrap`, or set `TRELLIS_CCURSOR_HOME` / `TRELLIS_CURSOR2PLUS_EXTENSION`.
-4. From `.cstl/local/cursor2plus/`: `python patch_wpelc8.py --print-map` → `python patch_wpelc8.py` → **Developer: Reload Window**.
-5. **Verify:** `taskToolCall dispatching` → `resolvedModelId` matches slug.
+4. From `.cstl/local/cursor2plus/`: `python patch_wpelc8.py --check-compat` → `--print-map` → `--apply --approve` → **Developer: Reload Window**.
+5. **Verify:** A≠B probe (parent model ≠ map target) or `resolvedModelId` matches slug.
 
-**Revert:** `python patch_wpelc8.py --revert`; Reload Window. Re-run patch after Cursor / Cursor++ upgrades.
+**Revert:** `python patch_wpelc8.py --revert`; Reload Window.
+
+**After any Cursor / Cursor++ upgrade:** assume patch is stale — follow **`.cstl/local/cursor2plus/UPGRADE-NOTE.md`** (`--check-compat`, re-apply, or add a new resolver profile if symbols moved).
 
 **Cursor++ sidebar / Cursor Settings:** Do **not** wire `cstl-*` BYOK routing; use JSON + patch.
 
@@ -203,7 +205,7 @@ When a dispatch is imminent:
 
 ### Technical note
 
-Client layer still only builds override rows for built-in types such as `explore`. Cursor Settings entries for custom agent **names** do not reach the BYOK proxy override list for `cstl-*`. **Method 2.5** patches Cursor++ `WPeLc8` so `taskToolCall` sets `resolvedModelId` from a local `subagentType → slug` table before inherit-parent. **Method 3** bypasses Task routing (user picks model in a new chat).
+Client layer still only builds override rows for built-in types such as `explore`. Cursor Settings entries for custom agent **names** do not reach the BYOK proxy override list for `cstl-*`. **Method 2.5** patches Cursor++ subagent model resolver (profile-bound; see `UPGRADE-NOTE.md`) so `taskToolCall` sets `resolvedModelId` from a local `subagentType → slug` table before inherit-parent. **Method 3** bypasses Task routing (user picks model in a new chat).
 
 ---
 

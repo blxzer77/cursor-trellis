@@ -20,6 +20,10 @@ Ask: *If this answer were wrong because the world or a third-party API moved, wo
 **NO examples:** symbol location / call chains; in-repo Trellis contracts; behavior of the code you are editing; pure rename/lint inside known files.  
 After search: persist under `{TASK}/research/` with a **provider label**; treat hits as candidates until corroborated (repo, test, or second source).
 
+## Primary source preference
+
+Prefer **primary sources** — official docs, source code, first-party API references, release notes, standards text. Mark blog posts, aggregators, and unverified second-hand summaries as **secondary** until corroborated against a primary source or the repo. This layers on top of "hits as candidates until corroborated": it ranks *which* candidates to trust first, and does not change the smart-search mandatory-first rule above.
+
 ## Prefer / Adapt / Own (code intelligence)
 
 | Need | **Prefer** (Cursor native) | **Adapt** | **Own** (codegraph / MCP) |
