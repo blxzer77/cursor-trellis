@@ -35,6 +35,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { collectPlatformTemplates } from "../configurators/index.js";
+import { getWorkflowRootTemplateFiles } from "../configurators/workflow.js";
 import { FILE_NAMES } from "../constants/paths.js";
 import { getAllMigrations } from "../migrations/index.js";
 import { saveHashes } from "./template-hash.js";
@@ -67,6 +68,12 @@ function buildKnownKeys(configuredPlatforms: readonly AITool[]): Set<string> {
     for (const key of templates.keys()) {
       known.add(toPosix(key));
     }
+  }
+  // Root-level files written by the workflow configurator (CONTEXT.md,
+  // docs/adr/README.md) — they live outside platform config dirs but are
+  // trellis-owned, so uninstall must recognize and remove them.
+  for (const key of getWorkflowRootTemplateFiles().keys()) {
+    known.add(toPosix(key));
   }
   // Preserve any path referenced by a migration: legitimate pending
   // rename/delete operations need to resolve their `from` (and the target's

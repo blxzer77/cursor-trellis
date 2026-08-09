@@ -234,7 +234,7 @@ const SKILL_DESCRIPTIONS: Record<string, string> = {
   brainstorm:
     "Guides collaborative requirements discovery before implementation. Two-phase Cursor planning: Discovery Before Questions, PRD draft, then PRD Grill (document pass + micro-grill for blocking business questions). Use when requirements are unclear, multiple valid approaches exist, or the user describes a new feature or complex task.",
   check:
-    "Comprehensive quality verification: spec compliance, lint, type-check, tests, cross-layer data flow, code reuse, and consistency checks. Use when code is written and needs quality verification, before committing changes, or to catch context drift during long sessions.",
+    "Comprehensive quality verification on two axes — Standards (spec compliance, lint, type-check, tests, code smells, cross-layer data flow) and Spec (prd fidelity, scope, learning/spec-sync). Use when code is written and needs quality verification, before committing changes, or to catch context drift during long sessions.",
   "break-loop":
     "Deep bug analysis to break the fix-forget-repeat cycle. Analyzes root cause category, why fixes failed, prevention mechanisms, and captures knowledge into specs. Use after fixing a bug to prevent the same class of bugs.",
   "update-spec":
@@ -269,6 +269,8 @@ const COMMAND_DESCRIPTIONS: Record<string, string> = {
   continue: "Resume work on the current task at the correct phase.",
   "finish-work":
     "Wrap up the current session: quality gate, commit reminder, archive, journal.",
+  handoff:
+    "Write a portable session handoff document to the OS temp directory for a new agent / harness / directory to continue the work.",
 };
 
 /** Wrap resolved command content with YAML frontmatter (name + description). */
