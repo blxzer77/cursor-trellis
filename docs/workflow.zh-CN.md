@@ -89,10 +89,15 @@
 
 当一个用户请求含多个可独立验证的交付物时,用 **Parent** 任务。Parent 拥有源需求集、任务地图、跨 child 验收标准、最终集成评审;通常不应是实现目标,除非它也有直接工作。
 
-**Child** 任务用于可独立规划、实现、检查、归档的交付物。Parent/Child **不是**依赖系统:若一个 child 必须等另一个,把顺序写在 child 的 `prd.md`/`implement.md`,保持每个 child 的验收标准可测。
+**Child** 任务用于可独立规划、实现、检查、归档的交付物。顺序用显式 `depends_on`(Parent `task-map.md` 的 child 条目和/或任务级 `task.py set-deps`),默认软警告(Plan A),可选硬阻断(Plan B 经 `set-depends-mode block`)。`start-execution --check` 永不因未满足 deps 单独 FAIL。
+
+### 评审池
+
+清晰的会话内工作直接建 Lite/Full/Parent 任务。想法 / 方向 / 缺口先进 `.cstl/pool/`;只有 `accepted` 条目才变成任务。CLI:`pool.py validate|plan-check|link|unlink|show`(见 `.cstl/pool/README.md`)。选下一项工作按 `plan.md` mainline → 条目状态 → `task.py list` → 询问用户;保持 fog 干净(已交付条目离开 fog)。
 
 - 创建 child:`task.py create "<标题>" --slug <名> --parent <parent-dir>`
 - 关联已有:`task.py add-subtask <parent> <child>`
+- Deps:`task.py set-deps`、`set-depends-mode`、`start-execution --ignore-deps`
 - Parent 编排:`task.py parent-status`、`generate-child-prompt`、`review-child`
 
 **集成权限只属 Parent。** `merge_limit: 1` 阻止多于一个 Child 同时 `integrating`。Child 可提供证据并请求评审,但不能自标 `changes`/`accepted`/`integrating`/`integrated`/`cancelled`。Parent 集成默认是串行 Git-ref 集成;每次决策写入 `task-map.md` Event Log。
