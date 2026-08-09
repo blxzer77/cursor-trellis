@@ -188,6 +188,8 @@ Consent gate. After classifying into any mode that creates a task, ask the user 
 
 Selected-task continuity. When a `selected_task` already exists, do not rerun global classification on every follow-up; continue inside the selected task unless a strong conflict exists (explicit exit/switch/create language, out-of-scope request, different artifact/archive target, new independent deliverable, contract-changing request, or evidence pollution risk).
 
+Review-pool boundary. In-session requests that are clear and directly actionable go straight to Lite / Full / Parent task creation and do **not** enter the pool (`.cstl/pool/`). Ideas, directions, gaps, or unformed thoughts go into the pool. Only `accepted` pool entries may be turned into tasks via `task.py create`. The pool is a candidate queue; a Task is a commitment. See `.cstl/pool/README.md` for the full state machine and role split. Pool entry ↔ task links and pool/plan validation are maintained via the pool CLI: `python3 ./.cstl/scripts/pool.py --help` (link/unlink/validate/plan-check/show). Choosing the next item: treat `plan.md` closed/mainline sections as authoritative → item status → `task.py list` → ask the user; landed items/mechanisms must leave fog (discipline in `.cstl/pool/README.md` 「下一项怎么选 + fog 卫生」).
+
 ### Task Ladder And Routing
 
 Classify by risk and persistence, not raw effort size. A short change to durable framework semantics can require a Full Task; a long conversation can remain No Task when it leaves no durable project state.
@@ -254,7 +256,35 @@ Details: archived `06-15-child-phase3-task-ladder` → `research/task-ladder-ite
 
 Use a parent task when one user request contains several independently verifiable deliverables. The parent task owns the source requirement set, the task map, cross-child acceptance criteria, and final integration review; it normally should not be the implementation target unless it also has direct work.
 
-Use child tasks for deliverables that can be planned, implemented, checked, and archived independently. Parent/child structure is not a dependency system: if one child must wait for another, write that ordering in the child `prd.md` / `implement.md` and keep each child's acceptance criteria testable.
+Use child tasks for deliverables that can be planned, implemented, checked, and archived independently. Ordering between deliverables is an explicit declaration, not an implicit system: child-level ordering lives in the Parent `task-map.md` `children[].depends_on`, and task-level ordering in task.json `depends_on` (`task.py set-deps <task> <dep...>`). By default these declarations are soft hints only — the dashboard and `start-execution --check` show unmet / dangling / cyclic dependencies as warnings and do not block a transition (a task may opt into hard gates with `depends_mode: block`, see Task dependencies below); `depends_on` declares ordering, it does not schedule work. Keep each child's acceptance criteria testable on its own, and keep the Parent as the integration authority.
+
+### Task dependencies (Plan A / Plan B)
+
+**任务依赖（Plan A / Plan B）**：顺序须显式声明；默认（`warn`）仅 dashboard / `start-execution --check` 软提示（WARN），不挡门禁；可 opt-in `block` 在 mutation 点硬挡（见下）；不是调度器，也不替代 Parent 集成权威。
+
+Ordering between deliverables is declared, never inferred: **Child-level** ordering lives in the Parent `task-map.md` `children[].depends_on` (consumed by `generate-child-prompt` and Child readiness; satisfied when the dependency is `integrated` or `cancelled`); **task-level** ordering lives in task.json `depends_on` (consumed by the dashboard and `start-execution --check`; satisfied when the dependency is `completed` — archived tasks count — or `cancelled`). Declare a dependency in exactly one place (do not dual-write).
+
+Write task-level dependencies only via `task.py set-deps <task> <dep...>` (it normalizes the list, warns on dangling refs, and clears with no args). A dependency declared on a task that is later deleted becomes a dangling warning; clear it with `set-deps` first. Fix cycles by reordering who depends on whom.
+
+`depends_on` is advisory by default: the dashboard, `start-execution --check`/`--approved`, and `set-deps` print `[dependencies] WARN:` lines and do **not block** any transition unless the task opts into Plan B. A WARN does not mean you may not proceed. It is not a scheduler (no auto-start, no auto-unlock, no cascade), and it does not replace the Parent's integration authority (integration and archive gates do not read dependencies). Task-level dependencies are not injected into child prompts (`parent_orchestration.py` is unchanged).
+
+**Plan B（opt-in block）**：`meta.depends_mode`（`warn`（默认）| `block` | `off`）经 `task.py set-depends-mode <dir> <mode>` 设置。`block` 时，未满足（NOT_SATISFIED）/ 悬空（missing）/ pool 未就绪（UNRESOLVED）/ 环（cycle）在 **mutation 点** 升为 error；已满足（含 `cancelled`）不挡。`off` 静音（无 WARN 无 error）。
+
+- `start-execution --check`：**永不因 deps FAIL**（仍 WARN，block 时提示 would-fail-approved）。
+- `start-execution --approved`：本任务 meta 为 `block` 且未传 `--ignore-deps` → deps 进 errors / FAIL。
+- `set-child-state <p> <c> working`：**Child** 的 meta 为 `block` 且未传 `--ignore-deps` → 拒绝（合并 Child task.json `depends_on` 与 task-map `children[].depends_on`，任一边 blocking 即挡）；其它 state 不查。
+- `--ignore-deps`：挂于 `--approved` 与 `set-child-state working`；成功路径把事件（`command`/`by`/`mode`/`blocking_summary` 等）append 到 `meta.depends_ignore_events`（cap 20），start-execution 与 `execution_approval` 同一次写盘。
+- archive / integrate-child / set-deps / dashboard 不挡；`parent_orchestration.py` 零改。
+
+`pool:Pxx` refs require the pool item to be linked (`pool.py link`); satisfaction is all-linked-tasks-done, otherwise UNRESOLVED — see `.cstl/pool/README.md`.
+
+#### Vertical slice grain (Parent children)
+
+- Prefer **vertical slices**: each Child cuts through the layers needed for one demonstrable outcome (not a horizontal layer-batch across the whole feature).
+- Grain: **independently demoable** + **finishable in one context window**.
+- Wide shape changes (renames, dual-write APIs, schema moves): prefer **expand → migrate → contract** (ship coexistence first, migrate callers in batches, then delete the old shape). Do not big-bang cut over.
+- Ordering between children: declare in the Parent `task-map.md` `children[].depends_on` (Child level) or in task.json `depends_on` via `task.py set-deps` (task level, cross-Parent allowed). General `depends_on` (Plan A) is landed: it is parsed and surfaced as warnings by the dashboard and `start-execution --check`, never as hard blocks by default; optional hard blocking (Plan B, `depends_mode: block` via `task.py set-depends-mode`) is landed for `start-execution --approved` and `set-child-state working` (`--ignore-deps` + audit events). `parent_orchestration.py` stays unchanged.
+- Pool / plan blocking edges already use **item ids** only (see `.cstl/pool/plan.md` conventions). Terminology: Child / slice / deliverable — not ticket/issue.
 
 Create new children with `task.py create "<title>" --slug <name> --parent <parent-dir>`. Link existing tasks with `task.py add-subtask <parent> <child>`, and unlink mistakes with `task.py remove-subtask <parent> <child>`.
 
@@ -447,7 +477,7 @@ When considering a parent/child split:
 - Use a parent task when one request contains several independently verifiable deliverables.
 - Parent tasks own source requirements, child-task mapping, cross-child acceptance criteria, and final integration review.
 - Child tasks own actual deliverables that can be planned, implemented, checked, and archived independently.
-- Parent/child structure is not a dependency system. If child B depends on child A, write that ordering in child B's `prd.md` / `implement.md`.
+- Ordering between children is explicit `depends_on` (Parent `task-map.md` child entries and/or task-level `task.py set-deps`), not an implicit Parent/child edge. See Task dependencies (Plan A / Plan B).
 - Start the child task that owns the next deliverable. Do not start the parent unless the parent itself has direct implementation work.
 
 Return to this step whenever requirements change and revise the relevant artifact.
