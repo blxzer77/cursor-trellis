@@ -10,6 +10,8 @@
 4. **Incremental development** — one task at a time
 5. **Capture learnings** — after each task, review and write new knowledge back to spec
 
+**Session boundary** — Continue → clear → handoff (`cstl-handoff`, when the work needs to travel) → subagent → compact. A task directory's `handoff.md` is integration/delivery evidence, not a session handoff document.
+
 ---
 
 ## Trellis System

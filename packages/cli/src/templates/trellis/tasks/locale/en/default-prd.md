@@ -4,6 +4,10 @@
 
 {goal}
 
+## User Stories
+
+- [ ] (User-visible behaviors; enumerate as a long checkable list, not implementation steps)
+
 ## Requirements
 
 - TBD
@@ -11,6 +15,10 @@
 ## Acceptance Criteria
 
 - [ ] TBD
+
+## Implementation Decisions
+
+- (Recorded decisions; **do not write file paths** — paths go stale; keep them in design/implement)
 
 ## Notes
 

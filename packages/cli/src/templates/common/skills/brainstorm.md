@@ -14,6 +14,8 @@ This is mandatory. Before asking the user a question, first check whether the an
 
 Do not ask the user to confirm facts that the repository can answer. Ask only for product intent, preference, scope, risk tolerance, or decisions that remain ambiguous after inspection.
 
+Read root `CONTEXT.md` (if present) before asking questions, and use its glossary terms.
+
 ## Thinking Principles
 
 These two principles shape *how* you grill, not just *what* you ask. Apply them throughout Phase A and B.
@@ -127,6 +129,19 @@ For each **blocking** open question after the checklist, embed the **`cstl-micro
 Stop micro-grill when no blocking open questions remain.
 
 Do not ask process questions ("should I search?"). Do not re-ask facts Discovery already confirmed.
+
+## Frontier rounds (question pacing)
+
+PRD Grill questions advance in **frontier rounds**:
+
+- **frontier** = all "prerequisite-decided" questions: their prerequisite decisions are resolved, so they can be asked now without guessing unheard answers.
+- Each round lists the current frontier at once, each question numbered (❓Q1/Q2/Q3…) with a recommended answer.
+- **≤3 questions per round**; split into more rounds beyond that to avoid information overload.
+- **Facts are the agent's job**: when a frontier question needs environment facts, dispatch a sub-agent to check; while exploration is pending it counts as an unresolved prerequisite that only blocks its downstream questions — ask the rest of the frontier anyway.
+- **Decisions are the user's job**: every decision waits for the user's answer; do not answer for them.
+- A user answer reshapes the design tree and the frontier extrapolates into the next round; **an empty frontier = the design tree is exhausted** — summarize the consensus and confirm before treating planning as done.
+
+> **Override note:** this section overrides the "Ask the questions one at a time" line in the Non-Negotiable Interview Contract — Phase B (PRD Grill) pacing follows these frontier rounds rather than one-question-at-a-time; `cstl-micro-grill` still defaults to one question at a time.
 
 ## Question Rules (Phase B only)
 
