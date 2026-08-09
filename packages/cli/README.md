@@ -33,6 +33,8 @@ Fresh installs use `.cstl/` directly. Projects on 0.3.0 run `cstl update --migra
 - Resume work across chat sessions with `/cstl-continue`
 - Load specs progressively based on files being edited
 - Route requests through structured workflow: triage → plan → gate → execute → verify
+- **Task dependencies (Plan A/B)** — explicit `depends_on` via `task.py set-deps`; default warn-only; opt-in `set-depends-mode block`; `--check` never FAILs for deps alone
+- **Review pool** — `.cstl/pool/` candidate queue + `pool.py` validate/link/plan-check; only `accepted` items become tasks
 - **Validated gates** — `cstl validate-rules` + `pnpm mirror-check` enforce dogfood/template sync; `init`/`update` throw on regression
 - **Retrieval compliance** — BYOK/Native split with conservative `unknown` routing; LSP overpromises softened to codegraph + Read; telemetry separates planned vs executed semantic
 - **Cursor++ safety** — Method 2.5 patch requires explicit `--approve`; `--check-compat` pre-flight; `smoke.py` health check (no secrets)
@@ -57,6 +59,17 @@ cstl init --cursor
 **3. Open the project in Cursor** and use Agent mode. User-facing slash commands include `/cstl-continue` and `/cstl-finish-work`. Request Triage is enforced via `.cursor/rules/cstl-triage.mdc`.
 
 Optional: `cstl init --cursor --cursor2plus` materializes a **per-repo** Cursor++ BYOK bundle (not a global either/or choice). Native and BYOK can coexist across projects on one machine — see [Native and BYOK coexistence](docs/cursor.md#native-and-byok-coexistence-not-eitheror).
+
+## Upgrade to 0.4.0 (draft)
+
+```powershell
+npm install -g @blxzer/cursor-trellis@0.4.0
+# or: cstl upgrade
+cd /path/to/project
+cstl update
+```
+
+Highlights (0.4.0 minor): **review pool** (`pool.py` + `.cstl/pool/` skeleton), **task depends_on Plan A/B** (`set-deps` / `set-depends-mode` / `--ignore-deps`), workflow + guides alignment, `goal-release-regression-runbook`. Details: [CHANGELOG](packages/cli/CHANGELOG.md#unreleased).
 
 ## Upgrade from 0.3.0 (v0.3.1)
 

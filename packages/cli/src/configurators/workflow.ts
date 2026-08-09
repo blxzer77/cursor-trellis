@@ -191,7 +191,10 @@ async function writePoolSkeleton(poolRoot: string): Promise<void> {
   for (const [relativePath, content] of getAllPoolSkeleton()) {
     const destPath = path.join(poolRoot, relativePath);
     ensureDir(path.dirname(destPath));
-    await writeFile(destPath, content);
+    // Apply the same platform command rewrite as update.ts collectTemplateFiles
+    // so init-written content matches the hash update expects (no-op on
+    // same-version update instead of a spurious pool README rewrite).
+    await writeFile(destPath, replacePythonCommandLiterals(content));
   }
 }
 
