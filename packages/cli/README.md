@@ -39,6 +39,8 @@ Fresh installs use `.cstl/` directly. Projects on 0.3.0 run `cstl update --migra
 - **Retrieval compliance** — BYOK/Native split with conservative `unknown` routing; LSP overpromises softened to codegraph + Read; telemetry separates planned vs executed semantic
 - **Cursor++ safety** — Method 2.5 patch requires explicit `--approve`; `--check-compat` pre-flight; `smoke.py` health check (no secrets)
 - **Evidence pack** — finish/check cite `retrieval-pack-latest.json` when present; research prompts include provider relevance caveats
+- **Session handoff** — `/cstl-handoff` writes a portable session handoff document to the OS temp dir when the work needs to travel (switch harness / repo, hand to a colleague, fork a branch)
+- **Dual-axis check** — `cstl-check` reports **Standards** (spec compliance, lint, type-check, tests, Fowler 12 smells, cross-layer flow) and **Spec** (prd fidelity, scope, learning/spec-sync) in separate sections — no merged risk ranking
 
 ## Quick start (Cursor)
 
@@ -113,6 +115,8 @@ Details: [CHANGELOG](packages/cli/CHANGELOG.md#030---2026-07-01).
 ```text
 your-app/
   .cstl/          workflow, spec, tasks, workspace, scripts
+  CONTEXT.md          project domain glossary (on-demand read)
+  docs/adr/           architecture decision records (lazy-created rules)
   AGENTS.md          Trellis-managed agent entry
   .cursor/           commands, rules, agents, hooks (Cursor)
 ```
