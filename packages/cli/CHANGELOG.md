@@ -11,7 +11,7 @@ SemVer: [semver.org](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [0.4.0] - TBD
+## [0.4.0] - 2026-08-09
 
 Minor release: dogfood backfill of **review pool** + **task depends_on Plan A/B** into shipped templates.
 
