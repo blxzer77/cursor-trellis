@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+﻿#!/usr/bin/env python
 """
 Task quality gate helpers.
 
@@ -15,6 +15,11 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
+from .task_dependencies import (
+    describe_dependencies,
+    read_depends_mode,
+    scope_children_for_task,
+)
 from .task_map import (
     get_child_state,
     load_task_map,
@@ -144,6 +149,7 @@ STABLE_TASK_KEYS = (
     "kind",
     "mode",
     "contract_epoch",
+    "depends_on",
 )
 
 
@@ -161,6 +167,7 @@ class GateGuardResult:
     is_full_task: bool = False
     closeout_profile: str = "lite"
     auto_gate_records: dict[str, dict] = field(default_factory=dict)
+    deps_blocking_summary: list[str] = field(default_factory=list)
 
 
 def utc_now() -> str:
@@ -610,8 +617,19 @@ def validate_start_execution(
     task_dir: Path,
     task_data: dict | None,
     approved: bool,
+    *,
+    ignore_deps: bool = False,
+    enforce_deps_block: bool = False,
 ) -> GateGuardResult:
-    """Validate start-execution readiness."""
+    """Validate start-execution readiness.
+
+    Dependency policy (Plan B, per adjudication 05 §3.1/§3.2):
+    - enforce_deps_block=True is passed ONLY by the mutating `--approved` path.
+      mode=block + unmet deps then fail unless ignore_deps=True.
+    - mode=off silences dependency warnings entirely.
+    - every other path (--check, warn mode) keeps Plan A semantics: deps are
+      warnings that never fail the guard.
+    """
     errors: list[str] = []
     if task_data is None:
         return GateGuardResult(ok=False, errors=["task.json"])
@@ -691,6 +709,29 @@ def validate_start_execution(
     if not approved:
         errors.append("--approved is required for mutation")
 
+    warnings: list[str] = []
+    deps_blocking_summary: list[str] = []
+    if task_data is not None:
+        scope = scope_children_for_task(task_dir, task_data)
+        report = describe_dependencies(
+            task_dir,
+            task_data,
+            scope_children=scope,
+        )
+        depends_mode = read_depends_mode(task_data)
+        if enforce_deps_block and depends_mode == "block":
+            deps_blocking_summary = report.blocking_errors()
+            if ignore_deps:
+                warnings.extend(report.warnings())
+            else:
+                errors.extend(deps_blocking_summary)
+        elif depends_mode != "off":
+            warnings.extend(report.warnings())
+            if depends_mode == "block" and not enforce_deps_block:
+                warnings.append(
+                    "dependency policy mode=block: --approved would fail unless --ignore-deps"
+                )
+
     baseline_record = None
     if not errors:
         baseline_record = make_baseline_record(
@@ -700,12 +741,14 @@ def validate_start_execution(
     return GateGuardResult(
         ok=not errors,
         errors=errors,
+        warnings=warnings,
         contract_fingerprint=contract_fingerprint,
         artifact_fingerprints=artifact_fingerprints,
         required_gates=required_gates,
         baseline_record=baseline_record,
         is_full_task=full_task,
         auto_gate_records=auto_gate_records,
+        deps_blocking_summary=deps_blocking_summary,
     )
 
 
@@ -737,9 +780,19 @@ def validate_start_execution_check(
     task_dir: Path,
     task_data: dict | None,
 ) -> GateGuardResult:
-    """Validate start-execution preflight without requiring approval."""
-    result = validate_start_execution(task_dir, task_data, approved=True)
-    return result
+    """Validate start-execution preflight without requiring approval.
+
+    NOTE (adjudication 05 §3.1 trap): the check path deliberately passes
+    enforce_deps_block=False — even when the task is in mode=block, --check
+    must never fail on dependencies; it only surfaces warnings. Only the
+    mutating --approved path may set enforce_deps_block=True.
+    """
+    return validate_start_execution(
+        task_dir,
+        task_data,
+        approved=True,
+        enforce_deps_block=False,
+    )
 
 
 def validate_transition_readiness(

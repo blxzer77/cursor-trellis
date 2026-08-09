@@ -89,10 +89,15 @@ Lightweight tasks may be PRD-only. Complex tasks must have `prd.md`, `design.md`
 
 Use a **Parent** task when one user request contains several independently verifiable deliverables. The Parent owns the source requirement set, the task map, cross-child acceptance criteria, and final integration review; it normally should not be the implementation target unless it also has direct work.
 
-Use **Child** tasks for deliverables that can be planned, implemented, checked, and archived independently. Parent/Child is **not** a dependency system: if one child must wait for another, write that ordering in the child `prd.md` / `implement.md` and keep each child's acceptance criteria testable.
+Use **Child** tasks for deliverables that can be planned, implemented, checked, and archived independently. Ordering is explicit `depends_on` (Parent `task-map.md` child entries and/or task-level `task.py set-deps`), default soft-warn (Plan A), optional hard block (Plan B via `set-depends-mode block`). `start-execution --check` never FAILs solely for unmet deps.
+
+### Review pool
+
+Clear in-session work creates Lite/Full/Parent tasks directly. Ideas / directions / gaps go to `.cstl/pool/` first; only `accepted` items become tasks. CLI: `pool.py validate|plan-check|link|unlink|show` (see `.cstl/pool/README.md`). Choose next work from `plan.md` mainline → item status → `task.py list` → ask the user; keep fog clean (shipped items leave fog).
 
 - Create children: `task.py create "<title>" --slug <name> --parent <parent-dir>`
 - Link existing: `task.py add-subtask <parent> <child>`
+- Deps: `task.py set-deps`, `set-depends-mode`, `start-execution --ignore-deps`
 - Parent orchestration: `task.py parent-status`, `generate-child-prompt`, `review-child`
 
 **Integration authority belongs to the Parent only.** `merge_limit: 1` blocks more than one Child from being `integrating` at the same time. A Child can provide evidence and request review, but cannot mark itself `changes` / `accepted` / `integrating` / `integrated` / `cancelled`. Parent integration is serial Git-ref integration by default; every decision writes to `task-map.md` Event Log.

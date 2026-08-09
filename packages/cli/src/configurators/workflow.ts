@@ -3,6 +3,7 @@ import path from "node:path";
 import { DIR_NAMES, PATHS } from "../constants/paths.js";
 import {
   getAllScripts,
+  getAllPoolSkeleton,
   workflowMdTemplate,
   configYamlTemplate,
   gitignoreTemplate,
@@ -40,6 +41,12 @@ import {
   guidesCursorNativeModesGuideContent,
   guidesVerificationStrengthGuideContent,
   guidesInjectionBudgetGuideContent,
+  guidesArtifactLocaleGuideContent,
+  guidesDebugLoopGuideContent,
+  guidesGoalReleaseRegressionRunbookContent,
+  guidesPrototypeGuideContent,
+  guidesTestDisciplineGuideContent,
+  guidesCrossPlatformThinkingGuideContent,
 } from "../templates/markdown/index.js";
 
 import { writeFile, ensureDir } from "../utils/file-writer.js";
@@ -116,6 +123,9 @@ export async function createWorkflowStructure(
   // Write user-shipped Python scripts (same source of truth as trellis update)
   await writeScriptTemplates(path.join(cwd, PATHS.SCRIPTS));
 
+  // Review-pool skeleton (mechanism docs only; no sample items)
+  await writePoolSkeleton(path.join(cwd, PATHS.POOL));
+
   // Copy workflow.md (native bundled template or selected marketplace variant)
   await writeFile(
     path.join(cwd, PATHS.WORKFLOW_GUIDE_FILE),
@@ -173,6 +183,18 @@ async function writeScriptTemplates(scriptsRoot: string): Promise<void> {
     await writeFile(destPath, replacePythonCommandLiterals(content), {
       executable: isExecutable,
     });
+  }
+}
+
+async function writePoolSkeleton(poolRoot: string): Promise<void> {
+  ensureDir(poolRoot);
+  for (const [relativePath, content] of getAllPoolSkeleton()) {
+    const destPath = path.join(poolRoot, relativePath);
+    ensureDir(path.dirname(destPath));
+    // Apply the same platform command rewrite as update.ts collectTemplateFiles
+    // so init-written content matches the hash update expects (no-op on
+    // same-version update instead of a spurious pool README rewrite).
+    await writeFile(destPath, replacePythonCommandLiterals(content));
   }
 }
 
@@ -302,6 +324,30 @@ async function createSpecTemplates(
     {
       name: "injection-budget-guide.md",
       content: guidesInjectionBudgetGuideContent,
+    },
+    {
+      name: "artifact-locale-guide.md",
+      content: guidesArtifactLocaleGuideContent,
+    },
+    {
+      name: "debug-loop-guide.md",
+      content: guidesDebugLoopGuideContent,
+    },
+    {
+      name: "goal-release-regression-runbook.md",
+      content: guidesGoalReleaseRegressionRunbookContent,
+    },
+    {
+      name: "prototype-guide.md",
+      content: guidesPrototypeGuideContent,
+    },
+    {
+      name: "test-discipline-guide.md",
+      content: guidesTestDisciplineGuideContent,
+    },
+    {
+      name: "cross-platform-thinking-guide.md",
+      content: guidesCrossPlatformThinkingGuideContent,
     },
   ];
   for (const doc of guidesDocs) {

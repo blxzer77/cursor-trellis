@@ -1,0 +1,139 @@
+# Prototype Guide（原型纪律）
+
+> **Purpose**: 用一次性代码回答**设计问题**——先写清问题，再由问题决定原型形态；答案折叠进真实代码（**重写不 mv**），原型留证后清理，不留工作区腐烂。本 harness：**LOGIC / Python 默认，UI 不适用（N/A）**。
+
+---
+
+## 1. Purpose / When to use
+
+**原型是一次性代码，回答一个设计问题。** 什么时候用：
+
+- 要验证某个**机制 / 状态模型 / 算法**「感不感觉对」——在纸上难推演的 case，跑起来看证据。
+- 要在 design / prd 落结论前，先对「如果……会怎样」拿到可观察的事实。
+- 结论已知会写回真实代码，但想让实现者先摸一遍形状。
+
+原型唯一的产出是**答案**，不是代码。
+
+## 2. Non-goals
+
+- **不接真实 DB / 服务**：原型依赖一律假数据 / 内存 / 显式标记的临时本地文件。
+- **不直接升生产**：原型的代码路径不是生产代码的捷径；折叠时**重写**，不 `mv`。
+- **不做 UI（本 harness）**：本 harness 无 UI 面，UI 原型不适用（见 §6）。
+- **不替代测试 / 调试 / 需求发现**：见 §12 边界（单向链）。
+
+## 3. Hard rules
+
+1. **问题决定形态** — 先写设计问题，再选原型形态；问题写不清，先不写代码。
+2. **丢弃式（throwaway）** — 从第一天起就是一次性：不接真实 DB/服务；**不加测试、不泛化**（可跑即可）；默认**无持久化**（或仅临时本地文件且须清理）。
+3. **状态可见** — 每次 action 后打印/记录关键状态（print / 日志 / 简单 TUI），答案从可见状态里读出来。
+4. **答案折叠** — 结论写回 design / prd / 真实代码；原型代码本身**不提升**为生产代码，折叠时在真实 module 里**重写**，不 `mv`。
+5. **留证后可清理** — 答案折叠 + 留证完成后，删除工作区里的原型（§9 / §10），不留腐烂。
+
+## 4. Step 0 — Write the design question
+
+开始前写一句话，并放进原型文件头：
+
+> 这个原型要回答：____________
+
+回答不了这个问题，就说明原型还没开始对。
+
+## 5. Shape: LOGIC（Python）— default for this harness
+
+本 harness 的 LOGIC 默认形态（替代 Matt 单 HTML 默认；本仓库无 UI 面）：
+
+- **单个可运行脚本**，路径二选一：
+  - `.tmp/prototypes/<slug>/run.py`（工作区 scratch；**惰性创建，不预建空目录**）
+  - 任务 `research/prototype-<slug>.py`（工作位置即留证位置，见 §9）
+- **逻辑与 demo 入口分离**：文件内分两段——
+  - `# --- logic (portable) ---`：纯逻辑函数（无副作用、依赖从参数注入），折叠时可提起进真实代码
+  - `# --- demo entry ---`：构造输入、调用、打印状态，只服务于「跑起来看答案」
+- **运行**：`python run.py` 即得可观察输出，无额外步骤。
+- 最小骨架示例见 §13。
+
+## 6. Shape: UI — N/A for this harness
+
+**不适用 / N/A。** 本 harness 没有 UI 面（agent CLI + 文档工作流），**不写 UI 脚手架**、不做 UI 变体原型、不引入 UI 分支。若上游项目需要 UI 原型，那是上游项目自己的事，不进本 harness 主树。
+
+## 7. Visibility of state
+
+原型回答问题的机制必须**可观察**：
+
+- 每次 action 后打印完整相关状态，不省略中间态。
+- 关键分支打印路径标签；比较类问题打印两侧差异。
+- 输出讲不清 → 答案就落不进 design。
+
+## 8. Capture the answer → fold into real code
+
+原型结束后两件事：
+
+1. **折叠答案**：把结论（问题 + 判定 + 理由）写回 design / prd / 真实代码；代码折叠时在真实 module 里**重写** logic 段（贴合真实接口与错误处理），**不 `mv` 原型文件升生产**。
+2. **留证原型**（primary source，可回看「当时怎么答的」）——见 §9。
+
+## 9. Evidence（留证：throwaway 分支 / 路径快照）
+
+两层留证机制，**清理前必须确认留证已落**：
+
+| 层 | 手段 | 适用 |
+| --- | --- | --- |
+| A | git **throwaway 分支**提交（如 `proto/<slug>`，离开 main），留上下文指针 | git 仓库（如 cursor-trellis / smart-search） |
+| B | **路径快照**：复制到 `.cstl/tasks/<task>/research/prototype-<slug>.py`（或任务目录等价位置），并在 handoff.md / verify.md 记录路径 | **非 git 仓库——本 harness 根目录的默认手段** |
+
+- 工作位置本身是任务 `research/prototype-<slug>.py` 时，即工作即留证，无需再复制。
+- A / B 可并用。
+
+## 10. Cleanup / archive（清理：不留腐烂）
+
+- **何时**：答案已折叠 + 留证已落，原型不再需要。
+- **做什么**：删除 `.tmp/prototypes/<slug>/`——scratch 工作区不留腐烂；若原型躺在任务 `research/` 下，那本身就是留证，保留并按任务归档机制处理。
+- **不做**：把原型当长期分支 / 常驻目录养；在 main 上留下 throwaway 痕迹。
+
+## 11. Anti-patterns（反模式清单）
+
+| 反模式 | 信号 | 修正 |
+| --- | --- | --- |
+| 过早泛化 | 加参数 / 抽象 / 配置，问题还没回答完 | 回到最小：只够回答问题 |
+| 接生产依赖 | 连真实 DB / 服务 / 凭据 | 假数据 / 内存 / 显式临时文件 |
+| 当长期分支养 | 原型分支 / 目录持续叠加功能、迟迟不折叠 | 答案到手即折叠 + 清理 |
+| 在本项目启用 UI 分支 | 写 UI 脚手架 / UI 变体原型 | 本 harness UI N/A，直接不做 |
+| `mv` 升生产 | 原型文件直接改名 / 移入真实路径 | 折叠时重写进真实 module |
+| 答案不留证 | 跑完即删、结论没落任何地方 | §8 折叠 + §9 留证先行 |
+
+## 12. Relation to debug-loop / test-discipline / brainstorm（边界，单向链）
+
+- **Debug Loop Guide**：debug-loop 用 throwaway harness 回答「**为什么坏了**」（bug / 性能回归，诊断进行中）；原型回答「**这个设计 / 机制对不对**」（尚无 bug，设计前）。原型**不替代**调试纪律。
+- **Test Discipline Guide**：test-discipline 管生产测试写作（pre-agreed seams、反模式、mock 边界）；原型**不加测试**（可跑即可）。原型**不替代**测试纪律。
+- **brainstorm**：brainstorm 管需求发现（用户想要什么）；原型管设计验证（机制怎么实现才对）。原型**不替代** brainstorm。
+- 衔接点：原型的可运行骨架可能成为 debug-loop 反馈环的起点或真实测试的输入样例——那是**下游复用**，不是原型的职责。
+
+## 13. Minimal skeleton（LOGIC, Python）
+
+```python
+# prototype: <slug> — throwaway，回答：「________________」  （§4 设计问题）
+# 运行: python run.py；不接真实依赖；答案折叠后清理或留证（§9/§10）
+
+# --- logic (portable) ---
+def next_state(current: str, event: str) -> str:
+    transitions = {
+        ("idle", "start"): "running",
+        ("running", "stop"): "stopped",
+    }
+    return transitions.get((current, event), current)
+
+# --- demo entry ---
+if __name__ == "__main__":
+    state = "idle"
+    for event in ["start", "pause", "stop"]:
+        state = next_state(state, event)
+        print(f"{event:>8} -> {state}")   # 状态可见：每次 action 后打印
+```
+
+## 14. Checklist
+
+- [ ] §4 设计问题已写清（一句话，在文件头）
+- [ ] 形态：LOGIC / Python 单脚本；UI 不适用（未写 UI 脚手架）
+- [ ] 不接真实 DB / 服务；无持久化（或显式临时文件且会清理）
+- [ ] 无测试、无泛化——可跑即可
+- [ ] 状态可见：关键状态每次 action 后打印
+- [ ] 答案已折叠（写回 design / prd / 真实代码；**重写不 mv**）
+- [ ] 留证已落（git throwaway 分支，或非 git 路径快照到任务 `research/`）
+- [ ] 清理完成：`.tmp/prototypes/<slug>/` 已删，无工作区腐烂

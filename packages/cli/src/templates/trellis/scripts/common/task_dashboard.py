@@ -7,6 +7,7 @@ from pathlib import Path
 
 from .active_task import resolve_selected_task
 from .paths import DIR_TASKS, DIR_WORKFLOW, get_developer, get_repo_root, get_tasks_dir
+from .task_dependencies import dashboard_deps_line
 from .task_gates import verify_evidence_status
 from .task_map import get_child_state
 from .tasks import (
@@ -142,6 +143,13 @@ def _append_task(
     lines.append(
         f"{prefix}{_task_path(name)} ({status_display}){progress} [{assignee}] {verify_summary}"
     )
+    deps_line = dashboard_deps_line(
+        task.directory,
+        task.raw or {},
+        parent_dir=parent_dir,
+    )
+    if deps_line:
+        lines.append(f"{prefix}{deps_line}")
     for child_name in task.children:
         if child_name in all_tasks:
             _append_task(

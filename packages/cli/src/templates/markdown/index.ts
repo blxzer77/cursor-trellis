@@ -120,3 +120,19 @@ export const guidesVerificationStrengthGuideContent: string = readLocalTemplate(
 export const guidesInjectionBudgetGuideContent: string = readLocalTemplate(
   "spec/guides/injection-budget-guide.md.txt",
 );
+export const guidesArtifactLocaleGuideContent: string = readLocalTemplate(
+  "spec/guides/artifact-locale-guide.md.txt",
+);
+export const guidesDebugLoopGuideContent: string = readLocalTemplate(
+  "spec/guides/debug-loop-guide.md.txt",
+);
+export const guidesGoalReleaseRegressionRunbookContent: string =
+  readLocalTemplate("spec/guides/goal-release-regression-runbook.md.txt");
+export const guidesPrototypeGuideContent: string = readLocalTemplate(
+  "spec/guides/prototype-guide.md.txt",
+);
+export const guidesTestDisciplineGuideContent: string = readLocalTemplate(
+  "spec/guides/test-discipline-guide.md.txt",
+);
+export const guidesCrossPlatformThinkingGuideContent: string =
+  readLocalTemplate("spec/guides/cross-platform-thinking-guide.md.txt");

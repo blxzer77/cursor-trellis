@@ -17,6 +17,8 @@ Usage:
     python task.py set-branch <dir> <branch>   # Set git branch
     python task.py set-base-branch <dir> <branch>  # Set PR target branch
     python task.py set-scope <dir> <scope>     # Set scope for PR title
+    python task.py set-deps <dir> <id...>      # Set task-level depends_on (soft checks)
+    python task.py set-depends-mode <dir> <warn|block|off>  # Dependency policy mode
     python task.py archive <task-dir> [--check] [--archive-integrated-children] # Check or archive completed task
     python task.py prepare-archive-evidence <task-dir> [--dry-run]  # Draft missing verify.md archive evidence
     python task.py prepare-learning-scaffold <task-dir> [--trigger <text>]  # Print spec-capture checklist (stdout only)
@@ -69,6 +71,7 @@ from common.task_gates import (
     write_gate_record,
 )
 from common.task_utils import resolve_task_dir, run_task_hooks
+from common.task_dependencies import read_depends_mode
 from common.tasks import (
     children_progress,
     format_child_task_display,
@@ -86,6 +89,9 @@ from common.task_store import (
     cmd_set_branch,
     cmd_set_base_branch,
     cmd_set_scope,
+    cmd_set_deps,
+    cmd_set_depends_mode,
+    append_depends_ignore_event,
     cmd_add_subtask,
     cmd_remove_subtask,
     cmd_prepare_child_worktree,
@@ -241,6 +247,15 @@ def _print_guard_errors(items: list[str], stream=None) -> None:
         print(f"  - {item}", file=stream)
 
 
+def _print_dependency_warnings(guard) -> None:
+    """Print dependency warnings (Plan A soft checks; never affect PASS/FAIL)."""
+    for warning in guard.warnings:
+        print(
+            colored(f"[dependencies] WARN: {warning}", Colors.YELLOW),
+            file=sys.stderr,
+        )
+
+
 def cmd_start_execution(args: argparse.Namespace) -> int:
     """Start approved task execution after a non-mutating readiness check."""
     repo_root = get_repo_root()
@@ -259,6 +274,7 @@ def cmd_start_execution(args: argparse.Namespace) -> int:
             for hint in start_execution_repair_hints(guard.errors, task_dir):
                 print(f"  Hint: {hint}")
             return 1
+        _print_dependency_warnings(guard)
         print(colored("Start-execution check: PASS", Colors.GREEN))
         print(f"Contract fingerprint: {guard.contract_fingerprint}")
         baseline_fingerprint = guard.artifact_fingerprints.get(BASELINE_GATE)
@@ -294,13 +310,29 @@ def cmd_start_execution(args: argparse.Namespace) -> int:
         print("Run with --check for non-mutating preflight or --approved after explicit user approval.", file=sys.stderr)
         return 1
 
-    guard = validate_start_execution(task_dir, task_data, approved=True)
+    ignore_deps = bool(getattr(args, "ignore_deps", False))
+    guard = validate_start_execution(
+        task_dir,
+        task_data,
+        approved=True,
+        ignore_deps=ignore_deps,
+        enforce_deps_block=True,
+    )
     if not guard.ok:
         print(colored("Error: cannot start execution; readiness check failed.", Colors.RED), file=sys.stderr)
         _print_guard_errors(guard.errors, stream=sys.stderr)
         return 1
 
+    _print_dependency_warnings(guard)
+
     assert task_data is not None
+    if ignore_deps and guard.deps_blocking_summary:
+        append_depends_ignore_event(
+            task_data,
+            command="start-execution",
+            mode=read_depends_mode(task_data),
+            blocking_summary=guard.deps_blocking_summary,
+        )
     if guard.baseline_record:
         write_gate_record(task_data, "start-execution", BASELINE_GATE, guard.baseline_record)
     for gate, record in guard.auto_gate_records.items():
@@ -537,6 +569,7 @@ Usage:
   python task.py set-branch <dir> <branch>          Set git branch
   python task.py set-base-branch <dir> <branch>     Set PR target branch
   python task.py set-scope <dir> <scope>            Set scope for PR title
+  python task.py set-deps <dir> [dep ...]           Set depends_on (no deps clears to [])
   python task.py archive <task-dir> [--check]       Check or archive completed task
   python task.py add-subtask <parent> <child>       Link child task to parent
   python task.py remove-subtask <parent> <child>    Unlink child from parent
@@ -672,6 +705,11 @@ def main() -> int:
                                    help="Run non-mutating execution readiness check")
     p_start_execution.add_argument("--approved", action="store_true",
                                    help="Record explicit approval and start execution")
+    p_start_execution.add_argument(
+        "--ignore-deps",
+        action="store_true",
+        help="Override blocking dependencies (depends_mode=block) and record an audit event",
+    )
 
     # record-gate
     p_record_gate = subparsers.add_parser("record-gate", help="Record reviewer quality gate")
@@ -707,6 +745,31 @@ def main() -> int:
     p_scope = subparsers.add_parser("set-scope", help="Set scope")
     p_scope.add_argument("dir", help="Task directory")
     p_scope.add_argument("scope", help="Scope name")
+
+    # set-deps
+    p_deps = subparsers.add_parser(
+        "set-deps",
+        help="Set task-level depends_on (declare only; soft checks in Plan A)",
+    )
+    p_deps.add_argument("dir", help="Task directory or name")
+    p_deps.add_argument(
+        "dep",
+        nargs="*",
+        help="Dependency task ids (bare id or pool:Pxx). No deps clears to [].",
+    )
+
+    # set-depends-mode
+    p_depends_mode = subparsers.add_parser(
+        "set-depends-mode",
+        help="Set meta.depends_mode (warn | block | off) for dependency policy",
+    )
+    p_depends_mode.add_argument("dir", help="Task directory or name")
+    p_depends_mode.add_argument(
+        "mode",
+        choices=["warn", "block", "off"],
+        help="warn = Plan A soft checks (default); block = hard gates at "
+        "start-execution --approved and set-child-state working; off = silent",
+    )
 
     # artifact-locale
     p_artifact_locale = subparsers.add_parser(
@@ -939,6 +1002,8 @@ def main() -> int:
         "set-branch": cmd_set_branch,
         "set-base-branch": cmd_set_base_branch,
         "set-scope": cmd_set_scope,
+        "set-deps": cmd_set_deps,
+        "set-depends-mode": cmd_set_depends_mode,
         "archive": cmd_archive,
         "prepare-archive-evidence": cmd_prepare_archive_evidence,
         "prepare-learning-scaffold": cmd_prepare_learning_scaffold,

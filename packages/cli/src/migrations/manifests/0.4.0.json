@@ -1,0 +1,9 @@
+{
+  "version": "0.4.0",
+  "description": "Review pool + task depends_on Plan A/B, workflow/guides alignment",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**@blxzer/cursor-trellis 0.4.0**\n\n- feat(pool): `.cstl/pool/` skeleton + `pool.py` validate/link/plan-check\n- feat(deps): `set-deps` / `set-depends-mode` / `--ignore-deps` (Plan A warn / Plan B block)\n- feat(verify): ship `verify_evidence_probe.py`\n- docs: workflow pool boundary + depends; guides (locale/debug/prototype/test/runbook)\n- chore: empty migrations list (template sync via `cstl update`)",
+  "migrations": [],
+  "notes": "Run `cstl update` to sync scripts/workflow/pool skeleton. No `--migrate` required. Pool items remain user data."
+}

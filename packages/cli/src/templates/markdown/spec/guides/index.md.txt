@@ -23,6 +23,9 @@ These guides help you **ask the right questions before coding**.
 |-------|---------|-------------|
 | [Durable Learning Decision Guide](./durable-learning-decision-guide.md) | Choose no-learning vs spec update vs learning artifact before archive | Finishing a task, parent review, or after `/cstl:break-loop` |
 | [Verification Strength Guide](./verification-strength-guide.md) | Graded verify depth (Lite/Full/Parent × verification_profile); false-green probes; **not** TDD | Phase 3.1, writing `verify.md`, choosing check depth, archive prep |
+| [Debug Loop Guide](./debug-loop-guide.md) | Debug discipline: tight red-capable feedback loop before hypotheses; six phases; `[DEBUG-xxx]` tags; Redact; PS7 HITL | User reports a hard bug / performance regression; diagnosis in progress (before `cstl-break-loop`) |
+| [Test Discipline Guide](./test-discipline-guide.md) | 测试写作纪律：pre-agreed seams、垂直切片、三反模式、mock 边界；**不是 TDD 要求** | Writing or reviewing tests; planning what to test; choosing mock boundaries |
+| [Prototype Guide](./prototype-guide.md) | 原型纪律：一次性代码回答设计问题；问题决定形态；LOGIC/Python 默认、UI 不适用；折叠重写不 mv、留证 + 清理 | A design question needs a runnable throwaway answer (mechanism / state model / algorithm); folding a verdict into design or real code |
 | [Injection Budget Guide](./injection-budget-guide.md) | Per-channel caps, jsonl manifest limits, Layer 2 defaults; matrix-aligned | Adding alwaysApply rules, curating jsonl, subagent dispatch |
 | [Code Reuse Thinking Guide](./code-reuse-thinking-guide.md) | Identify patterns and reduce duplication | When you notice repeated patterns |
 | [Cross-Layer Thinking Guide](./cross-layer-thinking-guide.md) | Think through data flow across layers | Features spanning multiple layers |
@@ -32,7 +35,15 @@ These guides help you **ask the right questions before coding**.
 | [Execution strategy](./execution-strategy.md) | `suggest-execution-strategy`, rules JSON, inline vs worker vs child-task | Writing `implement.md` contract, Phase 2 dispatch |
 | [Cursor context injection guide](./cursor-context-injection-guide.md) | Which Cursor channels reach the model (sessionStart bug, .cursor/rules, AGENTS.md) | "Agent ignored instructions" on Cursor, adding always-visible rules |
 | [Cursor native modes guide](./cursor-native-modes-guide.md) | Prefer Plan / Ask / Debug / Agent / Multitask × Trellis phases & artifacts | P1 mode routing, Parent/Multitask, Ask↔No Task, Plan↔Phase 1, Debug evidence |
+| [Artifact locale guide](./artifact-locale-guide.md) | Human-reviewed PRD/design/implement/verify/handoff language (zh \| en) | `task.py create`, planning skills, session context; not full CLI i18n |
 | [cursor-trellis release & coexistence](./cursor-trellis-release-coexistence-guide.md) | npm publish runbook, `cstl-v*` tags, upstream Trellis coexistence | Releasing cstl, scenario 2 init, migrate gate, uninstall AGENTS strip |
+| [Goal release regression runbook](./goal-release-regression-runbook.md) | Goal npm 发布前回归闸：mock/live 命令、契约路径、SDK timeout 残余风险 | Root npm 闸、Parent integrate 前 Goal 自检、hardening 后发布 |
+
+### When using `/cstl-goal` (optional long-horizon mode)
+
+- [ ] User explicitly invoked `/cstl-goal` — default cstl spine unchanged otherwise
+- [ ] Read [cstl-goal Contract](../Trellis/framework/cstl-goal-contract.md) §1 preflight + §3 hard deny before G1 self-drive
+- [ ] High-risk actions: pack per [Action Packet](../Trellis/framework/cstl-goal-action-packet.md) → reviewer seam; no bare execute
 
 ---
 
@@ -74,6 +85,32 @@ These guides help you **ask the right questions before coding**.
 3. **Variable misreading**: Not tracing a variable to its actual definition (e.g., Map keyed by path vs name)
 
 **Verification rule**: Every CRITICAL/WARNING finding must be verified against the actual code before prioritizing. Budget ~35% false-positive rate for AI reviews.
+
+### When Debugging Hard Bugs or Performance Regressions
+
+- [ ] User reports something broken / throwing / failing / slow, and it is not obvious at a glance
+- [ ] You find yourself about to read code to form a theory before you have a runnable repro command
+- [ ] A fix attempt failed and you have no regression to prove the fix
+- [ ] You need a human-in-the-loop repro script (PowerShell 7)
+
+→ Read [Debug Loop Guide](./debug-loop-guide.md) (diagnosis in progress; run `cstl-break-loop` after the fix)
+
+### When Writing or Reviewing Tests
+
+- [ ] You're about to write tests for new or existing behavior
+- [ ] You're reviewing a test that breaks on refactor without a behavior change
+- [ ] You need to decide what to mock and where the seam is
+- [ ] Test expectations seem to restate the implementation
+
+→ Read [Test Discipline Guide](./test-discipline-guide.md)
+
+### When a Design Question Needs a Runnable Throwaway
+
+- [ ] 你在验证一个机制 / 状态模型 / 算法「感不感觉对」——不是 bug 调试，是设计验证
+- [ ] 结论要写回 design / prd / 真实代码，但想先跑起来看证据
+- [ ] 准备写一次性脚本回答「如果……会怎样」
+
+→ Read [Prototype Guide](./prototype-guide.md) (LOGIC/Python default; UI N/A; fold+evidence+cleanup)
 
 ---
 

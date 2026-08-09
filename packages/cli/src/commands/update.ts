@@ -59,6 +59,7 @@ import {
 } from "../templates/trellis/local/index.js";
 import {
   getAllScripts,
+  getAllPoolSkeleton,
   // Configuration
   configYamlTemplate,
   gitignoreTemplate,
@@ -733,6 +734,11 @@ function collectTemplateFiles(
   // Python scripts (single source of truth: getAllScripts())
   for (const [scriptPath, content] of getAllScripts()) {
     files.set(`${PATHS.SCRIPTS}/${scriptPath}`, content);
+  }
+
+  // Review-pool skeleton (mechanism only — never overwrite user items/)
+  for (const [poolPath, content] of getAllPoolSkeleton()) {
+    files.set(`${PATHS.POOL}/${poolPath}`, content);
   }
 
   // Configuration
