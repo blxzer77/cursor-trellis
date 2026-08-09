@@ -1,0 +1,93 @@
+# Human-Reviewed Artifact Locale Guide
+
+> **Purpose:** Let PRD / DESIGN / IMPLEMENT / VERIFY / HANDOFF follow the user's language (Chinese or English) without turning Trellis into a full i18n product.
+
+---
+
+## 1. Non-goals
+
+| In scope | Out of scope |
+| --- | --- |
+| Workspace / task `artifact_locale` | Full CLI `--help` / stderr i18n |
+| `task.py create` PRD seed language | Auto-translating archived tasks |
+| Session / planning hints for artifact language | Bilingual mirrors of `workflow.md` or `.cursor/rules` |
+| `prd.md` / `design.md` / `implement.md` / `verify.md` / `handoff.md` | `task.json` field names or gate enums |
+
+**Rollback:** `python ./.cstl/scripts/task.py artifact-locale set zh` or remove `artifact_locale` from `.cstl/config.yaml`. For a single task, delete `task.json` → `meta.artifact_locale`.
+
+---
+
+## 2. Configuration
+
+### Workspace default (`.cstl/config.yaml`)
+
+```yaml
+# Human-reviewed artifact locale (zh | en)
+artifact_locale: zh
+```
+
+Default when unset: **`zh`** (matches current dogfood and User Rules for Simplified Chinese replies).
+
+### CLI
+
+```powershell
+# Resolved locale (workspace default)
+python ./.cstl/scripts/task.py artifact-locale get
+
+# Resolved locale for one task (includes task override)
+python ./.cstl/scripts/task.py artifact-locale get --task .cstl/tasks/<dir>
+
+# Workspace default
+python ./.cstl/scripts/task.py artifact-locale set en
+python ./.cstl/scripts/task.py artifact-locale set zh
+
+# Per-task override
+python ./.cstl/scripts/task.py artifact-locale set zh --task .cstl/tasks/<dir>
+```
+
+Invalid values print a warning and fall back to the next layer (`task` → `workspace` → `zh`).
+
+---
+
+## 3. What respects locale
+
+| Artifact | Mechanism |
+| --- | --- |
+| `prd.md` on `task.py create` | Locale template under `.cstl/tasks/locale/{zh,en}/default-prd.md` |
+| `design.md` / `implement.md` | Agent planning (session context + `cstl-brainstorm`) |
+| `verify.md` / `handoff.md` | Agent execution / finish (same session hint) |
+| Optional `tasks/templates/*` copies | Agent follows guide; English paths stay canonical |
+
+**Does not change:** existing files in a task directory, CLI diagnostics, hooks, or machine gate names.
+
+---
+
+## 4. Dogfood checklist
+
+1. `artifact-locale set en` → `task.py create "Locale EN" --slug locale-dogfood-en` → `prd.md` uses `## Goal`, `## Requirements`.
+2. `artifact-locale set zh` → `task.py create "Locale ZH" --slug locale-dogfood-zh` → `prd.md` uses `## 目标`, `## 需求`.
+3. With workspace `en`, `artifact-locale set zh --task <dir>` → next create for that task only uses Chinese if `meta.artifact_locale` was set before create (override applies to resolved locale for that task).
+
+---
+
+## 5. Orthogonal `locale` settings
+
+| Setting | Purpose |
+| --- | --- |
+| **`artifact_locale`** (this guide) | Human-reviewed task artifacts |
+| Retrieval / semantic `locale` | Code search ranking and plan language |
+| smart-search `locale-scope` | External research evidence language |
+
+Do not merge these keys; they solve different problems.
+
+---
+
+## 6. Rollback
+
+1. `artifact-locale set zh` (workspace).
+2. Remove `meta.artifact_locale` from any task that should follow workspace only.
+3. Revert code/templates if needed — default `zh` keeps dogfood behavior without config.
+
+---
+
+**Core principle:** Product language follows the user for artifacts they review; infrastructure stays English unless explicitly scoped.

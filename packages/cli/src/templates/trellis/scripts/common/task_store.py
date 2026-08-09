@@ -9,6 +9,8 @@ Provides:
     cmd_set_branch     - Set git branch for task
     cmd_set_base_branch - Set PR target branch
     cmd_set_scope      - Set scope for PR title
+    cmd_set_deps       - Set task-level depends_on (declare + soft checks)
+    cmd_set_depends_mode - Set meta.depends_mode (warn | block | off)
     cmd_add_subtask    - Link child task to parent
     cmd_remove_subtask - Unlink child task from parent
     cmd_prepare_child_worktree - Create/register Child git worktree
@@ -1128,6 +1130,129 @@ def cmd_prepare_child_worktree(args: argparse.Namespace) -> int:
 
 
 # =============================================================================
+# Plan B: depends_mode block helpers
+# =============================================================================
+
+def append_depends_ignore_event(
+    task_data: dict,
+    *,
+    command: str,
+    mode: str,
+    blocking_summary: list[str],
+    evidence: str | None = None,
+    reason: str | None = None,
+) -> None:
+    """Append a depends-ignore audit event to meta.depends_ignore_events.
+
+    Mutates task_data in memory; the caller persists it in the SAME
+    write_json as the mutation it accompanies (execution approval / child
+    state), so the event can never dangle as a separate stale write. The
+    list is capped at MAX_IGNORE_EVENTS (FIFO drops the oldest entry).
+    """
+    from .task_dependencies import MAX_IGNORE_EVENTS
+    from .task_map import utc_now
+
+    meta = task_data.get("meta")
+    if not isinstance(meta, dict):
+        meta = {}
+        task_data["meta"] = meta
+    events = meta.get("depends_ignore_events")
+    if not isinstance(events, list):
+        events = []
+    event: dict = {
+        "at": utc_now(),
+        "command": command,
+        "by": "user",
+        "mode": mode,
+        "blocking_summary": list(blocking_summary),
+    }
+    if evidence:
+        event["evidence"] = evidence
+    if reason:
+        event["reason"] = reason
+    events.append(event)
+    del events[:-MAX_IGNORE_EVENTS]
+    meta["depends_ignore_events"] = events
+
+
+def _guard_child_working_deps(
+    args: argparse.Namespace,
+    parent_dir: Path,
+    parent_data: dict,
+    child_dir: Path,
+    child_data: dict,
+    child_map_id: str,
+) -> int:
+    """Enforce depends_mode=block before a Child transitions to `working`.
+
+    Reads the CHILD's meta.depends_mode (the Parent mode never proxies for
+    the Child). The dependency union covers the Child task.json depends_on
+    plus the Parent task-map children[].depends_on entry; either source
+    blocking rejects the transition unless --ignore-deps is passed, which
+    appends an audit event to the Child task.json and a line to the Parent
+    task-map Event Log. Returns 0 to allow, nonzero to reject.
+    """
+    from .task_dependencies import describe_child_dependencies, read_depends_mode
+    from .task_map import get_child_entry, load_task_map, write_task_map
+
+    mode = read_depends_mode(child_data)
+    if mode != "block":
+        return 0
+
+    repo_root = get_repo_root()
+    map_data, _ = load_task_map(parent_dir)
+    entry = get_child_entry(map_data, child_map_id)
+    report = describe_child_dependencies(
+        child_dir, child_data, entry, repo_root=repo_root
+    )
+    blocking = report.blocking_errors()
+    if not blocking:
+        return 0
+
+    if not getattr(args, "ignore_deps", False):
+        print(
+            colored(
+                "Error: cannot set Child state to 'working': blocking dependencies "
+                "(depends_mode=block).",
+                Colors.RED,
+            ),
+            file=sys.stderr,
+        )
+        for item in blocking:
+            print(f"  - {item}", file=sys.stderr)
+        print(
+            "Run with --ignore-deps to override (audited via meta.depends_ignore_events).",
+            file=sys.stderr,
+        )
+        return 1
+
+    append_depends_ignore_event(
+        child_data,
+        command="set-child-state",
+        mode=mode,
+        blocking_summary=blocking,
+        evidence=args.evidence,
+        reason=getattr(args, "reason", None),
+    )
+    child_json_path = child_dir / FILE_TASK_JSON
+    if not write_json(child_json_path, child_data):
+        print(
+            colored("Error: failed to write task.json (ignore event)", Colors.RED),
+            file=sys.stderr,
+        )
+        return 1
+
+    map_data_evt, map_body = load_task_map(parent_dir)
+    if map_data_evt is not None:
+        event = (
+            f"Ignored dependencies (mode=block) for child `{child_dir.name}` "
+            f"while setting state `working`: {'; '.join(blocking)}"
+        )
+        write_task_map(parent_dir, map_data_evt, map_body, event)
+    return 0
+
+
+# =============================================================================
 # Command: set-child-state
 # =============================================================================
 
@@ -1178,6 +1303,18 @@ def cmd_set_child_state(args: argparse.Namespace) -> int:
         return 1
 
     child_map_id = resolve_child_map_id(parent_data, child_dir, child_data)
+    if state == "working":
+        guard_rc = _guard_child_working_deps(
+            args,
+            parent_dir,
+            parent_data,
+            child_dir,
+            child_data,
+            child_map_id,
+        )
+        if guard_rc != 0:
+            return guard_rc
+
     ok, errors = set_child_state(
         parent_dir,
         parent_data,
@@ -1702,6 +1839,125 @@ def cmd_set_scope(args: argparse.Namespace) -> int:
     write_json(task_json, data)
 
     print(colored(f"✓ Scope set to: {scope}", Colors.GREEN))
+    return 0
+
+
+# =============================================================================
+# Command: set-deps
+# =============================================================================
+
+def cmd_set_deps(args: argparse.Namespace) -> int:
+    """Set task-level depends_on (Plan A: declare + soft checks, no blocking).
+
+    Bare task ids and `pool:Pxx` refs are supported. Dangling references are
+    warned but still written (Plan A is discovery-first; `warn` never errors).
+    """
+    from .task_dependencies import KIND_MISSING, normalize_dep_list, resolve_dep_ref
+
+    repo_root = get_repo_root()
+    target_dir = resolve_task_dir(args.dir, repo_root)
+
+    task_json = target_dir / FILE_TASK_JSON
+    if not task_json.is_file():
+        print(
+            colored(f"Error: task.json not found at {target_dir}", Colors.RED),
+            file=sys.stderr,
+        )
+        return 1
+
+    data = read_json(task_json)
+    if not data:
+        return 1
+
+    normalized = normalize_dep_list(args.dep)
+    data["depends_on"] = normalized
+
+    dangling = [
+        ref
+        for ref in normalized
+        if resolve_dep_ref(ref, repo_root=repo_root).kind == KIND_MISSING
+    ]
+
+    if not write_json(task_json, data):
+        print(colored("Error: failed to write task.json", Colors.RED), file=sys.stderr)
+        return 1
+
+    if normalized:
+        print(
+            colored(
+                f"✓ depends_on set: {', '.join(normalized)}",
+                Colors.GREEN,
+            )
+        )
+    else:
+        print(colored("✓ depends_on cleared to []", Colors.GREEN))
+    for ref in dangling:
+        print(
+            colored(
+                f"[dependencies] WARN: dangling dependency: {ref} "
+                "(no matching task or child; declaration kept)",
+                Colors.YELLOW,
+            ),
+            file=sys.stderr,
+        )
+    return 0
+
+
+# =============================================================================
+# Command: set-depends-mode
+# =============================================================================
+
+def cmd_set_depends_mode(args: argparse.Namespace) -> int:
+    """Set meta.depends_mode (warn | block | off) for a task.
+
+    warn is the default (= Plan A soft checks); block opts the task into
+    hard dependency gates at start-execution --approved and
+    set-child-state working; off silences dependency output entirely.
+    """
+    from .task_dependencies import DEPENDS_MODES, read_depends_mode
+
+    repo_root = get_repo_root()
+    target_dir = resolve_task_dir(args.dir, repo_root)
+
+    task_json = target_dir / FILE_TASK_JSON
+    if not task_json.is_file():
+        print(
+            colored(f"Error: task.json not found at {target_dir}", Colors.RED),
+            file=sys.stderr,
+        )
+        return 1
+
+    data = read_json(task_json)
+    if not data:
+        return 1
+
+    previous = read_depends_mode(data)
+    if args.mode not in DEPENDS_MODES:
+        print(
+            colored(
+                f"Error: depends_mode must be one of {', '.join(DEPENDS_MODES)}",
+                Colors.RED,
+            ),
+            file=sys.stderr,
+        )
+        return 1
+
+    meta = data.get("meta")
+    if not isinstance(meta, dict):
+        meta = {}
+        data["meta"] = meta
+    meta["depends_mode"] = args.mode
+
+    if not write_json(task_json, data):
+        print(colored("Error: failed to write task.json", Colors.RED), file=sys.stderr)
+        return 1
+
+    print(
+        colored(
+            f"✓ depends_mode: {previous} -> {args.mode}",
+            Colors.GREEN,
+        )
+    )
     return 0
 
 

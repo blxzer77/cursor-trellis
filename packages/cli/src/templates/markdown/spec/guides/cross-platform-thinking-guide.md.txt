@@ -40,7 +40,7 @@ print("Run: script.py <args>")
 
 # GOOD - Platform-aware wording
 print("Usage: python on Windows, python3 elsewhere")
-print("Run: {{PYTHON_CMD}} ./.cstl/scripts/task.py <args>")
+print("Run: {{PYTHON_CMD}} ./.trellis/scripts/task.py <args>")
 ```
 
 **Rule 2**: When generating config files at init time, use placeholder + platform detection:
@@ -281,7 +281,7 @@ make the intended decision. Otherwise a transient sandbox/network failure hides
 the hint for the rest of the session.
 
 **Rule 2**: If a local command can provide the needed value, try it with a short
-timeout and captured output. For example, `cstl --version` already runs the
+timeout and captured output. For example, `trellis --version` already runs the
 CLI's version comparison logic and can support an actionable update prompt
 without duplicating npm registry parsing.
 
@@ -356,7 +356,7 @@ When making platform-related changes, check **all these locations**:
 
 ### Code Locations
 - [ ] `src/templates/` - Template files for new projects
-- [ ] `.cstl/scripts/` - Project's own scripts (if self-hosting)
+- [ ] `.trellis/scripts/` - Project's own scripts (if self-hosting)
 - [ ] `dist/` - Built output (rebuild after changes)
 
 ### Search Pattern
@@ -530,7 +530,7 @@ subprocess.run(["./script.py"])  # FileNotFoundError
 
 ```
 src/templates/script.py  ← Updated
-.cstl/scripts/script.py  ← Forgot to sync!
+.trellis/scripts/script.py  ← Forgot to sync!
 ```
 
 ### 4. "Python 3 is always python3"
@@ -606,8 +606,8 @@ included with Trellis, verify the whole distribution path:
 - [ ] `pnpm build` copies the asset into `dist/templates/**`.
 - [ ] `npm pack --dry-run --json` includes the expected `dist/**` path.
 - [ ] The built binary installs the asset in a fresh temp repository.
-- [ ] `.cstl/.template-hashes.json` tracks the generated asset path.
-- [ ] `cstl update --dry-run` reports `Already up to date!` in that temp
+- [ ] `.trellis/.template-hashes.json` tracks the generated asset path.
+- [ ] `trellis update --dry-run` reports `Already up to date!` in that temp
   repository.
 
 **Why this matters**: docs/changelog text can move independently from the code
@@ -628,7 +628,7 @@ git -C "$tmpdir" init -q
   cd "$tmpdir"
   node /path/to/Trellis/packages/cli/bin/trellis.js init -u smoke --yes --cursor
   test -f .cursor/skills/<skill>/SKILL.md
-  grep -q '<skill>' .cstl/.template-hashes.json
+  grep -q '<skill>' .trellis/.template-hashes.json
   node /path/to/Trellis/packages/cli/bin/trellis.js update --dry-run
 )
 ```

@@ -1,0 +1,138 @@
+# Test Discipline Guide（测试纪律）
+
+> **Purpose**: 测试写作纪律 —— pre-agreed seams、垂直切片、三反模式、mock 边界，让写出来的测试值得保留。**纪律不是 TDD 要求**；写测试、读测试、评审测试时都适用，与是否测试先行无关。
+
+---
+
+## 1. Purpose — discipline, not TDD
+
+本 guide 定义「测试写作纪律」：当测试存在时（新写、补写、评审、bug 回归落地），它们应当落在哪、验证什么、不做什么。纪律约束的是测试**质量**，不是测试**时序**：
+
+- **不要求 red-before-green**。可以先写测试（test-first 是可选的节奏），也可以实现后补测试——纪律在两种时序下同样适用。
+- **不强制 TDD 循环**。本 guide 不定义 red → green → refactor 流程；不设「每个函数必须单测」门槛。
+- 与 [Verification Strength Guide](./verification-strength-guide.md) 兼容：验证**强度**（任务 closeout 要验多深）≠ red-green 仪式；本 guide 管的是「测试怎么写才值得保留」。
+
+> 一句话：**先确认测点（seam），再写测试；测试验公共行为，不验实现。**
+
+## 2. Non-goals
+
+- **不是 TDD 手册**：不要求测试先行，不要求红-绿循环，不把 red-before-green 写成强制流程。
+- **不选型**：不规定 pytest 以外的框架，不做 mock 库选型。
+- **不替代 Verification Strength Guide**：验证强度（closeout 深度 / false-green 探针）由该 guide 管，本 guide 只管测试写作本身。
+- **不替代 Debug Loop Guide Phase 5**：bug 驱动的回归落地由 debug-loop 管，本 guide 只定义何为 good seam（见 §9）。
+
+## 3. What a good test is
+
+好测试的判据，对每次测试写作生效：
+
+- **通过公共 interface 验行为，不验实现细节**。module 可以完全重写，测试不该跟着改；测试关心调用者能获得什么行为，不关心内部怎么拼。
+- **读起来像规格**。测试名描述能力（「用户可以用有效购物车结账」），读者从测试就能看出 module 支持什么。
+- **耐重构**。重构后行为不变，测试仍绿；只有行为真正变化时才变红。
+- **期望值来自独立事实源**。已知字面量、手算样例、规格值——不是用实现同款方式重算（见 §6 tautological）。
+
+## 4. Seams（pre-agreed）
+
+**seam**（词汇与 CONTEXT.md architecture 段一致）：*不改动原处即可改变行为的位置*。测试在 seam 处通过 interface 观察行为，绝不伸手进内部。
+
+**只在 pre-agreed seam 写测试。** 写任何测试之前：
+
+1. **列出待测 seam 清单**：要测哪些 module 的哪个 interface、每条验什么行为。
+2. **与用户确认**。未确认的 seam 不写测试。
+3. 确认时按此排序：**优先既有 seam**（已有接口 / 既有测试点，不为测试新建结构）；**尽量高位 seam**（越接近用户行为越好——一条高位测试覆盖多个低位实现）；**少而精**（宁可一条高位测试，不要十条内部断言）。
+
+你不可能测完一切——预先同意 seam，是把测试力气花在关键路径和复杂逻辑上，而不是每个边角。
+
+> 问句：「公共 interface 是什么？我们要测哪些 seam？」——接口形状本身有疑问时（module 多深、seam 该在哪），先做设计，再定测点。
+
+## 5. Vertical slices（tracer bullets）
+
+**一测 → 一段最小实现 → 重复**：
+
+1. 一个 seam、一条测试（tracer bullet）。
+2. 只写让这条测试通过的最小实现。
+3. 重复，让每条新测试回应上一条循环学到的形状。
+
+**禁止 horizontal bulk**——先写完全部测试再实现。横向批量的危害：测试验证的是**想象的行为**（测的是形状而不是用户行为）、对真实变化不敏感、实现还没理解就锁死了测试结构。
+
+垂直切片在测试**写作**上同样成立：不要在动手前批量铺测试，一条一条来。
+
+## 6. Anti-patterns（三反模式）
+
+### Implementation-coupled（实现耦合）
+
+mock 内部协作对象、测私有方法、或旁路验证（绕过 interface 直接查库 / 读内部状态）。
+
+- 识别信号：重构后测试变红但行为没变；测试名描述 HOW 不描述 WHAT；断言调用次数 / 调用顺序。
+- 反例：`create_user` 后直接查库验入库——应通过 interface 验「创建后能取回」。
+- 修正：回到 §3——只通过公共 interface 观察行为。
+
+### Tautological（同义反复）
+
+期望值用与实现相同的方式重算，passes by construction——测试永远不可能与代码不一致，因为它复述了代码。
+
+- 识别信号：期望值是 reduce / 拼接 / 同式重算；快照由实现同款手工推出；常量断言等于它自己。
+- 反例：`expect(total([10, 5])).toBe(items.reduce(...))`——期望值就是实现。
+- 修正：期望值必须来自独立事实源——已知字面量（`expect(total([10, 5])).toBe(15)`）、手算样例、规格值。
+
+### Horizontal slicing（横向切片）
+
+先写全部测试再实现；按层横切而不是按用户行为竖切。
+
+- 识别信号：测试一次性铺满所有层级（API 层全部 → 服务层全部 → …）；测试对象是「形状」而非行为；实现未动时测试结构已锁定。
+- 修正：回到 §5 垂直切片。
+
+## 7. Mock boundaries
+
+**只在系统边界 mock**：
+
+- 外部 API（支付、邮件等）
+- DB（**优先用测试库**，mock DB 是退路）
+- 时间 / 随机性
+- 文件系统（视情况）
+
+**不 mock**：
+
+- 自己的 module / 内部协作对象
+- 任何我们控制的东西
+
+为可 mock 性设计接口：
+
+- **DI 优于内部 `new`**：外部依赖从参数传入，而不是在实现里创建：
+
+```python
+# 易 mock：依赖注入
+def process_payment(order, payment_client):
+    return payment_client.charge(order.total)
+
+# 难 mock：实现内部创建
+def process_payment(order):
+    client = PaymentClient(os.environ["PAYMENT_KEY"])
+    return client.charge(order.total)
+```
+
+- **SDK 式接口优于通用 fetcher**：每个外部操作用独立函数（`get_user(id)` / `create_order(data)`），而不是一个带条件分支的通用 `fetch(endpoint, opts)`。每个 mock 返回一种确定形状，测试设置里没有条件逻辑，也容易看出测试走了哪个端点。
+
+## 8. Relation to verification-strength-guide
+
+- Verification Strength Guide 管验证**强度**：任务 closeout 要验多深、false-green 探针，且明确 **not TDD**（§1 Non-goals：不产品化 red-green 仪式、无 per-function 单测门槛）。
+- 本 guide 管测试**写作质量**：测试存在时，落在 pre-agreed seam、验公共行为、避开三反模式。
+- 二者正交、兼容：按验证强度选验证深度；按本 guide 写测试。**验证强度 ≠ red-green 仪式。**
+
+## 9. Relation to debug-loop Phase 5（衔接不吞并）
+
+[Debug Loop Guide](./debug-loop-guide.md) Phase 5 的回归是 **bug 驱动**：把最小复现冻结成测试或可重复命令，且必须落在 **correct seam**（在真实调用点复现真实 bug 模式）。
+
+- **bug 回归走 debug-loop**：Phase 5 决定「把这个 bug 锁在哪个 seam」，本 guide 不接管闭环流程。
+- **通用测试写作走本 guide**：新功能、补测、评审由本 guide 管（pre-agreed seam、反模式、mock 边界）。
+- 衔接点：Phase 5 判定 correct seam 时，引用的正是本 guide 的 good seam 概念与反模式——**衔接不吞并**：bug 驱动回归 ≠ 通用测试写作，两者各有入口，互不替代。
+
+## 10. Checklist before writing tests
+
+写测试前确认：
+
+- [ ] seam 清单已列出并与用户确认（**未确认的 seam 不写测试**）
+- [ ] 优先既有 seam / 高位 seam / 少而精
+- [ ] 测试通过公共 interface 验行为（不是私有方法、不是内部协作对象）
+- [ ] 期望值来自独立事实源（已知字面量 / 样例 / 规格），不是实现同款重算
+- [ ] mock 只在系统边界；自己的 module 不 mock；依赖经 DI 注入
+- [ ] 一次一条垂直切片（一测 → 最小实现 → 重复），不做横向批量

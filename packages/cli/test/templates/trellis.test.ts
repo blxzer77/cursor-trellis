@@ -232,7 +232,7 @@ describe("trellis template constants", () => {
       "several independently verifiable deliverables",
     );
     expect(workflowMdTemplate).toContain(
-      "Parent/child structure is not a dependency system",
+      "Ordering between deliverables is an explicit declaration, not an implicit system",
     );
     expect(workflowMdTemplate).toContain("--parent <parent-dir>");
     expect(workflowMdTemplate).toContain("task.py add-subtask <parent> <child>");
@@ -246,9 +246,7 @@ describe("trellis template constants", () => {
     expect(step).toContain("When considering a parent/child split");
     expect(step).toContain("Parent tasks own source requirements");
     expect(step).toContain("Child tasks own actual deliverables");
-    expect(step).toContain(
-      "Parent/child structure is not a dependency system",
-    );
+    expect(step).toContain("not an implicit Parent/child edge");
     expect(step).toContain("Do not start the parent unless");
   });
 

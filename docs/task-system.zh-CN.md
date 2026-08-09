@@ -177,7 +177,26 @@ python ./.cstl/scripts/task.py add-subtask <parent> <child>      # 链接已有
 python ./.cstl/scripts/task.py remove-subtask <parent> <child>   # 解链错误
 ```
 
-Parent/Child **不是**依赖系统。若一个 child 必须等另一个,把顺序写进 child `prd.md` / `implement.md`,每个 child 验收标准可独立测试。
+交付物之间的顺序是**显式**的,不是隐式的 Parent/Child 边:
+
+- **Child 级**:Parent `task-map.md` → `children[].depends_on`(依赖为 `integrated` 或 `cancelled` 时满足)
+- **任务级**:`task.json` → `depends_on`,经 `task.py set-deps <task> <dep...>`(依赖 `completed`/已归档或 `cancelled` 时满足)
+- 默认 **Plan A(warn)**:dashboard 与 `start-execution --check` 把未满足 / 悬空 / 循环依赖显示为警告,**永不因 deps 单独 FAIL check**
+- **Plan B(opt-in block)**:`task.py set-depends-mode <task> block` 硬阻断 `start-execution --approved` 与 `set-child-state … working`,除非 `--ignore-deps`(记录审计事件)
+- 保持每个 child 验收标准可测;Parent 仍是集成权威(`parent_orchestration.py` 不注入任务级 deps)
+
+### 评审池(候选队列)
+
+想法、方向与未成形缺口进 `.cstl/pool/`(不直接建 Task)。只有 `accepted` 的池条目才应变成任务。维护链接并校验:
+
+```bash
+python ./.cstl/scripts/pool.py validate
+python ./.cstl/scripts/pool.py plan-check
+python ./.cstl/scripts/pool.py link <item-id> <task-ref>
+python ./.cstl/scripts/pool.py show <item-id>
+```
+
+`cstl init` / `cstl update` 后见 `.cstl/pool/README.md`。
 
 ### Child 状态(Child 控制)
 

@@ -9,6 +9,7 @@
 - **No TDD productization** — cstl does not require red-green-refactor loops, "write tests first" gates, or per-function unit test mandates.
 - **No per-task full-suite burden** — Lite tasks must not be forced through architecture review or whole-repo CI.
 - **No replacement for project test frameworks** — cstl validation checks **task evidence** in `verify.md` and configured quality gates; it does not run or replace your project's test runner.
+- **No test-writing mandate** — how to write good tests (pre-agreed seams, anti-patterns, mock boundaries) lives in the [Test Discipline Guide](./test-discipline-guide.md); verification strength is orthogonal to test-writing style.
 
 ---
 
