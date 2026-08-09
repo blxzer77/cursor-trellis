@@ -9,7 +9,22 @@ SemVer: [semver.org](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [Unreleased]
+## [0.4.1] - 2026-08-10
+
+Approved-surface backfill (session handoff, check dual-axis, grilling frontier, PRD grain, CONTEXT/ADR stub).
+
+### Added
+
+- **feat(skills)**: Ship `cstl-handoff` bundled skill (portable session handoff to OS temp dir; `disable-model-invocation: true`) + Cursor slash command `/cstl-handoff`.
+- **feat(workflow)**: Session boundary line (Continue → clear → handoff → subagent → compact) and the task-`handoff.md` ≠ session-handoff boundary.
+- **feat(skills)**: `cstl-check` dual-axis — Standards / Spec reported in separate sections (no merged risk ranking), Full+ parallel read-only review sub-agents, Fowler 12 Smells asset, false-positive calibration, Terminology/ADR consistency line. Migrated from single-file `skills/check.md` to `bundled-skills/cstl-check/`.
+- **feat(skills)**: Grilling frontier — `cstl-brainstorm` Frontier rounds (≤3 questions/round, facts = agent's job, decisions = user's job, empty frontier = tree exhausted) and `cstl-micro-grill` optional frontier batching.
+- **feat(templates)**: PRD grain — `default-prd.md` (en/zh) gain User Stories / 用户故事 + Implementation Decisions / 实现决策 (no file paths) sections; workflow vertical-slice grain already aligned (zero diff).
+- **feat(templates)**: Minimal root `CONTEXT.md` stub (on-demand read, never always-inject; optional framework-domain seed) + `docs/adr/README.md` (lazy-created; three-condition ADR rule; spec/ADR/knowledge-base boundary).
+
+### Changed
+
+- **chore(release)**: Migration manifest placeholder `0.4.1.json` (`migrations: []`).
 
 ## [0.4.0] - 2026-08-09
 

@@ -144,6 +144,20 @@ If `contextPack.selected` is empty but research artifacts exist, document why (b
 
 ## Report Format
 
+Report **Standards and Spec in two separate sections** — never merge them into a single severity ranking (dual-axis, aligned with the `cstl-check` skill). Standards findings first, then Spec findings; the same issue may be cross-referenced on both sides, but one axis must not mask the other.
+
+```markdown
+## Standards findings
+- [sev] <file>:<line> - <finding>
+
+## Spec findings
+- [sev] <file>:<line> - <finding>
+
+## Summary
+- Standards: N issues (not ranked against Spec)
+- Spec: M issues
+```
+
 ```markdown
 ## Self-Check Complete
 

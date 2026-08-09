@@ -1,0 +1,9 @@
+{
+  "version": "0.4.1",
+  "description": "Approved-surface backfill: cstl-handoff + session boundary, cstl-check dual-axis, grilling frontier, PRD grain, CONTEXT/ADR stub",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**@blxzer/cursor-trellis 0.4.1**\n\n- feat(skills): ship `cstl-handoff` bundled skill + Cursor `/cstl-handoff` command\n- feat(workflow): session boundary line; task `handoff.md` ≠ session handoff\n- feat(skills): `cstl-check` dual-axis (Standards/Spec) + Fowler 12 smells asset\n- feat(skills): grilling frontier in brainstorm + micro-grill\n- feat(templates): PRD grain (User Stories / Implementation Decisions) in default-prd en/zh\n- feat(templates): minimal CONTEXT.md stub + docs/adr README\n- chore: empty migrations list (template sync via `cstl update`)",
+  "migrations": [],
+  "notes": "Run `cstl update` to sync workflow/skills/templates. No `--migrate` required."
+}

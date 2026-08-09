@@ -95,6 +95,10 @@ def _builtin_prd_template(locale: str) -> str:
 
 {goal}
 
+## 用户故事
+
+- [ ] （用户可见行为；用极长可勾选列表穷举，不是实现步骤）
+
 ## 需求
 
 - 待补充
@@ -102,6 +106,10 @@ def _builtin_prd_template(locale: str) -> str:
 ## 验收标准
 
 - [ ] 待补充
+
+## 实现决策
+
+- （已定决策；**不要写文件路径**——路径会过时，放 design/implement）
 
 ## 备注
 
@@ -115,6 +123,10 @@ def _builtin_prd_template(locale: str) -> str:
 
 {goal}
 
+## User Stories
+
+- [ ] (User-visible behaviors; enumerate as a long checkable list, not implementation steps)
+
 ## Requirements
 
 - TBD
@@ -122,6 +134,10 @@ def _builtin_prd_template(locale: str) -> str:
 ## Acceptance Criteria
 
 - [ ] TBD
+
+## Implementation Decisions
+
+- (Recorded decisions; **do not write file paths** — paths go stale; keep them in design/implement)
 
 ## Notes
 

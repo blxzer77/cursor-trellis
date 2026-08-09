@@ -75,6 +75,7 @@ import {
   isManagedPath,
   isManagedRootDir,
 } from "../configurators/index.js";
+import { getWorkflowRootTemplateFiles } from "../configurators/workflow.js";
 import { replacePythonCommandLiterals } from "../configurators/shared.js";
 import { pruneOrphanManifestKeys } from "../utils/manifest-prune.js";
 import { runPostUpdateSmoke } from "../utils/post-update-smoke.js";
@@ -786,6 +787,11 @@ function collectTemplateFiles(
   // platform routing markers outside [workflow-state:*] blocks are also
   // script-consumed.
   files.set(`${DIR_NAMES.WORKFLOW}/workflow.md`, workflowMdTemplate);
+  // Project domain glossary stub + ADR rules (user-maintained; conflict
+  // handling works the same as workflow.md — modified files prompt first).
+  for (const [relativePath, content] of getWorkflowRootTemplateFiles()) {
+    files.set(relativePath, content);
+  }
   // workspace/index.md stays excluded — it's runtime-appended by add_session.py
   // (journal index) and has no script-parsed structure.
   files.set(FILE_NAMES.AGENTS, buildAgentsMdTemplate(cwd));
