@@ -19,6 +19,8 @@ export const DIR_NAMES = {
   SPEC: "spec",
   /** Scripts directory (under .cstl/) */
   SCRIPTS: "scripts",
+  /** Review-pool directory (under .cstl/) */
+  POOL: "pool",
 } as const;
 
 // File names
@@ -51,6 +53,8 @@ export const PATHS = {
   SPEC: `${DIR_NAMES.WORKFLOW}/${DIR_NAMES.SPEC}`,
   /** .cstl/scripts/ */
   SCRIPTS: `${DIR_NAMES.WORKFLOW}/${DIR_NAMES.SCRIPTS}`,
+  /** .cstl/pool/ */
+  POOL: `${DIR_NAMES.WORKFLOW}/${DIR_NAMES.POOL}`,
   /** .cstl/.developer */
   DEVELOPER_FILE: `${DIR_NAMES.WORKFLOW}/${FILE_NAMES.DEVELOPER}`,
   /** .cstl/.current-task */
