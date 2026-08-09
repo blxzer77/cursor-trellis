@@ -39,6 +39,8 @@
 - **检索合规** — BYOK/Native 分叉 + `unknown` 保守路由；LSP 过度承诺软化为 codegraph + Read；telemetry 区分 planned vs executed semantic
 - **Cursor++ 安全** — Method 2.5 patch 需显式 `--approve`；`--check-compat` 预检；`smoke.py` 健康检查（不读 secret）
 - **证据 pack** — finish/check 在 `retrieval-pack-latest.json` 存在时引用；research prompt 含 provider 相关性提示
+- **会话交接** — `/cstl-handoff` 在需要跨会话「旅行」时（换 harness / repo、交给同事、fork 支线）将当前会话压缩成可搬运文档写入 OS 临时目录
+- **双轴 check** — `cstl-check` 分节报告 **Standards**（规范遵循、lint、type-check、测试、Fowler 12 smells、跨层数据流）与 **Spec**（prd 忠实度、scope、学习/spec 同步）——不做合并单一风险榜
 
 ## 常用命令
 
@@ -122,6 +124,8 @@ cstl update --migrate
 ```text
 your-app/
   .cstl/          workflow、spec、tasks、workspace、scripts
+  CONTEXT.md          项目领域词汇表（on-demand 读取）
+  docs/adr/           架构决策记录（惰性创建规则）
   AGENTS.md          Trellis 管理的 Agent 入口
   .cursor/           commands、rules、agents、hooks（Cursor）
 ```

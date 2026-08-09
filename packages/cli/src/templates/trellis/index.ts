@@ -175,6 +175,10 @@ export const workflowMdTemplate = readTemplate("workflow.md");
 export const configYamlTemplate = readTemplate("config.yaml");
 export const gitignoreTemplate = readTemplate("gitignore.txt");
 
+// Project domain glossary stub + ADR rules (lazy-created docs/adr/)
+export const contextMdTemplate = readTemplate("CONTEXT.md");
+export const adrReadmeTemplate = readTemplate("docs/adr/README.md");
+
 // Review-pool skeleton (mechanism only — no user items)
 export const poolReadmeTemplate = readTemplate("pool/README.md");
 export const poolPlanTemplate = readTemplate("pool/plan.md");

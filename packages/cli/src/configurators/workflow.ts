@@ -8,6 +8,8 @@ import {
   configYamlTemplate,
   gitignoreTemplate,
   executionStrategyRulesJson,
+  contextMdTemplate,
+  adrReadmeTemplate,
 } from "../templates/trellis/index.js";
 
 // Import markdown templates
@@ -61,6 +63,19 @@ import {
 interface DocDefinition {
   name: string;
   content: string;
+}
+
+/**
+ * Root-level files written by the workflow configurator (outside `.cstl/`).
+ * Shared by createWorkflowStructure (init), update.ts collectTemplateFiles
+ * (update hash tracking), and manifest-prune buildKnownKeys (so uninstall
+ * recognizes them as trellis-written and removes them).
+ */
+export function getWorkflowRootTemplateFiles(): Map<string, string> {
+  const files = new Map<string, string>();
+  files.set("CONTEXT.md", contextMdTemplate);
+  files.set("docs/adr/README.md", adrReadmeTemplate);
+  return files;
 }
 
 /**
@@ -148,6 +163,17 @@ export async function createWorkflowStructure(
     path.join(cwd, DIR_NAMES.WORKFLOW, "config", "execution-strategy-rules.json"),
     executionStrategyRulesJson,
   );
+
+  // Project domain glossary stub (on-demand read, never always-inject)
+  // and ADR rules — shared with update.ts collectTemplateFiles and
+  // manifest-prune buildKnownKeys via getWorkflowRootTemplateFiles().
+  for (const [relativePath, content] of getWorkflowRootTemplateFiles()) {
+    const destPath = path.join(cwd, relativePath);
+    if (relativePath.endsWith("README.md")) {
+      ensureDir(path.dirname(destPath));
+    }
+    await writeFile(destPath, content);
+  }
 
   // Create workspace/ with index.md
   ensureDir(path.join(cwd, PATHS.WORKSPACE));

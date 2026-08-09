@@ -43,6 +43,12 @@ Your recommended answer defaults to the **minimal sufficient** option that still
 5. After the user answers, summarize the clarified requirement in one or two Chinese sentences.
 6. Execute directly once the requirement is clear enough.
 
+## Frontier support (optional)
+
+Default is one question at a time (small-request clarification). When several questions can be asked together and their prerequisites are all decided (**≤3 questions**), list them in one round (numbered + recommended answers) and wait for a batch reply. Beyond that, keep one question at a time.
+
+Facts the environment can self-check do not consume question slots: self-check first (Hard Constraints: always inspect local files first); while a fact check is pending it only blocks the questions that depend on it — ask the rest of the frontier without blocking.
+
 ## Escalation
 
 Escalate once when the clarified work no longer fits Micro-Grill:
