@@ -17,6 +17,8 @@ export const DIR_NAMES = {
   ARCHIVE: "archive",
   /** Spec/guidelines directory (under .cstl/) */
   SPEC: "spec",
+  /** Framework docs directory (under .cstl/) - framework-owned, update-managed */
+  FRAMEWORK: "framework",
   /** Scripts directory (under .cstl/) */
   SCRIPTS: "scripts",
   /** Review-pool directory (under .cstl/) */
@@ -51,6 +53,8 @@ export const PATHS = {
   TASKS: `${DIR_NAMES.WORKFLOW}/${DIR_NAMES.TASKS}`,
   /** .cstl/spec/ */
   SPEC: `${DIR_NAMES.WORKFLOW}/${DIR_NAMES.SPEC}`,
+  /** .cstl/framework/ */
+  FRAMEWORK: `${DIR_NAMES.WORKFLOW}/${DIR_NAMES.FRAMEWORK}`,
   /** .cstl/scripts/ */
   SCRIPTS: `${DIR_NAMES.WORKFLOW}/${DIR_NAMES.SCRIPTS}`,
   /** .cstl/pool/ */

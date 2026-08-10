@@ -4,7 +4,7 @@
 
 ## When to read this
 
-The workflow or AGENTS invocation map says planning / PRD Grill → **`Read .cstl/spec/guides/prd-grill-frontier.md`** (this file) or the full bundled `common/skills/brainstorm.md` when another carrier is available. Read it **before** asking any user questions. Do **not** claim the grill discipline is loaded without a file read.
+The workflow or AGENTS invocation map says planning / PRD Grill → **`Read ./prd-grill-frontier.md`** (this file) or the full bundled `common/skills/brainstorm.md` when another carrier is available. Read it **before** asking any user questions. Do **not** claim the grill discipline is loaded without a file read.
 
 ## Non-negotiable evidence rule
 

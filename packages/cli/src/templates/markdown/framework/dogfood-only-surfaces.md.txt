@@ -4,7 +4,7 @@
 
 ## Rule of thumb
 
-- **Shipped by default** = written by `cstl init --cursor` and refreshed by `cstl update` (workflow, scripts, spec/guides, AGENTS.md CSTL block, `.cursor/{commands,rules,agents,hooks}`).
+- **Shipped by default** = written by `cstl init --cursor` and refreshed by `cstl update` (workflow, `.cstl/framework/` docs, scripts, AGENTS.md CSTL block, `.cursor/{commands,rules,agents,hooks}`). `.cstl/spec/` seeds are init-only and **never** refreshed — update never touches that directory.
 - **Dogfood-only / harness-only** = present only in the maintainer harness or after manual copy. Absence in a consumer repo is expected.
 
 ## Inventory

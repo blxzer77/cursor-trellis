@@ -66,7 +66,7 @@ import {
   workflowMdTemplate,
   executionStrategyRulesJson,
 } from "../templates/trellis/index.js";
-import { agentsMdContent } from "../templates/markdown/index.js";
+import { agentsMdContent, frameworkDocs } from "../templates/markdown/index.js";
 
 import {
   ALL_MANAGED_DIRS,
@@ -787,6 +787,12 @@ function collectTemplateFiles(
   // platform routing markers outside [workflow-state:*] blocks are also
   // script-consumed.
   files.set(`${DIR_NAMES.WORKFLOW}/workflow.md`, workflowMdTemplate);
+  // Framework docs (.cstl/framework/) — framework-owned, refreshed by update.
+  // New files flow through the standard new/auto-update/hash-conflict
+  // analysis; .cstl/spec/ stays fully protected.
+  for (const doc of frameworkDocs) {
+    files.set(`${PATHS.FRAMEWORK}/${doc.name}`, doc.content);
+  }
   // Project domain glossary stub + ADR rules (user-maintained; conflict
   // handling works the same as workflow.md — modified files prompt first).
   for (const [relativePath, content] of getWorkflowRootTemplateFiles()) {

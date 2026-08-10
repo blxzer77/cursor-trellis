@@ -85,7 +85,7 @@ export const frontendStateManagementContent: string = readLocalTemplate(
   "spec/frontend/state-management.md.txt",
 );
 
-// Guides structure
+// Guides structure (user-owned project thinking guides — init-only seeds)
 export const guidesIndexContent: string = readLocalTemplate(
   "spec/guides/index.md.txt",
 );
@@ -97,37 +97,9 @@ export const guidesCodeReuseThinkingGuideContent: string = readLocalTemplate(
 );
 export const guidesDurableLearningDecisionGuideContent: string =
   readLocalTemplate("spec/guides/durable-learning-decision-guide.md.txt");
-export const guidesRetrievalDailyGuideContent: string = readLocalTemplate(
-  "spec/guides/retrieval-daily-guide.md.txt",
-);
-export const guidesCursorSemanticComplianceContent: string = readLocalTemplate(
-  "spec/guides/cursor-semantic-compliance.md.txt",
-);
-export const guidesCursorSubagentPolicyContent: string = readLocalTemplate(
-  "spec/guides/cursor-subagent-policy.md.txt",
-);
-export const guidesExecutionStrategyContent: string = readLocalTemplate(
-  "spec/guides/execution-strategy.md.txt",
-);
-export const guidesCursorContextInjectionGuideContent: string =
-  readLocalTemplate("spec/guides/cursor-context-injection-guide.md.txt");
-export const guidesCursorNativeModesGuideContent: string = readLocalTemplate(
-  "spec/guides/cursor-native-modes-guide.md.txt",
-);
-export const guidesVerificationStrengthGuideContent: string = readLocalTemplate(
-  "spec/guides/verification-strength-guide.md.txt",
-);
-export const guidesInjectionBudgetGuideContent: string = readLocalTemplate(
-  "spec/guides/injection-budget-guide.md.txt",
-);
-export const guidesArtifactLocaleGuideContent: string = readLocalTemplate(
-  "spec/guides/artifact-locale-guide.md.txt",
-);
 export const guidesDebugLoopGuideContent: string = readLocalTemplate(
   "spec/guides/debug-loop-guide.md.txt",
 );
-export const guidesGoalReleaseRegressionRunbookContent: string =
-  readLocalTemplate("spec/guides/goal-release-regression-runbook.md.txt");
 export const guidesPrototypeGuideContent: string = readLocalTemplate(
   "spec/guides/prototype-guide.md.txt",
 );
@@ -136,11 +108,99 @@ export const guidesTestDisciplineGuideContent: string = readLocalTemplate(
 );
 export const guidesCrossPlatformThinkingGuideContent: string =
   readLocalTemplate("spec/guides/cross-platform-thinking-guide.md.txt");
-export const guidesPrdGrillFrontierGuideContent: string = readLocalTemplate(
-  "spec/guides/prd-grill-frontier.md.txt",
+
+// =============================================================================
+// Framework docs (.cstl/framework/ — framework-owned, refreshed by update)
+// =============================================================================
+
+export const frameworkIndexContent: string = readLocalTemplate(
+  "framework/index.md.txt",
 );
-export const guidesInternalSkillsReachabilityGuideContent: string =
-  readLocalTemplate("spec/guides/internal-skills-cursor-reachability.md.txt");
-export const guidesDogfoodOnlySurfacesGuideContent: string = readLocalTemplate(
-  "spec/guides/dogfood-only-surfaces.md.txt",
+export const frameworkRetrievalDailyGuideContent: string = readLocalTemplate(
+  "framework/retrieval-daily-guide.md.txt",
 );
+export const frameworkCursorSemanticComplianceContent: string =
+  readLocalTemplate("framework/cursor-semantic-compliance.md.txt");
+export const frameworkCursorSubagentPolicyContent: string = readLocalTemplate(
+  "framework/cursor-subagent-policy.md.txt",
+);
+export const frameworkExecutionStrategyContent: string = readLocalTemplate(
+  "framework/execution-strategy.md.txt",
+);
+export const frameworkCursorContextInjectionGuideContent: string =
+  readLocalTemplate("framework/cursor-context-injection-guide.md.txt");
+export const frameworkCursorNativeModesGuideContent: string = readLocalTemplate(
+  "framework/cursor-native-modes-guide.md.txt",
+);
+export const frameworkVerificationStrengthGuideContent: string =
+  readLocalTemplate("framework/verification-strength-guide.md.txt");
+export const frameworkInjectionBudgetGuideContent: string = readLocalTemplate(
+  "framework/injection-budget-guide.md.txt",
+);
+export const frameworkArtifactLocaleGuideContent: string = readLocalTemplate(
+  "framework/artifact-locale-guide.md.txt",
+);
+export const frameworkPrdGrillFrontierGuideContent: string = readLocalTemplate(
+  "framework/prd-grill-frontier.md.txt",
+);
+export const frameworkInternalSkillsReachabilityGuideContent: string =
+  readLocalTemplate("framework/internal-skills-cursor-reachability.md.txt");
+export const frameworkDogfoodOnlySurfacesGuideContent: string =
+  readLocalTemplate("framework/dogfood-only-surfaces.md.txt");
+
+/**
+ * Single source of truth for `.cstl/framework/` docs.
+ * Consumed by init (configurators/workflow.ts) and update (commands/update.ts)
+ * so the two paths can never drift.
+ */
+export const frameworkDocs: readonly {
+  name: string;
+  content: string;
+}[] = [
+  { name: "index.md", content: frameworkIndexContent },
+  {
+    name: "retrieval-daily-guide.md",
+    content: frameworkRetrievalDailyGuideContent,
+  },
+  {
+    name: "cursor-semantic-compliance.md",
+    content: frameworkCursorSemanticComplianceContent,
+  },
+  {
+    name: "cursor-subagent-policy.md",
+    content: frameworkCursorSubagentPolicyContent,
+  },
+  { name: "execution-strategy.md", content: frameworkExecutionStrategyContent },
+  {
+    name: "cursor-context-injection-guide.md",
+    content: frameworkCursorContextInjectionGuideContent,
+  },
+  {
+    name: "cursor-native-modes-guide.md",
+    content: frameworkCursorNativeModesGuideContent,
+  },
+  {
+    name: "verification-strength-guide.md",
+    content: frameworkVerificationStrengthGuideContent,
+  },
+  {
+    name: "injection-budget-guide.md",
+    content: frameworkInjectionBudgetGuideContent,
+  },
+  {
+    name: "artifact-locale-guide.md",
+    content: frameworkArtifactLocaleGuideContent,
+  },
+  {
+    name: "prd-grill-frontier.md",
+    content: frameworkPrdGrillFrontierGuideContent,
+  },
+  {
+    name: "internal-skills-cursor-reachability.md",
+    content: frameworkInternalSkillsReachabilityGuideContent,
+  },
+  {
+    name: "dogfood-only-surfaces.md",
+    content: frameworkDogfoodOnlySurfacesGuideContent,
+  },
+];

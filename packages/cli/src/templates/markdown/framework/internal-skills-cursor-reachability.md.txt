@@ -4,7 +4,7 @@
 
 ## Commands-only baseline
 
-- Default Cursor install writes only: `.cursor/commands/` (user slash commands), `.cursor/rules/*.mdc`, `.cursor/agents/*.md`, `.cursor/hooks`, and `.cstl/` (workflow, scripts, spec/guides).
+- Default Cursor install writes only: `.cursor/commands/` (user slash commands), `.cursor/rules/*.mdc`, `.cursor/agents/*.md`, `.cursor/hooks`, and `.cstl/` (workflow, framework docs, scripts, spec/guides seeds).
 - Bundled skill **bodies** live in the npm package templates (`dist/templates/common/skills/`, `dist/templates/common/bundled-skills/`). They are **not** copied into a consumer project by `cstl init` on Cursor.
 - "Not in the project" ≠ "missing from the framework": the CLI/script/agent/guide surface below is the reachable carrier.
 
@@ -12,8 +12,8 @@
 
 | Skill name | Package SSOT | Cursor load channel | Slash? | AGENTS lists it? |
 | --- | --- | --- | --- | --- |
-| `cstl-brainstorm` (PRD Grill) | `common/skills/brainstorm.md` | **Read `.cstl/spec/guides/prd-grill-frontier.md`** (on-demand summary; full body in npm package) | no | yes |
-| `cstl-micro-grill` | `bundled-skills/cstl-micro-grill/SKILL.md` | Contract embedded in `.cstl/workflow.md` Request Triage + `.cstl/spec/guides/prd-grill-frontier.md` §Micro-grill unresolved; full body in npm package | no | yes |
+| `cstl-brainstorm` (PRD Grill) | `common/skills/brainstorm.md` | **Read `./prd-grill-frontier.md`** (on-demand summary; full body in npm package) | no | yes |
+| `cstl-micro-grill` | `bundled-skills/cstl-micro-grill/SKILL.md` | Contract embedded in `.cstl/workflow.md` Request Triage + `./prd-grill-frontier.md` §Micro-grill unresolved; full body in npm package | no | yes |
 | `cstl-before-dev` | `common/skills/before-dev.md` | Workflow routes the behavior (Read task artifacts → `get_context.py --mode packages` → spec indexes); full body in npm package | no | yes |
 | `cstl-break-loop` | `common/skills/break-loop.md` | Workflow routes the behavior (Debug → evidence → `cstl-break-loop`); full body in npm package; output pattern in `.cstl/spec/guides/debug-loop-guide.md` | no | yes |
 | `cstl-update-spec` | `common/skills/update-spec.md` | Workflow Phase 3.3 routes the decision (`update-spec` \| `no-update` \| `unsure`); full body in npm package | no | yes |
@@ -41,4 +41,4 @@ If a skill is named in AGENTS.md, it must be reachable here. If a row ever becom
 - [prd-grill-frontier.md](./prd-grill-frontier.md) — P11: brainstorm/grill on-demand path.
 - [dogfood-only-surfaces.md](./dogfood-only-surfaces.md) — what ships only in the maintainer harness (goal_*.py, `.claude/skills`, local overlays).
 - AGENTS.md `Invocation map (short)` + `Internal skill reachability` sections.
-- `cursor-context-injection-guide.md` — which channels actually reach the Cursor model.
+- `./cursor-context-injection-guide.md` — which channels actually reach the Cursor model.
