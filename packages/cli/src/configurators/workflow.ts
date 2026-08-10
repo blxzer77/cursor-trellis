@@ -35,23 +35,11 @@ import {
   guidesCrossLayerThinkingGuideContent,
   guidesCodeReuseThinkingGuideContent,
   guidesDurableLearningDecisionGuideContent,
-  guidesRetrievalDailyGuideContent,
-  guidesCursorSemanticComplianceContent,
-  guidesCursorSubagentPolicyContent,
-  guidesExecutionStrategyContent,
-  guidesCursorContextInjectionGuideContent,
-  guidesCursorNativeModesGuideContent,
-  guidesVerificationStrengthGuideContent,
-  guidesInjectionBudgetGuideContent,
-  guidesArtifactLocaleGuideContent,
   guidesDebugLoopGuideContent,
-  guidesGoalReleaseRegressionRunbookContent,
   guidesPrototypeGuideContent,
   guidesTestDisciplineGuideContent,
   guidesCrossPlatformThinkingGuideContent,
-  guidesPrdGrillFrontierGuideContent,
-  guidesInternalSkillsReachabilityGuideContent,
-  guidesDogfoodOnlySurfacesGuideContent,
+  frameworkDocs,
 } from "../templates/markdown/index.js";
 
 import { writeFile, ensureDir } from "../utils/file-writer.js";
@@ -323,48 +311,8 @@ async function createSpecTemplates(
       content: guidesCodeReuseThinkingGuideContent,
     },
     {
-      name: "retrieval-daily-guide.md",
-      content: guidesRetrievalDailyGuideContent,
-    },
-    {
-      name: "cursor-semantic-compliance.md",
-      content: guidesCursorSemanticComplianceContent,
-    },
-    {
-      name: "cursor-subagent-policy.md",
-      content: guidesCursorSubagentPolicyContent,
-    },
-    {
-      name: "execution-strategy.md",
-      content: guidesExecutionStrategyContent,
-    },
-    {
-      name: "cursor-context-injection-guide.md",
-      content: guidesCursorContextInjectionGuideContent,
-    },
-    {
-      name: "cursor-native-modes-guide.md",
-      content: guidesCursorNativeModesGuideContent,
-    },
-    {
-      name: "verification-strength-guide.md",
-      content: guidesVerificationStrengthGuideContent,
-    },
-    {
-      name: "injection-budget-guide.md",
-      content: guidesInjectionBudgetGuideContent,
-    },
-    {
-      name: "artifact-locale-guide.md",
-      content: guidesArtifactLocaleGuideContent,
-    },
-    {
       name: "debug-loop-guide.md",
       content: guidesDebugLoopGuideContent,
-    },
-    {
-      name: "goal-release-regression-runbook.md",
-      content: guidesGoalReleaseRegressionRunbookContent,
     },
     {
       name: "prototype-guide.md",
@@ -378,21 +326,22 @@ async function createSpecTemplates(
       name: "cross-platform-thinking-guide.md",
       content: guidesCrossPlatformThinkingGuideContent,
     },
-    {
-      name: "prd-grill-frontier.md",
-      content: guidesPrdGrillFrontierGuideContent,
-    },
-    {
-      name: "internal-skills-cursor-reachability.md",
-      content: guidesInternalSkillsReachabilityGuideContent,
-    },
-    {
-      name: "dogfood-only-surfaces.md",
-      content: guidesDogfoodOnlySurfacesGuideContent,
-    },
   ];
   for (const doc of guidesDocs) {
     await writeFile(path.join(guidesDir, doc.name), doc.content);
+  }
+
+  // Framework docs (.cstl/framework/) — framework-owned, refreshed by update.
+  // Apply the same platform command rewrite as update.ts collectTemplateFiles
+  // so init-written content matches the hash update expects (no-op on
+  // same-version update instead of a spurious rewrite).
+  const frameworkDir = path.join(cwd, PATHS.FRAMEWORK);
+  ensureDir(frameworkDir);
+  for (const doc of frameworkDocs) {
+    await writeFile(
+      path.join(frameworkDir, doc.name),
+      replacePythonCommandLiterals(doc.content),
+    );
   }
 
   if (packages && packages.length > 0) {

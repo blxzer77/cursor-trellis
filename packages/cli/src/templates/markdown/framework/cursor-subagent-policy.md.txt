@@ -293,7 +293,7 @@ trellis_task_subagents:
 | `beforeShellExecution`     | Short-lived ticket for `task.py select` / `selected` / `exit` in shells |
 | `stop`                     | Optional `retrieval-pack-latest.json` when task has `research/`         |
 
-**Per-turn workflow-state on Cursor:** deferred — use `sessionStart` + `/cstl-continue` / `get_context.py --mode phase` instead of a per-turn hook injection (the relevant Cursor channel has a confirmed `additional_context` bug, see `cursor-context-injection-guide.md`).
+**Per-turn workflow-state on Cursor:** deferred — use `sessionStart` + `/cstl-continue` / `get_context.py --mode phase` instead of a per-turn hook injection (the relevant Cursor channel has a confirmed `additional_context` bug, see `./cursor-context-injection-guide.md`).
 
 ---
 

@@ -111,7 +111,7 @@ Details: `research/modes-callability-matrix.md`.
 
 Docs + rules only:
 
-1. Delete `.cursor/rules/cstl-cursor-modes.mdc` and `.cstl/spec/guides/cursor-native-modes-guide.md`.
+1. Delete `.cursor/rules/cstl-cursor-modes.mdc` and `.cstl/framework/cursor-native-modes-guide.md`.
 2. Drop related `guides/index.md` / `workflow.md` rows, or `cstl update` from pre-P1 templates.
 3. **cursor-trellis**: revert this Child’s tip or delete mirrored template paths.
 
@@ -122,4 +122,4 @@ Docs + rules only:
 - `{TASK}/research/modes-callability-matrix.md`
 - `{TASK}/research/cursor-modes-external.md`
 - `.cursor/rules/cstl-cursor-modes.mdc`
-- `.cstl/spec/guides/cursor-subagent-policy.md`
+- `.cstl/framework/cursor-subagent-policy.md`
