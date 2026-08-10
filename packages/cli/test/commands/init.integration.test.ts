@@ -29,6 +29,8 @@ vi.mock("node:child_process", () => ({
 import { init } from "../../src/commands/init.js";
 import { VERSION } from "../../src/constants/version.js";
 import { DIR_NAMES, FILE_NAMES, PATHS } from "../../src/constants/paths.js";
+import { frameworkDocs } from "../../src/templates/markdown/index.js";
+import { replacePythonCommandLiterals } from "../../src/configurators/shared.js";
 import { computeHash } from "../../src/utils/template-hash.js";
 import {
   CSTL_BLOCK_END,
@@ -726,6 +728,55 @@ describe("init() integration", () => {
       true,
     );
     expect(fs.existsSync(path.join(specDir, "guides", "index.md"))).toBe(true);
+  });
+
+  it("#10a init writes every frameworkDocs entry into .cstl/framework/", async () => {
+    await init({ yes: true });
+
+    const frameworkDir = path.join(tmpDir, PATHS.FRAMEWORK);
+    for (const doc of frameworkDocs) {
+      expect(fs.existsSync(path.join(frameworkDir, doc.name))).toBe(true);
+      // init applies the same python3→python rewrite as update.ts so
+      // same-version updates are a true no-op
+      expect(
+        fs.readFileSync(path.join(frameworkDir, doc.name), "utf-8"),
+      ).toBe(replacePythonCommandLiterals(doc.content));
+    }
+    expect(fs.existsSync(path.join(frameworkDir, "index.md"))).toBe(true);
+  });
+
+  it("#10b spec/guides seeds stay init-only (7 thinking guides + index; no moved docs, no maintainer runbooks)", async () => {
+    await init({ yes: true });
+
+    const guidesDir = path.join(tmpDir, PATHS.SPEC, "guides");
+    const shipped = fs.readdirSync(guidesDir).sort();
+    expect(shipped).toEqual([
+      "code-reuse-thinking-guide.md",
+      "cross-layer-thinking-guide.md",
+      "cross-platform-thinking-guide.md",
+      "debug-loop-guide.md",
+      "durable-learning-decision-guide.md",
+      "index.md",
+      "prototype-guide.md",
+      "test-discipline-guide.md",
+    ]);
+
+    // None of the relocated framework docs ship under spec/guides/
+    // (index.md stays in both locations by design — spec seed + framework index)
+    const movedNames = frameworkDocs
+      .map((doc) => doc.name)
+      .filter((name) => name !== "index.md");
+    for (const name of movedNames) {
+      expect(fs.existsSync(path.join(guidesDir, name))).toBe(false);
+    }
+    expect(
+      fs.existsSync(path.join(guidesDir, "goal-release-regression-runbook.md")),
+    ).toBe(false);
+    expect(
+      fs.existsSync(
+        path.join(guidesDir, "cursor-trellis-release-coexistence-guide.md"),
+      ),
+    ).toBe(false);
   });
 
   it("#11 backend project init skips frontend spec templates", async () => {
