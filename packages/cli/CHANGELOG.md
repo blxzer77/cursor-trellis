@@ -9,7 +9,7 @@ SemVer: [semver.org](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [0.4.2] - TBD
+## [0.4.2] - 2026-08-10
 
 Cursor reachability index: Goal = CLI, internal skills reachable on-demand (commands-only preserved). Framework docs relocation: versioned framework/platform docs move to a **framework-owned, update-managed** `.cstl/framework/`; `.cstl/spec/` stays fully user-owned.
 
