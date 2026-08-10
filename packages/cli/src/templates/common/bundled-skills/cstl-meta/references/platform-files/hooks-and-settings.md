@@ -6,7 +6,7 @@ Hooks/settings are the entry layer that connects Cursor to Trellis. They decide 
 
 `.cursor/hooks.json` registers:
 
-- session-start hook: injects a Trellis overview when a new session starts or context resets (note the Cursor `additional_context` bug #158452 — see `cursor-context-injection-guide.md.txt`).
+- session-start hook: injects a Trellis overview when a new session starts or context resets (note the Cursor `additional_context` bug #158452 — see `.cstl/framework/cursor-context-injection-guide.md`).
 - workflow-state hook: parses `[workflow-state:STATUS]` blocks from `.cstl/workflow.md` and emits the body matching the selected task `status` on each user input. Parser-only; the script does not embed fallback content.
 - sub-agent context hook: injects task context when implementation/check/research agents start.
 - shell/session bridge: lets shell commands see the same Trellis session identity.
@@ -35,7 +35,7 @@ Cursor exposes sessionStart, preToolUse on Task/Subagent, beforeShellExecution, 
 
 | User need | Edit location |
 | --- | --- |
-| AI should see more/less context in a new session | `.cursor/hooks.json` → `session-start` hook (or `.cursor/rules/*.mdc` for content the model must see every turn — see `cursor-context-injection-guide.md.txt`). |
+| AI should see more/less context in a new session | `.cursor/hooks.json` → `session-start` hook (or `.cursor/rules/*.mdc` for content the model must see every turn — see `.cstl/framework/cursor-context-injection-guide.md`). |
 | Per-turn hint policy should change | `[workflow-state:STATUS]` block in `.cstl/workflow.md`. The hook parses workflow.md verbatim — no script edit required. |
 | Sub-agent cannot read PRD/spec | `inject-subagent-context.py` hook or agent prelude in `.cursor/agents/*.md`. |
 | `task.py selected` in shell has no selected task | `inject-shell-session-context.py` hook or environment-variable configuration. |

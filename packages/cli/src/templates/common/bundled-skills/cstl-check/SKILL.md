@@ -62,7 +62,7 @@ Report **Standards and Spec in two separate sections** — never merge them into
 
 #### Test Coverage (verification strength — not TDD)
 
-Follow `.cstl/spec/guides/verification-strength-guide.md` for **graded** validation depth by closeout profile. cstl does **not** mandate red-green TDD or per-function unit tests.
+Follow `.cstl/framework/verification-strength-guide.md` for **graded** validation depth by closeout profile. cstl does **not** mandate red-green TDD or per-function unit tests.
 
 - [ ] **Lite:** focused validation on touched behavior recorded in `verify.md` (`Validation:` line + result)
 - [ ] **Full:** above + `Check evidence:` + `Reviewed change-set:` when contract requires code-review gate

@@ -10,7 +10,7 @@
 
 - **不要求 red-before-green**。可以先写测试（test-first 是可选的节奏），也可以实现后补测试——纪律在两种时序下同样适用。
 - **不强制 TDD 循环**。本 guide 不定义 red → green → refactor 流程；不设「每个函数必须单测」门槛。
-- 与 [Verification Strength Guide](./verification-strength-guide.md) 兼容：验证**强度**（任务 closeout 要验多深）≠ red-green 仪式；本 guide 管的是「测试怎么写才值得保留」。
+- 与 [Verification Strength Guide](.cstl/framework/verification-strength-guide.md) 兼容：验证**强度**（任务 closeout 要验多深）≠ red-green 仪式；本 guide 管的是「测试怎么写才值得保留」。
 
 > 一句话：**先确认测点（seam），再写测试；测试验公共行为，不验实现。**
 

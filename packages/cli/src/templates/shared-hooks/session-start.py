@@ -856,7 +856,7 @@ Trellis compact SessionStart context. Use it to orient the session; load details
             "`smart-search` CLI). CLI discovery: `TRELLIS_SMART_SEARCH_COMMAND` / "
             "`smart_search.command`, then PATH `smart-search`, then project "
             "`node_modules/.bin/smart-search`, then optional repo-local layouts "
-            "(see `.cstl/spec/guides/retrieval-daily-guide.md`). "
+            "(see `.cstl/framework/retrieval-daily-guide.md`). "
             "`smart-search-cli` is an internal workflow skill name — not a file under `.cursor/skills/` on Cursor. "
             "If `run_smart_search.py` status is `not_configured` or `failed` (incl. timeout), "
             "use **WebSearch/WebFetch**, persist `{TASK}/research/*.md` with "

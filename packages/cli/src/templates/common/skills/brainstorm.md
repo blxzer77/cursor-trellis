@@ -76,10 +76,10 @@ Inspect and record in `prd.md` (sections: **Confirmed facts**, initial **Out of 
 1. **Code & tests** — relevant modules, fixtures, configs, error paths.
 2. **Specs** — `.cstl/spec/` indexes and layer guides for touched packages.
 3. **History** — archived tasks, active task research, developer journal when useful.
-4. **Platform** — project platform hooks, agents, and skills (see `.cstl/spec/guides/cursor-subagent-policy.md` when using Cursor); shared `.agents/skills/` when behavior spans platforms.
+4. **Platform** — project platform hooks, agents, and skills (see `.cstl/framework/cursor-subagent-policy.md` when using Cursor); shared `.agents/skills/` when behavior spans platforms.
 5. **Parent/Child** — if multiple independent deliverables, note child split early in `prd.md`.
 
-Use retrieval per `.cstl/spec/guides/retrieval-daily-guide.md` (rg for literals, codegraph for structure, fast-context for semantic sweep).
+Use retrieval per `.cstl/framework/retrieval-daily-guide.md` (rg for literals, codegraph for structure, fast-context for semantic sweep).
 
 Dispatch **`cstl-research`** (writable Agent) when a topic needs a dedicated `{TASK}/research/<topic>.md` file; do **not** use a subagent for PRD Grill itself.
 

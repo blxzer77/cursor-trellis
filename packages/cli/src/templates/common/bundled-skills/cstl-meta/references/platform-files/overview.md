@@ -17,7 +17,7 @@ Platform files do not store business state. They let Cursor read Trellis state, 
 | --- | --- | --- |
 | settings/config | `.cursor/hooks.json` | Register hooks and platform behavior. |
 | hooks | `.cursor/hooks/` | Inject context at session start, pre-tool-use on Task/Subagent, before-shell-execution, and stop events. |
-| rules | `.cursor/rules/*.mdc` (`alwaysApply: true`) | Per-turn policy prepended before every prompt (e.g. Request Triage, retrieval routing). See `cursor-context-injection-guide.md.txt` for the channel-reliability matrix. |
+| rules | `.cursor/rules/*.mdc` (`alwaysApply: true`) | Per-turn policy prepended before every prompt (e.g. Request Triage, retrieval routing). See `.cstl/framework/cursor-context-injection-guide.md` for the channel-reliability matrix. |
 | agents | `.cursor/agents/` | Define `cstl-research`, `cstl-implement`, and `cstl-check` for Task / Agent-session dispatch. |
 | skills | `.cursor/skills/` | Capability descriptions that auto-trigger or can be read on demand. |
 | commands | `.cursor/commands/` | User-invocable `/slash` entry points (e.g. `cstl-continue`, `record-session`). |

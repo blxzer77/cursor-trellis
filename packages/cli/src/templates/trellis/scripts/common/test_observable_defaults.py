@@ -32,8 +32,11 @@ def test_write_seed_jsonl_uses_real_spec_paths(tmp_path: Path) -> None:
     repo_root = tmp_path / "repo"
     spec_root = repo_root / ".cstl" / "spec" / "guides"
     spec_root.mkdir(parents=True)
-    for name in ("index.md", "verification-strength-guide.md", "injection-budget-guide.md"):
-        (spec_root / name).write_text(f"# {name}\n", encoding="utf-8")
+    (spec_root / "index.md").write_text("# index.md\n", encoding="utf-8")
+    framework_root = repo_root / ".cstl" / "framework"
+    framework_root.mkdir(parents=True)
+    for name in ("verification-strength-guide.md", "injection-budget-guide.md"):
+        (framework_root / name).write_text(f"# {name}\n", encoding="utf-8")
 
     task_dir = repo_root / ".cstl" / "tasks" / "08-07-test-seed"
     task_dir.mkdir(parents=True)
@@ -44,7 +47,8 @@ def test_write_seed_jsonl_uses_real_spec_paths(tmp_path: Path) -> None:
 
     rows = [json.loads(line) for line in jsonl_path.read_text(encoding="utf-8").splitlines() if line.strip()]
     assert len(rows) >= 2
-    assert all("file" in row and row["file"].startswith(".cstl/spec/") for row in rows)
+    assert all("file" in row for row in rows)
+    assert all(row["file"].startswith(".cstl/spec/") or row["file"].startswith(".cstl/framework/") for row in rows)
     assert all("_example" not in row for row in rows)
     for row in rows:
         assert (repo_root / row["file"]).is_file()
@@ -55,7 +59,9 @@ def test_resolve_seed_spec_paths_prefers_existing_guides(tmp_path: Path) -> None
     guides = repo_root / ".cstl" / "spec" / "guides"
     guides.mkdir(parents=True)
     (guides / "index.md").write_text("# index\n", encoding="utf-8")
-    (guides / "verification-strength-guide.md").write_text("# verify\n", encoding="utf-8")
+    framework_root = repo_root / ".cstl" / "framework"
+    framework_root.mkdir(parents=True)
+    (framework_root / "verification-strength-guide.md").write_text("# verify\n", encoding="utf-8")
 
     task_dir = repo_root / ".cstl" / "tasks" / "08-07-test-paths"
     task_dir.mkdir(parents=True)

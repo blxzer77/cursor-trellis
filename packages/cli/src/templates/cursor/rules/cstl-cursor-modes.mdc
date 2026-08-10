@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Prefer Cursor native modes (P1 — orchestrate, don't replace)
 
-cstl **prefers** Cursor native modes and maps them to Trellis Triage/phases. **Do not** replace Cursor UI or invent a parallel Plan/Ask/Debug product. Full table: `.cstl/spec/guides/cursor-native-modes-guide.md` · evidence: `{TASK}/research/modes-callability-matrix.md`.
+cstl **prefers** Cursor native modes and maps them to Trellis Triage/phases. **Do not** replace Cursor UI or invent a parallel Plan/Ask/Debug product. Full table: `.cstl/framework/cursor-native-modes-guide.md` · evidence: `{TASK}/research/modes-callability-matrix.md`.
 
 ## Quick routing
 
@@ -29,4 +29,4 @@ When native cannot be task-driven well: continue on the **cstl spine** (Triage /
 
 ## Rollback
 
-Delete this file + `cursor-native-modes-guide.md` (see guide Rollback).
+Delete this file + `.cstl/framework/cursor-native-modes-guide.md` (see guide Rollback).
