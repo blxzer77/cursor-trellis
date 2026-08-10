@@ -49,6 +49,9 @@ import {
   guidesPrototypeGuideContent,
   guidesTestDisciplineGuideContent,
   guidesCrossPlatformThinkingGuideContent,
+  guidesPrdGrillFrontierGuideContent,
+  guidesInternalSkillsReachabilityGuideContent,
+  guidesDogfoodOnlySurfacesGuideContent,
 } from "../templates/markdown/index.js";
 
 import { writeFile, ensureDir } from "../utils/file-writer.js";
@@ -374,6 +377,18 @@ async function createSpecTemplates(
     {
       name: "cross-platform-thinking-guide.md",
       content: guidesCrossPlatformThinkingGuideContent,
+    },
+    {
+      name: "prd-grill-frontier.md",
+      content: guidesPrdGrillFrontierGuideContent,
+    },
+    {
+      name: "internal-skills-cursor-reachability.md",
+      content: guidesInternalSkillsReachabilityGuideContent,
+    },
+    {
+      name: "dogfood-only-surfaces.md",
+      content: guidesDogfoodOnlySurfacesGuideContent,
     },
   ];
   for (const doc of guidesDocs) {
