@@ -49,6 +49,7 @@ import {
   extractBlock,
 } from "../../src/utils/agents-md.js";
 import { workflowMdTemplate } from "../../src/templates/trellis/index.js";
+import { frameworkDocs } from "../../src/templates/markdown/index.js";
 import { replacePythonCommandLiterals } from "../../src/configurators/shared.js";
 import { compareVersions } from "../../src/utils/compare-versions.js";
 import { getConfigSectionsAddedBetween } from "../../src/migrations/index.js";
@@ -1550,5 +1551,94 @@ describe("update() integration", () => {
     } finally {
       allMigrationsSpy.mockRestore();
     }
+  });
+
+  // === .cstl/framework/ (framework-owned docs) ===
+
+  it("#framework-1 upgrade from a pre-framework project lists .cstl/framework/* as new files and never manages .cstl/spec/", async () => {
+    await setupProject();
+
+    // Simulate a pre-framework project: no .cstl/framework/ dir, no hashes for it.
+    fs.rmSync(projectFile(PATHS.FRAMEWORK), { recursive: true, force: true });
+    fs.writeFileSync(versionFilePath(), "0.4.0");
+    let hashes = readHashesV2(hashFilePath());
+    for (const key of Object.keys(hashes)) {
+      if (key.startsWith(`${PATHS.FRAMEWORK}/`)) {
+        hashes = removeHashEntry(hashes, key);
+      }
+    }
+    writeHashesV2(hashFilePath(), hashes);
+
+    vi.mocked(console.log).mockClear();
+    await runUpdate({ dryRun: true, migrate: true });
+
+    const output = vi
+      .mocked(console.log)
+      .mock.calls.flat()
+      .filter((part): part is string => typeof part === "string")
+      .join("\n");
+
+    // Every framework doc is announced as a new file
+    expect(output).toContain("New files (will add):");
+    expect(output).toContain(`+ ${PATHS.FRAMEWORK}/index.md`);
+    for (const doc of frameworkDocs) {
+      expect(output).toContain(`+ ${PATHS.FRAMEWORK}/${doc.name}`);
+    }
+
+    // Nothing under .cstl/spec/ is ever listed as a managed file (the only
+    // .cstl/spec/ line allowed is the protected "User data" notice).
+    const managedSpecLines = output
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(
+        (line) =>
+          (line.startsWith("+") ||
+            line.startsWith("↑") ||
+            line.startsWith("?") ||
+            line.startsWith("✕")) &&
+          line.includes(".cstl/spec/"),
+      );
+    expect(managedSpecLines).toEqual([]);
+  });
+
+  it("#framework-2 apply update writes .cstl/framework/* into an old project and leaves .cstl/spec/ untouched", async () => {
+    await setupProject();
+
+    // User-customized spec guide must survive update (protected path).
+    const guidesIndex = path.join(tmpDir, PATHS.SPEC, "guides", "index.md");
+    const customContent = "# My Custom Guides\n\nEdited by user.\n";
+    fs.writeFileSync(guidesIndex, customContent);
+
+    // Simulate a pre-framework project without .cstl/framework/.
+    fs.rmSync(projectFile(PATHS.FRAMEWORK), { recursive: true, force: true });
+    fs.writeFileSync(versionFilePath(), "0.4.0");
+    let hashes = readHashesV2(hashFilePath());
+    for (const key of Object.keys(hashes)) {
+      if (key.startsWith(`${PATHS.FRAMEWORK}/`)) {
+        hashes = removeHashEntry(hashes, key);
+      }
+    }
+    writeHashesV2(hashFilePath(), hashes);
+
+    await runUpdate({ migrate: true });
+
+    // Framework docs are written with the exact template content
+    for (const doc of frameworkDocs) {
+      expect(
+        fs.readFileSync(projectFile(`${PATHS.FRAMEWORK}/${doc.name}`), "utf-8"),
+      ).toBe(replacePythonCommandLiterals(doc.content));
+    }
+
+    // User-edited spec guide untouched; old guide copies remain
+    expect(fs.readFileSync(guidesIndex, "utf-8")).toBe(customContent);
+
+    // Hashes never track anything under .cstl/spec/
+    const hashKeys = Object.keys(readHashesV2(hashFilePath()));
+    expect(hashKeys.filter((key) => key.startsWith(".cstl/spec/"))).toEqual(
+      [],
+    );
+    // Framework docs are hash-tracked (same-version no-op on next update)
+    expect(hashKeys.filter((key) => key.startsWith(`${PATHS.FRAMEWORK}/`)))
+      .toHaveLength(frameworkDocs.length);
   });
 });
