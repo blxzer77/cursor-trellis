@@ -41,6 +41,8 @@
 - **证据 pack** — finish/check 在 `retrieval-pack-latest.json` 存在时引用；research prompt 含 provider 相关性提示
 - **会话交接** — `/cstl-handoff` 在需要跨会话「旅行」时（换 harness / repo、交给同事、fork 支线）将当前会话压缩成可搬运文档写入 OS 临时目录
 - **双轴 check** — `cstl-check` 分节报告 **Standards**（规范遵循、lint、type-check、测试、Fowler 12 smells、跨层数据流）与 **Spec**（prd 忠实度、scope、学习/spec 同步）——不做合并单一风险榜
+- **Goal 运行时（CLI）** — 终端 `cstl goal status|preflight|run|…`；Goal 是 **CLI 子系统**，**不是**任务类型，也 **不是** Parent/Child。默认 **无** `/cstl-goal` 斜杠（仅扩展/dogfood）
+- **内部 skill 可达性** — 内部 workflow skills 默认 **不进** `/` 面板（commands-only），但按设计 **按需可达**：PRD Grill → `.cstl/spec/guides/prd-grill-frontier.md`；完整 skill × 载荷通道矩阵 → `.cstl/spec/guides/internal-skills-cursor-reachability.md`；dogfood-only vs 默认安装清单 → `.cstl/spec/guides/dogfood-only-surfaces.md`
 
 ## 常用命令
 
