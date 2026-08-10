@@ -9,6 +9,23 @@ SemVer: [semver.org](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.4.2] - TBD
+
+Cursor reachability index: Goal = CLI, internal skills reachable on-demand (commands-only preserved).
+
+### Added
+
+- **feat(agents)**: AGENTS.md CSTL block gains **Goal runtime (not a task type)** section (Goal = `cstl goal` CLI subsystem, not Parent/Child, no default `/cstl-goal`), **Invocation map (short)** table, and **Internal skill reachability** pointers — mirrored to `templates/markdown/agents.md` (mirror-check green).
+- **feat(guides)**: `prd-grill-frontier.md` — on-demand PRD Grill + Frontier discipline for Cursor (SSOT stays the bundled `brainstorm` skill; single source, pointer only). Workflow routes planning / PRD Grill to `Read .cstl/spec/guides/prd-grill-frontier.md` instead of `Load cstl-brainstorm` (executable path, not a bare skill name).
+- **feat(guides)**: `internal-skills-cursor-reachability.md` — skill × load-channel reachability matrix for every internal name in the AGENTS command surface (commands-only baseline; check→agent, smart-search→`run_smart_search.py`, brainstorm→P11 guide; package-body-only items documented honestly).
+- **feat(guides)**: `dogfood-only-surfaces.md` — Dogfood-only vs default install inventory (`goal_*.py`, `/cstl-goal` + goal agents, `.claude/skills`, `.cstl/local/*`, private pool narrative) with the "missing in consumer repo ≠ removed from framework" rule.
+- **feat(workflow)**: `workflow.md` gains a **Goal runtime** short section next to the Task Ladder (Goal ≠ Task Ladder type / Parent-Child).
+- **docs**: README (en/zh) bullets for Goal CLI + internal skill reachability + dogfood-only inventory links.
+
+### Changed
+
+- **chore(release)**: No version bump (TBD section; publish pending main-session decision).
+
 ## [0.4.1] - 2026-08-10
 
 Approved-surface backfill (session handoff, check dual-axis, grilling frontier, PRD grain, CONTEXT/ADR stub).

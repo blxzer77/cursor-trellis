@@ -136,3 +136,11 @@ export const guidesTestDisciplineGuideContent: string = readLocalTemplate(
 );
 export const guidesCrossPlatformThinkingGuideContent: string =
   readLocalTemplate("spec/guides/cross-platform-thinking-guide.md.txt");
+export const guidesPrdGrillFrontierGuideContent: string = readLocalTemplate(
+  "spec/guides/prd-grill-frontier.md.txt",
+);
+export const guidesInternalSkillsReachabilityGuideContent: string =
+  readLocalTemplate("spec/guides/internal-skills-cursor-reachability.md.txt");
+export const guidesDogfoodOnlySurfacesGuideContent: string = readLocalTemplate(
+  "spec/guides/dogfood-only-surfaces.md.txt",
+);
