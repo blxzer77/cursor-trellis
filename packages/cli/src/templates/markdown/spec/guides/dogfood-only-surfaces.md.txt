@@ -1,0 +1,31 @@
+# Dogfood-Only vs Default Install Surfaces
+
+> **Purpose**: An inventory of surfaces that exist in the **maintainer harness** (MyHarness) but are **not** shipped by a default `cstl init` / `cstl update`. Use it to avoid the false conclusion "the product feature disappeared" when comparing a consumer repo to the harness. A file missing from a consumer project is **by design**, not a regression — the CLI/script/guide surface still carries the capability.
+
+## Rule of thumb
+
+- **Shipped by default** = written by `cstl init --cursor` and refreshed by `cstl update` (workflow, scripts, spec/guides, AGENTS.md CSTL block, `.cursor/{commands,rules,agents,hooks}`).
+- **Dogfood-only / harness-only** = present only in the maintainer harness or after manual copy. Absence in a consumer repo is expected.
+
+## Inventory
+
+| Surface | Where it exists | Why dogfood-only | Decision |
+| --- | --- | --- | --- |
+| `goal_preflight.py` / `goal_run.py` / `goal_review_packet.py` / `goal_wall_smoke.py` | `.cstl/scripts/` in the harness | Portable-goal regression scripts for the maintainer runbook; not needed by consumers | **harness-only** (do not ship as default templates) |
+| `/cstl-goal` slash command + `cstl-goal-worker` / `cstl-goal-reviewer` agents | `.cursor/commands/`, `.cursor/agents/` in the harness | Long-horizon goal surface is an extension; the indexed entry point is the CLI `cstl goal` (see AGENTS.md Goal runtime) | **dogfood** — index shipped (P12), slash not shipped by default |
+| `.claude/skills/*` full suite | `.claude/skills/` in the harness | Cursor default install is **commands-only**; Claude skill files are for Claude platforms, not Cursor consumers | **non-Cursor** (not in Cursor default install) |
+| `.cstl/local/cursor2plus/`, `.cstl/local/*.json5` / `.json.example`, model overlay (e.g. `.cursor/agents/.trellis-model-overlay.local.md`) | `.cstl/local/` + `.cursor/agents/` in the harness | Local BYOK / model-routing patch layer; machine-specific, never force-installed | **local only** — opt-in (`cstl init --cursor2plus`) or manual |
+| Private review-pool items / plan narratives / goal-regression runbook habits | `.cstl/pool/items/`, `{TASK}/research/` in the harness | Personal or project-specific content; the pool **mechanism** ships, the items do not | **narrative not packaged** — mechanism ships, content stays local |
+| `.codegraph/`, `.worktrees/`, scratch/analysis files | Harness root | Per-machine index / tooling state | **local only** |
+
+## If a capability seems missing in a consumer repo
+
+1. Check the [internal-skills-cursor-reachability.md](./internal-skills-cursor-reachability.md) matrix — the capability's load channel (guide / script / agent / CLI) should be present.
+2. Check AGENTS.md `Invocation map (short)` — the intended entry point (CLI `cstl goal`, `/cstl-handoff`, etc.).
+3. If the entry point is a harness-only file from the table above, the capability is intentionally **not** shipped to consumers — do not backfill it by copying harness files.
+
+## Related
+
+- [internal-skills-cursor-reachability.md](./internal-skills-cursor-reachability.md) — reachability of internal skill names.
+- [prd-grill-frontier.md](./prd-grill-frontier.md) — P11 grilling on-demand path.
+- AGENTS.md `Invocation map (short)` — Goal = CLI, not Parent/Child; session handoff = `/cstl-handoff`.
