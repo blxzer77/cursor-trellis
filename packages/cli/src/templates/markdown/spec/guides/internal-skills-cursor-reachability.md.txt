@@ -1,0 +1,44 @@
+# Internal Skills Cursor Reachability Matrix
+
+> **Purpose**: Every skill name the AGENTS.md command surface lists must have a documented **load channel** on a pure Cursor project. Internal workflow skills are **not** shipped to `.cursor/skills/` and have **no** default slash command — by design (commands-only). This matrix is the honest index: how each internal name is actually reachable on-demand, so an agent never claims a skill is loaded without a file read, and users never assume internal skills are slash commands.
+
+## Commands-only baseline
+
+- Default Cursor install writes only: `.cursor/commands/` (user slash commands), `.cursor/rules/*.mdc`, `.cursor/agents/*.md`, `.cursor/hooks`, and `.cstl/` (workflow, scripts, spec/guides).
+- Bundled skill **bodies** live in the npm package templates (`dist/templates/common/skills/`, `dist/templates/common/bundled-skills/`). They are **not** copied into a consumer project by `cstl init` on Cursor.
+- "Not in the project" ≠ "missing from the framework": the CLI/script/agent/guide surface below is the reachable carrier.
+
+## Matrix
+
+| Skill name | Package SSOT | Cursor load channel | Slash? | AGENTS lists it? |
+| --- | --- | --- | --- | --- |
+| `cstl-brainstorm` (PRD Grill) | `common/skills/brainstorm.md` | **Read `.cstl/spec/guides/prd-grill-frontier.md`** (on-demand summary; full body in npm package) | no | yes |
+| `cstl-micro-grill` | `bundled-skills/cstl-micro-grill/SKILL.md` | Contract embedded in `.cstl/workflow.md` Request Triage + `.cstl/spec/guides/prd-grill-frontier.md` §Micro-grill unresolved; full body in npm package | no | yes |
+| `cstl-before-dev` | `common/skills/before-dev.md` | Workflow routes the behavior (Read task artifacts → `get_context.py --mode packages` → spec indexes); full body in npm package | no | yes |
+| `cstl-break-loop` | `common/skills/break-loop.md` | Workflow routes the behavior (Debug → evidence → `cstl-break-loop`); full body in npm package; output pattern in `.cstl/spec/guides/debug-loop-guide.md` | no | yes |
+| `cstl-update-spec` | `common/skills/update-spec.md` | Workflow Phase 3.3 routes the decision (`update-spec` \| `no-update` \| `unsure`); full body in npm package | no | yes |
+| `cstl-check` | `bundled-skills/cstl-check/SKILL.md` | **Agent form `.cursor/agents/cstl-check.md`** (Task tool, dual-axis) — prefer Agent when `execution_mode: worker` | no | yes |
+| `cstl-meta` | `bundled-skills/cstl-meta/SKILL.md` | Maintainer skill; body in npm package; no Cursor project file (not routed in consumer workflows) | no | yes |
+| `cstl-spec-bootstrap` | `bundled-skills/cstl-spec-bootstrap/SKILL.md` | One-shot scaffolding skill; body in npm package; not routed in steady-state consumer workflow | no | yes |
+| `cstl-skill-creator` | `bundled-skills/cstl-skill-creator/SKILL.md` | Authoring-time skill; body in npm package; not routed in consumer workflow | no | yes |
+| `smart-search-cli` | `bundled-skills/smart-search-cli/SKILL.md` | **`python ./.cstl/scripts/run_smart_search.py "<question>" --intent deep-research --json`** (shipped script); Cursor web tools are downgrade-only fallback | no | yes |
+| `cstl-handoff` | `bundled-skills/cstl-handoff/SKILL.md` | **Slash `/cstl-handoff`** (writes session handoff to OS temp dir) | **yes** | n/a (user command) |
+| `cstl-continue` / `cstl-finish-work` / `cstl-start` | `common/commands/*.md` | **Slash `/cstl-continue`, `/cstl-finish-work`** (`cstl-start` filtered on agent-capable platforms) | **yes** | n/a (user commands) |
+| `cstl-research` / `cstl-implement` / `cstl-check` (agents) | `packages/cli/src/templates/cursor/agents/*.md` | **`.cursor/agents/*.md`** — Agent (Task tool), dispatched via `generate_dispatch_prompt.py` (CLI Layer 2) | no | n/a (agent types) |
+
+## Reading this matrix
+
+- **Reachable on-demand** (green path): brainstorm → guide; check → agent; smart-search → script; micro-grill → embedded contract.
+- **Body in npm package only**: the skill is real and shipped, but a pure Cursor project has no project-relative copy. The workflow routes its **behavior** directly; the full body is discoverable under the installed package (`npm root -g` → `dist/templates/…`). Do not claim these are loaded without reading the actual body when the behavior matters.
+- **Maintainer/authoring-only** (`cstl-meta`, `cstl-spec-bootstrap`, `cstl-skill-creator`): named in AGENTS for framework completeness; not part of the consumer execution path. They stay on the list because they are real shipped skills, but no consumer-facing load path is promised beyond the package body.
+
+## Honesty rule
+
+If a skill is named in AGENTS.md, it must be reachable here. If a row ever becomes unreachable, either add a project-relative carrier (guide/script/agent) or remove the name from AGENTS.md. Never claim "skill loaded" without a file read.
+
+## Related
+
+- [prd-grill-frontier.md](./prd-grill-frontier.md) — P11: brainstorm/grill on-demand path.
+- [dogfood-only-surfaces.md](./dogfood-only-surfaces.md) — what ships only in the maintainer harness (goal_*.py, `.claude/skills`, local overlays).
+- AGENTS.md `Invocation map (short)` + `Internal skill reachability` sections.
+- `cursor-context-injection-guide.md` — which channels actually reach the Cursor model.
