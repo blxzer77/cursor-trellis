@@ -1,0 +1,83 @@
+# PRD Grill & Frontier Discipline
+
+> **Purpose**: When the workflow routes to planning / PRD Grill, this is the on-demand path to the grill and Frontier discipline on Cursor. The full interview contract and Thinking Principles live in the bundled `brainstorm` skill (SSOT) — this guide is the Cursor loadable summary, not a second source of truth.
+
+## When to read this
+
+The workflow or AGENTS invocation map says planning / PRD Grill → **`Read .cstl/spec/guides/prd-grill-frontier.md`** (this file) or the full bundled `common/skills/brainstorm.md` when another carrier is available. Read it **before** asking any user questions. Do **not** claim the grill discipline is loaded without a file read.
+
+## Non-negotiable evidence rule
+
+If a question can be answered by exploring the codebase, explore the codebase instead — never ask the user to confirm facts the repo can answer. Read root `CONTEXT.md` (if present) before asking and use its glossary terms. Ask only for product intent, preference, scope, risk tolerance, or decisions that remain ambiguous after inspection.
+
+## PRD Grill (Phase B)
+
+Treat `prd.md` (+ existing `design.md` fragments) as the **only document surface**. Run this checklist and fix the PRD in place (no new subagent):
+
+| # | Check |
+| --- | --- |
+| 1 | **Goal & user value** — single clear statement |
+| 2 | **Confirmed facts vs assumptions** — repo facts not listed as assumptions |
+| 3 | **Testable acceptance criteria** |
+| 4 | **Out of scope** explicit |
+| 5 | **Dependencies & sequencing** |
+| 6 | **Parent/Child & deliverables** when applicable |
+| 7 | **Research & external facts** — smart-search or documented fallback |
+| 8 | **Execution gate & artifacts** — `design.md` / `implement.md` / `verify.md` expectations |
+| 9 | **Durable Learning** — Phase 3.3 will need `update-spec` \| `no-update` \| `unsure` |
+| 10 | **Platform** — Cursor-first; PRD Grill in-session (no legacy grill-me / grill-with-docs subagent gate) |
+| 11 | **Risk & rollback** for complex tasks |
+| 12 | **Open questions** — only **blocking** strategic/preference items remain |
+| 13 | **Root vs inherited assumptions** — every requirement traces to a user-facing root need; inherited assumptions flagged or removed (First Principles) |
+| 14 | **Minimal sufficient design** — simplest design that meets acceptance wins (Occam's Razor) |
+
+## Micro-grill unresolved
+
+For each **blocking** open question after the checklist, embed the `cstl-micro-grill` contract:
+
+- exactly **one** question per message
+- user-facing text in the project's human-review language (default Simplified Chinese)
+- recommended answer + trade-off
+- **update `prd.md` after every answer** before the next question
+
+Stop micro-grill when no blocking open questions remain. Do not ask process questions ("should I search?"); do not re-ask facts Discovery already confirmed.
+
+## Frontier rounds (question pacing)
+
+- **frontier** = all "prerequisite-decided" questions: their prerequisite decisions are resolved, so they can be asked now without guessing unheard answers.
+- Each round lists the current frontier at once, each question numbered (❓Q1/Q2/Q3…) with a recommended answer.
+- **≤3 questions per round**; split into more rounds beyond that to avoid information overload.
+- **Facts are the agent's job**: when a frontier question needs environment facts, dispatch a sub-agent to check; while exploration is pending it counts as an unresolved prerequisite that only blocks its downstream questions — ask the rest of the frontier anyway.
+- **Decisions are the user's job**: every decision waits for the user's answer; do not answer for them.
+- A user answer reshapes the design tree and the frontier extrapolates into the next round; **an empty frontier = the design tree is exhausted** — summarize the consensus and confirm before treating planning as done.
+
+> **Override note**: this pacing overrides the "Ask the questions one at a time" line in the Non-Negotiable Interview Contract — Phase B (PRD Grill) follows frontier rounds; `cstl-micro-grill` still defaults to one question at a time.
+
+## Question rules
+
+Each question must include: the decision needed, why it matters, your recommended answer, and the trade-off if the user chooses differently. Default recommendation = Occam's Razor: the **minimal sufficient** option that still satisfies the acceptance criteria. Only recommend a more complex option when you can cite evidence (a contract, a verified edge case, a repo constraint).
+
+## Artifact rules (summary)
+
+- `prd.md` records requirements + acceptance (goal, confirmed facts, requirements, acceptance criteria, out of scope, blocking open questions).
+- `design.md` records technical design for complex tasks (architecture, data flow, contracts, trade-offs, rollback).
+- `implement.md` records execution planning (ordered checklist, validation commands, Development Strategy Contract via `task.py suggest-execution-strategy`).
+- Complex tasks need all three before `start-execution --check`; lightweight tasks may be PRD-only.
+
+## Completion — PRD Grill done
+
+Planning is ready for the execution gate when **all** hold:
+
+- PRD Grill checklist satisfied or explicitly N/A with rationale in `prd.md`
+- **No blocking** open questions in `prd.md`
+- Acceptance criteria testable; out of scope explicit
+- Complex tasks: `design.md` and `implement.md` present
+- User reviewed artifacts or explicitly approved proceeding
+
+Then proceed to Research (if needed), `task.py start-execution <task> --check`, and implementation **only after** explicit user execution approval. Do not start implementation until the user approves or asks for implementation.
+
+## Related
+
+- Full SSOT: bundled `brainstorm` skill (`common/skills/brainstorm.md`) — interview contract, First Principles, Occam's Razor.
+- Reachability: [internal-skills-cursor-reachability.md](./internal-skills-cursor-reachability.md).
+- Workflow routing: `.cstl/workflow.md` Phase 1 (Plan) and Active Task Routing.
