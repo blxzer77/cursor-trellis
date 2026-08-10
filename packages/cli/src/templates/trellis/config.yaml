@@ -106,7 +106,7 @@ max_journal_lines: 2000
 #-------------------------------------------------------------------------------
 # Cursor subagent dispatch (documentation only — not Cursor product settings)
 #-------------------------------------------------------------------------------
-# See .cstl/spec/guides/cursor-subagent-policy.md
+# See .cstl/framework/cursor-subagent-policy.md
 #
 # cursor:
 #   subagent_dispatch:

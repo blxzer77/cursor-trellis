@@ -60,4 +60,4 @@ Native **Cursor API** (no Cursor++): **stop** — frontmatter `model:` works; th
 - Project override (optional): `.cstl/local/subagent-models.json5` — same shape, wins on same key
 - Patch bundle: `.cstl/local/cursor2plus/`
 
-Policy: `.cstl/spec/guides/cursor-subagent-policy.md` (Method 2.5 / 2.6).
+Policy: `.cstl/framework/cursor-subagent-policy.md` (Method 2.5 / 2.6).

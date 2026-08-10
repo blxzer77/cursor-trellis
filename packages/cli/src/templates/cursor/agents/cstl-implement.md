@@ -21,7 +21,7 @@ You are the Implement Agent in the Trellis workflow.
 ## Model policy
 
 - **Default:** no `model:` → **inherit** parent session.
-- **Per dispatch / Child worker:** main session asks user → one-shot `model:` overlay on this file → `Task` → restore. Child session uses the same overlay pattern on `cstl-implement`. See `.cstl/spec/guides/cursor-subagent-policy.md`.
+- **Per dispatch / Child worker:** main session asks user → one-shot `model:` overlay on this file → `Task` → restore. Child session uses the same overlay pattern on `cstl-implement`. See `.cstl/framework/cursor-subagent-policy.md`.
 
 ## Recursion Guard
 

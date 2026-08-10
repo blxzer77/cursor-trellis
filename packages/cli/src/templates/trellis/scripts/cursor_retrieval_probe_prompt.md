@@ -85,7 +85,7 @@ Task: Call the fast-context semantic search with the query:
 Report:
 1. Whether the tool returned any results.
 2. If so, the top file path (expected to contain something under
-   `.cstl/local/cursor2plus/` or `.cstl/spec/guides/cursor-subagent-policy.md`).
+   `.cstl/local/cursor2plus/` or `.cstl/framework/cursor-subagent-policy.md`).
 3. The exact tool name you invoked.
 
 Reply in this exact format:
@@ -155,8 +155,7 @@ Semantic question:
 Expected answer (for verification, do NOT reveal this to the solver path):
 the relevant logic lives in `.cstl/local/cursor2plus/patch_wpelc8.py` (the
 `WPeLc8` function patch) and is documented in
-`.cstl/spec/guides/cursor-subagent-policy.md` and
-`.cstl/spec/guides/cursor-subagent-reverse-engineering-report.md`.
+`.cstl/framework/cursor-subagent-policy.md`.
 
 Reply in this exact format:
 
@@ -193,7 +192,7 @@ Semantic question (same as P-08 — no literal file/symbol/path clues in your qu
 
 Expected (for verification only — do not paste paths into fast_context_search query):
 Top hits should include `.cstl/local/cursor2plus/patch_wpelc8.py` and/or
-`.cstl/spec/guides/cursor-subagent-policy.md`.
+`.cstl/framework/cursor-subagent-policy.md`.
 
 Reply in this exact format:
 
@@ -231,7 +230,7 @@ Semantic question (no literal clues):
 Expected (for verification only): the answer should weave together
 `.cursor/hooks/inject-retrieval-plan.py` (beforeSubmitPrompt injection),
 `.cursor/rules/retrieval-routing.mdc` (alwaysApply policy), and the
-`sessionStart` bug #158452 noted in `.cstl/spec/guides/cursor-context-injection-guide.md`.
+`sessionStart` bug #158452 noted in `.cstl/framework/cursor-context-injection-guide.md`.
 
 Reply in this exact format:
 

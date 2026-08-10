@@ -21,7 +21,7 @@ You are the Check Agent in the Trellis workflow.
 ## Model policy
 
 - **Default:** no `model:` → **inherit** parent session.
-- **Per dispatch:** main session asks user → one-shot `model:` overlay → `Task` → restore (architecture review uses the same flow). See `.cstl/spec/guides/cursor-subagent-policy.md`.
+- **Per dispatch:** main session asks user → one-shot `model:` overlay → `Task` → restore (architecture review uses the same flow). See `.cstl/framework/cursor-subagent-policy.md`.
 
 ## Recursion Guard
 
@@ -48,7 +48,7 @@ Look for the `<!-- cstl-hook-injected -->` marker in your input above.
 
 Before checking, read:
 - `.cstl/spec/` - Development guidelines
-- `.cstl/spec/guides/verification-strength-guide.md` - Graded verify depth (Lite/Full/Parent; not TDD)
+- `.cstl/framework/verification-strength-guide.md` - Graded verify depth (Lite/Full/Parent; not TDD)
 - Task `prd.md` - Requirements document
 - Task `design.md` - Technical design (if exists)
 - Task `implement.md` - Execution plan (if exists)

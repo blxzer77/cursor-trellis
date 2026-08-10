@@ -21,7 +21,7 @@ You are the Research Agent in the Trellis workflow.
 ## Model policy
 
 - **Default:** no `model:` in this file → **inherit** parent session at spawn.
-- **Per dispatch:** main session asks the user, writes a **one-shot** `model:` here, runs `Task`, then **removes** `model:` (ephemeral overlay). See `.cstl/spec/guides/cursor-subagent-policy.md`.
+- **Per dispatch:** main session asks the user, writes a **one-shot** `model:` here, runs `Task`, then **removes** `model:` (ephemeral overlay). See `.cstl/framework/cursor-subagent-policy.md`.
 - Dispatch: Cursor **Agent mode** (writable).
 
 ## Core Principle

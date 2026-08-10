@@ -108,9 +108,9 @@ python3 ./.cstl/scripts/get_context.py --mode retrieval-pack --json --input <evi
 
 **Research-end hook (Cursor `stop`):** when the selected task has `{TASK}/research/*.md` or `research/smart-search/`, `.cursor/hooks/research-end-retrieval-pack.py` may write `{TASK}/research/retrieval-pack-latest.json` via `get_context --mode retrieval-pack`. Default session JSON is unchanged; use the file when closing research or before Phase 3.1.
 
-**Retrieval daily guide:** `.cstl/spec/guides/retrieval-daily-guide.md` — when to use rg, codegraph, fast-context-mcp, smart-search-cli (and Cursor web fallback), artifact/session memory, codebase router (suggest-only), and explicit retrieval-pack scoring.
+**Retrieval daily guide:** `.cstl/framework/retrieval-daily-guide.md` — when to use rg, codegraph, fast-context-mcp, smart-search-cli (and Cursor web fallback), artifact/session memory, codebase router (suggest-only), and explicit retrieval-pack scoring.
 
-**Cursor subagent dispatch:** `.cstl/spec/guides/cursor-subagent-policy.md` — `cstl-research` / `cstl-implement` / `cstl-check`; Parent child default **Task** `cstl-implement` from Parent session (`generate-child-prompt --mode subagent`). **Cursor++ BYOK:** per-type models via `.cstl/local/cursor2plus/` + user/project JSON maps (not committed slugs). **Native Cursor API:** frontmatter `model:` on agents still works. PRD Grill stays in the planning session (Read `.cstl/spec/guides/prd-grill-frontier.md`), not a subagent. **Cursor++:** compatible v0.0.11+ (SubAgent readonly bug fixed).
+**Cursor subagent dispatch:** `.cstl/framework/cursor-subagent-policy.md` — `cstl-research` / `cstl-implement` / `cstl-check`; Parent child default **Task** `cstl-implement` from Parent session (`generate-child-prompt --mode subagent`). **Cursor++ BYOK:** per-type models via `.cstl/local/cursor2plus/` + user/project JSON maps (not committed slugs). **Native Cursor API:** frontmatter `model:` on agents still works. PRD Grill stays in the planning session (Read `.cstl/framework/prd-grill-frontier.md`), not a subagent. **Cursor++:** compatible v0.0.11+ (SubAgent readonly bug fixed).
 
 ---
 
@@ -226,8 +226,8 @@ Before executing an upgrade that creates artifacts, changes task mode, adds gate
 | No selected task + small unclear ask | `cstl-micro-grill` |
 | No selected task + need dashboard | `cstl-start` |
 | Selected task + resume step | `cstl-continue` |
-| Planning / PRD | Read `.cstl/spec/guides/prd-grill-frontier.md` (PRD Grill discipline; full body in the bundled brainstorm skill) |
-| Parent with parallel children | `generate-child-prompt --mode subagent`; writable Agent; see `.cstl/spec/guides/cursor-subagent-policy.md` |
+| Planning / PRD | Read `.cstl/framework/prd-grill-frontier.md` (PRD Grill discipline; full body in the bundled brainstorm skill) |
+| Parent with parallel children | `generate-child-prompt --mode subagent`; writable Agent; see `.cstl/framework/cursor-subagent-policy.md` |
 
 ### Goal runtime (not a Task Ladder type)
 
@@ -235,7 +235,7 @@ Before executing an upgrade that creates artifacts, changes task mode, adds gate
 
 ### Cursor native modes (Prefer — don't replace)
 
-Full map: `.cstl/spec/guides/cursor-native-modes-guide.md` · per-turn slim rule: `.cursor/rules/cstl-cursor-modes.mdc`.  
+Full map: `.cstl/framework/cursor-native-modes-guide.md` · per-turn slim rule: `.cursor/rules/cstl-cursor-modes.mdc`.  
 Task-driven: try callable native first (`SwitchMode` plan/agent, Multitask/`Task` when useful); **quiet cstl spine fallback** when not — no user-facing “不适配 mode” list.
 
 | Situation | Prefer Cursor mode | Trellis phase / note |
@@ -339,7 +339,7 @@ Framework refresh with no selected task: load `cstl-start` once; after the user 
 <!-- Per-turn breadcrumb: shown throughout Phase 1 (status='planning') -->
 
 [workflow-state:planning]
-Read `.cstl/spec/guides/prd-grill-frontier.md` for PRD Grill discipline; stay in planning.
+Read `.cstl/framework/prd-grill-frontier.md` for PRD Grill discipline; stay in planning.
 Lightweight: `prd.md` can be enough. Complex: finish `prd.md`, `design.md`, and `implement.md`; run `task.py start-execution <task> --check`, report PASS with task plus current contract/fingerprint context, and ask for explicit execution approval before `--approved`.
 Multi-deliverable scope: consider a parent task plus independently verifiable child tasks; dependencies must be written in child artifacts, not implied by tree position.
 Sub-agent mode: curate `implement.jsonl` and `check.jsonl` as spec/research manifests before start.
@@ -401,7 +401,7 @@ Code committed. Run `/cstl:finish-work`; if dirty, return to Phase 3.4 first.
 When a user request matches one of these intents inside a selected task, route first, then load the detailed phase step if needed.
 
 
-- Planning or unclear requirements -> **Prefer Plan** when designing scope; read `.cstl/spec/guides/prd-grill-frontier.md` for PRD grill discipline (see `cursor-native-modes-guide.md`).
+- Planning or unclear requirements -> **Prefer Plan** when designing scope; read `.cstl/framework/prd-grill-frontier.md` for PRD grill discipline (see `.cstl/framework/cursor-native-modes-guide.md`).
 - Read-only questions with no durable change -> **Prefer Ask**; classify No Task; do not create artifacts without consent.
 - `in_progress` implementation/check -> **Agent** default; if contract `execution_mode: worker`, dispatch `cstl-implement` / `cstl-check`; if `inline`, main session; if `child-task`, Child/Parent orchestration.
 - Repeated debugging / runtime evidence -> **Prefer Debug**; load `cstl-break-loop` when the same issue recurred; persist evidence in `verify.md`.
@@ -468,7 +468,7 @@ Skip when the user has already explicitly selected an appropriate task with `pyt
 
 #### 1.1 Requirement exploration `[required · repeatable]`
 
-Read `.cstl/spec/guides/prd-grill-frontier.md` (PRD Grill discipline; full body in the bundled `brainstorm` skill) and explore requirements interactively with the user.
+Read `.cstl/framework/prd-grill-frontier.md` (PRD Grill discipline; full body in the bundled `brainstorm` skill) and explore requirements interactively with the user.
 
 The PRD Grill discipline will guide you to:
 - Ask one question at a time
@@ -687,9 +687,9 @@ Use `contextPack.selected` / `scoredEvidence` to order citations in `verify.md`.
 
 #### 3.1 Quality verification `[required · repeatable]`
 
-**Verification strength:** match closeout depth to task risk per `.cstl/spec/guides/verification-strength-guide.md` (Lite / Full / Parent × `verification_profile`; not TDD). Use `verify_evidence_probe.py` fixtures when validating gate behavior.
+**Verification strength:** match closeout depth to task risk per `.cstl/framework/verification-strength-guide.md` (Lite / Full / Parent × `verification_profile`; not TDD). Use `verify_evidence_probe.py` fixtures when validating gate behavior.
 
-**Injection budget:** curate jsonl manifests and alwaysApply rules per `.cstl/spec/guides/injection-budget-guide.md`; probe with `injection_budget_probe.py` before adding per-turn policy.
+**Injection budget:** curate jsonl manifests and alwaysApply rules per `.cstl/framework/injection-budget-guide.md`; probe with `injection_budget_probe.py` before adding per-turn policy.
 
 Verification / Review is evidence and judgment, not a hidden implementation loop. Load the `cstl-check` skill or agent and do a final review:
 - Spec compliance

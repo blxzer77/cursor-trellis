@@ -42,7 +42,7 @@ Fresh installs use `.cstl/` directly. Projects on 0.3.0 run `cstl update --migra
 - **Session handoff** — `/cstl-handoff` writes a portable session handoff document to the OS temp dir when the work needs to travel (switch harness / repo, hand to a colleague, fork a branch)
 - **Dual-axis check** — `cstl-check` reports **Standards** (spec compliance, lint, type-check, tests, Fowler 12 smells, cross-layer flow) and **Spec** (prd fidelity, scope, learning/spec-sync) in separate sections — no merged risk ranking
 - **Goal runtime (CLI)** — `cstl goal status|preflight|run|…` in the terminal; Goal is the **CLI subsystem**, **not** a task type and **not** Parent/Child orchestration. No default `/cstl-goal` slash command (extension/dogfood only)
-- **Internal skill reachability** — internal workflow skills stay **out of** the `/` palette by design (commands-only) but remain **reachable on-demand**: PRD Grill → `.cstl/spec/guides/prd-grill-frontier.md`; full skill × load-channel matrix → `.cstl/spec/guides/internal-skills-cursor-reachability.md`; dogfood-only vs default install inventory → `.cstl/spec/guides/dogfood-only-surfaces.md`
+- **Internal skill reachability** — internal workflow skills stay **out of** the `/` palette by design (commands-only) but remain **reachable on-demand**: PRD Grill → `.cstl/framework/prd-grill-frontier.md`; full skill × load-channel matrix → `.cstl/framework/internal-skills-cursor-reachability.md`; dogfood-only vs default install inventory → `.cstl/framework/dogfood-only-surfaces.md`
 
 ## Quick start (Cursor)
 
@@ -116,7 +116,7 @@ Details: [CHANGELOG](packages/cli/CHANGELOG.md#030---2026-07-01).
 
 ```text
 your-app/
-  .cstl/          workflow, spec, tasks, workspace, scripts
+  .cstl/          workflow, spec, framework, tasks, workspace, scripts
   CONTEXT.md          project domain glossary (on-demand read)
   docs/adr/           architecture decision records (lazy-created rules)
   AGENTS.md          Trellis-managed agent entry

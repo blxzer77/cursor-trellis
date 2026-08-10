@@ -18,7 +18,7 @@ Run each query in a live Cursor session. Append one JSON object per line to `run
 
 - `query_id`, `platform`: `"cursor"`
 - `tools_called`, `plan_block_in_prompt`, `semantic_in_plan`
-- Classify with `common/retrieval_tool_classification.py` (see `cursor-semantic-compliance.md`)
+- Classify with `common/retrieval_tool_classification.py` (see `.cstl/framework/cursor-semantic-compliance.md`)
 
 ## Report
 

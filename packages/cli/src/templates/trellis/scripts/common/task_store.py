@@ -257,10 +257,12 @@ _SUBAGENT_CONFIG_DIRS: tuple[str, ...] = (
     ".pi",        # Pi Agent
 )
 
-_STABLE_SPEC_SEED_PATHS: tuple[str, ...] = (
+# Stable seed paths for jsonl create: one user-owned thinking-guide index plus
+# framework-owned verification/injection docs (both always present after init).
+_STABLE_SEED_PATHS: tuple[str, ...] = (
     ".cstl/spec/guides/index.md",
-    ".cstl/spec/guides/verification-strength-guide.md",
-    ".cstl/spec/guides/injection-budget-guide.md",
+    ".cstl/framework/verification-strength-guide.md",
+    ".cstl/framework/injection-budget-guide.md",
 )
 
 
@@ -289,7 +291,7 @@ def _resolve_seed_spec_paths(
     for path in suggest_spec_targets(repo_root, task_dir, task_data):
         if path not in candidates:
             candidates.append(path)
-    for rel in _STABLE_SPEC_SEED_PATHS:
+    for rel in _STABLE_SEED_PATHS:
         if rel not in candidates:
             candidates.append(rel)
 
@@ -298,7 +300,7 @@ def _resolve_seed_spec_paths(
         return existing[:3]
 
     fallback = [
-        rel for rel in _STABLE_SPEC_SEED_PATHS if (repo_root / rel).is_file()
+        rel for rel in _STABLE_SEED_PATHS if (repo_root / rel).is_file()
     ]
     return fallback[:3]
 
