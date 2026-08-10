@@ -4,7 +4,7 @@
 
 Trellis 将代码库与外部事实问题通过一个**检索层**路由,而不是依赖单一工具。本文说明适配器栈、路由信封、上下文如何进入 Cursor Agent,以及 gating 可以断言什么结论的证据/评分规则。
 
-这是公开设计文档。已初始化项目内面向 Agent 的规范指南是 `.cstl/spec/guides/retrieval-daily-guide.md`;强制执行的 Cursor 规则是 `.cursor/rules/retrieval-routing.mdc`(`alwaysApply: true`)。
+这是公开设计文档。已初始化项目内面向 Agent 的规范指南是 `.cstl/framework/retrieval-daily-guide.md`;强制执行的 Cursor 规则是 `.cursor/rules/retrieval-routing.mdc`(`alwaysApply: true`)。
 
 ## 为什么需要检索层
 

@@ -4,7 +4,7 @@ English | [简体中文](retrieval.zh-CN.md)
 
 Trellis routes codebase and external-fact questions through a deliberate **retrieval layer** instead of relying on a single tool. This document explains the adapter stack, the routing envelope, how context reaches the Cursor agent, and the evidence/scoring rules that gate what can be claimed.
 
-This is the public design doc. The canonical, agent-facing guide inside an initialized project is `.cstl/spec/guides/retrieval-daily-guide.md`; the Cursor rule that enforces it is `.cursor/rules/retrieval-routing.mdc` (`alwaysApply: true`).
+This is the public design doc. The canonical, agent-facing guide inside an initialized project is `.cstl/framework/retrieval-daily-guide.md`; the Cursor rule that enforces it is `.cursor/rules/retrieval-routing.mdc` (`alwaysApply: true`).
 
 ## Why a retrieval layer
 

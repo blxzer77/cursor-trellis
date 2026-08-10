@@ -81,7 +81,7 @@ python ./.cstl/scripts/task.py suggest-execution-strategy <task-dir> --json
 
 Heuristics are data-driven from `.cstl/config/execution-strategy-rules.json` (code capabilities, path segments, parent/child signals). **Full tasks that touch code** default to `worker` + `main-worktree`; **documentation-only** Full tasks default to `inline`. The YAML in `implement.md` remains authoritative after user approval.
 
-`start-execution --check` prints `[execution-strategy] WARN` when the approved contract drifts from a fresh suggestion (advisory; does not fail the gate). See `.cstl/spec/guides/execution-strategy.md` and `workflow.md` Phase 2.1 / 2.2 for dispatch alignment.
+`start-execution --check` prints `[execution-strategy] WARN` when the approved contract drifts from a fresh suggestion (advisory; does not fail the gate). See `.cstl/framework/execution-strategy.md` and `workflow.md` Phase 2.1 / 2.2 for dispatch alignment.
 
 ## Verification profiles and default gates
 
