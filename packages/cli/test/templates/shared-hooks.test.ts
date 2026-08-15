@@ -190,4 +190,22 @@ describe("shared-hooks capability table", () => {
     expect(content).not.toContain("Trellis/packages/cli/bin/smart-search.js");
     expect(content).toContain("cursor-web-fallback");
   });
+
+  it("session-start.py resolves the trellis dir upward, not hardcoded to project_dir", () => {
+    // Regression: the template previously hardcoded `trellis_dir = project_dir / ".cstl"`,
+    // which crashes in thin-connect sub-repos that resolve to a root cstl instance
+    // (2026-08-16 instance-boundary decision). Must mirror the deployed root hook's
+    // _resolve_trellis_dir(): nearest .cstl upward, fallback to project_dir/.cstl.
+    const sessionStart = getSharedHookScripts().find(
+      (h) => h.name === "session-start.py",
+    );
+    expect(sessionStart, "session-start.py is missing from shared-hooks/").toBeDefined();
+    const content = sessionStart ? sessionStart.content : "";
+    expect(content).not.toContain('trellis_dir = project_dir / ".cstl"');
+    expect(content).toContain("def _resolve_trellis_dir(project_dir");
+    expect(content).toContain("trellis_dir = _resolve_trellis_dir(project_dir)");
+    expect(content).toContain('(current / ".cstl").is_dir()');
+    expect(content).toContain("current.parent == current");
+    expect(content).toContain('return project_dir / ".cstl"');
+  });
 });
