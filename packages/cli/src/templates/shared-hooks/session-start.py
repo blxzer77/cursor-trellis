@@ -222,6 +222,23 @@ def _detect_platform(input_data: dict) -> str | None:
     return None
 
 
+def _resolve_trellis_dir(project_dir: Path) -> Path:
+    """Resolve the cstl instance directory for this project.
+
+    Mirrors common/paths.py get_repo_root(): finds the nearest .cstl upward
+    from project_dir. Harness sub-repos without a local .cstl resolve to the
+    harness root instance (thin-connect, 2026-08-16 instance-boundary decision).
+    """
+    current = project_dir
+    while True:
+        if (current / ".cstl").is_dir():
+            return current / ".cstl"
+        if current.parent == current:
+            break
+        current = current.parent
+    return project_dir / ".cstl"
+
+
 def _resolve_context_key(trellis_dir: Path, input_data: dict) -> str | None:
     scripts_dir = trellis_dir / "scripts"
     if str(scripts_dir) not in sys.path:
@@ -791,7 +808,7 @@ def main():
     if project_dir is None:
         project_dir = Path(_normalize_windows_shell_path(hook_input.get("cwd", "."))).resolve()
 
-    trellis_dir = project_dir / ".cstl"
+    trellis_dir = _resolve_trellis_dir(project_dir)
     context_key = _resolve_context_key(trellis_dir, hook_input)
     _persist_context_key_for_bash(context_key)
 
