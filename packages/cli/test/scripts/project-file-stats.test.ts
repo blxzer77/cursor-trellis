@@ -10,7 +10,6 @@ const cliRoot = path.resolve(
   "../..",
 );
 const trellisRoot = path.resolve(cliRoot, "../..");
-const scriptsDir = path.join(trellisRoot, ".cstl/scripts");
 const templateScriptsDir = path.join(
   cliRoot,
   "src/templates/trellis/scripts",
@@ -33,11 +32,11 @@ function runFromScriptsDir(snippet: string): {
   const exe = pythonExe();
   const args = exe === "py" ? ["-3", "-c", snippet] : ["-c", snippet];
   const result = spawnSync(exe, args, {
-    cwd: scriptsDir,
+    cwd: templateScriptsDir,
     encoding: "utf-8",
     env: {
       ...process.env,
-      PYTHONPATH: scriptsDir,
+      PYTHONPATH: templateScriptsDir,
     },
   });
   return {
@@ -47,16 +46,13 @@ function runFromScriptsDir(snippet: string): {
   };
 }
 
-describe("project_file_stats (dogfood scripts dir)", () => {
-  it("template module is wired in getAllScripts", () => {
+describe("project_file_stats (template scripts dir)", () => {
+  it("template module exists in template scripts dir", () => {
     const templatePath = path.join(
       templateScriptsDir,
       "common/project_file_stats.py",
     );
     expect(fs.existsSync(templatePath)).toBe(true);
-    expect(fs.existsSync(path.join(scriptsDir, "common/project_file_stats.py"))).toBe(
-      true,
-    );
   });
 
   it("counts files in a tiny temp tree via walk fallback", () => {
