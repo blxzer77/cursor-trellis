@@ -298,6 +298,7 @@ import {
   type CommonTemplate,
   getBundledSkillTemplates,
   getCommandTemplates,
+  getOptionalSkillTemplates,
   getSkillTemplates,
 } from "../templates/common/index.js";
 
@@ -495,6 +496,41 @@ export function resolveBundledSkills(
       content: resolvePlaceholders(file.content, ctx),
     })),
   );
+}
+
+/**
+ * Resolve selected optional/experimental skills (e.g. `chrome-cdp`).
+ *
+ * Only the explicitly requested names are resolved — the optional-skills
+ * directory is never installed by default. Unknown names throw, so a typo in
+ * `--with-optional` fails loudly instead of silently installing nothing.
+ */
+export function resolveOptionalSkills(
+  names: readonly string[],
+  ctx: TemplateContext,
+): ResolvedSkillFile[] {
+  if (names.length === 0) return [];
+  const byName = new Map(
+    getOptionalSkillTemplates().map((skill) => [skill.name, skill]),
+  );
+  const unknown = names.filter((name) => !byName.has(name));
+  if (unknown.length > 0) {
+    throw new Error(
+      `Unknown optional skill(s): ${unknown.join(", ")}. Available: ${[...byName.keys()].join(", ") || "(none)"}.`,
+    );
+  }
+  return names.flatMap((name) => {
+    const skill = byName.get(name);
+    if (!skill) {
+      throw new Error(
+        `Unknown optional skill: ${name}. Available: ${[...byName.keys()].join(", ") || "(none)"}.`,
+      );
+    }
+    return skill.files.map((file) => ({
+      relativePath: `${skill.name}/${file.relativePath}`,
+      content: resolvePlaceholders(file.content, ctx),
+    }));
+  });
 }
 
 // ---------------------------------------------------------------------------

@@ -133,6 +133,27 @@ Three forms inherit differently:
 | **Role** | Guide Cursor++ BYOK users to write `~/.ccursor/trellis-task-models.json5` (primary/fallback), run `patch_wpelc8.py` (reversible json5 slug mapping), report resolver WARN/ERROR |
 | **Boundaries** | Native Cursor API users do not need this. Not in the `AGENTS.md` auto-triggered list (conditional, BYOK-only). See [cursor.md](cursor.md) for Method 2.5 detail |
 
+## Optional/experimental skills
+
+Optional skills live under `templates/common/optional-skills/` — a directory **outside** the bundled-skill scan set. `getBundledSkillTemplates()` never returns them, so a default `cstl init` installs none of them. They are installed **only** when explicitly requested:
+
+```bash
+cstl init --with-optional <name>   # repeatable; e.g. cstl init --with-optional chrome-cdp
+```
+
+Installation copies the skill into the project's `.cursor/skills/<name>/` — it does **not** register a capability, does **not** touch `.mcp.json`, and does not change Playwright MCP's default routing. Unknown names fail loudly instead of silently installing nothing.
+
+### `chrome-cdp` (experimental)
+
+| | |
+| --- | --- |
+| **Definition** | `optional-skills/chrome-cdp/` (SKILL.md + `scripts/cdp.mjs` + `examples/`); vendored from `blaze-skills/chrome-cdp@4ed61ff` |
+| **Enable** | `cstl init --with-optional chrome-cdp` |
+| **Role** | Lightweight Chrome DevTools Protocol CLI (Node 22+, no Puppeteer) that attaches to the user's already-open local Chrome session — real profile login state, cookies, and tabs that Playwright MCP cannot reproduce. `list`/`eval`/`snap`/`html`/`net`/`clickxy`/`click`/`nav`/`type`/`shot`/`loadall`/`evalraw`/`open`/`stop` via `scripts/cdp.mjs` |
+| **Positioning** | **Three-channel split:** Playwright MCP = default (reproducible browser automation, rendered UI evidence, screenshots); `cursor-ide-browser` = IDE 预览; `chrome-cdp` = real Chrome, attach-only **on explicit user approval**. If a `mcp__chrome-devtools__*` server is present, it and the CDP CLI are mutually exclusive for a given interaction |
+| **Safety** | Ships the full 06-12 Required Safety Wording: ask before `list`; ask again before inspecting content, screenshots, JS evaluation, navigation, clicks, typing, new tabs, or raw CDP commands (`loadall`/`evalraw` are marked **exceptional**). Keeps the source skill's Hard Constraints verbatim. Windows uses named pipes + an "Allow debugging?" popup per tab; daemons are stopped via `stop` and runtime screenshots should be cleaned up |
+| **Boundaries** | **Experimental** — not a default capability, not in the auto-triggered set, not routed to research/implement agents by default. Do not use for routine browser tests when Playwright/sessionless checks suffice |
+
 ## Auto-triggered inventory
 
 The canonical auto-triggered list (10 skills) is generated into `AGENTS.md` from `templates/markdown/agents.md`. The 11th skill (`cstl-cursor2plus-setup`) is bundled but conditional — it activates only for Cursor++ BYOK users and is therefore not in the universal auto-triggered set.

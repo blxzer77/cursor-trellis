@@ -102,6 +102,12 @@ program
     collectOption,
     [],
   )
+  .option(
+    "--with-optional <name>",
+    "Install an optional/experimental skill into the project skills directory (repeatable; e.g. chrome-cdp)",
+    collectOption,
+    [],
+  )
   .option("--monorepo", "Force monorepo mode")
   .option("--no-monorepo", "Skip monorepo detection")
   .option(
