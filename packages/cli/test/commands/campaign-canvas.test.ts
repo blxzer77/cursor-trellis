@@ -69,6 +69,9 @@ afterEach(() => {
 
 describe("cursorProjectSlug", () => {
   it("maps drive-letter roots to Cursor-style slugs (encoding only)", () => {
+    // On POSIX, path.resolve("D:\\MyHarness") falls back to the cwd-relative
+    // path and cannot represent a Windows drive — skip like the POSIX case.
+    if (process.platform !== "win32") return;
     expect(cursorProjectSlug("D:\\MyHarness")).toBe("d-MyHarness");
   });
 

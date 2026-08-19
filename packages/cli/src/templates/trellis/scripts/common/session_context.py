@@ -48,7 +48,30 @@ from .paths import (
 # =============================================================================
 
 _PACKAGE_NAME = "@blxzer/cursor-trellis"
-_PYTHON_CMD = "python"
+
+
+def _resolve_python_command() -> str:
+    """Pick the platform-appropriate python command.
+
+    Mirrors test resolvePython() (win32 prefers python, POSIX prefers
+    python3) so rendered guidance matches what integration tests assert.
+    """
+    candidates = ["python", "python3"] if os.name == "nt" else ["python3", "python"]
+    for exe in candidates:
+        try:
+            subprocess.run(
+                [exe, "--version"],
+                capture_output=True,
+                timeout=2,
+                check=True,
+            )
+            return exe
+        except (OSError, subprocess.SubprocessError):
+            continue
+    return "python"
+
+
+_PYTHON_CMD = _resolve_python_command()
 _UPDATE_CHECK_TIMEOUT_SECONDS = 1.0
 _VERSION_RE = re.compile(
     r"^\s*(\d+)(?:\.(\d+))?(?:\.(\d+))?(?:-([0-9A-Za-z.-]+))?\s*$"

@@ -165,8 +165,12 @@ describe("channelWait kind union (CLI)", () => {
     expect(console.log).toHaveBeenCalledTimes(2);
     const emitted = vi
       .mocked(console.log)
-      .mock.calls.map(([line]) => JSON.parse(String(line)) as { kind: string });
-    expect(emitted.map((e) => e.kind)).toEqual(["killed", "done"]);
+      .mock.calls.map(([line]) =>
+        JSON.parse(String(line)) as { kind: string },
+      );
+    // Events are appended from separate timers; arrival order is
+    // scheduler-dependent, so compare as a set.
+    expect(emitted.map((e) => e.kind).sort()).toEqual(["done", "killed"]);
   });
 
   it("plain wait (no --kind) does not wake on supervisor_warning", async () => {
