@@ -53,10 +53,23 @@ export interface CommonBundledSkill {
   files: CommonBundledSkillFile[];
 }
 
+/**
+ * Optional/experimental skill — same shape as bundled skills, but lives under
+ * `optional-skills/` which `getBundledSkillTemplates()` does NOT scan.
+ * Installed only via `cstl init --with-optional <name>` (default off).
+ */
+export interface CommonOptionalSkill {
+  /** Skill directory name, e.g. "chrome-cdp" */
+  name: string;
+  /** Files that must be written under the skill directory */
+  files: CommonBundledSkillFile[];
+}
+
 // Cached results — files don't change during a CLI run
 let cachedCommands: CommonTemplate[] | undefined;
 let cachedSkills: CommonTemplate[] | undefined;
 let cachedBundledSkills: CommonBundledSkill[] | undefined;
+let cachedOptionalSkills: CommonOptionalSkill[] | undefined;
 
 /**
  * Get all command templates (stay as slash commands on all platforms).
@@ -96,8 +109,8 @@ function toPosixRelativePath(root: string, filePath: string): string {
   return relative(root, filePath).split(sep).join("/");
 }
 
-function listBundledSkillFiles(skillDir: string): CommonBundledSkillFile[] {
-  const root = join(__dirname, "bundled-skills", skillDir);
+function listSkillFiles(rootDir: string, skillDir: string): CommonBundledSkillFile[] {
+  const root = join(__dirname, rootDir, skillDir);
   const files: CommonBundledSkillFile[] = [];
 
   function walk(dir: string): void {
@@ -119,6 +132,10 @@ function listBundledSkillFiles(skillDir: string): CommonBundledSkillFile[] {
   return files.sort((a, b) => a.relativePath.localeCompare(b.relativePath));
 }
 
+function listBundledSkillFiles(skillDir: string): CommonBundledSkillFile[] {
+  return listSkillFiles("bundled-skills", skillDir);
+}
+
 /**
  * Get all multi-file built-in skills.
  *
@@ -131,4 +148,20 @@ export function getBundledSkillTemplates(): CommonBundledSkill[] {
     files: listBundledSkillFiles(name),
   }));
   return cachedBundledSkills;
+}
+
+/**
+ * Get all optional/experimental skills (e.g. `optional-skills/chrome-cdp/`).
+ *
+ * Deliberately separate from {@link getBundledSkillTemplates}: `optional-skills/`
+ * is NOT scanned by the bundled pipeline, so default `cstl init` never installs
+ * these. They are installed only through `cstl init --with-optional <name>`.
+ * Results are cached after first call.
+ */
+export function getOptionalSkillTemplates(): CommonOptionalSkill[] {
+  cachedOptionalSkills ??= listDirectories("optional-skills").map((name) => ({
+    name,
+    files: listSkillFiles("optional-skills", name),
+  }));
+  return cachedOptionalSkills;
 }

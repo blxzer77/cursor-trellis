@@ -198,6 +198,54 @@ describe("init() integration", () => {
   });
 
 
+  it("#1f.0 default init does NOT install optional skills (chrome-cdp absent)", async () => {
+    await init({ yes: true });
+
+    // 06-12 convention: assert the exact optional skill path never materializes.
+    expect(
+      fs.existsSync(path.join(tmpDir, ".cursor", "skills", "chrome-cdp")),
+    ).toBe(false);
+    expect(fs.existsSync(path.join(tmpDir, ".cursor", "skills"))).toBe(false);
+  });
+
+  it("#1f.0a --with-optional chrome-cdp installs the optional skill only (no capability, no mcp change)", async () => {
+    await init({ yes: true, withOptional: ["chrome-cdp"] });
+
+    const skillDir = path.join(tmpDir, ".cursor", "skills", "chrome-cdp");
+    expect(fs.existsSync(path.join(skillDir, "SKILL.md"))).toBe(true);
+    expect(fs.existsSync(path.join(skillDir, "scripts", "cdp.mjs"))).toBe(true);
+    expect(
+      fs.existsSync(
+        path.join(skillDir, "examples", "fetch-hook-api-capture.md"),
+      ),
+    ).toBe(true);
+    const skill = fs.readFileSync(path.join(skillDir, "SKILL.md"), "utf-8");
+    expect(skill).toContain("name: chrome-cdp");
+    expect(skill).toContain("Required Safety Wording");
+
+    // No other optional skills were installed.
+    expect(fs.existsSync(path.join(tmpDir, ".cursor", "skills"))).toBe(true);
+    const installed = fs
+      .readdirSync(path.join(tmpDir, ".cursor", "skills"))
+      .sort();
+    expect(installed).toEqual(["chrome-cdp"]);
+
+    // Capability registry and .mcp.json untouched: chrome-cdp is NOT a
+    // capability id and no chrome-devtools MCP server is registered.
+    expect(
+      fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW, "capabilities.json")),
+    ).toBe(false);
+    expect(fs.existsSync(path.join(tmpDir, ".mcp.json"))).toBe(false);
+    expect(fs.existsSync(path.join(tmpDir, ".cursor", "mcp.json"))).toBe(false);
+  });
+
+  it("#1f.0b --with-optional with an unknown name fails loudly", async () => {
+    await expect(
+      init({ yes: true, withOptional: ["chrome-cdp", "no-such-skill"] }),
+    ).rejects.toThrow(/Unknown optional skill\(s\): no-such-skill/);
+    expect(fs.existsSync(path.join(tmpDir, ".cursor", "skills"))).toBe(false);
+  });
+
   it("#1f.1 writes GitHub MCP config when GitHub token env is visible", async () => {
     vi.stubEnv("GITHUB_TOKEN", "test-token");
     vi.stubEnv("GITHUB_PERSONAL_ACCESS_TOKEN", "");

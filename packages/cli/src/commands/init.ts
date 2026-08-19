@@ -15,7 +15,9 @@ import {
 } from "../configurators/index.js";
 import {
   getPythonCommandForPlatform,
+  resolveOptionalSkills,
   setResolvedPythonCommand,
+  writeSkills,
 } from "../configurators/shared.js";
 import { AI_TOOLS, type AITool, type CliFlag } from "../types/ai-tools.js";
 import { DIR_NAMES, FILE_NAMES, PATHS } from "../constants/paths.js";
@@ -1058,6 +1060,7 @@ interface InitOptions {
   skipExisting?: boolean;
   skipReadiness?: boolean;
   capability?: string[];
+  withOptional?: string[];
   template?: string;
   overwrite?: boolean;
   append?: boolean;
@@ -1253,6 +1256,27 @@ async function checkProjectCapabilityReadinessForInit(options: {
       skipReadinessCommand,
     });
   }
+}
+
+/**
+ * Install explicitly requested optional/experimental skills (e.g. chrome-cdp)
+ * into the Cursor skills directory. Does NOT register capabilities, does NOT
+ * touch .mcp.json, and does NOT run by default — only `--with-optional` opt-in.
+ */
+async function installOptionalSkills(
+  cwd: string,
+  names: readonly string[],
+): Promise<void> {
+  const ctx = AI_TOOLS.cursor.templateContext;
+  const resolved = resolveOptionalSkills(names, ctx);
+  if (resolved.length === 0) return;
+  const skillsRoot = path.join(cwd, ".cursor", "skills");
+  await writeSkills(skillsRoot, [], resolved);
+  console.log(
+    chalk.blue(
+      `📦 Installed optional skill(s): ${names.join(", ")} → .cursor/skills/`,
+    ),
+  );
 }
 
 export async function init(options: InitOptions): Promise<void> {
@@ -2163,6 +2187,13 @@ export async function init(options: InitOptions): Promise<void> {
       selectedCapabilities,
       selectedPlatformIds,
     );
+
+    // Optional/experimental skills — installed only when explicitly requested
+    // via `--with-optional <name>`; default init installs none of them.
+    const withOptional = options.withOptional ?? [];
+    if (withOptional.length > 0) {
+      await installOptionalSkills(cwd, withOptional);
+    }
 
     const pythonPlatforms = getPlatformsWithPythonHooks();
     const hasSelectedPythonPlatform = pythonPlatforms.some((id) =>
