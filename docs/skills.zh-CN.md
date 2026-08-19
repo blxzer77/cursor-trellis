@@ -110,9 +110,9 @@ Trellis 定义三种不同角色面。混淆它们是最常见的误解。
 
 | | |
 | --- | --- |
-| **定义** | `bundled-skills/cstl-skill-creator/SKILL.md` + `references/`(authoring-rules、review-checklist、trellis-skill-locations) |
+| **定义** | `bundled-skills/cstl-skill-creator/SKILL.md` + `references/`(authoring-rules、general-authoring、review-checklist、cstl-skill-locations) |
 | **触发** | 用户要写或改进 Trellis 兼容 skill(项目本地、共享、`.agents/`、上游 bundled) |
-| **角色** | skill 编写与审查指南:frontmatter、trigger description、Hard Constraints、progressive disclosure。含 authoring rules、review checklist、trellis-skill-locations 参考 |
+| **角色** | skill 编写与审查指南:通用创作方法论 + Trellis 打包约束。frontmatter、trigger description、Hard Constraints、progressive disclosure。含 authoring-rules、general-authoring、review-checklist、cstl-skill-locations |
 | **边界** | 强制由 `cstl-meta` 加载的 skill 形态契约 |
 
 #### `smart-search-cli`
@@ -169,7 +169,7 @@ Trellis 技能可在三层定制:
 2. **共享 skill** —— 行为跨同平台多项目时放共享 `.agents/skills/` 路径。
 3. **上游 bundled skill** —— `@blxzer/cursor-trellis` 自带;定制靠本地复制覆盖,不编辑已安装包。
 
-用 `cstl-skill-creator`(经 `cstl-meta` 加载)获取编写规则。见其 `references/authoring-rules.md` 与 `references/review-checklist.md` 了解 frontmatter 与 Hard Constraints 契约。
+用 `cstl-skill-creator`(经 `cstl-meta` 加载)获取编写规则。见其 `references/authoring-rules.md`、`references/general-authoring.md` 与 `references/review-checklist.md` 了解 frontmatter、通用创作方法与 Hard Constraints 契约。
 
 ## 延伸阅读
 
