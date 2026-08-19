@@ -3,14 +3,14 @@
 
 These instructions are for AI assistants working in this project.
 
-This project is managed by cursor-trellis. The working knowledge you need lives under `.cstl/`:
+**Thin-connect to the harness root instance (2026-08-16 决策落地)**: this repo has **no independent `.cstl/`** (its local instance was archived to `D:\MyHarness\.tmp\cstl-legacy-cursor-trellis-0.3.3`). The cstl runtime and all working knowledge live in the **harness root instance** `D:\MyHarness\.cstl`:
 
-- `.cstl/workflow.md` — development phases, when to create tasks, skill routing
-- `.cstl/spec/` — package- and layer-scoped coding guidelines (read before writing code in a given layer)
-- `.cstl/workspace/` — per-developer journals and session traces
-- `.cstl/tasks/` — active and archived tasks (PRDs, research, jsonl context)
+- `D:\MyHarness\.cstl/workflow.md` — development phases, when to create tasks, skill routing
+- `D:\MyHarness\.cstl/spec/` — package- and layer-scoped coding guidelines (read before writing code in a given layer)
+- `D:\MyHarness\.cstl/workspace/` — per-developer journals and session traces
+- `D:\MyHarness\.cstl/tasks/` — active and archived tasks (PRDs, research, jsonl context)
 
-If a cstl command is available on Cursor (e.g. `cstl-finish-work`, `cstl-continue`), prefer it over manual steps.
+When a cstl command is available on Cursor (e.g. `cstl-finish-work`, `cstl-continue`), prefer it over manual steps. CLI/hook scripts run from this directory resolve to the root instance automatically (nearest-`.cstl` upward lookup). Tasks for this repo live under `D:\MyHarness\.cstl\tasks/`; mark them with `--package cursor-trellis` when creating.
 
 ## Command surface (what is user-invocable vs internal)
 
@@ -59,7 +59,7 @@ Managed by cursor-trellis. Edits outside this block are preserved; edits inside 
 
 ## Mindfold harness (maintainers)
 
-The Trellis CLI source repo often sits inside the **D:\MyHarness** harness: the harness root holds workspace-level `.cstl/` (tasks, spec, workflow) and is **not** a git repository. Run `git`, `pnpm`, and CLI validation from **this** directory (`Trellis/`). See `D:\MyHarness\AGENTS.md` for the three-repo layout (`Trellis/`, `smartsearch-private/`, `riverfjs-skills/`).
+The Trellis CLI source repo sits inside the **D:\MyHarness** harness: the harness root is a **local-only git repository** (git-ified 2026-08-14) holding the workspace-level `.cstl/` (tasks, spec, workflow, journals). This repo has no local `.cstl/` (archived 2026-08-16) — cstl runtime resolves to the harness root instance. Run `git`, `pnpm`, and CLI validation from **this** directory. See `D:\MyHarness\AGENTS.md` for the four-repo layout (`cursor-trellis/`, `smart-search/`, `blaze-skills/`, `cursor-byok/`).
 
 **Git remotes (local policy):** This checkout uses **only** the `private` remote (`git@github.com:blxzer77/cursor-trellis.git`). Do **not** add or push to `origin` / `mindfold-ai/Trellis`. Use `git push` (default remote is `private`) or `git push private <branch>`. Do not run `git push origin`.
 
@@ -96,7 +96,7 @@ Trellis/
     cli/               # @blxzer/cursor-trellis - CLI tool
   drafts/
   assets/
-  .cstl/            # Self-dogfooding Trellis workspace
+  .cstl/            # (archived 2026-08-16 to harness .tmp; runtime = harness root instance)
   .cursor/
   package.json
   pnpm-workspace.yaml
@@ -284,7 +284,7 @@ Modes: force, skip, create-new. `startRecordingWrites()`/`stopRecordingWrites()`
 
 ## 10. Dogfooding
 
-`.cstl/` in project root. Changes MUST mirror to `src/templates/`.
+The local dogfooding instance was archived 2026-08-16 (`.cstl` → `D:\MyHarness\.tmp\cstl-legacy-cursor-trellis-0.3.3`); cstl runtime now resolves to the harness root instance. **The Mirror Rule still applies**: when modifying `.cstl/` or `.cursor/` content that ships to user projects, update `src/templates/` — mirror edits are made against the harness root instance's `.cstl/`.
 
 ---
 
