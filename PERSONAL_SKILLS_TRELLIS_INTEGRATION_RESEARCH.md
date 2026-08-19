@@ -1,6 +1,16 @@
 # Personal Skills Trellis Integration Research And Plan
 
 > Historical note — pre-rename research (content reflects pre-CSTL-rename state; names/paths below are historical).
+>
+> **失效路径映射（2026-08-19 标注，正文为历史档案不再更新）**：
+>
+> | 文档中的历史路径 | 现状路径 |
+> | --- | --- |
+> | `D:\MyHarness\Trellis-v0.6.0-beta.22` | `D:\MyHarness\cursor-trellis` |
+> | `.trellis/tasks/06-08-*` | 任务体系更名 cstl，已归档至 `D:\MyHarness\.cstl\tasks\archive\2026-06\` |
+> | `D:\MyHarness\riverfjs-skills\...` | `D:\MyHarness\blaze-skills\...`（仓库更名） |
+> | `D:\MyHarness\smartsearch-private\...` | `D:\MyHarness\smart-search\...`（仓库更名） |
+> | `D:\MyHarness\Trellis\.agents\...` | `D:\MyHarness\cursor-trellis\.agents\...` |
 
 ## Scope
 
@@ -16,20 +26,20 @@ Current implementation slice:
 Deferred broader personal workflow work:
 
 - Route the user's MCP/tooling capabilities through a personal workflow profile.
-- Confirm Graphify's Trellis ownership in child task `.trellis/tasks/06-08-graphify-integration-ownership`.
+- Confirm Graphify's Trellis ownership in child task `.trellis/tasks/06-08-graphify-integration-ownership` `[historical]`.
 - Decide whether Smart Search runtime installation belongs inside Trellis.
 - Convert the native workflow into the user's full personal workflow framework.
 
 ## Baseline
 
 ```text
-Worktree: D:\MyHarness\Trellis-v0.6.0-beta.22
+Worktree: D:\MyHarness\Trellis-v0.6.0-beta.22   # [historical] → cursor-trellis
 Branch: personal-v0.6.0-beta.22
 Version: 0.6.0-beta.22
-Full Task: .trellis/tasks/06-08-personal-skills-trellis-refactor
-Skill reference: D:\MyHarness\riverfjs-skills\skill-creator\SKILL.md
-Smart Search source: D:\MyHarness\smartsearch-private\skills\smart-search-cli
-Micro-Grill source: D:\MyHarness\Trellis\.agents\skills\trellis-micro-grill\SKILL.md
+Full Task: .trellis/tasks/06-08-personal-skills-trellis-refactor   # [historical] → 已归档 .cstl/tasks/archive/2026-06
+Skill reference: D:\MyHarness\riverfjs-skills\skill-creator\SKILL.md   # [historical] → blaze-skills\skill-creator\SKILL.md
+Smart Search source: D:\MyHarness\smartsearch-private\skills\smart-search-cli   # [historical] → smart-search\skills\smart-search-cli
+Micro-Grill source: D:\MyHarness\Trellis\.agents\skills\trellis-micro-grill\SKILL.md   # [historical] → cursor-trellis\.agents\skills\trellis-micro-grill\SKILL.md
 ```
 
 ## Core Architecture Decision
@@ -73,7 +83,7 @@ packages/cli/src/templates/common/bundled-skills/trellis-micro-grill/
 Graphify ownership child task:
 
 ```text
-.trellis/tasks/06-08-graphify-integration-ownership
+.trellis/tasks/06-08-graphify-integration-ownership  # [historical] → 已归档 .cstl/tasks/archive/2026-06
 ```
 
 This is not part of the current implementation slice. The final integration may be Skill+CLI, MCP, artifact-reading convention, runtime adapter, or hybrid after focused testing.
@@ -81,7 +91,7 @@ This is not part of the current implementation slice. The final integration may 
 ## Important Boundaries
 
 - `smart-search-cli` keeps its existing name. Do not rename to `trellis-smart-search`.
-- `smartsearch-private` remains the Smart Search source of truth.
+- `smartsearch-private` remains the Smart Search source of truth. `[historical]`（仓库已更名 `smart-search`）
 - Trellis vendors a skill snapshot first; it does not absorb the Smart Search CLI runtime yet.
 - Missing `smart-search` executable is a blocker, not permission to invent unsourced web facts.
 - `trellis-micro-grill` is a Trellis-specific wrapper around the user's `grill-me` workflow, not a generic bundled `grill-me`.
