@@ -133,6 +133,27 @@ Trellis 定义三种不同角色面。混淆它们是最常见的误解。
 | **角色** | 引导 Cursor++ BYOK 用户写 `~/.ccursor/trellis-task-models.json5`(primary/fallback),跑 `patch_wpelc8.py`(可逆 json5 slug 映射),报告 resolver WARN/ERROR |
 | **边界** | Native Cursor API 用户不需要。不在 `AGENTS.md` 自动触发清单(条件性,仅 BYOK)。Method 2.5 细节见 [cursor.zh-CN.md](cursor.zh-CN.md) |
 
+## 可选/实验性 skills
+
+可选 skills 放在 `templates/common/optional-skills/` —— 一个**不在** bundled-skill 扫描集内的目录。`getBundledSkillTemplates()` 永不返回它们,因此默认 `cstl init` 不安装任何可选 skill。只有显式请求时才安装:
+
+```bash
+cstl init --with-optional <name>   # 可重复;例如 cstl init --with-optional chrome-cdp
+```
+
+安装会把该 skill 复制到项目 `.cursor/skills/<name>/` —— 不注册 capability、不改 `.mcp.json`、不动 Playwright MCP 的默认路由。未知名字会大声报错而不是静默不装。
+
+### `chrome-cdp`(experimental)
+
+| | |
+| --- | --- |
+| **定义** | `optional-skills/chrome-cdp/`(SKILL.md + `scripts/cdp.mjs` + `examples/`);vendored from `blaze-skills/chrome-cdp@4ed61ff` |
+| **启用** | `cstl init --with-optional chrome-cdp` |
+| **角色** | 轻量 Chrome DevTools Protocol CLI(Node 22+,无 Puppeteer),附着到用户已打开的本地 Chrome 会话 —— Playwright MCP 无法复现的真实 profile 登录态、cookie、标签页。`list`/`eval`/`snap`/`html`/`net`/`clickxy`/`click`/`nav`/`type`/`shot`/`loadall`/`evalraw`/`open`/`stop` 经由 `scripts/cdp.mjs` |
+| **定位** | **三通道分工:** Playwright MCP = 默认(可复现浏览器自动化、渲染 UI 证据、截图);`cursor-ide-browser` = IDE 预览;`chrome-cdp` = 真实 Chrome,**仅显式用户批准后**附着。若环境存在 `mcp__chrome-devtools__*`,它与 CDP CLI 对同一交互互斥 |
+| **安全** | 携带完整 06-12 Required Safety Wording:先问再 `list`;检查内容、截图、JS 求值、导航、点击、输入、开新标签、原始 CDP 命令前再问一次(`loadall`/`evalraw` 标 **exceptional**)。源仓 Hard Constraints 逐条保留。Windows 用 named pipe + 每标签页 "Allow debugging?" 弹窗;daemon 用 `stop` 清理,runtime 截图需删除 |
+| **边界** | **实验性** —— 非默认 capability、不在自动触发集、默认不路由给 research/implement agent。Playwright/无会话检查足够时不得用于常规浏览器测试 |
+
 ## Auto-triggered 清单
 
 规范自动触发清单(10 个技能)从 `templates/markdown/agents.md` 生成到 `AGENTS.md`。第 11 个(`cstl-cursor2plus-setup`)是 bundled 但条件性 —— 仅 Cursor++ BYOK 用户激活,因此不在通用自动触发集。
