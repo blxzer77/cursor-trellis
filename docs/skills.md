@@ -110,9 +110,9 @@ Three forms inherit differently:
 
 | | |
 | --- | --- |
-| **Definition** | `bundled-skills/cstl-skill-creator/SKILL.md` + `references/` (authoring-rules, review-checklist, trellis-skill-locations) |
+| **Definition** | `bundled-skills/cstl-skill-creator/SKILL.md` + `references/` (authoring-rules, general-authoring, review-checklist, cstl-skill-locations) |
 | **Triggers** | User wants to write or improve a Trellis-compatible skill (project-local, shared, `.agents/`, or upstream bundled) |
-| **Role** | Skill authoring and review guide: frontmatter, trigger description, Hard Constraints, progressive disclosure. Includes authoring rules, review checklist, and trellis-skill-locations reference |
+| **Role** | Skill authoring and review guide: general authoring method plus Trellis packaging constraints. Frontmatter, trigger description, Hard Constraints, progressive disclosure. Includes authoring-rules, general-authoring, review-checklist, and cstl-skill-locations |
 | **Boundaries** | Enforces the skill form contract loaded by `cstl-meta` |
 
 #### `smart-search-cli`
@@ -169,7 +169,7 @@ Trellis skills are customizable at three layers:
 2. **Shared skills** — place under a shared `.agents/skills/` path when behavior spans multiple projects on the same platform.
 3. **Upstream bundled skills** — the ones shipped in `@blxzer/cursor-trellis`; customize by copying and overriding locally rather than editing the installed package.
 
-Use `cstl-skill-creator` (loaded via `cstl-meta`) for the authoring rules. See its `references/authoring-rules.md` and `references/review-checklist.md` for the frontmatter and Hard Constraints contract.
+Use `cstl-skill-creator` (loaded via `cstl-meta`) for the authoring rules. See its `references/authoring-rules.md`, `references/general-authoring.md`, and `references/review-checklist.md` for the frontmatter, general authoring method, and Hard Constraints contract.
 
 ## See also
 
