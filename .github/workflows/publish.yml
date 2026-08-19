@@ -23,17 +23,24 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: "20"
+          node-version: "22"
           registry-url: https://registry.npmjs.org
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Materialize dogfood for tests
+        run: |
+          mkdir -p .cursor/rules .cursor/agents .cstl/scripts
+          cp packages/cli/src/templates/cursor/rules/* .cursor/rules/
+          cp packages/cli/src/templates/cursor/agents/* .cursor/agents/
+          cp -r packages/cli/src/templates/trellis/scripts/* .cstl/scripts/
 
       - name: Verify tag matches package versions
         run: node packages/cli/scripts/release-preflight.js check-versions --require-tag
