@@ -3,14 +3,14 @@
 
 These instructions are for AI assistants working in this project.
 
-**Thin-connect to the harness root instance (2026-08-16 决策落地)**: this repo has **no independent `.cstl/`** (its local instance was archived to `D:\MyHarness\.tmp\cstl-legacy-cursor-trellis-0.3.3`). The cstl runtime and all working knowledge live in the **harness root instance** `D:\MyHarness\.cstl`:
+This project is managed by cursor-trellis. The working knowledge you need lives under `.cstl/`:
 
-- `D:\MyHarness\.cstl/workflow.md` — development phases, when to create tasks, skill routing
-- `D:\MyHarness\.cstl/spec/` — package- and layer-scoped coding guidelines (read before writing code in a given layer)
-- `D:\MyHarness\.cstl/workspace/` — per-developer journals and session traces
-- `D:\MyHarness\.cstl/tasks/` — active and archived tasks (PRDs, research, jsonl context)
+- `.cstl/workflow.md` — development phases, when to create tasks, skill routing
+- `.cstl/spec/` — package- and layer-scoped coding guidelines (read before writing code in a given layer)
+- `.cstl/workspace/` — per-developer journals and session traces
+- `.cstl/tasks/` — active and archived tasks (PRDs, research, jsonl context)
 
-When a cstl command is available on Cursor (e.g. `cstl-finish-work`, `cstl-continue`), prefer it over manual steps. CLI/hook scripts run from this directory resolve to the root instance automatically (nearest-`.cstl` upward lookup). Tasks for this repo live under `D:\MyHarness\.cstl\tasks/`; mark them with `--package cursor-trellis` when creating.
+If a cstl command is available on Cursor (e.g. `cstl-finish-work`, `cstl-continue`), prefer it over manual steps.
 
 ## Command surface (what is user-invocable vs internal)
 
@@ -56,6 +56,17 @@ For **any external / current / web fact**, run **`python ./.cstl/scripts/run_sma
 Managed by cursor-trellis. Edits outside this block are preserved; edits inside may be overwritten by a future `cstl update`.
 
 <!-- CSTL:END -->
+
+## Thin-connect to harness root (maintainers, 2026-08-16 决策落地)
+
+This repo has **no independent `.cstl/`** (its local instance was archived to `D:\MyHarness\.tmp\cstl-legacy-cursor-trellis-0.3.3`). The cstl runtime and all working knowledge live in the **harness root instance** `D:\MyHarness\.cstl`:
+
+- `D:\MyHarness\.cstl/workflow.md` — development phases, when to create tasks, skill routing
+- `D:\MyHarness\.cstl/spec/` — package- and layer-scoped coding guidelines (read before writing code in a given layer)
+- `D:\MyHarness\.cstl/workspace/` — per-developer journals and session traces
+- `D:\MyHarness\.cstl/tasks/` — active and archived tasks (PRDs, research, jsonl context)
+
+CLI/hook scripts run from this directory resolve to the root instance automatically (nearest-`.cstl` upward lookup). Tasks for this repo live under `D:\MyHarness\.cstl\tasks/`; mark them with `--package cursor-trellis` when creating.
 
 ## Mindfold harness (maintainers)
 
