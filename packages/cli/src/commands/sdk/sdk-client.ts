@@ -1,4 +1,4 @@
-import { cursorApiKeySetupGuide, hasCursorApiKey } from "../utils/cursor-sdk-gate.js";
+import { cursorApiKeySetupGuide, hasCursorApiKey } from "../../utils/cursor-sdk-gate.js";
 
 export interface CursorAgentOutcome {
   status: string;
@@ -27,8 +27,8 @@ export async function promptCursorAgent(
   if (!hasCursorApiKey()) {
     throw new Error(
       [
-        "Live goal worker requires CURSOR_API_KEY (and prior user consent to use it).",
-        "Use --mock-worker for offline/CI runs.",
+        "Live SDK run requires CURSOR_API_KEY (and prior user consent to use it).",
+        "Use --mock for offline/CI runs.",
         cursorApiKeySetupGuide(),
       ].join(" "),
     );
@@ -45,7 +45,7 @@ export async function promptCursorAgent(
     Agent = mod.Agent;
   } catch {
     throw new Error(
-      "@cursor/sdk is not installed. After explicit consent, add the optional dependency, or use --mock-worker.",
+      "@cursor/sdk is not installed. After explicit consent, add the optional dependency, or use --mock.",
     );
   }
 

@@ -229,10 +229,6 @@ Before executing an upgrade that creates artifacts, changes task mode, adds gate
 | Planning / PRD | Read `.cstl/framework/prd-grill-frontier.md` (PRD Grill discipline; full body in the bundled brainstorm skill) |
 | Parent with parallel children | `generate-child-prompt --mode subagent`; writable Agent; see `.cstl/framework/cursor-subagent-policy.md` |
 
-### Goal runtime (not a Task Ladder type)
-
-**Goal** here means the **CLI subsystem** `cstl goal` (preflight → accept → run / pause / status / review), **not** a Task Ladder type and **not** Parent/Child orchestration. When the user says "use goal", run or suggest `cstl goal status` / `cstl goal preflight …` in the project terminal — do **not** create a "goal" task or map it to `add-subtask` / Parent-only planning. Default Cursor install has **no** `/cstl-goal` slash command (dogfood/extension only). See the AGENTS.md Invocation map.
-
 ### Cursor native modes (Prefer — don't replace)
 
 Full map: `.cstl/framework/cursor-native-modes-guide.md` · per-turn slim rule: `.cursor/rules/cstl-cursor-modes.mdc`.  

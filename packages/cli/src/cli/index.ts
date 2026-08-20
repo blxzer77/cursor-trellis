@@ -16,7 +16,6 @@ import {
 } from "../commands/workflow.js";
 // import { registerChannelCommand } from "../commands/channel/index.js";
 import { registerCampaignCommand } from "../commands/campaign/index.js";
-import { registerGoalCommand } from "../commands/goal/index.js";
 import { registerRpcCommand } from "../commands/rpc/index.js";
 import { registerSdkCommand } from "../commands/sdk/index.js";
 import { runValidateRules } from "../commands/validate-rules.js";
@@ -384,9 +383,6 @@ registerSdkCommand(program);
 
 // Campaign observation MIX (CMD + MCP). Read-only; Canvas Should deferred.
 registerCampaignCommand(program);
-
-// cstl-goal MVP runtime + reviewer seam.
-registerGoalCommand(program);
 
 program
   .command("validate-rules")

@@ -31,12 +31,6 @@ These guides help you **ask the right questions before coding**.
 
 > **Framework & platform docs live in `.cstl/framework/`** (framework-owned, refreshed by `cstl update`) — verification strength, injection budget, retrieval routing, Cursor modes/agents/injection, PRD Grill, execution strategy, artifact locale, and more. See [`.cstl/framework/index.md`](../../framework/index.md).
 
-### When using `/cstl-goal` (optional long-horizon mode)
-
-- [ ] User explicitly invoked `/cstl-goal` — default cstl spine unchanged otherwise
-- [ ] Read [cstl-goal Contract](../Trellis/framework/cstl-goal-contract.md) §1 preflight + §3 hard deny before G1 self-drive
-- [ ] High-risk actions: pack per [Action Packet](../Trellis/framework/cstl-goal-action-packet.md) → reviewer seam; no bare execute
-
 ---
 
 ## Quick Reference: Thinking Triggers

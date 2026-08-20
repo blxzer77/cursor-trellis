@@ -102,7 +102,7 @@ async function runLiveAgent(
   prompt: string,
   cwd: string,
 ): Promise<{ status: string; result: string }> {
-  const { promptCursorAgent } = await import("../../goal/sdk-client.js");
+  const { promptCursorAgent } = await import("./sdk-client.js");
   return promptCursorAgent(prompt, cwd);
 }
 

@@ -19,21 +19,11 @@ Only a handful of Trellis entry points are meant for **manual `/` invocation**. 
 - **User-invocable (manual)**: `cstl-continue`, `cstl-finish-work` (and `cstl-start` when needed).
 - **Internal auto-triggered (do NOT call manually)**: `cstl-brainstorm`, `cstl-before-dev`, `cstl-check`, `cstl-break-loop`, `cstl-update-spec`, `cstl-micro-grill`, `cstl-meta`, `cstl-spec-bootstrap`, `cstl-skill-creator`, `smart-search-cli`. These activate on their own when the workflow/skill matcher decides they fit.
 
-## Goal runtime (not a task type)
-
-**Goal** here means the **CLI subsystem** `cstl goal` (preflight → accept → run / pause / status / review), not a Task Ladder type and not Parent/Child orchestration.
-
-- Prefer: `cstl goal status` / `cstl goal preflight …` in the project terminal.
-- Do **not** invent a "goal" task kind or map "use goal" onto `add-subtask` / Parent-only planning.
-- Default Cursor install has **no** `/cstl-goal` slash command (optional dogfood/extension only).
-- Task directory `handoff.md` = child integration evidence; session handoff = `/cstl-handoff` (temp file).
-
 ## Invocation map (short)
 
 | Intent | Use | Do not |
 | --- | --- | --- |
 | Session handoff | `/cstl-handoff` → report temp path | task `handoff.md`; ad-hoc workspace handoff |
-| Goal runtime | `cstl goal status\|preflight\|run\|…` | Parent/Child as "goal"; invent goal task type |
 | User slash surface | only listed `/cstl-*` commands | assume internal skills are slash commands |
 | Internal skills (brainstorm, …) | workflow says load → Read documented path (see guides); not user slash | claim loaded with no file read |
 
