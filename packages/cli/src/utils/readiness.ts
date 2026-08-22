@@ -3,7 +3,6 @@ import fs from "node:fs";
 import path from "node:path";
 import chalk from "chalk";
 
-import { hasCursorApiKey } from "./cursor-sdk-gate.js";
 import {
   getProjectCapability,
   type ProjectCapabilityId,
@@ -234,29 +233,6 @@ export function probeProjectCapability(
     return probeCodebaseRetrievalCapability(cwd);
   }
 
-  if (id === "cursor-sdk") {
-    if (hasCursorApiKey()) {
-      return {
-        id,
-        infos: [
-          "CURSOR_API_KEY is present in the Trellis process environment (value not shown)",
-        ],
-        failures: [],
-        warnings: [
-          "SDK live runs use a separate billing/privacy channel from IDE Native vs Cursor++ BYOK model routing.",
-        ],
-      };
-    }
-    return {
-      id,
-      infos: [],
-      failures: [
-        "CURSOR_API_KEY is not set; enablement skipped until the key is available in this process",
-      ],
-      warnings: [],
-    };
-  }
-
   const capability = getProjectCapability(id);
   const [server] = capability.mcpServers;
   if (!server) {
@@ -311,12 +287,6 @@ export function probeProjectCapability(
   if (id === "playwright-mcp" && commandAvailable) {
     warnings.push(
       "Playwright MCP package and browser runtime were not started by readiness; run a host MCP smoke before claiming rendered UI evidence.",
-    );
-  }
-
-  if (id === "campaign-mcp" && commandAvailable) {
-    warnings.push(
-      "trellis-campaign does not embed TRELLIS_CAMPAIGN_PARENT in mcp.json; set the env var, pass --parent, or tool args before claiming campaign observation.",
     );
   }
 

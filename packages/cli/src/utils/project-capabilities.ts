@@ -2,19 +2,12 @@ import fs from "node:fs";
 import path from "node:path";
 
 import type { AITool } from "../types/ai-tools.js";
-import {
-  formatCursorSdkEnabledMessage,
-  formatCursorSdkSkippedMessage,
-  hasCursorApiKey,
-} from "./cursor-sdk-gate.js";
 import { ensureDir, writeFile } from "./file-writer.js";
 
 export const PROJECT_CAPABILITY_IDS = [
   "codebase-retrieval",
   "github-mcp",
   "playwright-mcp",
-  "cursor-sdk",
-  "campaign-mcp",
 ] as const;
 
 export type ProjectCapabilityId = (typeof PROJECT_CAPABILITY_IDS)[number];
@@ -288,77 +281,6 @@ export const PROJECT_CAPABILITIES: readonly ProjectCapability[] = [
       },
     ],
   },
-  {
-    id: "cursor-sdk",
-    aliases: ["sdk", "cursor_sdk", "cursor-sdk-run"],
-    title: "Cursor SDK RUN",
-    description:
-      "Optional Trellis↔Cursor SDK bridge (`cstl sdk run`). Enabled only when CURSOR_API_KEY is present; does not install packages into the consumer project.",
-    routing:
-      "Use for explicit SDK RUN workers bound to a task path. Prefer `cstl sdk status` before `--live`. Do not treat SDK live as IDE Native/BYOK model routing.",
-    readiness:
-      "`CURSOR_API_KEY` is visible in the Trellis process environment. `@cursor/sdk` is provided by the installed cursor-trellis CLI package.",
-    fallback: [
-      "Set CURSOR_API_KEY in your shell/session (never commit it), then re-select `cursor-sdk` or run `cstl sdk status`.",
-      "Use `cstl sdk run --mock` without a key for dogfood; `--live` requires the key and explicit acceptance of billing/privacy risk.",
-    ],
-    cliAutomationGuidance: [
-      {
-        command: "cstl sdk status",
-        use: "Check whether CURSOR_API_KEY is present and whether the cursor-sdk capability can be enabled.",
-      },
-      {
-        command: "cstl sdk run --task <path> --mock",
-        use: "Run the SDK bridge without calling @cursor/sdk (no API key required).",
-      },
-      {
-        command: "cstl sdk run --task <path> --live",
-        use: "Live Agent.prompt via @cursor/sdk after CURSOR_API_KEY is set and you accept billing/privacy risk.",
-      },
-    ],
-    mcpServers: [],
-  },
-  {
-    id: "campaign-mcp",
-    aliases: ["trellis-campaign", "campaign", "campaign-mcp"],
-    title: "Campaign MCP",
-    description:
-      "Read-only trellis-campaign MCP (`cstl campaign mcp`) for campaign_status observation. Auto-merges into .cursor/mcp.json when selected.",
-    routing:
-      "Use for in-session campaign observation. Set TRELLIS_CAMPAIGN_PARENT or pass --parent / tool args; this capability does not embed Parent paths into mcp.json.",
-    readiness:
-      "`cstl` is available on PATH so the MCP stdio server can launch. Parent task directory is configured by the operator (env or args), not by Trellis writing secrets or paths into mcp.json.",
-    fallback: [
-      "Ensure `cstl` is on PATH (global install or project-linked CLI).",
-      "Set TRELLIS_CAMPAIGN_PARENT or run `cstl campaign mcp --parent <dir>` / pass parent to the MCP tool.",
-      "See docs/campaign-ui.md for CMD + MCP observation paths (Canvas is a separate capability/task).",
-    ],
-    cliAutomationGuidance: [
-      {
-        command: "cstl campaign status --parent <dir>",
-        use: "Compose campaign status without starting MCP.",
-      },
-      {
-        command: "cstl campaign mcp --parent <dir>",
-        use: "Run the trellis-campaign stdio MCP server.",
-      },
-    ],
-    mcpQueryGuidance: [
-      {
-        tool: "campaign_status",
-        use: "Read-only campaign snapshot (Trellis parent-status + optional RPC). Never auto-approves HITL gates.",
-      },
-    ],
-    mcpServers: [
-      {
-        name: "trellis-campaign",
-        // Match other optional MCP entries: npx -y <published package> …
-        // (Bare `cstl` breaks on Windows shims and unpublished global installs.)
-        command: "npx",
-        args: ["-y", "@blxzer/cursor-trellis", "campaign", "mcp"],
-      },
-    ],
-  },
 ];
 
 const CAPABILITY_BY_TOKEN = new Map<string, ProjectCapabilityId>();
@@ -494,46 +416,6 @@ export function getProjectCapabilityChoices(): {
     id: capability.id,
     name: `${capability.title} - ${capability.description}`,
   }));
-}
-
-export type CursorSdkSelectionGateResult = {
-  selected: ProjectCapabilityId[];
-  skippedSdk: boolean;
-  enabledSdk: boolean;
-  message: string | null;
-};
-
-/**
- * D1: keep `cursor-sdk` visible in UI, but drop it from the effective
- * selection when CURSOR_API_KEY is missing (skip enablement + guidance).
- */
-export function applyCursorSdkSelectionGate(
-  selected: readonly ProjectCapabilityId[],
-  env: NodeJS.ProcessEnv = process.env,
-): CursorSdkSelectionGateResult {
-  const ordered = uniqueInRegistryOrder(selected);
-  if (!ordered.includes("cursor-sdk")) {
-    return {
-      selected: ordered,
-      skippedSdk: false,
-      enabledSdk: false,
-      message: null,
-    };
-  }
-  if (hasCursorApiKey(env)) {
-    return {
-      selected: ordered,
-      skippedSdk: false,
-      enabledSdk: true,
-      message: formatCursorSdkEnabledMessage(),
-    };
-  }
-  return {
-    selected: ordered.filter((id) => id !== "cursor-sdk"),
-    skippedSdk: true,
-    enabledSdk: false,
-    message: formatCursorSdkSkippedMessage(),
-  };
 }
 
 export function renderCapabilitiesJson(
