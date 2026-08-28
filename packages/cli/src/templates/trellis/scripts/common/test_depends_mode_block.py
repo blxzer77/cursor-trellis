@@ -25,6 +25,8 @@ from common.task_dependencies import (
     read_depends_mode,
 )
 from common.task_gates import validate_start_execution, validate_start_execution_check
+from common import kernel_command as kernel_command_mod
+from common.test_kernel_command import FAKE_KERNEL
 
 
 # =============================================================================
@@ -69,6 +71,13 @@ def sandbox(tmp_path, monkeypatch):
     tasks_dir.mkdir(parents=True)
     monkeypatch.setattr("common.task_dependencies.get_repo_root", lambda: repo)
     monkeypatch.setattr("common.task_store.get_repo_root", lambda: repo)
+    script = tmp_path / "fake_kernel.py"
+    script.write_text(FAKE_KERNEL, encoding="utf-8")
+    monkeypatch.setattr(
+        kernel_command_mod,
+        "kernel_cli_argv",
+        lambda: [sys.executable, str(script)],
+    )
     return repo, tasks_dir
 
 
