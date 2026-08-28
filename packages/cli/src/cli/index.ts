@@ -18,6 +18,7 @@ import {
 import { runValidateRules } from "../commands/validate-rules.js";
 import { isWorkflowInitialized, workflowPath } from "../utils/workflow-dir.js";
 import { PACKAGE_NAME, VERSION } from "../constants/version.js";
+import { runKernelJsonCli } from "@blxzer/cursor-trellis-core/task";
 import { compareVersions } from "../utils/compare-versions.js";
 
 // Re-export for backwards compatibility (consumers should prefer constants/version.js)
@@ -57,8 +58,10 @@ function checkForUpdates(cwd: string): void {
 // Never print to stdout when running an MCP stdio server — Cursor hosts
 // treat any non-framed stdout as a handshake failure.
 const cwd = process.cwd();
-const isStdioMcp = process.argv.slice(2).includes("mcp");
-if (isWorkflowInitialized(cwd) && !isStdioMcp) {
+const argvRest = process.argv.slice(2);
+const isStdioMcp = argvRest.includes("mcp");
+const isKernelJson = argvRest[0] === "kernel";
+if (isWorkflowInitialized(cwd) && !isStdioMcp && !isKernelJson) {
   checkForUpdates(cwd);
 }
 
@@ -387,6 +390,28 @@ program
         dir: options.dir as string | undefined,
         templatesOnly: options.templatesOnly as boolean | undefined,
       });
+    } catch (error) {
+      console.error(
+        chalk.red("Error:"),
+        error instanceof Error ? error.message : error,
+      );
+      process.exit(1);
+    }
+  });
+
+program
+  .command("kernel")
+  .description(
+    "Kernel JSON stdin/stdout (Stage 1 single-writer for Task core state)",
+  )
+  .requiredOption(
+    "--json",
+    "Read a Kernel request from stdin and write one JSON object to stdout",
+  )
+  .action(async () => {
+    try {
+      const code = await runKernelJsonCli({ cwd: process.cwd() });
+      process.exit(code);
     } catch (error) {
       console.error(
         chalk.red("Error:"),
