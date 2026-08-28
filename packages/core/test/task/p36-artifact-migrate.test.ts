@@ -128,6 +128,86 @@ describe("P36 artifact B migrator", () => {
     expect(pool).toContain("do not rewrite");
   });
 
+  it("writes a Child with parent and empty children as single", () => {
+    const taskDir = path.join(tmp, ".cstl", "tasks", "old-child");
+    writeJson(path.join(taskDir, "task.json"), {
+      ...emptyTaskRecord({
+        id: "old-child",
+        name: "old-child",
+        title: "Child keep title",
+        status: "in_progress",
+        parent: "parent-a",
+        children: [],
+      }),
+    });
+
+    const result = applyArtifactMigration({
+      root: tmp,
+      plan: planArtifactMigration({ root: tmp }),
+    });
+    expect(result.ok).toBe(true);
+    const disk = JSON.parse(
+      fs.readFileSync(path.join(taskDir, "task.json"), "utf-8"),
+    ) as Record<string, unknown>;
+    expect(disk.topology).toMatchObject({
+      kind: "single",
+      parent_id: "parent-a",
+      children: [],
+    });
+  });
+
+  it("repairs a written Child that was misclassified as parent-child", () => {
+    const taskDir = path.join(tmp, ".cstl", "tasks", "mis-child");
+    writeJson(path.join(taskDir, "task.json"), {
+      ...emptyTaskRecord({
+        id: "mis-child",
+        name: "mis-child",
+        title: "Already written",
+        status: "in_progress",
+        parent: "parent-a",
+        children: [],
+      }),
+      required_controls: {
+        schema_version: 1,
+        source: "full-quality-contract",
+        rigor: "lite",
+        controls: ["definition", "evidence"],
+        surfaces: {},
+        resolved_from: {
+          verification_profile: null,
+          risk_signals: [],
+          policy_requires_design: false,
+        },
+      },
+      topology: {
+        schema_version: 1,
+        kind: "parent-child",
+        parent_id: "parent-a",
+        children: [],
+      },
+    });
+
+    const plan = planArtifactMigration({ root: tmp });
+    expect(plan.writable).toHaveLength(1);
+    expect(plan.writable[0]?.extra?.topology).toMatchObject({
+      kind: "single",
+      parent_id: "parent-a",
+      children: [],
+    });
+
+    const result = applyArtifactMigration({ root: tmp, plan });
+    expect(result.ok).toBe(true);
+    const disk = JSON.parse(
+      fs.readFileSync(path.join(taskDir, "task.json"), "utf-8"),
+    ) as Record<string, unknown>;
+    expect(disk.title).toBe("Already written");
+    expect(disk.topology).toMatchObject({
+      kind: "single",
+      parent_id: "parent-a",
+      children: [],
+    });
+  });
+
   it("does not write archive tasks and rolls back on failure", () => {
     const live = path.join(tmp, ".cstl", "tasks", "live");
     const archived = path.join(tmp, ".cstl", "tasks", "archive", "old");

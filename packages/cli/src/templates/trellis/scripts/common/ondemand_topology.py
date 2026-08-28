@@ -81,11 +81,12 @@ def assign_parent(topology: dict[str, Any], parent_id: str) -> dict[str, Any]:
         raise TopologyError(
             f"single-parent tree: second parent rejected ({current} vs {next_parent})"
         )
+    children = list(topology.get("children") or [])
     return {
         "schema_version": STAGE5_SCHEMA_VERSION,
-        "kind": "parent-child",
+        "kind": "parent-child" if children else "single",
         "parent_id": next_parent,
-        "children": list(topology.get("children") or []),
+        "children": children,
     }
 
 

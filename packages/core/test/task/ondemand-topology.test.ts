@@ -125,7 +125,7 @@ describe("Stage 5 On-demand and Topology", () => {
     expect(fs.existsSync(path.join(tmp, ".git"))).toBe(false);
   });
 
-  it("allows Full + single and Lite + parent-child without mixing the axes", () => {
+  it("allows Full + single and Lite + child-with-parent without mixing the axes", () => {
     const fullSingle = applyKernelCreate({
       taskDir,
       actor: "a",
@@ -160,15 +160,41 @@ describe("Stage 5 On-demand and Topology", () => {
       },
     });
     expect(liteChild.kernel.projection?.extras.topology).toMatchObject({
-      kind: "parent-child",
+      kind: "single",
       parent_id: "stage5-demo",
+      children: [],
     });
     expect(liteChild.kernel.projection?.extras.required_controls).toMatchObject({
       rigor: "lite",
     });
-    expect(residentOnDemandModules(liteChild.kernel.projection?.extras ?? {})).toContain(
+    expect(residentOnDemandModules(liteChild.kernel.projection?.extras ?? {})).not.toContain(
       "parent-child",
     );
+  });
+
+  it("keeps an ordinary Child as single and only controllers with children as parent-child", () => {
+    expect(defaultTopology({ parent: "parent-a", children: [] })).toMatchObject({
+      kind: "single",
+      parent_id: "parent-a",
+      children: [],
+    });
+    expect(assignParent(defaultTopology(), "parent-a")).toMatchObject({
+      kind: "single",
+      parent_id: "parent-a",
+      children: [],
+    });
+    expect(defaultTopology({ children: ["child-a"] })).toMatchObject({
+      kind: "parent-child",
+      parent_id: null,
+      children: ["child-a"],
+    });
+    expect(
+      assignParent(defaultTopology({ children: ["child-a"] }), "grand-parent"),
+    ).toMatchObject({
+      kind: "parent-child",
+      parent_id: "grand-parent",
+      children: ["child-a"],
+    });
   });
 
   it("rejects a second Parent on an already-linked Child", () => {

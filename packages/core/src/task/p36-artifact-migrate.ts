@@ -12,9 +12,11 @@ import path from "node:path";
 import { resolveRequiredControls, type RequiredControlsBundle } from "./full-quality.js";
 import { projectLegacyStatus } from "./kernel-contract.js";
 import {
+  STAGE5_SCHEMA_VERSION,
   defaultDependencyGraph,
   defaultTopology,
   expandDependsOnToRequires,
+  topologyKindFromChildren,
   type DependencyGraph,
   type TopologyState,
 } from "./ondemand-topology.js";
@@ -251,6 +253,12 @@ function scanTaskArtifact(
       parent,
       children,
     });
+  } else {
+    const repaired = repairMisclassifiedTopology(parsed, { id, parent, children });
+    if (repaired) {
+      missing.push("topology");
+      extra.topology = repaired;
+    }
   }
 
   const dependsOn = asStringArray(parsed.depends_on);
@@ -347,6 +355,43 @@ function hasRequiredControls(parsed: Record<string, unknown>): boolean {
 function hasTopology(parsed: Record<string, unknown>): boolean {
   const raw = parsed.topology;
   return isPlainObject(raw) && (raw.kind === "single" || raw.kind === "parent-child");
+}
+
+function repairMisclassifiedTopology(
+  parsed: Record<string, unknown>,
+  record: { id: string; parent: string | null; children: string[] },
+): TopologyState | null {
+  const raw = parsed.topology;
+  if (!isPlainObject(raw)) return null;
+  const parentId =
+    raw.parent_id === null || raw.parent_id === undefined
+      ? record.parent
+      : typeof raw.parent_id === "string" && raw.parent_id.trim() !== ""
+        ? raw.parent_id.trim()
+        : null;
+  const children = uniqueStrings([
+    ...asStringArray(raw.children),
+    ...record.children,
+  ]);
+  const expectedKind = topologyKindFromChildren(children);
+  if (raw.kind === expectedKind) return null;
+  return {
+    schema_version: STAGE5_SCHEMA_VERSION,
+    kind: expectedKind,
+    parent_id: parentId,
+    children,
+  };
+}
+
+function uniqueStrings(values: readonly unknown[]): string[] {
+  const out: string[] = [];
+  for (const value of values) {
+    if (typeof value !== "string") continue;
+    const id = value.trim();
+    if (!id || out.includes(id)) continue;
+    out.push(id);
+  }
+  return out;
 }
 
 function hasDependencyGraph(parsed: Record<string, unknown>): boolean {

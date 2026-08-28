@@ -146,6 +146,7 @@ export {
   STAGE5_ONDEMAND_MODULES,
   ONDEMAND_OWNERS,
   LITE_DORMANT_ONDEMAND,
+  topologyKindFromChildren,
   defaultTopology,
   defaultOndemandModules,
   defaultDependencyGraph,

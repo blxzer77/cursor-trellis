@@ -117,25 +117,23 @@ export interface Stage5RecordHint {
   children?: string[];
 }
 
+export function topologyKindFromChildren(
+  children: readonly string[],
+): TopologyKind {
+  return uniqueStrings(children).length > 0 ? "parent-child" : "single";
+}
+
 export function defaultTopology(record?: Stage5RecordHint): TopologyState {
   const parent =
     typeof record?.parent === "string" && record.parent.trim() !== ""
       ? record.parent
       : null;
   const children = uniqueStrings(record?.children ?? []);
-  if (parent || children.length > 0) {
-    return {
-      schema_version: STAGE5_SCHEMA_VERSION,
-      kind: "parent-child",
-      parent_id: parent,
-      children,
-    };
-  }
   return {
     schema_version: STAGE5_SCHEMA_VERSION,
-    kind: "single",
-    parent_id: null,
-    children: [],
+    kind: topologyKindFromChildren(children),
+    parent_id: parent,
+    children,
   };
 }
 
@@ -203,7 +201,7 @@ export function assignParent(
   }
   return {
     schema_version: STAGE5_SCHEMA_VERSION,
-    kind: "parent-child",
+    kind: topologyKindFromChildren(topology.children),
     parent_id: next,
     children: [...topology.children],
   };
@@ -343,11 +341,9 @@ export function normalizeTopology(raw: unknown, record?: Stage5RecordHint): Topo
   }
   const resolvedParent = parentId ?? seeded.parent_id;
   const resolvedChildren = uniqueStrings([...children, ...seeded.children]);
-  const resolvedKind =
-    resolvedParent || resolvedChildren.length > 0 ? "parent-child" : kind;
   return {
     schema_version: STAGE5_SCHEMA_VERSION,
-    kind: resolvedKind,
+    kind: topologyKindFromChildren(resolvedChildren),
     parent_id: resolvedParent,
     children: resolvedChildren,
   };

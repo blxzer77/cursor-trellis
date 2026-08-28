@@ -40,6 +40,15 @@ def test_capture_and_decompose_do_not_create() -> None:
     assert confirmed["children_created"] == ["child-a"]
 
 
+def test_assign_parent_keeps_ordinary_child_single() -> None:
+    linked = assign_parent({"parent_id": None, "children": []}, "parent-a")
+    assert linked["kind"] == "single"
+    assert linked["parent_id"] == "parent-a"
+    nested = assign_parent({"parent_id": None, "children": ["child-a"]}, "grand")
+    assert nested["kind"] == "parent-child"
+    assert nested["children"] == ["child-a"]
+
+
 def test_second_parent_and_child_integrate_rejected() -> None:
     topology = {"parent_id": "parent-a", "children": []}
     with pytest.raises(TopologyError, match="second parent"):
