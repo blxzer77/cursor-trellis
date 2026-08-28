@@ -1,5 +1,6 @@
 /**
- * Detect Cursor Native vs Cursor++ BYOK for retrieval routing.
+ * Detect Cursor Native vs BYOK environment for retrieval routing.
+ * This is an environment probe, not a product install surface.
  * Mirrors templates/trellis/scripts/common/cursor_retrieval_env.py
  */
 
@@ -121,7 +122,7 @@ export function semanticRouteSpec(
     return {
       commands: ["fast_context_search (fast-context MCP)"],
       rationaleSuffix:
-        " Cursor++ BYOK: built-in semantic unavailable; fast-context MCP primary." +
+        " BYOK env probe: built-in semantic unavailable; Optional fast-context only if selected." +
         unknownCaveat,
       platformNative: false,
       semanticBackend: "fast-context-mcp",

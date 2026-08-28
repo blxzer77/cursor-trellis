@@ -173,6 +173,49 @@ export {
 } from "./ondemand-topology.js";
 
 export type {
+  Stage6HookEvent,
+  RetrievalIntent,
+  Stage6CommandPhase,
+  ProviderReadinessStatus,
+  EventSubscription,
+  EventBridgeLastEvent,
+  EventBridgeState,
+  ProviderReadiness,
+  MiddlewareProviders,
+  CapabilityRouter,
+  DispatchHookEventInput,
+} from "./adapter-middleware.js";
+
+export {
+  STAGE6_SOURCE,
+  STAGE6_SCHEMA_VERSION,
+  STAGE6_HOOK_EVENTS,
+  RETRIEVAL_INTENTS,
+  DEFAULT_MIDDLEWARE_PROVIDERS,
+  OPTIONAL_CODE_INTEL_PROVIDERS,
+  SMART_SEARCH_PROVIDER,
+  EXTERNAL_KNOWLEDGE_CAPABILITY,
+  defaultEventBridge,
+  defaultMiddlewareProviders,
+  defaultCapabilityRouter,
+  subscribeEvent,
+  recordHookEvent,
+  probeSmartSearchReadiness,
+  applySmartSearchReadiness,
+  normalizeEventBridge,
+  normalizeMiddlewareProviders,
+  normalizeCapabilityRouter,
+  readEventBridge,
+  readMiddlewareProviders,
+  readCapabilityRouter,
+  requiredCapabilities,
+  externalKnowledgeReady,
+  normalizeStage6InExtras,
+  assertStage6ForPhase,
+  normalizeStage6InExtrasAndAssert,
+} from "./adapter-middleware.js";
+
+export type {
   KernelReadResult,
   KernelTransitionResult,
   KernelCommandResult,

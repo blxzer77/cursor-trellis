@@ -56,7 +56,7 @@ cstl update --migrate
 | Bin | 作用 |
 | --- | --- |
 | `cstl` | 在项目中初始化、更新、管理 Trellis |
-| `smart-search` | 随包分发的网页检索 CLI（见 [smart-search](#smart-search)） |
+| `smart-search` | 独立 Middleware 探测包装；缺失时降级，不作为同包自动安装契约（见 [smart-search](#smart-search)） |
 
 ```bash
 cstl --version
@@ -167,23 +167,24 @@ cstl uninstall -y
 
 ## smart-search 集成
 
-Trellis 集成了 [smart-search](https://github.com/blxzer77/smart-search)，这是一个用于 Agent 从网络检索当前信息的 CLI 工具。当你安装 cursor-trellis 时，smart-search 会自动作为依赖安装。
+Trellis 把 [smart-search](https://github.com/blxzer77/smart-search) 当作独立的 `external-knowledge` **Middleware Provider**。CSTL 只做运行时探测。安装 cursor-trellis **并不**契约式地自动安装 smart-search；smart-search 发版也不得迫使 CSTL Core 发版。
 
 **安装：**
 
-当你安装 cursor-trellis 时，smart-search 会自动安装：
+请单独安装该 Provider（或在包管理器提供可选安装时接受）：
 
 ```bash
-npm install -g @blxzer/cursor-trellis
-# smart-search 现已可用
+npm install -g @blxzer/smart-search
 smart-search --version
 ```
+
+Provider 缺失时 Profile 为 `degraded`。不需要外部知识的 Task 仍可 Close。真正需要的 Task 会阻塞，或按 Policy 降级。平台原生 Web 是降级，不是等价物。
 
 **链接：**
 - npm 包：https://www.npmjs.com/package/@blxzer/smart-search
 - GitHub 仓库：https://github.com/blxzer77/smart-search
 
-工作流会在 smart-search 可用时，将外部事实查询路由到它。详见仓库了解配置和使用详情。
+工作流在 Provider 就绪时把外部事实查询路由到 smart-search。配置与用法见其仓库。
 
 ---
 

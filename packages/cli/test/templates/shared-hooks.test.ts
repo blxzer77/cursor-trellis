@@ -8,6 +8,7 @@ import {
 
 const ALL_HOOK_FILES = [
   "session-start.py",
+  "event-bridge.py",
   "inject-shell-session-context.py",
   "rename-session-for-task.py",
   "inject-retrieval-plan.py",
