@@ -41,13 +41,14 @@ from .config import (
 )
 from .cli_environment import format_git_repo_errors, print_environment_repair_hints
 from .git import run_git
-from .io import read_json, write_json
+from .io import read_json
 from .kernel_command import (
     KernelCliNotFound,
     KernelCommandError,
     kernel_archive,
     kernel_create,
     kernel_expected_revision,
+    kernel_patch,
     print_kernel_error,
 )
 from .log import Colors, colored
@@ -354,6 +355,35 @@ def _default_prd_content(
     return default_prd_content(title, description, locale, root)
 
 
+def _kernel_patch_task_json(
+    task_dir: Path,
+    data: dict,
+    *,
+    actor: str,
+    op: str,
+    evidence: str,
+) -> bool:
+    """Persist mutated task.json fields through Kernel patch (not task-map.md)."""
+    extras = collect_kernel_projection_extras(data)
+    if "depends_on" in data:
+        extras["depends_on"] = data["depends_on"]
+    try:
+        expected = kernel_expected_revision(task_dir)
+        kernel_patch(
+            task_dir,
+            data,
+            extras,
+            expected_revision=expected,
+            actor=actor,
+            idempotency_key=f"patch:{op}:{task_dir.name}:r{expected}",
+            evidence=evidence,
+        )
+        return True
+    except (KernelCliNotFound, KernelCommandError) as err:
+        print_kernel_error(err)
+        return False
+
+
 # =============================================================================
 # Command: create
 # =============================================================================
@@ -508,16 +538,21 @@ def cmd_create(args: argparse.Namespace) -> int:
                 _write_seed_jsonl(jsonl_path, repo_root, task_dir, task_data)
         seeded_jsonl = True
 
-    # Handle --parent: Parent-Child children[] + task-map stay on the Python
-    # writer family (out of this Child). The child's `parent` field is part of
-    # the Kernel create record above.
+    # Handle --parent: child's `parent` is in the Kernel create record above;
+    # parent `children[]` goes through Kernel patch. task-map.md stays Python.
     if parent_dir is not None and parent_data:
-        parent_json_path = parent_dir / FILE_TASK_JSON
         parent_children = parent_data.get("children", [])
         if dir_name not in parent_children:
             parent_children.append(dir_name)
             parent_data["children"] = parent_children
-            write_json(parent_json_path, parent_data)
+            if not _kernel_patch_task_json(
+                parent_dir,
+                parent_data,
+                actor="task.py create",
+                op="create-parent-link",
+                evidence="children[]",
+            ):
+                return 1
         ensure_task_map(
             parent_dir,
             parent_data,
@@ -687,7 +722,14 @@ def _archive_one_task(
                         child_data = read_json(child_json)
                         if child_data:
                             child_data["parent"] = None
-                            write_json(child_json, child_data)
+                            if not _kernel_patch_task_json(
+                                child_dir_path,
+                                child_data,
+                                actor="task.py archive",
+                                op="archive-clear-parent",
+                                evidence="parent",
+                            ):
+                                return False, modified_children, None
                             modified_children.append(child_dir_path.name)
 
     from .active_task import clear_task_from_sessions
@@ -1006,9 +1048,22 @@ def cmd_add_subtask(args: argparse.Namespace) -> int:
     # Set parent in child's task.json
     child_data["parent"] = parent_dir.name
 
-    # Write both
-    write_json(parent_json_path, parent_data)
-    write_json(child_json_path, child_data)
+    if not _kernel_patch_task_json(
+        parent_dir,
+        parent_data,
+        actor="task.py add-subtask",
+        op="add-subtask",
+        evidence="children[]",
+    ):
+        return 1
+    if not _kernel_patch_task_json(
+        child_dir,
+        child_data,
+        actor="task.py add-subtask",
+        op="add-subtask",
+        evidence="parent",
+    ):
+        return 1
     ensure_task_map(
         parent_dir,
         parent_data,
@@ -1059,9 +1114,22 @@ def cmd_remove_subtask(args: argparse.Namespace) -> int:
     # Clear parent in child's task.json
     child_data["parent"] = None
 
-    # Write both
-    write_json(parent_json_path, parent_data)
-    write_json(child_json_path, child_data)
+    if not _kernel_patch_task_json(
+        parent_dir,
+        parent_data,
+        actor="task.py remove-subtask",
+        op="remove-subtask",
+        evidence="children[]",
+    ):
+        return 1
+    if not _kernel_patch_task_json(
+        child_dir,
+        child_data,
+        actor="task.py remove-subtask",
+        op="remove-subtask",
+        evidence="parent",
+    ):
+        return 1
     remove_child_from_task_map(parent_dir, parent_data, child_dir_name)
 
     print(colored(f"Unlinked: {child_dir.name} from {parent_dir.name}", Colors.GREEN), file=sys.stderr)
@@ -1147,7 +1215,14 @@ def cmd_prepare_child_worktree(args: argparse.Namespace) -> int:
 
     child_data["branch"] = branch
     child_data["worktree_path"] = worktree_rel
-    write_json(child_json_path, child_data)
+    if not _kernel_patch_task_json(
+        child_dir,
+        child_data,
+        actor="task.py prepare-child-worktree",
+        op="prepare-child-worktree",
+        evidence="branch,worktree_path",
+    ):
+        return 1
 
     ok, map_errors = record_child_worktree(
         parent_dir,
@@ -1186,7 +1261,7 @@ def append_depends_ignore_event(
     """Append a depends-ignore audit event to meta.depends_ignore_events.
 
     Mutates task_data in memory; the caller persists it in the SAME
-    write_json as the mutation it accompanies (execution approval / child
+    Kernel patch as the mutation it accompanies (execution approval / child
     state), so the event can never dangle as a separate stale write. The
     list is capped at MAX_IGNORE_EVENTS (FIFO drops the oldest entry).
     """
@@ -1275,8 +1350,13 @@ def _guard_child_working_deps(
         evidence=args.evidence,
         reason=getattr(args, "reason", None),
     )
-    child_json_path = child_dir / FILE_TASK_JSON
-    if not write_json(child_json_path, child_data):
+    if not _kernel_patch_task_json(
+        child_dir,
+        child_data,
+        actor="task.py set-child-state",
+        op="depends-ignore",
+        evidence=str(args.evidence or "ignore-deps"),
+    ):
         print(
             colored("Error: failed to write task.json (ignore event)", Colors.RED),
             file=sys.stderr,
@@ -1811,7 +1891,14 @@ def cmd_set_branch(args: argparse.Namespace) -> int:
         return 1
 
     data["branch"] = branch
-    write_json(task_json, data)
+    if not _kernel_patch_task_json(
+        target_dir,
+        data,
+        actor="task.py set-branch",
+        op="set-branch",
+        evidence="branch",
+    ):
+        return 1
 
     print(colored(f"✓ Branch set to: {branch}", Colors.GREEN))
     return 0
@@ -1845,7 +1932,14 @@ def cmd_set_base_branch(args: argparse.Namespace) -> int:
         return 1
 
     data["base_branch"] = base_branch
-    write_json(task_json, data)
+    if not _kernel_patch_task_json(
+        target_dir,
+        data,
+        actor="task.py set-base-branch",
+        op="set-base-branch",
+        evidence="base_branch",
+    ):
+        return 1
 
     print(colored(f"✓ Base branch set to: {base_branch}", Colors.GREEN))
     print(f"  PR will target: {base_branch}")
@@ -1877,7 +1971,14 @@ def cmd_set_scope(args: argparse.Namespace) -> int:
         return 1
 
     data["scope"] = scope
-    write_json(task_json, data)
+    if not _kernel_patch_task_json(
+        target_dir,
+        data,
+        actor="task.py set-scope",
+        op="set-scope",
+        evidence="scope",
+    ):
+        return 1
 
     print(colored(f"✓ Scope set to: {scope}", Colors.GREEN))
     return 0
@@ -1919,7 +2020,13 @@ def cmd_set_deps(args: argparse.Namespace) -> int:
         if resolve_dep_ref(ref, repo_root=repo_root).kind == KIND_MISSING
     ]
 
-    if not write_json(task_json, data):
+    if not _kernel_patch_task_json(
+        target_dir,
+        data,
+        actor="task.py set-deps",
+        op="set-deps",
+        evidence="depends_on",
+    ):
         print(colored("Error: failed to write task.json", Colors.RED), file=sys.stderr)
         return 1
 
@@ -1989,7 +2096,13 @@ def cmd_set_depends_mode(args: argparse.Namespace) -> int:
         data["meta"] = meta
     meta["depends_mode"] = args.mode
 
-    if not write_json(task_json, data):
+    if not _kernel_patch_task_json(
+        target_dir,
+        data,
+        actor="task.py set-depends-mode",
+        op="set-depends-mode",
+        evidence="meta.depends_mode",
+    ):
         print(colored("Error: failed to write task.json", Colors.RED), file=sys.stderr)
         return 1
 
