@@ -103,6 +103,9 @@ export interface UpdateRolloutReport {
     artifactWritable: number;
     degraded: string[];
     writeArtifacts: boolean;
+    waveCConfirmed?: boolean;
+    leftoverCloseout?: number;
+    alreadyNewShape?: number;
   };
   plan: {
     upgradeDirection: "upgrade" | "downgrade" | "same" | "unknown";

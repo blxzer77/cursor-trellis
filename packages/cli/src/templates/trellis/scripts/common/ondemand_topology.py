@@ -72,6 +72,21 @@ def apply_retention(outcome: str) -> str:
     return outcome
 
 
+def default_topology(
+    parent: str | None = None,
+    children: list[str] | None = None,
+) -> dict[str, Any]:
+    """Seed Topology. ``parent_id`` + empty children stays ``single``."""
+    kids = _unique(children or [])
+    parent_id = (parent or "").strip() or None
+    return {
+        "schema_version": STAGE5_SCHEMA_VERSION,
+        "kind": "parent-child" if kids else "single",
+        "parent_id": parent_id,
+        "children": kids,
+    }
+
+
 def assign_parent(topology: dict[str, Any], parent_id: str) -> dict[str, Any]:
     current = topology.get("parent_id")
     next_parent = (parent_id or "").strip()

@@ -62,7 +62,7 @@ describe("P31–P36 product protocol docs", () => {
     expect(upgrade).toContain("cstl update");
     expect(upgrade).toMatch(/确认一次/);
     expect(upgrade).toMatch(/双读/);
-    expect(upgrade).toMatch(/Contract 另批/);
+    expect(upgrade).toMatch(/确认后才会停读旧形状/);
     expect(upgrade).not.toMatch(/Stage\s*[0-7]/);
     expect(upgrade).not.toMatch(/Stage 0/);
     expect(upgrade).not.toMatch(/MyHarness/);

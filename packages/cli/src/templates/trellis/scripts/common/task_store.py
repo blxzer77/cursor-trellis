@@ -77,6 +77,7 @@ from .task_gates import (
     validate_archive,
     write_gate_record,
 )
+from .ondemand_topology import TopologyError, assign_parent, default_topology
 from .task_map import (
     CHILD_STATES,
     CHILD_REPORT_STATES,
@@ -1079,6 +1080,33 @@ def cmd_add_subtask(args: argparse.Namespace) -> int:
     # Set parent in child's task.json
     child_data["parent"] = parent_dir.name
 
+    parent_id = str(parent_data.get("id") or parent_dir.name)
+    parent_existing = (
+        parent_data.get("topology")
+        if isinstance(parent_data.get("topology"), dict)
+        else {}
+    )
+    parent_data["topology"] = default_topology(
+        parent=parent_existing.get("parent_id") or parent_data.get("parent"),
+        children=parent_children,
+    )
+    child_existing = (
+        child_data.get("topology")
+        if isinstance(child_data.get("topology"), dict)
+        else {}
+    )
+    child_children = list(
+        child_existing.get("children") or child_data.get("children") or []
+    )
+    try:
+        child_data["topology"] = assign_parent(
+            default_topology(parent=None, children=child_children),
+            parent_id,
+        )
+    except TopologyError as err:
+        print(colored(f"Error: {err}", Colors.RED), file=sys.stderr)
+        return 1
+
     if not _kernel_patch_task_json(
         parent_dir,
         parent_data,
@@ -1144,6 +1172,25 @@ def cmd_remove_subtask(args: argparse.Namespace) -> int:
 
     # Clear parent in child's task.json
     child_data["parent"] = None
+
+    parent_existing = (
+        parent_data.get("topology")
+        if isinstance(parent_data.get("topology"), dict)
+        else {}
+    )
+    parent_data["topology"] = default_topology(
+        parent=parent_existing.get("parent_id") or parent_data.get("parent"),
+        children=parent_children,
+    )
+    child_existing = (
+        child_data.get("topology")
+        if isinstance(child_data.get("topology"), dict)
+        else {}
+    )
+    child_data["topology"] = default_topology(
+        parent=None,
+        children=list(child_existing.get("children") or child_data.get("children") or []),
+    )
 
     if not _kernel_patch_task_json(
         parent_dir,

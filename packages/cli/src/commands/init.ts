@@ -35,6 +35,7 @@ import { insertCstlManagedBlock } from "../utils/agents-md.js";
 import {
   applyKernelCreate,
   applyKernelStart,
+  writeWaveCConfirmed,
 } from "@blxzer/cursor-trellis-core/task";
 import { emptyTaskJson, type TaskJson } from "../utils/task-json.js";
 import {
@@ -2106,6 +2107,7 @@ export async function init(options: InitOptions): Promise<void> {
     // Write version file for update tracking
     const versionPath = path.join(cwd, DIR_NAMES.WORKFLOW, ".version");
     fs.writeFileSync(versionPath, VERSION);
+    writeWaveCConfirmed(cwd);
 
     // Configure selected tools by copying entire directories (dogfooding).
     // In coexistence mode cursor-trellis takes over `.cursor/` — force-write

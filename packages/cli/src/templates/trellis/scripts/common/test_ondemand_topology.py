@@ -20,6 +20,7 @@ from common.ondemand_topology import (
     assign_parent,
     capture_candidate,
     confirm_decompose,
+    default_topology,
     expand_depends_on_to_requires,
     project_task_map_graph,
     propose_decompose,
@@ -38,6 +39,14 @@ def test_capture_and_decompose_do_not_create() -> None:
     confirmed = confirm_decompose(proposal)
     assert confirmed["confirmed"] is True
     assert confirmed["children_created"] == ["child-a"]
+
+
+def test_default_topology_parent_id_alone_is_single() -> None:
+    linked = default_topology(parent="parent-a", children=[])
+    assert linked["kind"] == "single"
+    assert linked["parent_id"] == "parent-a"
+    controller = default_topology(parent=None, children=["child-a"])
+    assert controller["kind"] == "parent-child"
 
 
 def test_assign_parent_keeps_ordinary_child_single() -> None:

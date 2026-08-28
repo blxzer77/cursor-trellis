@@ -15,7 +15,11 @@ from common.full_quality import (
     resolve_required_controls,
     rigor_from_required_controls,
 )
-from common.task_gates import task_closeout_profile, validate_archive
+from common.task_gates import (
+    task_closeout_profile,
+    validate_archive,
+    wave_c_stop_read_confirmed,
+)
 
 LITE_VERIFY = """# Verification Evidence
 
@@ -63,6 +67,46 @@ def test_closeout_reads_legacy_classification_but_prefers_topology(
             {
                 "required_controls": resolve_required_controls(rigor="lite"),
                 "topology": {"kind": "parent-child", "parent_id": None, "children": ["c1"]},
+            },
+        )
+        == "parent"
+    )
+
+
+def test_closeout_stops_leftover_after_wave_c_confirm(tmp_path: Path) -> None:
+    (tmp_path / ".cstl").mkdir()
+    (tmp_path / ".cstl" / ".p36-wave-c.json").write_text(
+        '{"schema_version": 1, "wave": "C", "confirmed": true, "confirmedAt": "2026-08-29T00:00:00Z"}\n',
+        encoding="utf-8",
+    )
+    child = tmp_path / ".cstl" / "tasks" / "linked-child"
+    child.mkdir(parents=True)
+    assert wave_c_stop_read_confirmed(child) is True
+    assert (
+        task_closeout_profile(
+            child,
+            {
+                "parent": "parent-a",
+                "children": [],
+                "meta": {"classification": "parent"},
+                "kind": "parent",
+                "topology": {"kind": "single", "parent_id": "parent-a", "children": []},
+            },
+        )
+        == "lite"
+    )
+    parent = tmp_path / ".cstl" / "tasks" / "controller"
+    parent.mkdir(parents=True)
+    assert (
+        task_closeout_profile(
+            parent,
+            {
+                "required_controls": resolve_required_controls(rigor="lite"),
+                "topology": {
+                    "kind": "parent-child",
+                    "parent_id": None,
+                    "children": ["linked-child"],
+                },
             },
         )
         == "parent"

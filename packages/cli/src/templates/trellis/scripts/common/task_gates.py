@@ -183,13 +183,32 @@ def normalize_result(result: str) -> str:
     return result.strip().upper()
 
 
+def wave_c_stop_read_confirmed(start: Path | None = None) -> bool:
+    """Return True after ``cstl update`` wrote the Wave C confirm flag.
+
+    Unconfirmed projects keep leftover dual-read. Missing ``.cstl`` is
+    unconfirmed (unit fixtures without a repo root stay dual-read).
+    """
+    from .paths import DIR_WORKFLOW, get_repo_root
+
+    root = get_repo_root(start)
+    path = root / DIR_WORKFLOW / ".p36-wave-c.json"
+    if not path.is_file():
+        return False
+    try:
+        parsed = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+    return isinstance(parsed, dict) and parsed.get("confirmed") is True
+
+
 def task_closeout_profile(task_dir: Path, task_data: dict | None = None) -> str:
     """Return lite, full, or parent closeout profile.
 
     New Tasks use persisted ``required_controls`` / Topology only. Missing
-    contract is explicit Lite. Historical Archive / old task.json may still
-    be *read* via legacy kind/mode/classification fields. File existence and
-    ``children[]`` are not used to infer Rigor or Parent.
+    contract is explicit Lite. File existence and ``children[]`` are not
+    used to infer Rigor or Parent. Leftover kind/mode/classification are
+    dual-read only until Wave C is confirmed.
     """
     data = task_data or {}
     topology = data.get("topology") if isinstance(data.get("topology"), dict) else {}
@@ -199,6 +218,9 @@ def task_closeout_profile(task_dir: Path, task_data: dict | None = None) -> str:
     persisted = rigor_from_required_controls(data)
     if persisted in ("lite", "full"):
         return persisted
+
+    if wave_c_stop_read_confirmed(task_dir):
+        return "lite"
 
     meta = data.get("meta") if isinstance(data.get("meta"), dict) else {}
     candidates = [
@@ -514,6 +536,17 @@ KERNEL_PROJECTION_EXTRA_KEYS = (
     "required_controls",
     "ac_evidence_ledger",
     "independent_check",
+    "topology",
+    "dependency_graph",
+    "ondemand_modules",
+    "depends_on",
+    "dependency_satisfied",
+    "decompose_proposal",
+    "profile_health",
+    "event_bridge",
+    "middleware_providers",
+    "capability_router",
+    "required_capabilities",
 )
 
 

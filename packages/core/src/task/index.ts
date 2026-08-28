@@ -279,3 +279,17 @@ export {
   applyArtifactMigration,
   formatArtifactVernacular,
 } from "./p36-artifact-migrate.js";
+
+export type { WaveCState, WaveCPlan } from "./p36-wave-c.js";
+
+export {
+  WAVE_C_STATE_REL,
+  WAVE_C_SCHEMA_VERSION,
+  waveCStatePath,
+  emptyWaveCState,
+  readWaveCState,
+  isWaveCConfirmed,
+  writeWaveCConfirmed,
+  planWaveC,
+  formatWaveCVernacular,
+} from "./p36-wave-c.js";

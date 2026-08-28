@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Task Management Script.
+Thin Task shim over `cstl kernel --json`.
+
+Write-path commands (create / start-execution / record-gate / archive / patch
+via add-subtask and friends) submit a Kernel Command. Do not invent `cstl task`.
+Select / dashboard / jsonl / parent-status stay Python overlays.
 
 Usage:
+    python task.py kernel                      # stdin JSON → cstl kernel --json
     python task.py create "<title>" [--slug <name>] [--assignee <dev>] [--priority P0|P1|P2|P3] [--parent <dir>] [--package <pkg>]
     python task.py add-context <dir> <file> <path> [reason] # Add jsonl entry
     python task.py validate <dir>              # Validate jsonl files
@@ -39,6 +44,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -66,6 +72,7 @@ from common.kernel_command import (
     kernel_record_gate,
     kernel_start,
     print_kernel_error,
+    run_kernel_command,
 )
 from common.task_dashboard import render_task_dashboard
 from common.cli_environment import optional_capability_note
@@ -148,6 +155,27 @@ def _resolve_existing_task(task_input: str, repo_root):
         print("Hint: Use task name (e.g., 'my-task') or full path (e.g., '.cstl/tasks/01-31-my-task')", file=sys.stderr)
         return None
     return full_path
+
+
+def cmd_kernel(args: argparse.Namespace) -> int:
+    """Forward one JSON object on stdin to `cstl kernel --json`."""
+    _ = args
+    raw = sys.stdin.read()
+    try:
+        payload = json.loads(raw) if raw.strip() else {}
+    except json.JSONDecodeError as err:
+        print(colored(f"Error: stdin is not JSON: {err}", Colors.RED), file=sys.stderr)
+        return 1
+    if not isinstance(payload, dict):
+        print(colored("Error: Kernel request must be a JSON object", Colors.RED), file=sys.stderr)
+        return 1
+    try:
+        result = run_kernel_command(payload, cwd=get_repo_root())
+    except (KernelCliNotFound, KernelCommandError) as err:
+        print_kernel_error(err)
+        return 1
+    print(json.dumps(result, ensure_ascii=False))
+    return 0
 
 
 def cmd_dashboard(args: argparse.Namespace) -> int:
@@ -698,10 +726,15 @@ def main() -> int:
         return 2
 
     parser = argparse.ArgumentParser(
-        description="Task Management Script",
+        description="Thin Task shim over cstl kernel --json",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     subparsers = parser.add_subparsers(dest="command", help="Commands")
+
+    subparsers.add_parser(
+        "kernel",
+        help="Forward stdin JSON to `cstl kernel --json` (do not invent cstl task)",
+    )
 
     # create
     p_create = subparsers.add_parser("create", help="Create new task")
@@ -1031,6 +1064,7 @@ def main() -> int:
         return 1
 
     commands = {
+        "kernel": cmd_kernel,
         "create": cmd_create,
         "add-context": cmd_add_context,
         "validate": cmd_validate,

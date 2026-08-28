@@ -41,21 +41,22 @@ Shows the Phase Index (Plan / Execute / Finish) with routing + skill mapping.
 
 ## Step 4: Decide Where You Are
 
-When a task is selected, `get_context.py` shows the selected task's `status` field. Route by `status` + artifact presence. This command replaces the user needing to remember the Trellis flow; it does not itself approve implementation.
+When a task is selected, `get_context.py` shows the selected task. Route by Kernel / persisted `required_controls.rigor` and `topology.kind`, not by whether `design.md` or `implement.md` exist. `status` is a projection, not the sole truth. This command replaces the user needing to remember the Trellis flow; it does not itself approve implementation.
 
 - `status=planning` + no `prd.md` → **1.1** (Read `.cstl/framework/prd-grill-frontier.md` for PRD Grill discipline)
-- `status=planning` + `prd.md` only → decide whether the task is lightweight or complex. Lightweight can move to **1.4** review; complex returns to **1.1** to add `design.md` + `implement.md`.
-- `status=planning` + complex artifacts complete + sub-agent jsonl not curated (only the seed `_example` row) → **1.3**
+- `status=planning` + `prd.md` + rigor is lite (or missing contract = explicit Lite) → **1.4** review / execution gate
+- `status=planning` + rigor is full + required planning artifacts not complete → stay in planning (`design.md` / `implement.md` only when `required_controls` says so)
 - `status=planning` + required artifacts complete + required jsonl curated or inline mode → execution gate (run `task.py start-execution <task> --check`, report PASS, ask for explicit execution approval, then run `task.py start-execution <task> --approved`)
 - `status=in_progress` + implementation not started → **2.1**
 - `status=in_progress` + implementation done, not yet checked → **2.2**
 - `status=in_progress` + check passed → **3.1**
 - `status=completed` (rare; usually archived immediately) → archive flow
+- `topology.kind=parent-child` → Parent integration path, not ordinary Child closeout. `parent_id` alone does **not** make a Child a Parent.
 
 Phase rules (full detail in `.cstl/workflow.md`):
 
 1. Run steps **in order** within a phase — `[required]` steps must not be skipped
-2. `[once]` steps are already done if the required output exists. `prd.md` alone can be enough only for lightweight tasks; complex tasks also need `design.md` and `implement.md`.
+2. `[once]` steps are already done if the required output exists. `prd.md` alone can be enough when rigor is Lite; Full follows `required_controls`, not file presence.
 3. You may go back to an earlier phase if discoveries require it
 
 ## Step 5: Load the Specific Step

@@ -3,7 +3,8 @@
  *
  * Wave A refreshes unmodified shipped files (already owned by update hash
  * analysis) and retires leftover extra always-on rules. User-modified
- * official files are listed and kept. Wave C is out of scope.
+ * official files are listed and kept. Wave C stop-read is confirm-gated
+ * on the same `cstl update` + one confirm.
  */
 
 import fs from "node:fs";
@@ -13,7 +14,9 @@ import chalk from "chalk";
 
 import {
   formatArtifactVernacular,
+  formatWaveCVernacular,
   type ArtifactMigratePlan,
+  type WaveCPlan,
 } from "@blxzer/cursor-trellis-core/task";
 import type { TemplateHashes } from "../types/migration.js";
 import { computeHash, removeHash } from "./template-hash.js";
@@ -51,6 +54,7 @@ export interface P36UpgradePlan {
   official: OfficialSurfacePlan;
   artifacts: ArtifactMigratePlan;
   writeArtifacts: boolean;
+  waveC: WaveCPlan;
   vernacular: string[];
 }
 
@@ -131,6 +135,7 @@ export function composeP36Plan(options: {
   official: OfficialSurfacePlan;
   artifacts: ArtifactMigratePlan;
   writeArtifacts: boolean;
+  waveC: WaveCPlan;
 }): P36UpgradePlan {
   const officialCount =
     options.official.refresh.length +
@@ -141,11 +146,13 @@ export function composeP36Plan(options: {
   const vernacular = [
     `官方面：将刷新 ${officialCount} 个未改过的官方文件/规则；你改过的 ${preservedCount} 个已保留。`,
     ...formatArtifactVernacular(options.artifacts, options.writeArtifacts),
+    ...formatWaveCVernacular(options.waveC),
   ];
   return {
     official: options.official,
     artifacts: options.artifacts,
     writeArtifacts: options.writeArtifacts,
+    waveC: options.waveC,
     vernacular,
   };
 }
@@ -178,6 +185,10 @@ export function officialWorkPending(plan: OfficialSurfacePlan): boolean {
   );
 }
 
+export function waveCWorkPending(plan: P36UpgradePlan): boolean {
+  return !plan.waveC.confirmed;
+}
+
 export function p36SummaryForRollout(plan: P36UpgradePlan): {
   officialRefresh: number;
   officialPreserved: number;
@@ -186,6 +197,9 @@ export function p36SummaryForRollout(plan: P36UpgradePlan): {
   artifactWritable: number;
   degraded: string[];
   writeArtifacts: boolean;
+  waveCConfirmed: boolean;
+  leftoverCloseout: number;
+  alreadyNewShape: number;
 } {
   return {
     officialRefresh:
@@ -199,6 +213,9 @@ export function p36SummaryForRollout(plan: P36UpgradePlan): {
     artifactWritable: plan.writeArtifacts ? plan.artifacts.writable.length : 0,
     degraded: plan.artifacts.degraded,
     writeArtifacts: plan.writeArtifacts,
+    waveCConfirmed: plan.waveC.confirmed,
+    leftoverCloseout: plan.waveC.leftoverCloseout,
+    alreadyNewShape: plan.waveC.alreadyNewShape,
   };
 }
 

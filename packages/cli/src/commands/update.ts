@@ -55,6 +55,9 @@ import {
   applyArtifactMigration,
   applyKernelCreate,
   planArtifactMigration,
+  planWaveC,
+  scanContractMigration,
+  writeWaveCConfirmed,
 } from "@blxzer/cursor-trellis-core/task";
 import { emptyTaskJson } from "../utils/task-json.js";
 import {
@@ -64,6 +67,7 @@ import {
   planOfficialSurfaceA,
   printP36Vernacular,
   p36SummaryForRollout,
+  waveCWorkPending,
   type P36UpgradePlan,
 } from "../utils/p36-upgrade.js";
 
@@ -2384,10 +2388,15 @@ export async function update(options: UpdateOptions): Promise<void> {
     added: changes.newFiles.map((file) => file.relativePath),
   });
   const artifactPlan = planArtifactMigration({ root: cwd });
+  const waveCPlan = planWaveC({
+    root: cwd,
+    report: scanContractMigration({ root: cwd }),
+  });
   const p36Plan: P36UpgradePlan = composeP36Plan({
     official: officialPlan,
     artifacts: artifactPlan,
     writeArtifacts: Boolean(options.writeArtifacts),
+    waveC: waveCPlan,
   });
   p36State.report = p36SummaryForRollout(p36Plan);
   printP36Vernacular(p36Plan);
@@ -2422,6 +2431,7 @@ export async function update(options: UpdateOptions): Promise<void> {
   const hasOfficialP36 = officialWorkPending(officialPlan);
   const hasMaintainerArtifactWrites =
     Boolean(options.writeArtifacts) && artifactPlan.writable.length > 0;
+  const hasWaveCPending = waveCWorkPending(p36Plan);
 
   if (
     changes.newFiles.length === 0 &&
@@ -2430,7 +2440,8 @@ export async function update(options: UpdateOptions): Promise<void> {
     !hasPendingMigrations &&
     !hasSafeDeletes &&
     !hasOfficialP36 &&
-    !hasMaintainerArtifactWrites
+    !hasMaintainerArtifactWrites &&
+    !hasWaveCPending
   ) {
     if (!options.dryRun && missingAgentsMdHash.size > 0) {
       updateHashes(cwd, missingAgentsMdHash);
@@ -2533,6 +2544,11 @@ export async function update(options: UpdateOptions): Promise<void> {
     return;
   }
 
+  // File-conflict flags (--force / --skip-all / --create-new) consent to apply
+  // official A writes. They are not Wave C stop-read confirm. Only interactive
+  // Proceed? yes writes `.cstl/.p36-wave-c.json`.
+  let waveCInteractivelyConfirmed = false;
+
   // Batch-resolution flags are explicit consent for non-interactive runs.
   // Prompting here breaks CI and `node ... update --force --migrate` smoke tests.
   if (!options.force && !options.skipAll && !options.createNew) {
@@ -2561,6 +2577,7 @@ export async function update(options: UpdateOptions): Promise<void> {
       emitRollout("cancelled", { files: buildRolloutFilePlan() });
       return;
     }
+    waveCInteractivelyConfirmed = true;
   }
 
   // Create complete backup of all managed platform/workflow directories
@@ -2855,6 +2872,29 @@ export async function update(options: UpdateOptions): Promise<void> {
   }
   if (artifactApply && !artifactApply.ok) {
     console.log("  Artifact projections: rolled back to dual-read");
+  }
+  if (hasWaveCPending && waveCInteractivelyConfirmed) {
+    try {
+      writeWaveCConfirmed(cwd);
+      console.log(
+        "  已确认停读旧形状（leftover kind/mode/classification 不再当唯一真相）",
+      );
+    } catch (err) {
+      console.log(
+        chalk.yellow(
+          "停读确认未写上。项目仍可用，旧字段仍双读，可再跑 update。",
+        ),
+      );
+      if (err instanceof Error && err.message) {
+        console.log(chalk.gray(`  ${err.message}`));
+      }
+    }
+  } else if (hasWaveCPending) {
+    console.log(
+      chalk.yellow(
+        "  旧字段仍双读。停读需要再跑一次交互式 `cstl update` 并确认 Proceed?（--force / --skip-all / --create-new 不算停读确认）。",
+      ),
+    );
   }
   if (backupDir) {
     console.log(`  Backup: ${path.relative(cwd, backupDir)}/`);

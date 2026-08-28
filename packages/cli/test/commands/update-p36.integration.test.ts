@@ -1,10 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import inquirer from "inquirer";
 
-import { emptyTaskRecord } from "@blxzer/cursor-trellis-core/task";
+import {
+  emptyTaskRecord,
+  isWaveCConfirmed,
+  WAVE_C_STATE_REL,
+} from "@blxzer/cursor-trellis-core/task";
 
 vi.mock("figlet", () => ({
   default: { textSync: vi.fn(() => "TRELLIS") },
@@ -14,16 +19,20 @@ vi.mock("inquirer", () => ({
   default: { prompt: vi.fn().mockResolvedValue({ proceed: true }) },
 }));
 
-vi.mock("node:child_process", () => ({
-  execSync: vi.fn().mockImplementation((cmd: string) => {
-    const py = process.platform === "win32" ? "python" : "python3";
-    if (cmd === `${py} --version`) return "Python 3.11.12";
-    if (cmd === "smart-search doctor --format json") {
-      return JSON.stringify({ ok: true, minimum_profile_ok: true });
-    }
-    return "";
-  }),
-}));
+vi.mock("node:child_process", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("node:child_process")>();
+  return {
+    ...actual,
+    execSync: vi.fn().mockImplementation((cmd: string) => {
+      const py = process.platform === "win32" ? "python" : "python3";
+      if (cmd === `${py} --version`) return "Python 3.11.12";
+      if (cmd === "smart-search doctor --format json") {
+        return JSON.stringify({ ok: true, minimum_profile_ok: true });
+      }
+      return "";
+    }),
+  };
+});
 
 import { init } from "../../src/commands/init.js";
 import { update } from "../../src/commands/update.js";
@@ -40,6 +49,7 @@ alwaysApply: true
 `;
 
 const PRD = "# KEEP-THIS-PRD-BODY\n";
+const PY = process.platform === "win32" ? "python" : "python3";
 
 function writeJson(file: string, value: unknown): void {
   fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -57,7 +67,31 @@ function writeHashesV2(hashFile: string, hashes: Record<string, string>): void {
   fs.writeFileSync(hashFile, JSON.stringify({ __version: 2, hashes }, null, 2));
 }
 
-describe("update() P36 A+B", () => {
+function closeoutProfile(
+  cwd: string,
+  taskDir: string,
+  payload: Record<string, unknown>,
+): string {
+  const result = spawnSync(
+    PY,
+    [
+      "-c",
+      [
+        "import json, sys",
+        "from pathlib import Path",
+        "sys.path.insert(0, '.cstl/scripts')",
+        "from common.task_gates import task_closeout_profile",
+        `data = json.loads(${JSON.stringify(JSON.stringify(payload))})`,
+        `print(task_closeout_profile(Path(${JSON.stringify(taskDir)}), data))`,
+      ].join("\n"),
+    ],
+    { cwd, encoding: "utf-8" },
+  );
+  expect(result.status).toBe(0);
+  return (result.stdout || "").trim();
+}
+
+describe("update() P36 A+B+C", () => {
   let tmpDir: string;
   let origIsTTY: PropertyDescriptor | undefined;
 
@@ -66,6 +100,10 @@ describe("update() P36 A+B", () => {
   }
 
   function plantLegacySurfaces(): string {
+    const waveCFlag = projectFile(WAVE_C_STATE_REL);
+    if (fs.existsSync(waveCFlag)) {
+      fs.unlinkSync(waveCFlag);
+    }
     const triage = projectFile(".cursor/rules/cstl-triage.mdc");
     fs.mkdirSync(path.dirname(triage), { recursive: true });
     fs.writeFileSync(triage, TRIAGE, "utf-8");
@@ -81,7 +119,10 @@ describe("update() P36 A+B", () => {
         name: "old-lite",
         title: "Old lite",
         status: "in_progress",
+        parent: "some-parent",
       }),
+      kind: "parent",
+      meta: { classification: "parent" },
     });
     fs.writeFileSync(path.join(taskDir, "prd.md"), PRD, "utf-8");
     return taskDir;
@@ -112,12 +153,14 @@ describe("update() P36 A+B", () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it("dry-run prints A+B summary and writes nothing", async () => {
+  it("dry-run prints A+B+C summary and writes nothing", async () => {
     const taskDir = plantLegacySurfaces();
     const triage = projectFile(".cursor/rules/cstl-triage.mdc");
     const taskBefore = fs.readFileSync(path.join(taskDir, "task.json"), "utf-8");
     await update({ dryRun: true, skipReadiness: true, json: true });
     expect(fs.existsSync(triage)).toBe(true);
+    expect(fs.existsSync(projectFile(WAVE_C_STATE_REL))).toBe(false);
+    expect(isWaveCConfirmed(tmpDir)).toBe(false);
     expect(fs.readFileSync(path.join(taskDir, "task.json"), "utf-8")).toBe(
       taskBefore,
     );
@@ -126,32 +169,74 @@ describe("update() P36 A+B", () => {
     expect(logs.some((line) => line.includes("升级摘要") || line.includes("官方面"))).toBe(
       true,
     );
+    expect(logs.some((line) => line.includes("确认后才会停读旧形状"))).toBe(true);
+    expect(logs.some((line) => /Stage\s*[0-7]/.test(line))).toBe(false);
   });
 
-  it("refuse keeps the project unchanged", async () => {
+  it("refuse keeps the project unchanged and does not stop-read", async () => {
     const taskDir = plantLegacySurfaces();
     const triage = projectFile(".cursor/rules/cstl-triage.mdc");
     const taskBefore = fs.readFileSync(path.join(taskDir, "task.json"), "utf-8");
     vi.mocked(inquirer.prompt).mockResolvedValue({ proceed: false });
     await update({ skipReadiness: true });
     expect(fs.existsSync(triage)).toBe(true);
+    expect(fs.existsSync(projectFile(WAVE_C_STATE_REL))).toBe(false);
+    expect(isWaveCConfirmed(tmpDir)).toBe(false);
     expect(fs.readFileSync(path.join(taskDir, "task.json"), "utf-8")).toBe(
       taskBefore,
     );
   });
 
-  it("user default migrates A and dual-reads B", async () => {
+  it("interactive Proceed? migrates A, dual-reads B, and confirms wave C stop-read", async () => {
     const taskDir = plantLegacySurfaces();
-    await update({ force: true, skipReadiness: true, skipPostUpdateSmoke: true });
+    vi.mocked(inquirer.prompt).mockResolvedValue({ proceed: true });
+    await update({ skipReadiness: true, skipPostUpdateSmoke: true });
     expect(fs.existsSync(projectFile(".cursor/rules/cstl-triage.mdc"))).toBe(
       false,
     );
+    expect(isWaveCConfirmed(tmpDir)).toBe(true);
     const disk = JSON.parse(
       fs.readFileSync(path.join(taskDir, "task.json"), "utf-8"),
     ) as Record<string, unknown>;
     expect(disk.required_controls).toBeUndefined();
     expect(disk.status).toBe("in_progress");
     expect(fs.readFileSync(path.join(taskDir, "prd.md"), "utf-8")).toBe(PRD);
+    const leftover = {
+      parent: "some-parent",
+      children: [],
+      kind: "parent",
+      meta: { classification: "parent" },
+      topology: { kind: "single", parent_id: "some-parent", children: [] },
+    };
+    expect(closeoutProfile(tmpDir, taskDir, leftover)).toBe("lite");
+  });
+
+  it("file-conflict flags apply A but do not write the Wave C flag", async () => {
+    const taskDir = plantLegacySurfaces();
+    await update({ force: true, skipReadiness: true, skipPostUpdateSmoke: true });
+    expect(fs.existsSync(projectFile(".cursor/rules/cstl-triage.mdc"))).toBe(
+      false,
+    );
+    expect(fs.existsSync(projectFile(WAVE_C_STATE_REL))).toBe(false);
+    expect(isWaveCConfirmed(tmpDir)).toBe(false);
+    expect(fs.readFileSync(path.join(taskDir, "prd.md"), "utf-8")).toBe(PRD);
+
+    const skipDir = plantLegacySurfaces();
+    await update({ skipAll: true, skipReadiness: true, skipPostUpdateSmoke: true });
+    expect(isWaveCConfirmed(tmpDir)).toBe(false);
+    expect(fs.readFileSync(path.join(skipDir, "prd.md"), "utf-8")).toBe(PRD);
+  });
+
+  it("unconfirmed leftover still dual-reads classification", async () => {
+    const taskDir = plantLegacySurfaces();
+    const leftover = {
+      parent: "some-parent",
+      children: [],
+      kind: "parent",
+      meta: { classification: "parent" },
+    };
+    expect(closeoutProfile(tmpDir, taskDir, leftover)).toBe("parent");
+    expect(isWaveCConfirmed(tmpDir)).toBe(false);
   });
 
   it("maintainer flag writes B projections after confirm", async () => {

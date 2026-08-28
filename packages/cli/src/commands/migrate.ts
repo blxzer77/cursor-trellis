@@ -1,6 +1,10 @@
 import chalk from "chalk";
 
-import { planArtifactMigration } from "@blxzer/cursor-trellis-core/task";
+import {
+  planArtifactMigration,
+  planWaveC,
+  scanContractMigration,
+} from "@blxzer/cursor-trellis-core/task";
 import { loadHashes } from "../utils/template-hash.js";
 import { isWorkflowInitialized } from "../utils/workflow-dir.js";
 import {
@@ -34,7 +38,11 @@ export function migratePreview(options: MigrateCommandOptions = {}): void {
     preserved: [],
   });
   const artifacts = planArtifactMigration({ root: cwd });
-  const plan = composeP36Plan({ official, artifacts, writeArtifacts });
+  const waveC = planWaveC({
+    root: cwd,
+    report: scanContractMigration({ root: cwd }),
+  });
+  const plan = composeP36Plan({ official, artifacts, writeArtifacts, waveC });
 
   console.log(chalk.cyan("\nP36 migrate preview"));
   console.log(chalk.cyan("═══════════════════\n"));
