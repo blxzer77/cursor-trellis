@@ -88,7 +88,7 @@ describe("configurePlatform", () => {
     );
     expect(fs.existsSync(continueCmd)).toBe(true);
     expect(fs.existsSync(finishCmd)).toBe(true);
-    expect(fs.existsSync(c2pCmd)).toBe(true);
+    expect(fs.existsSync(c2pCmd)).toBe(false);
     expect(fs.readFileSync(finishCmd, "utf-8")).toContain("get_context.py");
     expect(fs.existsSync(path.join(tmpDir, ".cursor", "skills"))).toBe(false);
   });
@@ -101,7 +101,7 @@ describe("configurePlatform", () => {
     expect(templates.has(".cursor/commands/cstl-continue.md")).toBe(true);
     expect(templates.has(".cursor/commands/cstl-finish-work.md")).toBe(true);
     expect(templates.has(".cursor/commands/cstl-cursor2plus-setup.md")).toBe(
-      true,
+      false,
     );
     const skillKeys = [...templates.keys()].filter((k) =>
       k.includes(".cursor/skills/"),

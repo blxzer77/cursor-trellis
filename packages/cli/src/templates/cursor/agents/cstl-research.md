@@ -68,7 +68,7 @@ Run independent searches in parallel (Glob + Grep + smart-search CLI for externa
 
 #### External search — provider relevance caveats
 
-- **Context7** and generic third-party library docs are often **irrelevant** to Trellis/Cursor platform questions. Prefer **Cursor / Cursor++ official documentation**, `docs.cursor.com`, and **local `.cstl/spec/`** before trusting Context7 hits.
+- **Context7** and generic third-party library docs are often **irrelevant** to Trellis/Cursor platform questions. Prefer **Cursor official documentation**, `docs.cursor.com`, and **local `.cstl/spec/`** before trusting Context7 hits.
 - Every smart-search result you persist must **label the provider source** (e.g. `exa`, `context7`, `cursor-docs`, `tavily`) in the research file — in frontmatter or per bullet — so downstream check/finish can audit provenance.
 - Trellis harness facts: `./.cstl/scripts/run_smart_search.py` writes manifests under `{TASK}/research/smart-search/<run-id>/`; scored pack output (when built) is `{TASK}/research/retrieval-pack-latest.json`.
 

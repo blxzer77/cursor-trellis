@@ -1,11 +1,13 @@
 # Cursor platform limitations and cursor-trellis adaptation (users & developers)
+> **⚠️ Cursor++ retired (P23):** Trellis no longer ships Cursor++ product surfaces (`cstl-cursor2plus-setup`, `--cursor2plus`, `.cstl/local/cursor2plus/`). Do **not** install Cursor++, run `patch_wpelc8.py`, or treat Method 2.5 as setup. **Product path = Native Cursor** — `cstl init --cursor`. Env detection (`cursorEnv` / `TRELLIS_CURSOR_BYOK` / `~/.ccursor/routes.json`) may remain for **retrieval routing only**.
+
 
 [简体中文](cursor-platform-limitations-and-trellis-adaptation.zh-CN.md)
 
 > **Document type**: Standalone guide for end users and contributors.  
 > **Last reviewed**: 2026-06-26  
 > **Evidence**: Cursor official docs/blogs, community forum threads, this repo’s local tests, and six successful Trellis-wrapped smart-search deep-research runs (2026-06-25).  
-> **Honesty note**: Cursor and Cursor++ change quickly. This describes **verified behavior today**. If your version differs, use the checklists below to re-test.
+> **Honesty note**: Cursor changes quickly; Cursor++ product path is **retired** in Trellis. This describes **verified behavior today**. If your version differs, use the checklists below to re-test.
 
 ---
 
@@ -22,23 +24,21 @@ This guide is split into four parts (plain language, minimal internal jargon):
 
 1. **Reported Cursor platform issues** (with external links)
 2. **Cursor Native**: what breaks for cursor-trellis, how we mitigate it, what you should do step by step
-3. **Cursor++ BYOK**: same structure
+3. **Historical Cursor++ notes** (retired; not SOP)
 4. **Remaining gaps** (platform + cursor-trellis)
 
 Day-to-day integration: [Cursor integration](cursor.md). Subagent dispatch details: [Subagent dispatch](subagents.md).
 
 ---
 
-## Two environments you must distinguish
+## Environments
 
 | Name | Meaning | How to tell |
 | --- | --- | --- |
-| **Cursor Native** | Official Cursor models and API path (typical Cursor subscription). | No Cursor++ / no `TRELLIS_CURSOR_BYOK=1`. |
-| **Cursor++ BYOK** | **Cursor++** (community name: ccursor) routes requests through your own API keys and providers. Config usually under `~/.ccursor/`. | `~/.ccursor/providers.json` exists, or `routes.json` has `byokMode`, or `TRELLIS_CURSOR_BYOK=1`. |
+| **Cursor Native** | Official Cursor models / API (**product path**). | Default; `cstl init --cursor` |
+| **BYOK env (detection)** | Retrieval/model routing signal via `cursorEnv` | `TRELLIS_CURSOR_BYOK` or `~/.ccursor/routes.json` `byokMode` |
 
-In both environments, `.cursor/agents`, `.cursor/hooks`, and `.cursor/rules` in your project **usually still load**. Differences matter for: **which model subtasks use**, **whether built-in semantic search is available to the Agent**, and **whether an optional local patch is needed**.
-
-**Coexistence:** You can use Native on some repos and BYOK on others from the same machine. `--cursor2plus` is per-project; `cursorEnv` is resolved per session. See [Native and BYOK coexistence](cursor.md#native-and-byok-coexistence-not-eitheror).
+**Product path:** Native Cursor only. Cursor++ install / `--cursor2plus` / Method 2.5 patching are **retired**. Env detection may still choose retrieval backends.
 
 Initialize:
 
@@ -46,9 +46,6 @@ Initialize:
 npm install -g @blxzer/cursor-trellis
 cd /path/to/your-project
 cstl init --cursor
-
-# Only if you use Cursor++ and need fixed per-role models:
-cstl init --cursor --cursor2plus
 ```
 
 ---
@@ -120,7 +117,7 @@ Native vs BYOK split: Parts 2 and 3 below.
 
 - Cursor++ routes at the **API layer** and generally **does not block** loading `.cursor/` agents/hooks/rules.
 - Under BYOK, agent file `model:` frontmatter and Cursor Settings “per-agent model” **often fail** for custom `trellis-*` Task subagents (local E2E + community reports).
-- Fixed per-role BYOK models require an **optional, user-approved local patch** (Part 3)—**not** a default install step.
+- Fixed per-role BYOK models via Cursor++ patching are **retired** (see Part 3 historical appendix)—**not** a current install step.
 - Patches touch installed Cursor/Cursor++ files and may break on upgrade; `~/.ccursor/` may contain API keys—**never commit or publish** those files.
 
 ---
@@ -198,77 +195,18 @@ Use other web search only when smart-search is unavailable.
 
 ---
 
-## Part 3: Cursor++ BYOK
+## Part 3: Historical appendix (Cursor++ retired; not SOP)
 
-### 3.1 Extra problems (on top of Native)
+> **Not operational.** Do not run `patch_wpelc8.py`, Reload Window for Trellis setup, `cstl-cursor2plus-setup`, or `--cursor2plus`. Do not treat json5 model maps as a current product install step.
 
-| Problem | Symptom |
-| --- | --- |
-| Subagent model follows parent | Cannot use model A for research and B for implement |
-| frontmatter `model:` ignored | Editing agent file does not help |
-| Cursor Settings per-agent model ignored | Logs still show inherit parent |
-| No built-in @codebase semantic | Plans that assume built-in semantic fail |
-| Patch breaks on upgrade | Models revert to inherit after updates |
+What used to exist (evidence only): optional `.cstl/local/cursor2plus/` bundle, Method 2.5 reversible patch experiments, and BYOK-specific subagent model inheritance limits. Those surfaces were removed from Trellis SSOT in **P23**.
 
-### 3.2 cursor-trellis mitigations
+**Current guidance:**
 
-| Measure | Explanation |
-| --- | --- |
-| Env detection | `TRELLIS_CURSOR_BYOK` or `~/.ccursor/routes.json` |
-| BYOK semantic | Retrieval plans use **fast-context MCP** (`fast_context_search`), not built-in semantic |
-| Optional bundle | `cstl init --cursor --cursor2plus` → `.cstl/local/cursor2plus/` |
-| Subtask context | Same as Native: CLI dispatch prompt is primary |
-| Mapping files | `~/.ccursor/trellis-task-models.json5` or `.cstl/local/subagent-models.json` |
-| Optional patch | `patch_wpelc8.py` only with your explicit consent |
-
-### 3.3 Recommended steps (BYOK)
-
-**1. Initialize**
-
-```bash
-cstl init --cursor --cursor2plus
-```
-
-Native users can ignore the entire `cursor2plus` directory.
-
-**2. Configure mapping (preview first)**
-
-Edit `~/.ccursor/trellis-task-models.json5` (slugs from `providers.json` `id` fields—**do not publish that file**):
-
-```json5
-{
-  "cstl-research": "model-xxx",
-  "cstl-implement": "model-yyy",
-  "cstl-check": "model-zzz"
-}
-```
-
-```bash
-cd .cstl/local/cursor2plus
-python patch_wpelc8.py --print-map
-```
-
-**3. Apply patch (high risk; your consent required)**
-
-```bash
-python patch_wpelc8.py
-```
-
-Then **Developer: Reload Window**. Dispatch a test Task; subagent should report a different model than parent when slugs differ.
-
-**4. After upgrades**
-
-Re-run print-map / patch, or `python patch_wpelc8.py --revert` and reload.
-
-**5. Without patching**
-
-| Option | When |
-| --- | --- |
-| Inherit parent model | One model is enough |
-| Explore subagent | Read-only exploration; pick model in Cursor++ panel |
-| Manual dispatch | New chat, pick model, paste CLI dispatch prompt |
-
-Slash command `/cstl-cursor2plus-setup` can guide setup.
+- Product path = Native `cstl init --cursor`
+- Dispatch: inherit / Explore / manual / Native Method 4 ephemeral frontmatter
+- Retrieval: follow `cursorEnv` for Native semantic vs `fast_context_search`
+- Leftover `cursor2plus/` dirs: residue; `cstl update` deletes pristine managed files
 
 ---
 
@@ -291,7 +229,7 @@ Slash command `/cstl-cursor2plus-setup` can guide setup.
 | Three subtask entry points confusing | Decision-tree docs |
 | `task.py select` fails without session identity | Docs stress `--task` path |
 | retrieval-pack consumer chain incomplete | finish/check integration |
-| Patch never auto-run | smoke command + setup skill |
+| Cursor++ residue cleanup | Hash-safe delete on update |
 
 ### 4.3 Do not tell others
 
@@ -314,10 +252,10 @@ Slash command `/cstl-cursor2plus-setup` can guide setup.
 - [ ] No accidental Cursor++ patch
 - [ ] External facts via smart-search first
 
-**BYOK**
+**BYOK env detection**
 
-- [ ] Retrieval uses fast-context, not built-in @codebase
-- [ ] After upgrades, verify patch; never leak `providers.json`
+- [ ] Retrieval uses fast-context when `cursorEnv=byok`
+- [ ] Do not run retired Cursor++ patches
 
 ---
 
@@ -348,5 +286,7 @@ Maintainer traces: harness research task `06-26-cursor-platform-adaptation-resea
 | [workflow.md](workflow.md) | Task lifecycle |
 
 **Feedback**: [cursor-trellis Issues](https://github.com/blxzer77/cursor-trellis/issues) (include Cursor version, Native/BYOK, repro steps).
+
+
 
 **Document version**: 1.0 (2026-06-26)

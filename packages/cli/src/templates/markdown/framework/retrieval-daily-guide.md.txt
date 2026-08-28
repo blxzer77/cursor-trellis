@@ -48,7 +48,7 @@ Prefer **primary sources** — official docs, source code, first-party API refer
 | Named-symbol definition | **Grep → Read** (Prefer); **codegraph** when trap/blast | Native first; structure when ambiguous |
 | IDE diagnostics | **ReadLints** | Cursor-native linter/diagnostic surface |
 | Symbol, callers, edit blast radius | **codegraph** MCP | Own layer: structure-first for caller/trap/extension intents |
-| Unknown keywords, semantic discovery | **@codebase** (Cursor Native) / **fast-context** (Cursor++ BYOK) | Native: built-in semantic; BYOK: `fast_context_search` MCP (see `cursorEnv` in plans) |
+| Unknown keywords, semantic discovery | **@codebase** (Cursor Native) / **fast-context** (BYOK env) | Native: built-in semantic; BYOK: `fast_context_search` MCP (see `cursorEnv` in plans) |
 | External / current facts | **smart-search-cli** | **Mandatory first** — built-in web tools are downgrade-only (see rule above) |
 | Trellis durable docs | **artifact-search** | `search_artifacts.py` |
 | Past sessions | **session-memory** | Historical; verify against tasks/spec |

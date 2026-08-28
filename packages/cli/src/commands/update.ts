@@ -50,14 +50,6 @@ import { emptyTaskJson } from "../utils/task-json.js";
 
 // Import templates for comparison
 import {
-  cursor2plusPatchScript,
-  cursor2plusReadme,
-  cursor2plusConfigExample,
-  subagentModelsExample,
-  trellisTaskModelsJson5Example,
-  trellisTaskModelsConfigPy,
-} from "../templates/trellis/local/index.js";
-import {
   getAllScripts,
   getAllPoolSkeleton,
   // Configuration
@@ -81,6 +73,10 @@ import { pruneOrphanManifestKeys } from "../utils/manifest-prune.js";
 import { runPostUpdateSmoke } from "../utils/post-update-smoke.js";
 import { assertCursorRulesValid } from "../utils/validate-rules.js";
 import {
+  cleanupCursor2plusResidue,
+  hasCursor2plusBundleResidue,
+} from "../utils/cursor2plus-residue-cleanup.js";
+import {
   buildFilePlanFromChanges,
   createBaseRolloutReport,
   emitRolloutReport,
@@ -92,14 +88,18 @@ import {
 } from "../utils/update-rollout-report.js";
 import { snapshotReadinessForRollout } from "../utils/readiness.js";
 
-function logCursor2plusCompatHint(cwd: string): void {
-  const bundleDir = path.join(cwd, DIR_NAMES.WORKFLOW, "local", "cursor2plus");
-  if (!fs.existsSync(bundleDir)) {
+function logCursor2plusRetiredResidueNotice(cwd: string): void {
+  if (!hasCursor2plusBundleResidue(cwd)) {
     return;
   }
   console.log(
+    chalk.yellow(
+      "\nCursor++ path retired: leftover `.cstl/local/cursor2plus/` (or `.trellis/…`) is not an install surface.",
+    ),
+  );
+  console.log(
     chalk.gray(
-      "\nCursor++ BYOK: after Cursor/Cursor++ upgrades, run `python .cstl/local/cursor2plus/patch_wpelc8.py --check-compat` before re-applying Method 2.5.",
+      "  Do not run patch scripts. Unmodified managed residue is removed by update hash-safe cleanup; review and manually delete any user-modified leftover files if unused.",
     ),
   );
 }
@@ -749,36 +749,8 @@ function collectTemplateFiles(
     executionStrategyRulesJson,
   );
   files.set(`${DIR_NAMES.WORKFLOW}/.gitignore`, gitignoreTemplate);
-  const localPrefix = `${DIR_NAMES.WORKFLOW}/local`;
-  // Cursor++ BYOK bundle is opt-in from 1.1.0. On update, only refresh it
-  // when the project already has the directory (keep existing installs;
-  // never inject it into projects that declined the opt-in at init time).
-  const cursor2plusInstalled = fs.existsSync(
-    path.join(cwd, localPrefix, "cursor2plus"),
-  );
-  if (cursor2plusInstalled) {
-    files.set(
-      `${localPrefix}/cursor2plus/patch_wpelc8.py`,
-      cursor2plusPatchScript,
-    );
-    files.set(
-      `${localPrefix}/cursor2plus/trellis_task_models_config.py`,
-      trellisTaskModelsConfigPy,
-    );
-    files.set(`${localPrefix}/cursor2plus/README.md`, cursor2plusReadme);
-    files.set(
-      `${localPrefix}/cursor2plus/config.local.json.example`,
-      cursor2plusConfigExample,
-    );
-    files.set(
-      `${localPrefix}/subagent-models.json.example`,
-      subagentModelsExample,
-    );
-    files.set(
-      `${localPrefix}/trellis-task-models.json5.example`,
-      trellisTaskModelsJson5Example,
-    );
-  }
+  // Cursor++ local bundle is retired — never refresh or inject
+  // `.cstl/local/cursor2plus/` (or sibling example files) on update.
   // workflow.md is included here because it is runtime-parsed by
   // get_context.py and shared hooks. Keep it on the normal template update
   // path: if the installed file still matches the tracked hash, update the
@@ -2269,6 +2241,24 @@ export async function update(options: UpdateOptions): Promise<void> {
     printSafeFileDeleteSummary(safeFileDeletes);
   }
 
+  // Preview Cursor++ residue cleanup (hash-safe; always considered)
+  const cursor2plusResiduePreview = cleanupCursor2plusResidue(cwd, {
+    dryRun: true,
+  });
+  if (cursor2plusResiduePreview.deleted.length > 0) {
+    console.log(chalk.cyan("\nCursor++ residue cleanup (hash-safe):"));
+    for (const rel of cursor2plusResiduePreview.deleted) {
+      console.log(chalk.gray(`  would delete: ${rel}`));
+    }
+  }
+  if (cursor2plusResiduePreview.preservedModified.length > 0) {
+    console.log(
+      chalk.yellow(
+        `  preserve (user-modified): ${cursor2plusResiduePreview.preservedModified.join(", ")}`,
+      ),
+    );
+  }
+
   // Analyze changes (pass hashes for modification detection)
   const changes = analyzeChanges(cwd, hashes, templates);
   const missingAgentsMdHash = collectMissingAgentsMdHash(changes, hashes);
@@ -2591,6 +2581,24 @@ export async function update(options: UpdateOptions): Promise<void> {
     }
   }
 
+  // Hash-safe Cursor++ residue cleanup (retired product surfaces)
+  const cursor2plusCleanup = cleanupCursor2plusResidue(cwd);
+  if (cursor2plusCleanup.deleted.length > 0) {
+    safeDeleted += cursor2plusCleanup.deleted.length;
+    console.log(
+      chalk.cyan(
+        `\nCleaned up ${cursor2plusCleanup.deleted.length} retired Cursor++ file(s)`,
+      ),
+    );
+  }
+  if (cursor2plusCleanup.preservedModified.length > 0) {
+    console.log(
+      chalk.yellow(
+        `Preserved user-modified Cursor++ residue: ${cursor2plusCleanup.preservedModified.join(", ")}`,
+      ),
+    );
+  }
+
   // Track results
   let added = 0;
   let autoUpdated = 0;
@@ -2754,7 +2762,7 @@ export async function update(options: UpdateOptions): Promise<void> {
       `\n✅ ${actionWord} complete! (${projectVersion} → ${cliVersion})`,
     ),
   );
-  logCursor2plusCompatHint(cwd);
+  logCursor2plusRetiredResidueNotice(cwd);
 
   if (createdNew > 0) {
     console.log(

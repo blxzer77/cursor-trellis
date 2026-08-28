@@ -76,7 +76,7 @@ The Trellis CLI source repo sits inside the **D:\MyHarness** harness: the harnes
 # Trellis — AI Agent Codebase Guide (Cursor-only fork)
 
 > Operational guide for AI agents editing this repository.
-> This fork targets **Cursor** only (`--cursor`, optional `--cursor2plus`).
+> This fork targets **Cursor** only (`--cursor`). Cursor++ / `--cursor2plus` retired.
 
 ## 1. What Trellis Is
 
@@ -172,7 +172,7 @@ src/
     init.ts, update.ts, rollout.ts, upgrade.ts, uninstall.ts, workflow.ts
     channel/                     # Advanced multi-agent runtime (not public Cursor docs)
   configurators/
-    cursor.ts, cursor2plus.ts, workflow.ts, shared.ts
+    cursor.ts, workflow.ts, shared.ts
   templates/
     trellis/ (scripts, workflow.md, config.yaml)
     common/ (commands, skills)
@@ -180,7 +180,7 @@ src/
     shared-hooks/
     markdown/ (AGENTS.md, guides)
   migrations/manifests/
-  types/ai-tools.ts              # Cursor + cursor2plus-local registry
+  types/ai-tools.ts              # Cursor platform registry
   utils/ (template-hash, file-writer, codebase-retrieval-router, …)
 ```
 
@@ -195,7 +195,7 @@ src/
 | `cstl uninstall` | commands/uninstall.ts | Scrub Trellis-managed files |
 | `cstl workflow` | commands/workflow.ts | List/switch workflow.md |
 
-**Init flags**: `--cursor`, `--cursor2plus` (with `--cursor`), `-u name`, `--capability id` (repeatable/all), `--workflow id`, `-t template`, `--monorepo/--no-monorepo`
+**Init flags**: `--cursor`, `-u name`, `--capability id` (repeatable/all), `--workflow id`, `-t template`, `--monorepo/--no-monorepo`
 
 ---
 
@@ -203,13 +203,13 @@ src/
 
 ### AI_TOOLS registry — `types/ai-tools.ts`
 
-Cursor-only fork: active platforms are **cursor** (first-class) and **cursor2plus-local** (BYOK bundle). Legacy platform IDs may remain in types for migration compatibility but are not init targets.
+Cursor-only fork: active platform is **cursor** (first-class). Cursor++ local bundle retired.
 
 ### Configurators — `configurators/`
 
 - `configureCursor()` — `.cursor/` commands, rules, agents, hooks
-- `configureCursor2plus()` — `.cstl/local/cursor2plus/` BYOK maps
 - `configureWorkflow()` — `.cstl/` structure creation
+- Cursor++ local configurator removed (P23)
 
 Key helpers: `replacePythonCommandLiterals()`, `resolvePlaceholders()`.
 

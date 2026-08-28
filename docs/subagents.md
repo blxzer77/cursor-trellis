@@ -84,7 +84,7 @@ How the main session routes work to a subagent depends on the Cursor environment
 
 ## Native vs BYOK model routing
 
-| Capability | Native Cursor API | Cursor++ BYOK |
+| Capability | Native Cursor API | BYOK env (detection only; Cursor++ product retired) |
 | --- | --- | --- |
 | Agent frontmatter `model:` | ✅ Effective | ❌ Ignored for `trellis-*` types |
 | Cursor Settings per-agent model UI | ✅ Effective | ❌ Does not populate `subagentModelOverrides` |
@@ -115,13 +115,13 @@ When a Parent task orchestrates Child tasks, dispatch authority is split:
 - **Parent** — uses `task.py prepare-child-worktree` and `task.py integrate-child` with states `changes` / `accepted` / `integrating` / `integrated` / `cancelled`. Default `merge_limit: 1` blocks more than one Child from being `integrating` simultaneously. Integration is serial Git-ref integration: every decision respects `merge_limit: 1` and writes conflicts, merge decisions, and acceptance rationale to `task-map.md` Event Log.
 - **Reviewer orchestration** — Parent sessions can productize child dispatch and review inline:
 
-  ```bash
+ `bash
   python ./.cstl/scripts/task.py parent-status <parent-task>
   python ./.cstl/scripts/task.py generate-child-prompt <parent-task> <child-task> --mode inline
   python ./.cstl/scripts/task.py review-child <parent-task> <child-task> --check
   python ./.cstl/scripts/task.py review-child <parent-task> <child-task> --decision accept --ref <child-ref>
   python ./.cstl/scripts/task.py review-child <parent-task> <child-task> --decision integrate-through --ref <child-ref>
-  ```
+ `
 
   `--mode subagent` is only a delivery hint when the platform can spawn subagents; inline mode is the portable default.
 
@@ -181,3 +181,5 @@ Step-by-step:
 - [Cursor integration](cursor.md) — environment detection, Method 2.5 detail, hooks
 - [Workflow in Cursor](workflow.md) — the Phase 2.1/2.2/3.1 steps that trigger dispatch
 - [Retrieval layer](retrieval.md) — how `cstl-research` routes external facts to `smart-search-cli`
+
+> **Cursor++ retired:** Trellis no longer ships Cursor++ setup (`cstl-cursor2plus-setup`, `.cstl/local/cursor2plus/`). Product path = **Native Cursor**. Do **not** run `patch_wpelc8.py`. Leftover local bundles are residue (`cstl update` hash-safe cleanup removes pristine managed copies). Env detection (`cursorEnv` / `TRELLIS_CURSOR_BYOK` / `~/.ccursor/routes.json`) may remain for retrieval routing only.

@@ -12,7 +12,7 @@
 | Surface | Where it exists | Why dogfood-only | Decision |
 | --- | --- | --- | --- |
 | `.claude/skills/*` full suite | `.claude/skills/` in the harness | Cursor default install is **commands-only**; Claude skill files are for Claude platforms, not Cursor consumers | **non-Cursor** (not in Cursor default install) |
-| `.cstl/local/cursor2plus/`, `.cstl/local/*.json5` / `.json.example`, model overlay (e.g. `.cursor/agents/.trellis-model-overlay.local.md`) | `.cstl/local/` + `.cursor/agents/` in the harness | Local BYOK / model-routing patch layer; machine-specific, never force-installed | **local only** — opt-in (`cstl init --cursor2plus`) or manual |
+| `.cstl/local/cursor2plus/` residue (if present) | (retired) | Cursor++ local bundle retired — not an install path; hash-safe cleanup on update | **retired residue** — do not patch |
 | Private review-pool items / plan narratives / goal-regression runbook habits | `.cstl/pool/items/`, `{TASK}/research/` in the harness | Personal or project-specific content; the pool **mechanism** ships, the items do not | **narrative not packaged** — mechanism ships, content stays local |
 | `.codegraph/`, `.worktrees/`, scratch/analysis files | Harness root | Per-machine index / tooling state | **local only** |
 

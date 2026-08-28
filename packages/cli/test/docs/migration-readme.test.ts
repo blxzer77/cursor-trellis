@@ -18,8 +18,6 @@ const REQUIRED_MIGRATION_PHRASES = [
   "npm install -g @blxzer/cursor-trellis@latest",
   "cstl update --migrate",
   ".cstl/",
-  "trellis-task-models.json5",
-  "cstl-research/implement/check",
 ];
 
 /** Patterns that imply `tl` is still a shipped bin alias (not historical mention). */
@@ -42,6 +40,11 @@ describe("0.3.0 migration README narrative", () => {
       for (const phrase of REQUIRED_MIGRATION_PHRASES) {
         expect(content, `${readmePath} missing ${phrase}`).toContain(phrase);
       }
+      // Cursor++ operational setup must not be required for 0.3.0 migration
+      expect(content, readmePath).not.toMatch(/patch_wpelc8\.py --apply/);
+      expect(content, readmePath).toMatch(
+        /Cursor\+\+ retired|Cursor\+\+ 已废弃|trellis-task-models\.json5|residue|残渣/i,
+      );
     }
   });
 
@@ -68,6 +71,8 @@ describe("0.3.0 migration README narrative", () => {
       "npm install -g @blxzer/cursor-trellis@latest",
     );
     expect(manifest.aiInstructions).toContain("cstl update --migrate");
+    expect(manifest.aiInstructions).toMatch(/Cursor\+\+ retired/i);
+    expect(manifest.aiInstructions).not.toMatch(/re-run `patch_wpelc8\.py --apply`/);
     expect(manifest.changelog).toContain("`trellis`/`tl`");
   });
 });

@@ -115,13 +115,13 @@ Parent 任务编排 Child 任务时,派发权限分裂:
 - **Parent** —— 用 `task.py prepare-child-worktree` 和 `task.py integrate-child`,状态 `changes` / `accepted` / `integrating` / `integrated` / `cancelled`。默认 `merge_limit: 1` 阻止多于一个 Child 同时 `integrating`。集成是串行 Git-ref 集成:每个决策遵守 `merge_limit: 1`,冲突、合并决策、验收理由写入 `task-map.md` Event Log。
 - **审查编排** —— Parent 会话可 inline 产品化 child 派发与审查:
 
-  ```bash
+ `bash
   python ./.cstl/scripts/task.py parent-status <parent-task>
   python ./.cstl/scripts/task.py generate-child-prompt <parent-task> <child-task> --mode inline
   python ./.cstl/scripts/task.py review-child <parent-task> <child-task> --check
   python ./.cstl/scripts/task.py review-child <parent-task> <child-task> --decision accept --ref <child-ref>
   python ./.cstl/scripts/task.py review-child <parent-task> <child-task> --decision integrate-through --ref <child-ref>
-  ```
+ `
 
   `--mode subagent` 仅当平台能生成子 Agent 时作交付提示;inline 模式是可移植默认。
 
@@ -181,3 +181,5 @@ Method 2 与 4 都依赖 Agent 文件上的**一次性 `model:` overlay**。工�
 - [Cursor 集成](cursor.zh-CN.md) — 环境探测、Method 2.5 细节、hooks
 - [Cursor 中的工作流](workflow.zh-CN.md) — 触发派发的 Phase 2.1/2.2/3.1 步骤
 - [检索层](retrieval.zh-CN.md) — `cstl-research` 如何把外部事实路由到 `smart-search-cli`
+
+> **Cursor++ 已废弃：** Trellis 不再提供 Cursor++ 安装面（`cstl-cursor2plus-setup`、`.cstl/local/cursor2plus/`）。产品路径 = **Native Cursor**。**勿**运行 `patch_wpelc8.py`。遗留 local 包视为残渣（`cstl update` 对未改动的托管文件做哈希安全清理）。`cursorEnv` / `TRELLIS_CURSOR_BYOK` / `~/.ccursor/routes.json` 仅作检索环境探测。

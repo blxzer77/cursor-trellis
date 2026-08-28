@@ -121,7 +121,7 @@ describe("init() integration", () => {
     expect(fs.existsSync(path.join(tmpDir, ".mcp.json"))).toBe(false);
     expect(fs.existsSync(path.join(tmpDir, ".cursor", "mcp.json"))).toBe(false);
 
-    // Cursor commands-only policy: 3 slash commands, no skills shipped.
+    // Cursor commands-only policy: continue + finish-work slash commands, no Cursor++ setup, no skills shipped.
     expect(
       fs.existsSync(
         path.join(tmpDir, ".cursor", "commands", "cstl-continue.md"),
@@ -141,8 +141,11 @@ describe("init() integration", () => {
           "cstl-cursor2plus-setup.md",
         ),
       ),
-    ).toBe(true);
+    ).toBe(false);
     expect(fs.existsSync(path.join(tmpDir, ".cursor", "skills"))).toBe(false);
+    expect(
+      fs.existsSync(path.join(tmpDir, ".cstl", "local", "cursor2plus")),
+    ).toBe(false);
   });
 
   it("#1f writes selected project capability config for cursor", async () => {

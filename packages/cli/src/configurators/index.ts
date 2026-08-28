@@ -84,10 +84,10 @@ const PLATFORM_FUNCTIONS: Record<AITool, PlatformFunctions> = {
     collectTemplates: () => {
       const ctx = AI_TOOLS.cursor.templateContext;
       const files = new Map<string, string>();
-      // commands-only policy: ship common commands (continue, finish-work) +
-      // Cursor-only commands (cursor2plus-setup) as .cursor/commands/cstl-*.md.
-      // No .cursor/skills/ are shipped on Cursor — internal workflow skills
-      // reach the agent via .cursor/rules + AGENTS.md instead.
+      // commands-only policy: ship common commands (continue, finish-work) as
+      // .cursor/commands/cstl-*.md. Cursor-only extras (if any) come from
+      // getCursorCommands(). No .cursor/skills/ are shipped on Cursor —
+      // internal workflow skills reach the agent via .cursor/rules + AGENTS.md.
       for (const cmd of resolveCommands(ctx)) {
         files.set(
           `.cursor/commands/cstl-${cmd.name}.md`,

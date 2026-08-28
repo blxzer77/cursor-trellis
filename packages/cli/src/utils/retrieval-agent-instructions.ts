@@ -245,7 +245,7 @@ export function renderAgentInstructions(
       const label =
         cursorEnv === ENV_UNKNOWN
           ? "**语义合规（cursorEnv 未知，保守 BYOK）：**"
-          : "**语义合规（Cursor++ BYOK）：**";
+          : "**语义合规（BYOK env / cursorEnv=byok）：**";
       lines.push(
         label,
         "- 本计划含 **platform-semantic** 时：定 Top-1 前至少 **1 次** **fast_context_search**（fast-context MCP），并记录工具名。",

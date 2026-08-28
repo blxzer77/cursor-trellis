@@ -124,14 +124,10 @@ Trellis 定义三种不同角色面。混淆它们是最常见的误解。
 | **角色** | CLI 优先 web 研究:`doctor` 预检 → 双语 `search` → `context7`/`exa`/`fetch`/`map` 按能力边界路由 → `research` Deep Research 模式编排 plan→discover→fetch/read→gap check→evidence-only synthesis |
 | **边界** | Cursor 内置 `WebSearch`/`WebFetch` 仅作**降级 fallback**,只在 `doctor` `not_configured`/`failed` 或超时时用。见 [retrieval.zh-CN.md](retrieval.zh-CN.md) |
 
-#### `cstl-cursor2plus-setup`
+#### `cstl-cursor2plus-setup` (retired)
 
-| | |
-| --- | --- |
-| **定义** | `bundled-skills/cstl-cursor2plus-setup/SKILL.md` |
-| **触发** | `cstl init` 选 Cursor 且用户要 Cursor++ BYOK 每子 Agent 模型;`providers.json` 变化 |
-| **角色** | 引导 Cursor++ BYOK 用户写 `~/.ccursor/trellis-task-models.json5`(primary/fallback),跑 `patch_wpelc8.py`(可逆 json5 slug 映射),报告 resolver WARN/ERROR |
-| **边界** | Native Cursor API 用户不需要。不在 `AGENTS.md` 自动触发清单(条件性,仅 BYOK)。Method 2.5 细节见 [cursor.zh-CN.md](cursor.zh-CN.md) |
+> **Retired.** Not shipped. Do not run. Product path = Native Cursor.
+
 
 ## 可选/实验性 skills
 
@@ -170,7 +166,7 @@ cstl init --with-optional <name>   # 可重复;例如 cstl init --with-optional 
 | 8 | `cstl-spec-bootstrap` | spec 树创建/刷新 |
 | 9 | `cstl-skill-creator` | skill 编写 |
 | 10 | `smart-search-cli` | 外部事实检索 |
-| 11 | `cstl-cursor2plus-setup` | Cursor++ BYOK 配置(条件性) |
+| 11 | *(removed)* | Cursor++ setup retired |
 
 ## Skill vs Agent:谁干什么
 
@@ -199,3 +195,5 @@ Trellis 技能可在三层定制:
 - [Task 系统设计](task-system.zh-CN.md) — Phase 1–3 生命周期、门禁、Development Strategy Contract
 - [Cursor 集成](cursor.zh-CN.md) — commands-only 策略、hooks、环境探测
 - [Cursor 中的工作流](workflow.zh-CN.md) — 这些技能服务的工作流生命周期
+
+> **Cursor++ 已废弃：** Trellis 不再提供 Cursor++ 安装面（`cstl-cursor2plus-setup`、`.cstl/local/cursor2plus/`）。产品路径 = **Native Cursor**。**勿**运行 `patch_wpelc8.py`。遗留 local 包视为残渣（`cstl update` 对未改动的托管文件做哈希安全清理）。`cursorEnv` / `TRELLIS_CURSOR_BYOK` / `~/.ccursor/routes.json` 仅作检索环境探测。

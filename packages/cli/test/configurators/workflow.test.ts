@@ -5,7 +5,7 @@ import os from "node:os";
 import { createWorkflowStructure } from "../../src/configurators/workflow.js";
 import { setWriteMode } from "../../src/utils/file-writer.js";
 
-describe("createWorkflowStructure — cursor2plus opt-in (1.1.0)", () => {
+describe("createWorkflowStructure — Cursor++ never written (P23)", () => {
   let tmpDir: string;
 
   beforeEach(() => {
@@ -18,7 +18,7 @@ describe("createWorkflowStructure — cursor2plus opt-in (1.1.0)", () => {
     setWriteMode("ask");
   });
 
-  it("does NOT write cursor2plus bundle by default (opt-in off)", async () => {
+  it("does NOT write cursor2plus bundle (option removed)", async () => {
     await createWorkflowStructure(tmpDir, { projectType: "fullstack" });
     const cursor2plusDir = path.join(
       tmpDir,
@@ -30,34 +30,11 @@ describe("createWorkflowStructure — cursor2plus opt-in (1.1.0)", () => {
     expect(
       fs.existsSync(path.join(cursor2plusDir, "patch_wpelc8.py")),
     ).toBe(false);
-  });
-
-  it("writes cursor2plus bundle when cursor2plus: true", async () => {
-    await createWorkflowStructure(tmpDir, {
-      projectType: "fullstack",
-      cursor2plus: true,
-    });
-    const cursor2plusDir = path.join(
-      tmpDir,
-      ".cstl",
-      "local",
-      "cursor2plus",
-    );
-    expect(fs.existsSync(cursor2plusDir)).toBe(true);
+    // cursor2plus is no longer a WorkflowOptions field
     expect(
-      fs.existsSync(path.join(cursor2plusDir, "patch_wpelc8.py")),
-    ).toBe(true);
-    expect(fs.existsSync(path.join(cursor2plusDir, "README.md"))).toBe(true);
-    expect(
-      fs.existsSync(
-        path.join(
-          tmpDir,
-          ".cstl",
-          "local",
-          "trellis-task-models.json5.example",
-        ),
-      ),
-    ).toBe(true);
+      "cursor2plus" in
+        (({ projectType: "fullstack" }) as Record<string, unknown>),
+    ).toBe(false);
   });
 
   it("does NOT write maintainer-only scripts (probe, eval tools)", async () => {
@@ -81,10 +58,9 @@ describe("createWorkflowStructure — cursor2plus opt-in (1.1.0)", () => {
     expect(fs.existsSync(path.join(scriptsDir, "task.py"))).toBe(true);
   });
 
-  it("still creates .trellis base structure regardless of cursor2plus flag", async () => {
+  it("still creates .cstl base structure", async () => {
     await createWorkflowStructure(tmpDir, {
       projectType: "fullstack",
-      cursor2plus: false,
     });
     expect(fs.existsSync(path.join(tmpDir, ".cstl"))).toBe(true);
     expect(

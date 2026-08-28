@@ -278,29 +278,6 @@ function logPythonAdaptationNotice(command: string): void {
   );
 }
 
-function logCursor2plusSetupHint(): void {
-  console.log("");
-  console.log(
-    chalk.cyan(
-      "🔧 Cursor++ BYOK: 在 Cursor Agent 中运行 skill cstl-cursor2plus-setup",
-    ),
-  );
-  console.log(
-    chalk.gray(
-      "   与大模型交互选择各 Task 角色的 primary/fallback 模型，并应用 Method 2.5 patch（升级 Cursor/Cursor++ 后先跑 patch_wpelc8.py --check-compat）。",
-    ),
-  );
-  console.log(
-    chalk.gray(
-      "   本地包: .cstl/local/cursor2plus/ · 示例: trellis-task-models.json5.example",
-    ),
-  );
-  console.log(
-    chalk.gray("   使用官方 Cursor API（非 Cursor++）可安全忽略 `.cstl/local/cursor2plus/`。"),
-  );
-  console.log("");
-}
-
 // =============================================================================
 // Bootstrap Task Creation
 // =============================================================================
@@ -974,12 +951,6 @@ async function handleReinit(
       assertCursorRulesValid(cwd);
     }
 
-    if (
-      platformsToAdd.some((tool) => resolveCliFlag(tool as CliFlag) === "cursor")
-    ) {
-      logCursor2plusSetupHint();
-    }
-
     // Update template hashes. Merge mode: preserve previously-tracked
     // platforms' hashes, layer in the newly-added platform's writes.
     const hashedCount = initializeHashes(cwd, {
@@ -1064,7 +1035,6 @@ interface InitOptions {
   overwrite?: boolean;
   append?: boolean;
   registry?: string;
-  cursor2plus?: boolean;
   monorepo?: boolean;
   workflow?: string;
   workflowSource?: string;
@@ -2101,31 +2071,11 @@ export async function init(options: InitOptions): Promise<void> {
   // (.codex/sessions/, .claude/projects/, pre-existing AGENTS.md).
   const writtenPaths = startRecordingWrites(cwd);
   try {
-    // Determine whether to materialize the Cursor++ BYOK local bundle.
-    // Default off from 1.1.0; only ask when Cursor is selected in
-    // interactive mode. --yes / non-interactive skips the question and
-    // does NOT write the bundle unless --cursor2plus is passed.
-    let cursor2plusOptIn = options.cursor2plus === true;
-    const cursorSelected = tools.includes("cursor");
-    if (cursorSelected && !options.yes && !cursor2plusOptIn) {
-      const byok = await inquirer.prompt<{ byok: boolean }>([
-        {
-          type: "confirm",
-          name: "byok",
-          message:
-            "使用 Cursor++ BYOK 代理？（原生 Cursor API 用户选 No；仅 BYOK 需要 .cstl/local/cursor2plus/）",
-          default: false,
-        },
-      ]);
-      cursor2plusOptIn = byok.byok;
-    }
-
     // Create workflow structure with project type
     console.log(chalk.blue("📁 Creating workflow structure..."));
     await createWorkflowStructure(cwd, {
       projectType,
       skipSpecTemplates: useRemoteTemplate,
-      cursor2plus: cursor2plusOptIn,
       packages: monorepoPackages,
       remoteSpecPackages,
       workflowMdOverride,
@@ -2190,10 +2140,6 @@ export async function init(options: InitOptions): Promise<void> {
     );
     if (hasSelectedPythonPlatform) {
       logPythonAdaptationNotice(pythonCmd);
-    }
-
-    if (cursor2plusOptIn) {
-      logCursor2plusSetupHint();
     }
 
     // Create root files (skip if exists)

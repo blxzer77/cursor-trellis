@@ -2,6 +2,8 @@
 
 > **Purpose:** Cursor-first guidance for when to spawn Trellis custom agents, which mode to use, and how model choice stays on the Cursor side.
 
+> **⚠️ Cursor++ 路线已废弃（2026-08-19 用户裁决）**：Trellis 不再为 Cursor++ / `cstl-cursor2plus-setup` / `.cstl/local/cursor2plus/` 服务。现行路径 = **Native Cursor API**。Cursor++ 产品面已从 Trellis SSOT 移除；遗留 `.cstl/local/cursor2plus/` 视为死档残渣（勿 patch）。下文 **Historical appendix** 仅保留 Method 2.5/2.6 证据摘要，**禁止当操作指南**（勿 patch、勿 Reload、勿跑 `patch_wpelc8.py`）。
+
 **Abstract policy:** `model_policy: cursor-configured` — Trellis workflow, agents, skills, and hooks **must not** hardcode vendor model IDs in **committed** defaults (`gpt-*`, `claude-*`, etc.).
 
 ---
@@ -14,13 +16,13 @@ The same `cstl-*` name can be reached via three entry points with **different mo
 How did I reach cstl-research / cstl-implement / cstl-check?
 │
 ├─ Opened a Cursor chat and @mentioned or /slash-invoked it
-│  → Agent session. Top-bar model decides. Cursor Settings for cstl-* are
-│    largely ineffective under BYOK. Do NOT expect json5 + Method 2.5 here.
+│  → Agent session. Top-bar model decides.
 │
 ├─ Main session dispatched Task(subagent_type=cstl-*)
-│  → Task dispatch. ONLY path where BYOK json5 + Method 2.5 applies.
-│    Context: CLI Layer 2 pre-embed (primary on Cursor); hook is best-effort
-│    (<!-- cstl-hook-injected --> marker; skips if already present).
+│  → Task dispatch. Native: frontmatter `model:` (Method 4) may apply.
+│    BYOK env: inherit parent unless the gateway override
+│    is configured. Context: CLI Layer 2 pre-embed (primary on Cursor);
+│    hook is best-effort (<!-- cstl-hook-injected --> marker).
 │
 └─ Used the cstl-check SKILL in main session (no subagent spawn)
    → Skill form. Main-session model. Only cstl-check has both
@@ -39,34 +41,34 @@ If unsure: Task dispatch is the path Trellis workflow routes through; Agent sess
 | Implementation (after `start-execution --approved`) | `cstl-implement`                                            | Agent                               | Code edits; no `git commit` in subagent; **CLI Layer 2** dispatch prompt on Cursor |
 | Post-implementation verification                    | `cstl-check`                                                | Agent                               | Fixes + `verify.md` / gate hints; **CLI Layer 2** on Cursor; main session records gates |
 | Parent/Child child worker                           | `generate-child-prompt --mode subagent`                        | **Parent Task** `cstl-implement` (default) | Child delivers `verify.md` + `handoff.md`; rare per-child model → **new writable Agent** session when user names that child |
-| Architecture / deep review                          | `cstl-check` or documented inline deep review               | Agent or main session               | Model via dispatch strategy (Methods 1–2.5, 3–4 below)                                               |
+| Architecture / deep review                          | `cstl-check` or documented inline deep review               | Agent or main session               | Model via dispatch strategy (Methods 1–4 below)                                               |
 | PRD Grill (planning)                                | `cstl-micro-grill` contract **inside** `cstl-brainstorm` | **Not** a subagent                  | Single-question business follow-ups only                                                     |
 | Small unclear ask (no task)                         | `cstl-micro-grill` skill                                    | Main session                        | No task artifacts by default                                                                 |
 
 ---
 
-## Model dispatch strategy (BYOK-aware)
-
-> **Model routing details:** See Method 2.5 / 2.6 below and Cursor++ provider settings (`~/.ccursor/providers.json`).
+## Model dispatch strategy (Native / BYOK env detection)
 
 ### Environment detection
 
-| Environment           | Custom Task subagent model control                                                                 | Explore subagent model control                     |
-| --------------------- | -------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| **Native Cursor API** | Frontmatter `model:` works (server-side routing)                                                   | Native model picker                                |
-| **Cursor++ BYOK**     | ❌ Frontmatter / Cursor Settings per-agent: not wired for `cstl-*`; **✅ Method 2.5** if applied | ✅ Independent model via Cursor++ panel (v0.0.11+) |
+`cursorEnv` (`native` | `byok` | `unknown`) comes from `~/.ccursor/routes.json` `byokMode` or `TRELLIS_CURSOR_BYOK`. Detection is for retrieval/model env split (`cursorEnv`) — **not** a Cursor++ install path.
 
-Under Cursor++ BYOK, **committed** agent frontmatter `model:` and **Cursor Settings** UI for `cstl-research` / `cstl-implement` / `cstl-check` do **not** populate `subagentModelOverrides` for those types (verified). Without **Method 2.5**, custom Task subagents **inherit** the parent session BYOK model.
+| Environment | Custom Task subagent model control | Explore subagent model control |
+| ----------- | ---------------------------------- | ------------------------------ |
+| **Native Cursor API** | Frontmatter `model:` works (server-side routing) | Native model picker |
+| **BYOK env (`cursorEnv=byok`)** | Inherit parent session model unless the gateway override is configured | Native / gateway picker — **not** a Cursor++ panel |
+
+Do **not** install Cursor++ or run archived `patch_wpelc8.py`. Without a gateway override, custom Task subagents **inherit** the parent session model.
 
 ### Dispatch strategy matrix
 
-| Subagent type                       | Independent model? (BYOK)            | Method                                                                  | Fallback             |
-| ----------------------------------- | ------------------------------------ | ----------------------------------------------------------------------- | -------------------- |
-| **Explore** (built-in)              | ✅ Yes                               | Cursor++ panel (built-in override row)                                  | Inherit parent model |
-| **cstl-research** (custom Task)  | ✅ Yes if **Method 2.5** map applied | **Method 2.5** (machine-local); else Method 1 or **Method 3** (manual) | Inherit parent model |
-| **cstl-implement** (custom Task) | ✅ Yes if **Method 2.5** map applied | **Method 2.5**; else Method 1 or **Method 3**                           | Inherit parent model |
-| **cstl-check** (custom Task)     | ✅ Yes if **Method 2.5** map applied | **Method 2.5**; else Method 1 or **Method 3**                           | Inherit parent model |
-| **generalPurpose** / **shell** / **best-of-n-runner** | ✅ Yes if map includes keys | **Method 2.5 / 2.6** JSON map | Inherit parent model |
+| Subagent type                       | Independent model? | Method | Fallback |
+| ----------------------------------- | ------------------ | ------ | -------- |
+| **Explore** (built-in)              | ✅ Yes (Native picker) | Method 2 | Inherit parent model |
+| **cstl-research** (custom Task)  | Native: Method 4 overlay; else inherit | Method 1 or **Method 3** (manual) | Inherit parent model |
+| **cstl-implement** (custom Task) | Native: Method 4 overlay; else inherit | Method 1 or **Method 3** | Inherit parent model |
+| **cstl-check** (custom Task)     | Native: Method 4 overlay; else inherit | Method 1 or **Method 3** | Inherit parent model |
+| **generalPurpose** / **shell** / **best-of-n-runner** | Inherit unless Native overlay | Method 1 or Method 3 | Inherit parent model |
 
 ### When to ask (and when not)
 
@@ -84,7 +86,7 @@ Task mode (Lite / Full / Parent) does **not** by itself trigger the question —
 
 ### Method 2: Explore subagent with custom model (read-only research)
 
-When research is purely **codebase exploration** (no external web search, no file writing outside exploration scope), dispatch an **Explore subagent** instead of cstl-research. The Explore type gets independent model selection via the Cursor++ panel.
+When research is purely **codebase exploration** (no external web search, no file writing outside exploration scope), dispatch an **Explore subagent** instead of cstl-research. Pick the Explore model with the **Native** model picker (or inherit).
 
 **Constraints:**
 
@@ -94,40 +96,9 @@ When research is purely **codebase exploration** (no external web search, no fil
 
 **Use when:** Pure codebase search/understanding tasks where a different model adds value. Main session receives findings and writes the research files.
 
-### Method 2.5: Cursor++ BYOK proxy map (publishable bundle)
-
-**What it is:** A reversible patch to Cursor++ `extension.js` **subagent model resolver** that maps `subagentType` → BYOK catalog **slug** (`model-xxxxx`), evaluated **before** the inherit-parent branch. Obfuscated symbol names change per build (historical `WPeLc8`; 2026-08+ profile `ZiKp4I`). Script uses multi-profile detection.
-
-**Trellis ships (every `cstl init` / `cstl update`, strategy C):** `.cstl/local/cursor2plus/` — `patch_wpelc8.py`, `README.md`, **`UPGRADE-NOTE.md`** (upgrade re-apply), `config.local.json.example`. Native Cursor API users can ignore this directory.
-
-**Operator workflow (Cursor++ BYOK only):**
-
-1. Fill **`~/.ccursor/trellis-task-models.json5`** (user-wide) with `subagent_type` → displayName/apiModel from **`~/.ccursor/providers.json`**.
-2. Optionally override per repo: **`.cstl/local/subagent-models.json5`** (project wins on same key).
-3. If paths are not auto-detected: copy `config.local.json.example` → `config.local.json`, or run `python patch_wpelc8.py --bootstrap`, or set `TRELLIS_CCURSOR_HOME` / `TRELLIS_CURSOR2PLUS_EXTENSION`.
-4. From `.cstl/local/cursor2plus/`: `python patch_wpelc8.py --check-compat` → `--print-map` → `--apply --approve` → **Developer: Reload Window**.
-5. **Verify:** A≠B probe (parent model ≠ map target) or `resolvedModelId` matches slug.
-
-**Revert:** `python patch_wpelc8.py --revert`; Reload Window.
-
-**After any Cursor / Cursor++ upgrade:** assume patch is stale — follow **`.cstl/local/cursor2plus/UPGRADE-NOTE.md`** (`--check-compat`, re-apply, or add a new resolver profile if symbols moved).
-
-**Cursor++ sidebar / Cursor Settings:** Do **not** wire `cstl-*` BYOK routing; use JSON + patch.
-
-### Method 2.6: Temporary Task types (advanced, BYOK)
-
-For rare per-dispatch models on the Task channel without changing global slots:
-
-1. Add `.cursor/agents/cstl-worker-<id>.md` (role prompt only; no committed `model:`).
-2. Add `"cstl-worker-<id>": "model-xxxxx"` to **project** `.cstl/local/subagent-models.json`.
-3. Re-run `patch_wpelc8.py`; dispatch `Task(subagent_type=cstl-worker-<id>)`.
-4. Remove agent file and JSON key when done.
-
-Parent/Child **default** does not use 2.6 — it uses `cstl-implement` from the user map. Per-child manual model → **new writable Agent** session (user-named exception).
-
 ### Method 3: Manual dispatch (different model for Task subagent)
 
-When a custom Task subagent (`cstl-research`, `cstl-implement`, `cstl-check`) needs a **different model** than the parent under BYOK **and Method 2.5 is not available**:
+When a custom Task subagent (`cstl-research`, `cstl-implement`, `cstl-check`) needs a **different model** than the parent **and** Native overlay (Method 4) is not available or not desired:
 
 1. **Main session prepares the dispatch prompt** — full text with:
    - First line: Selected task: <path> (e.g. .cstl/tasks/06-17-my-task)
@@ -168,12 +139,10 @@ Under **native Cursor API** (non-BYOK), frontmatter model: on agent files works 
 
 ```text
 Subagent dispatch needed
-├─ Cursor++ BYOK + cstl-* needs fixed per-role models?
-│  └─ Method 2.5 applied on this machine? → dispatch Task normally (map handles routing)
 ├─ Parent model appropriate for cstl-*? → Method 1 (inherit)
-├─ Read-only codebase exploration only? → Method 2 (Explore + Cursor++ panel)
+├─ Read-only codebase exploration only? → Method 2 (Explore + Native picker)
 ├─ Native Cursor API (non-BYOK)? → Method 4 (ephemeral frontmatter overlay)
-└─ BYOK, no Method 2.5, different model required? → Method 3 (manual dispatch)
+└─ Different model required, overlay unavailable? → Method 3 (manual dispatch)
 ```
 
 ### Main-session contract
@@ -181,46 +150,44 @@ Subagent dispatch needed
 When a dispatch is imminent:
 
 1. Assess which method applies based on the decision flow.
-2. If **Method 2.5** is active on this machine: dispatch `cstl-research` / `cstl-implement` / `cstl-check` via Task tool as usual — **do not** ask model each time; **do not** edit agent frontmatter.
-3. If Method 1 (inherit): dispatch directly, no model question.
-4. If Method 2 (Explore): set Explore model in Cursor++ panel if needed, dispatch `explore`.
-5. If Method 3 (manual): prepare the full dispatch prompt, present to user.
-6. If Method 4 (overlay, native API): ask model preference, apply overlay, dispatch, restore.
+2. If Method 1 (inherit): dispatch directly, no model question.
+3. If Method 2 (Explore): set Explore model in the Native picker if needed, dispatch `explore`.
+4. If Method 3 (manual): prepare the full dispatch prompt, present to user.
+5. If Method 4 (overlay, native API): ask model preference, apply overlay, dispatch, restore.
 
 ### Rules
 
 - **Never** commit long-lived model: in shared Trellis templates or team repo defaults.
 - **Never** inject model IDs via hooks (inject-subagent-context.py stays task-only).
 - **Do not** attempt ephemeral model overlay under BYOK — it silently fails for routing (Method 4).
-- **Do not** rely on Cursor Settings per `cstl-*` agent for BYOK routing — use Method 2.5 map or Method 3.
-- Method 2.5 map lives **outside** committed Trellis templates (machine-local); never commit patched `extension.js` into the Trellis repo.
+- **Do not** rely on Cursor Settings per `cstl-*` agent for BYOK routing — inherit, BYOK env override, or Method 3.
+- **Do not** apply Cursor++ `extension.js` patches, `patch_wpelc8.py`, or `cstl-cursor2plus-setup`. Those paths are retired.
 - **Do not** assume Explore subagent can replace cstl-research for all scenarios — it is read-only and cannot persist files.
 - Workflow and skills **must not** hardcode vendor model IDs.
 
 ### Child worker
 
-- **Default (BYOK + map):** Parent session dispatches **Task** `cstl-implement` with prompt from `generate-child-prompt --mode subagent`; model from user/project JSON map.
+- **Default:** Parent session dispatches **Task** `cstl-implement` with prompt from `generate-child-prompt --mode subagent`; model inherits parent (Native overlay Method 4 when applicable).
 - **Exception:** User or `child-prompts.md` names a child for **separate writable Agent** → new chat, manual model, paste prompt (Method 3).
 - **Native API:** ephemeral overlay on `cstl-implement` (Method 4) still valid.
 
 ### Technical note
 
-Client layer still only builds override rows for built-in types such as `explore`. Cursor Settings entries for custom agent **names** do not reach the BYOK proxy override list for `cstl-*`. **Method 2.5** patches Cursor++ subagent model resolver (profile-bound; see `UPGRADE-NOTE.md`) so `taskToolCall` sets `resolvedModelId` from a local `subagentType → slug` table before inherit-parent. **Method 3** bypasses Task routing (user picks model in a new chat).
+Client layer still only builds override rows for built-in types such as `explore`. Cursor Settings entries for custom agent **names** do not reliably reach custom `cstl-*` Task types. **Method 3** bypasses Task routing (user picks model in a new chat). Historical Cursor++ resolver-map evidence lives in the appendix — not a current control plane.
 
 ---
 
+## Trellis workflow: using per-agent models (Native / BYOK env)
 
-## Trellis workflow: using per-agent models (BYOK + Method 2.5)
-
-Operational contract between the Trellis task ladder and Cursor++ BYOK.
+Operational contract between the Trellis task ladder and Cursor model routing.
 
 ### Roles and who picks the model
 
 | Layer | Picks model for… | Mechanism |
 | ----- | ---------------- | --------- |
-| **You (operator)** | Main orchestration chat | Cursor model picker (parent BYOK route) |
-| **You (operator)** | `cstl-research` / `cstl-implement` / `cstl-check` (+ optional built-in Task types) | **Method 2.5 / 2.6** JSON maps + `.cstl/local/cursor2plus/patch_wpelc8.py` — **not** repo agent files |
-| **You (operator)** | `explore` | Cursor++ panel |
+| **You (operator)** | Main orchestration chat | Cursor model picker |
+| **You (operator)** | `cstl-research` / `cstl-implement` / `cstl-check` | Inherit, Native Method 4 overlay, or Method 3 — **not** Cursor++ JSON/patch |
+| **You (operator)** | `explore` | Native model picker |
 | **Main Agent session** | When to spawn which agent | `workflow.md`, skills, scene matrix |
 | **Hooks** | Never | `inject-subagent-context.py` — task context only |
 
@@ -228,39 +195,32 @@ Operational contract between the Trellis task ladder and Cursor++ BYOK.
 
 1. **Select task** — `task.py select`; dispatch prompts include `Selected task: .cstl/tasks/<id>` when hooks need it.
 2. **Main session model** — your choice for planning and orchestration.
-3. **Research** — Task `subagent_type=cstl-research` → mapped research slug (Method 2.5).
-4. **Implement** — after `start-execution --approved`, Task `cstl-implement` → mapped implement slug.
-5. **Check** — Task `cstl-check` → mapped check slug.
+3. **Research** — Task `subagent_type=cstl-research` (inherit or Method 4).
+4. **Implement** — after `start-execution --approved`, Task `cstl-implement`.
+5. **Check** — Task `cstl-check`.
 6. **Gates / finish** — main session `record-gate`, `cstl-finish-work`.
 
-No model field in dispatch prompt under Method 2.5. Task `model: fast` does **not** override custom types under BYOK.
+Task `model: fast` does **not** override custom types under BYOK.
 
 ### When to use which method
 
 | Setup | Research | Implement | Check |
 | ----- | -------- | --------- | ----- |
-| Method 2.5 configured | `cstl-research` Task | `cstl-implement` Task | `cstl-check` Task |
-| No map; one parent model | Task (inherit) | Task (inherit) | Task (inherit) |
-| No map; different models | Method 3 | Method 3 | Method 3 |
+| One parent model | Task (inherit) | Task (inherit) | Task (inherit) |
+| Native; different models | Method 4 | Method 4 | Method 4 |
+| BYOK / overlay unavailable; different models | Method 3 | Method 3 | Method 3 |
 | Repo read-only only | Method 2 Explore | — | — |
 
 ### Parent/Child
 
-- **Default:** Parent dispatches **Task** `cstl-implement` (BYOK map applies to `subagentType`).
+- **Default:** Parent dispatches **Task** `cstl-implement`.
 - **Rare per-child model:** new writable Agent session when user names that child — not a separate Trellis subagent type by default.
 - Parent retains `review-child` / `integrate-child`; serial integration and worktree rules unchanged.
-
-### Maintainer checklist (BYOK)
-
-1. Resolve slugs in `~/.ccursor/providers.json` (or path in `config.local.json`).
-2. Edit user and/or project JSON maps; include `generalPurpose`, `shell`, `best-of-n-runner` if you use those Task types.
-3. Run `patch_wpelc8.py` from `.cstl/local/cursor2plus/` → Reload Window.
-4. Re-apply after Cursor / Cursor++ upgrades.
 
 ### What stays in the Trellis repo
 
 - `.cursor/agents/cstl-*.md` — no committed `model:`; link to this policy.
-- Skills/workflow — **which** agent to spawn, not BYOK slugs.
+- Skills/workflow — **which** agent to spawn, not vendor slugs.
 
 ---
 
@@ -273,13 +233,13 @@ Optional team paste (comments only — not Cursor product settings):
 
 ```yaml
 model_policy: cursor-configured
-dispatch_model: inherit_or_method25_or_manual
+dispatch_model: inherit_or_native_overlay_or_manual
 child_worker:
   mode: separate_writable_agent_session
 explore_subagent:
-  model: independent # Cursor++ panel
+  model: independent # Native picker
 trellis_task_subagents:
-  model: method_2_5_proxy_map # machine-local; not in git
+  model: inherit # Native Method 4 overlay optional; Cursor++ map retired
 ```
 
 ---
@@ -311,6 +271,7 @@ trellis_task_subagents:
 - Do not spawn `cstl-implement` from inside `cstl-implement` (recursion guard in agent defs).
 - Do not spawn a subagent for PRD Grill — use brainstorm Phase B + micro-grill contract.
 - Do not leave `model:` on agent files after dispatch (always restore).
+- Do not treat Cursor++ / `cstl-cursor2plus-setup` / Method 2.5 as a current option.
 
 ---
 
@@ -330,43 +291,18 @@ This command is **Agent-facing** — not listed in user README or slash command 
 
 When `preToolUse` cannot resolve a selected task, the subagent should read **`Selected task:`** from the first line of its dispatch prompt, then load `implement.jsonl` / `check.jsonl`, `prd.md`, `design.md`, and `implement.md` manually. Trellis does **not** document or depend on Cursor `/multitask` for workflow orchestration.
 
-## Cursor++ (BYOK) compatibility
+---
 
-[Cursor++](https://ccursor.cometix.dev) (ccursor by cometix) is a third-party Patch that intercepts Cursor API traffic via a local server (`127.0.0.1:39831`). It does **not** modify `.cursor/` files — it intercepts at the API/gRPC layer (`AgentService/RunSSE`, `AvailableModels`, etc.) and routes requests to BYOK providers.
+## Historical appendix — Cursor++ Method 2.5 / 2.6 (retired; not SOP)
 
-### Confirmed compatibility (v0.0.11+, Cursor 3.7.27)
+**Do not follow this appendix as an operator runbook.** It records what existed so archive evidence stays findable.
 
-| Trellis component     | Status under Cursor++ | Notes                                                                               |
-| --------------------- | --------------------- | ----------------------------------------------------------------------------------- |
-| `.cursor/agents/`     | Normal                | Agent files not intercepted; `model:` frontmatter read by Cursor at spawn           |
-| `.cursor/hooks/`      | Normal                | Hook config loads; verify `hooksConfig` in agent logs when debugging                  |
-| `.cursor/mcp.json`    | Normal                | MCP servers and tools load normally                                                 |
-| SubAgent write access | **Fixed in v0.0.11**  | Prior versions defaulted SubAgent to readonly; `cstl-implement` now writes files |
+- **What it was:** A reversible patch to a third-party Cursor++ `extension.js` subagent-model resolver (historical symbol `WPeLc8`, later `ZiKp4I`) mapping `subagentType` → catalog slug before inherit-parent. Operator maps lived in `~/.ccursor/trellis-task-models.json5` and project json5; apply required Reload Window.
+- **Where the dead files are:** `.cstl/local/archive/cursor2plus/`, `.cstl/local/archive/cursor2plus_bundle_src/`, archived `subagent-models.json5`. Reverse-engineering notes: `.cstl/spec/guides/cursor-subagent-reverse-engineering-report.md` (also retired).
+- **Why it is not current:** User retired Cursor++ (2026-08-19). `cstl-cursor2plus-setup` and live `.cstl/local/cursor2plus/` were removed from the Trellis SSOT (P23). Product path = Native Cursor.
+- **Do not:** run `patch_wpelc8.py`, copy archive back into `.cstl/local/cursor2plus/`, invoke `cstl init --cursor2plus`, or use a Cursor++ panel as the Trellis model control plane.
 
-**Minimum version: v0.0.11.** Earlier versions break `cstl-implement` due to SubAgent readonly bug.
-
-### Model routing under BYOK (verified 2026-06-18)
-
-- **Explore subagent:** Independent model selection works via Cursor++ panel (v0.0.11+). Cursor++ intercepts and routes the selected BYOK model for Explore-type requests.
-- **Custom Task subagents:** Frontmatter `model:` and Cursor Settings per-agent names are **not** applied for `cstl-*` BYOK routing. Use **Method 2.5** or **Method 3**. **Explore** uses Cursor++ panel.
-- The `model:` ID **must match** a model configured in Cursor++ provider settings (`~/.ccursor/providers.json`). If it doesn't match, the request will fail with a provider error.
-- Cursor++ intercepts `AvailableModels`/`GetDefaultModel` - the model picker and model list are determined by BYOK provider config, not Cursor's official model catalog.
-- Under Cursor++, "inherit" means the parent session's BYOK-routed model, which may differ from what the Cursor UI label suggests.
-
-### Safety boundary
-
-- Cursor++ patches Cursor internal modules at runtime. Strongest recovery: reinstall Cursor.
-- API keys are stored in **plaintext** in `~/.ccursor/providers.json` — restrict file permissions (`chmod 600` / Windows ACL).
-- Cursor++ stores rules in `~/.ccursor/knowledge-base.json`, independent of `.cursor/rules/` and Trellis rules.
-- Version updates lag behind Cursor releases — after a Cursor update, BYOK routing may break until Cursor++ catches up. Trellis hooks/agents/skills survive the window (they don't depend on API routing).
-- Do not mix Cursor++ BYOK sessions with Cursor official sessions — they cannot be continued across each other.
-- Cursor++ may violate Cursor ToS; use at own risk. Not recommended for enterprise/compliance environments.
-
-### Anti-patterns for Cursor++
-
-- Do not use Cursor++ older than v0.0.11 with Trellis (SubAgent readonly bug).
-- Do not assume Cursor official model IDs work under BYOK — use model IDs from your provider config.
-- Do not mix Cursor++ and Cursor official sessions for the same conversation.
+---
 
 ## Worktree template
 
@@ -388,7 +324,7 @@ For multi-package workspaces, list all install commands needed after a fresh che
 
 - `.cursor/agents/cstl-research.md`, `cstl-implement.md`, `cstl-check.md`
 - `.cursor/agents/.cstl-model-overlay.local.md` — optional overlay audit stub (native API)
-- Reference `patch_wpelc8.py` in task `06-18-byok-manual-dispatch-automation/research/` — copy locally; not a runtime git dependency
+- `.cstl/local/archive/` — retired Cursor++ bundle (not a runtime dependency)
 - `.cstl/workflow.md` — Task Ladder + Parent orchestration
 - [Cursor Subagents](https://cursor.com/docs/subagents) — `model: inherit | <id>`
 - [Cursor Multitask changelog](https://cursor.com/changelog/04-24-26) — `/multitask`, Worktrees, Multi-root Workspaces

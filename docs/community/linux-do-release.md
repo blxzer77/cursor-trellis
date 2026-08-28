@@ -1,5 +1,7 @@
 # cursor-trellis:给 Cursor 做的 Trellis 适配,附检索层设计
 
+> **⚠️ Cursor++ 已废弃（P23）：** Trellis 不再提供 Cursor++ 产品面（`cstl-cursor2plus-setup`、`--cursor2plus`、`.cstl/local/cursor2plus/`）。**勿**安装 Cursor++、运行 `patch_wpelc8.py`，或把 Method 2.5 当操作指南。**产品路径 = Native Cursor** — `cstl init --cursor`。`cursorEnv` / `TRELLIS_CURSOR_BYOK` / `~/.ccursor/routes.json` 仅作**检索环境探测**。
+
 #### 本帖使用社区开源推广,符合推广要求。我申明并遵循社区要求的以下内容:
 
 - **我的帖子已经打上 #开源推广 标签:** 是 / 否
@@ -41,21 +43,9 @@ flowchart TB
 
 ## 相对原版 Trellis,做了什么
 
-### 1. 双环境适配(Native / Cursor++ BYOK)
+### 1. Native Cursor（产品路径）
 
-Cursor 有两套用模型的姿势,派发 `cstl-*` 子 Agent 时行为完全不同:
-
-
-|                            | Native Cursor API  | Cursor++ BYOK                          |
-| -------------------------- | ------------------ | -------------------------------------- |
-| Agent frontmatter `model:` | ✅ 对 `cstl-*` 生效 | ❌ 被忽略                                  |
-| Settings 每 Agent 模型 UI     | ✅ 生效               | ❌ 不填充 overrides                        |
-| 概念级语义检索                    | ✅ 内置 `@codebase`   | ❌ Agent 工具列表没有,要用 **fast-context** MCP |
-
-
-BYOK 下要让 `cstl-*` 按角色固定模型,只能 patch resolver 本身——我们叫 **Method 2.5**(`patch_wpelc8.py` + `~/.ccursor/trellis-task-models.json5`),可逆。Native 用户不需要,frontmatter / Settings 都直接生效。
-
-`cstl init --cursor` 默认走 Native;BYOK 用户加 `--cursor2plus`。
+Trellis 现行产品路径 = **Native Cursor**（`cstl init --cursor`）。Cursor++ / Method 2.5 / `--cursor2plus` **已废弃**，勿当安装指南。`cursorEnv` / `TRELLIS_CURSOR_BYOK` 仅作检索环境探测。
 
 ### 2. commands-only 策略
 
@@ -173,11 +163,15 @@ flowchart TD
 | Method 2.5 BYOK patch      | ❌ 不需要                    |
 
 
-日常:`**cstl init --cursor` 即可**,不必 `--cursor2plus`。
+日常:`**cstl init --cursor` 即可**,不必。
 
 ---
 
-## 附录 B:Cursor++ BYOK 环境(可折叠)
+## 附录 B: Cursor++（已废弃）
+
+> **已废弃。** 勿当作操作指南。勿运行 `patch_wpelc8.py` /。产品路径 = Native Cursor（`cstl init --cursor`）。
+
+
 
 > 佬友发帖时可把本节放进折叠块,标题例如:「附录:Cursor++ BYOK 环境」
 
@@ -205,7 +199,7 @@ flowchart TD
 | ------------------- | -------------------------------------------------- |
 | `cstl-*` 按角色固定模型 | 需 **Method 2.5**(可逆 patch)或接受继承父模型                 |
 | 概念级语义检索             | 用 **fast-context** MCP,不是 `@codebase`              |
-| 初始化                 | `cstl init --cursor --cursor2plus` + 按文档配 json5 |
+| 初始化                 | `cstl init --cursor` + 按文档配 json5 |
 
 
 完整对照与派发 Method 1–4:[docs/cursor.zh-CN.md](https://github.com/blxzer77/cursor-trellis/blob/main/docs/cursor.zh-CN.md)。
@@ -224,5 +218,7 @@ flowchart TD
 
 
 ---
+
+
 
 **维护:** 仓库 README 与 `docs/` 会随 CLI 模板更新;`cstl update` 可刷新本地 `.cstl/` / `.cursor/` 生成物(注意保留你对 spec 与任务的本地修改)。

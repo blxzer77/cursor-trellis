@@ -37,7 +37,7 @@ Fresh installs use `.cstl/` directly. Projects on 0.3.0 run `cstl update --migra
 - **Review pool** — `.cstl/pool/` candidate queue + `pool.py` validate/link/plan-check; only `accepted` items become tasks
 - **Validated gates** — `cstl validate-rules` + `pnpm mirror-check` enforce dogfood/template sync; `init`/`update` throw on regression
 - **Retrieval compliance** — BYOK/Native split with conservative `unknown` routing; LSP overpromises softened to codegraph + Read; telemetry separates planned vs executed semantic
-- **Cursor++ safety** — Method 2.5 patch requires explicit `--approve`; `--check-compat` pre-flight; `smoke.py` health check (no secrets)
+- **Cursor++ retired** — do not run Method 2.5 / `patch_wpelc8.py`; product path is Native Cursor
 - **Evidence pack** — finish/check cite `retrieval-pack-latest.json` when present; research prompts include provider relevance caveats
 - **Session handoff** — `/cstl-handoff` writes a portable session handoff document to the OS temp dir when the work needs to travel (switch harness / repo, hand to a colleague, fork a branch)
 - **Dual-axis check** — `cstl-check` reports **Standards** (spec compliance, lint, type-check, tests, Fowler 12 smells, cross-layer flow) and **Spec** (prd fidelity, scope, learning/spec-sync) in separate sections — no merged risk ranking
@@ -61,7 +61,7 @@ cstl init --cursor
 
 **3. Open the project in Cursor** and use Agent mode. User-facing slash commands include `/cstl-continue` and `/cstl-finish-work`. Request Triage is enforced via `.cursor/rules/cstl-triage.mdc`.
 
-Optional: `cstl init --cursor --cursor2plus` materializes a **per-repo** Cursor++ BYOK bundle (not a global either/or choice). Native and BYOK can coexist across projects on one machine — see [Native and BYOK coexistence](docs/cursor.md#native-and-byok-coexistence-not-eitheror).
+Product path: `cstl init --cursor` (Native). Cursor++ path retired — see [cursor.md](docs/cursor.md). Env detection (`cursorEnv`) may still appear for retrieval.
 
 ## Upgrade to 0.4.0 (draft)
 
@@ -107,7 +107,7 @@ cstl update --migrate
 
 After 0.3.0, routine CLI bumps can use `cstl upgrade`. The old `trellis upgrade` command no longer exists once you are on 0.3.0.
 
-**Cursor++ BYOK** (optional, `.cstl/local/cursor2plus/` only): update `trellis-task-models.json5` keys from `trellis-research/implement/check` to `cstl-research/implement/check`, then re-run `patch_wpelc8.py --apply`. Use `/cstl-cursor2plus-setup` in Agent mode.
+**Cursor++ retired:** do not run setup/patch. If leftover `.cstl/local/cursor2plus/` or historical `trellis-task-models.json5` exists, treat as residue — `cstl update` removes pristine managed copies; delete unmodified leftovers manually.
 
 Details: [CHANGELOG](packages/cli/CHANGELOG.md#030---2026-07-01).
 
@@ -150,7 +150,7 @@ Walkthrough: [workflow.md](docs/workflow.md) — Triage decision tree, Task Ladd
 - **Agents** — `cstl-research`, `cstl-implement`, `cstl-check`.
 - **Hooks** — Python scripts for session, shell, and subagent context.
 
-Deep dive: [docs/cursor.md](docs/cursor.md) — Native vs Cursor++ BYOK environments, subagent dispatch Methods 1–4, environment detection. Retrieval layer design: [docs/retrieval.md](docs/retrieval.md).
+Deep dive: [docs/cursor.md](docs/cursor.md) — Native Cursor product path, subagent dispatch, env detection (cursorEnv). Retrieval layer design: [docs/retrieval.md](docs/retrieval.md).
 
 ## When to use
 
@@ -242,5 +242,8 @@ Local harness layout (`D:\MyHarness`), Git remote policy, release/publish, and d
 [LINUX DO](https://linux.do)
 
 ## License
+
+
+> **Cursor++ retired:** Trellis no longer ships Cursor++ setup (`cstl-cursor2plus-setup`, `.cstl/local/cursor2plus/`). Product path = **Native Cursor**. Do **not** run `patch_wpelc8.py`. Leftover local bundles are residue (`cstl update` hash-safe cleanup removes pristine managed copies). Env detection (`cursorEnv` / `TRELLIS_CURSOR_BYOK` / `~/.ccursor/routes.json`) may remain for retrieval routing only.
 
 AGPL-3.0-only — see package metadata in `packages/cli/package.json`.

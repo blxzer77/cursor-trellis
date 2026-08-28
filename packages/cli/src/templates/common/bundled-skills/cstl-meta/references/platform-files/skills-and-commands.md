@@ -16,7 +16,7 @@ Skills and commands are textual entry points for user interaction with Trellis. 
 Trellis has two skill families:
 
 - Workflow skills: `brainstorm`, `before-dev`, `check`, `update-spec`, and `break-loop`.
-- Multi-file bundled skills include `cstl-meta`, `cstl-spec-bootstrap`, `cstl-skill-creator`, `smart-search-cli`, `cstl-micro-grill`, and `cstl-cursor2plus-setup`.
+- Multi-file bundled skills include `cstl-meta`, `cstl-spec-bootstrap`, `cstl-skill-creator`, `smart-search-cli`, and `cstl-micro-grill`.
 
 Bundled skills are installed as directories and may include nested `agents/`, `examples/`, `references/`, or other lazy-loadable files. Do not describe bundled skills as a closed `cstl-*` list: `smart-search-cli` intentionally keeps its existing non-`cstl-` name.
 
@@ -28,7 +28,7 @@ Bundled skills are installed as directories and may include nested `agents/`, `e
 
 `cstl-micro-grill` is the Trellis clarification adapter. It asks one high-value question at a time and escalates to Lite, Full, or Parent/Child task modes only when durable artifacts or broader risk require it.
 
-`cstl-cursor2plus-setup` guides Cursor++ BYOK users through `trellis-task-models.json5` (primary/fallback per Task role), `patch_wpelc8.py`, and Reload Window. Use after `cstl init --cursor` or when `providers.json` changes.
+> **Retired:** `cstl-cursor2plus-setup` / Cursor++ local bundle are no longer product surfaces. Do not run patch scripts; product path is Native Cursor.
 
 ## Common Paths (Cursor)
 
@@ -58,8 +58,6 @@ smart-search-cli/
 ├── examples/
 └── references/
 cstl-micro-grill/
-└── SKILL.md
-cstl-cursor2plus-setup/
 └── SKILL.md
 ```
 

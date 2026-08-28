@@ -4,7 +4,7 @@
  * Directory structure:
  *   cursor/
  *   ├── agents/        # Sub-agent definitions
- *   ├── commands/      # Cursor-only slash commands (e.g. cursor2plus-setup)
+ *   ├── commands/      # Cursor-only slash commands (optional extras)
  *   ├── rules/         # .cursor/rules/*.mdc (alwaysApply / glob-scoped rules)
  *   ├── hooks.json     # Hooks configuration
  *   └── worktrees.json # Cursor native worktree setup
