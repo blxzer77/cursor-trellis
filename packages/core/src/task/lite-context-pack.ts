@@ -29,6 +29,8 @@ export const LITE_BASELINE_MODULES = [
 export const LITE_BLOCKED_ON_DEMAND_MODULES = [
   "parent-child",
   "vcs-integration",
+  "personal-memory",
+  "retention-storage",
   "retrieval-extended",
 ] as const;
 

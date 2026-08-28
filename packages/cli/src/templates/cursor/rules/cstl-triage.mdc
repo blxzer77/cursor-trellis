@@ -49,6 +49,10 @@ Full uses persisted `required_controls`, not “`design.md` exists”. Execution
 
 Full / Parent / Micro-Grill still use the decision tree above. User-visible `planning` / `in_progress` / `completed` names stay unchanged.
 
+## Topology and On-demand (Stage 5)
+
+Rigor and Topology are independent. Lite/Full Single is not a Parent. Decompose does not auto-create Child; Capture Candidate does not create a Task. `requires` blocks readiness, `advisory` does not. `task-map.md` is a Kernel graph projection. Untriggered On-demand (Parent-Child / VCS / Memory / Retention) stays out of the resident pack. Parent holds integrate-child. Do not invent a Trellis scheduler.
+
 ## Why this rule exists
 
 Request Triage must be visible **on every turn**, not only at session start. `.cursor/rules` with `alwaysApply: true` is the reliable per-turn channel on Cursor. `sessionStart` `additional_context` delivers session-level orientation (dashboard, workflow summary) once per session — useful but insufficient for a per-turn hard gate. The full decision tree also lives in `.cstl/workflow.md` for on-demand loading via `get_context.py` / `cstl-continue`.

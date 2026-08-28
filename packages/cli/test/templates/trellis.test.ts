@@ -315,6 +315,7 @@ describe("getAllScripts", () => {
     expect(scripts.has("run_smart_search.py")).toBe(true);
     expect(scripts.has("common/lite_context.py")).toBe(true);
     expect(scripts.has("common/full_quality.py")).toBe(true);
+    expect(scripts.has("common/ondemand_topology.py")).toBe(true);
   });
 
   it("has at least one entry", () => {

@@ -27,6 +27,8 @@ LITE_BASELINE_MODULES = (
 LITE_BLOCKED_ON_DEMAND_MODULES = (
     "parent-child",
     "vcs-integration",
+    "personal-memory",
+    "retention-storage",
     "retrieval-extended",
 )
 

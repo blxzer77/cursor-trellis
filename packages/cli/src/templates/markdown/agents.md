@@ -5,7 +5,7 @@ These instructions are for AI assistants working in this project.
 
 This project is managed by cursor-trellis. The working knowledge you need lives under `.cstl/`:
 
-- `.cstl/workflow.md` — development phases, when to create tasks, skill routing (Personal Lite: Open→Close without Parent/Git; Full Quality: `required_controls` + AC ledger + graded Check; prefer `get_context.py --mode lite` for Lite)
+- `.cstl/workflow.md` — development phases, when to create tasks, skill routing (Personal Lite: Open→Close without Parent/Git; Full Quality: `required_controls` + AC ledger + graded Check; Topology/On-demand: Rigor × Topology, `task-map` is a graph projection, On-demand stays dormant until triggered; prefer `get_context.py --mode lite` for Lite)
 - `.cstl/spec/` — package- and layer-scoped coding guidelines (read before writing code in a given layer)
 - `.cstl/workspace/` — per-developer journals and session traces
 - `.cstl/tasks/` — active and archived tasks (PRDs, research, jsonl context)

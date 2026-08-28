@@ -191,7 +191,7 @@ describe("Stage 3 Personal Lite path", () => {
     );
     expect(
       pack.selected.some((item) =>
-        ["parent-child", "vcs-integration", "retrieval-extended"].includes(
+        ["parent-child", "vcs-integration", "personal-memory", "retention-storage", "retrieval-extended"].includes(
           item.module,
         ),
       ),

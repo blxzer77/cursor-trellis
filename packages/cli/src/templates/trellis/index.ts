@@ -80,6 +80,9 @@ export const commonKernelCommand = readTemplate(
 );
 export const commonLiteContext = readTemplate("scripts/common/lite_context.py");
 export const commonFullQuality = readTemplate("scripts/common/full_quality.py");
+export const commonOndemandTopology = readTemplate(
+  "scripts/common/ondemand_topology.py",
+);
 export const commonArtifactSearch = readTemplate(
   "scripts/common/artifact_search.py",
 );
@@ -250,6 +253,7 @@ export const MAINTAINER_ONLY_SCRIPT_PATHS = new Set([
   "common/test_task_store_kernel_patch.py",
   "common/test_lite_path.py",
   "common/test_full_quality.py",
+  "common/test_ondemand_topology.py",
   "hooks/linear_sync.py",
 ]);
 
@@ -294,6 +298,7 @@ export function getAllScripts(): Map<string, string> {
   scripts.set("common/kernel_command.py", commonKernelCommand);
   scripts.set("common/lite_context.py", commonLiteContext);
   scripts.set("common/full_quality.py", commonFullQuality);
+  scripts.set("common/ondemand_topology.py", commonOndemandTopology);
   scripts.set("common/artifact_search.py", commonArtifactSearch);
   scripts.set("common/session_memory.py", commonSessionMemory);
   scripts.set("common/smart_search_evidence.py", commonSmartSearchEvidence);

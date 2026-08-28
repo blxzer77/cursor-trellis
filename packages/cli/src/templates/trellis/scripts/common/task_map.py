@@ -2,8 +2,10 @@
 """
 Parent/Child task-map helpers.
 
-task-map.md is the Parent Supervisor's orchestration authority. This module
-parses and writes only the small YAML frontmatter subset generated here.
+task-map.md is a projection of the Kernel Topology / Dependency Graph plus
+Parent orchestration fields (child worker state, event log). Graph authority
+is Kernel extras (`topology`, `dependency_graph`); this module may render,
+not invent, typed edges.
 """
 
 from __future__ import annotations
@@ -101,6 +103,16 @@ def ensure_task_map(
             child = _default_child(child_name)
             data["children"].append(child)
             existing[child_name] = child
+
+    extras = {
+        key: parent_data[key]
+        for key in ("topology", "dependency_graph")
+        if key in parent_data
+    }
+    if extras:
+        from .ondemand_topology import apply_kernel_graph_projection
+
+        apply_kernel_graph_projection(data, extras)
 
     write_task_map(parent_dir, data, body, event)
     return data
@@ -614,6 +626,10 @@ def _format_frontmatter(data: dict) -> str:
         lines.append(f"merge_points: {_format_value(data.get('merge_points'))}")
     if data.get("conflict_surface"):
         lines.append(f"conflict_surface: {_format_value(data.get('conflict_surface'))}")
+    if data.get("graph_authority"):
+        lines.append(f"graph_authority: {_format_value(data.get('graph_authority'))}")
+    if data.get("topology_kind"):
+        lines.append(f"topology_kind: {_format_value(data.get('topology_kind'))}")
     lines.append("children:")
     children = data.get("children", [])
     if isinstance(children, list):

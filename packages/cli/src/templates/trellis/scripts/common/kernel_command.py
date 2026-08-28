@@ -273,6 +273,13 @@ KERNEL_PROJECTION_EXTRA_KEYS = (
     "required_controls",
     "ac_evidence_ledger",
     "independent_check",
+    "topology",
+    "dependency_graph",
+    "ondemand_modules",
+    "depends_on",
+    "dependency_satisfied",
+    "decompose_proposal",
+    "profile_health",
 )
 
 
