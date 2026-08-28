@@ -75,6 +75,10 @@ export const commonSubagentDispatch = readTemplate(
 export const commonInjectionBudget = readTemplate(
   "scripts/common/injection_budget.py",
 );
+export const commonKernelCommand = readTemplate(
+  "scripts/common/kernel_command.py",
+);
+export const commonLiteContext = readTemplate("scripts/common/lite_context.py");
 export const commonArtifactSearch = readTemplate(
   "scripts/common/artifact_search.py",
 );
@@ -241,6 +245,9 @@ export const MAINTAINER_ONLY_SCRIPT_PATHS = new Set([
   "common/test_task_dependencies.py",
   "common/test_depends_mode_block.py",
   "common/test_pool_store.py",
+  "common/test_kernel_command.py",
+  "common/test_task_store_kernel_patch.py",
+  "common/test_lite_path.py",
   "hooks/linear_sync.py",
 ]);
 
@@ -282,6 +289,8 @@ export function getAllScripts(): Map<string, string> {
   scripts.set("common/parent_orchestration.py", commonParentOrchestration);
   scripts.set("common/subagent_dispatch.py", commonSubagentDispatch);
   scripts.set("common/injection_budget.py", commonInjectionBudget);
+  scripts.set("common/kernel_command.py", commonKernelCommand);
+  scripts.set("common/lite_context.py", commonLiteContext);
   scripts.set("common/artifact_search.py", commonArtifactSearch);
   scripts.set("common/session_memory.py", commonSessionMemory);
   scripts.set("common/smart_search_evidence.py", commonSmartSearchEvidence);

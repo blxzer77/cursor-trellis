@@ -29,3 +29,9 @@ def run_git(args: list[str], cwd: Path | None = None) -> tuple[int, str, str]:
         return result.returncode, result.stdout, result.stderr
     except Exception as e:
         return 1, "", str(e)
+
+
+def is_git_worktree(path: Path) -> bool:
+    """Return True when path is inside a Git worktree. VCS is On-demand."""
+    rc, out, _ = run_git(["rev-parse", "--is-inside-work-tree"], cwd=path)
+    return rc == 0 and out.strip().lower() == "true"

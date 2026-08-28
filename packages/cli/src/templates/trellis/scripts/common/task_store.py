@@ -40,7 +40,7 @@ from .config import (
     validate_package,
 )
 from .cli_environment import format_git_repo_errors, print_environment_repair_hints
-from .git import run_git
+from .git import is_git_worktree, run_git
 from .io import read_json
 from .kernel_command import (
     KernelCliNotFound,
@@ -73,6 +73,7 @@ from .task_gates import (
     build_spec_update_scaffold,
     collect_kernel_projection_extras,
     prepare_archive_evidence,
+    task_closeout_profile,
     validate_archive,
     write_gate_record,
 )
@@ -566,6 +567,7 @@ def cmd_create(args: argparse.Namespace) -> int:
     print(colored("Next steps:", Colors.BLUE), file=sys.stderr)
     print("  - Fill prd.md with requirements and acceptance criteria", file=sys.stderr)
     print(f"  - Select it when ready: python ./.cstl/scripts/task.py select {DIR_WORKFLOW}/{DIR_TASKS}/{dir_name}", file=sys.stderr)
+    print("  - Personal Lite: Definition=prd.md, Evidence=verify.md; start-execution --check is not approval", file=sys.stderr)
     print("  - Lightweight task: PRD-only is valid", file=sys.stderr)
     print("  - Complex task: add design.md and implement.md before task.py start-execution --check", file=sys.stderr)
     if seeded_jsonl:
@@ -734,9 +736,20 @@ def _archive_one_task(
 
     from .active_task import clear_task_from_sessions
 
+    profile = task_closeout_profile(task_dir, task_data) if task_data else "lite"
     clear_task_from_sessions(str(task_dir), repo_root)
     result = archive_task_complete(task_dir, repo_root)
     if "archived_to" not in result:
+        if profile == "lite":
+            print(
+                colored(
+                    "Close Outcome written; physical archive/retention skipped "
+                    "(not a Lite completion condition).",
+                    Colors.YELLOW,
+                ),
+                file=sys.stderr,
+            )
+            return True, modified_children, f"{DIR_WORKFLOW}/{DIR_TASKS}/{dir_name}"
         return False, modified_children, None
 
     archive_dest = Path(result["archived_to"])
@@ -748,15 +761,25 @@ def _archive_one_task(
 
     if not no_commit:
         if not _auto_commit_archive(dir_name, repo_root, modified_children):
-            print(
-                colored(
-                    "Archive moved on disk, but git auto-commit did not complete. "
-                    "Resolve `git status` before continuing.",
-                    Colors.RED,
-                ),
-                file=sys.stderr,
-            )
-            return False, modified_children, None
+            if profile == "lite":
+                print(
+                    colored(
+                        "Lite Close Outcome stands; git auto-commit skipped or failed "
+                        "(VCS is On-demand, not a completion condition).",
+                        Colors.YELLOW,
+                    ),
+                    file=sys.stderr,
+                )
+            else:
+                print(
+                    colored(
+                        "Archive moved on disk, but git auto-commit did not complete. "
+                        "Resolve `git status` before continuing.",
+                        Colors.RED,
+                    ),
+                    file=sys.stderr,
+                )
+                return False, modified_children, None
 
     rel = f"{DIR_WORKFLOW}/{DIR_TASKS}/{DIR_ARCHIVE}/{year_month}/{dir_name}"
     archived_json = archive_dest / FILE_TASK_JSON
@@ -939,6 +962,14 @@ def _auto_commit_archive(
     set to ``false``, this function returns immediately without
     touching git (the archive directory move on disk is unaffected).
     """
+    if not is_git_worktree(repo_root):
+        print(
+            "[OK] no Git worktree — skipping archive auto-commit "
+            "(Close Outcome already written).",
+            file=sys.stderr,
+        )
+        return True
+
     if not get_session_auto_commit(repo_root):
         print(
             "[OK] session_auto_commit: false — skipping git stage/commit.",

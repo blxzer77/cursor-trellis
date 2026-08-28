@@ -31,6 +31,20 @@ After classifying into `Micro-Grill` / `Lite` / `Full` / `Parent`: **ASK the use
 
 If the user declines a task for a simple request, skip Trellis for this session.
 
+## Personal Lite Open (event outcome)
+
+Lite Open is an **event-style Triage Outcome**, not a dump of the full always-on decision tree:
+
+- Outcomes that do **not** require Parent: `No Task` | `Lite`
+- Definition surface: `prd.md`. Evidence surface: `verify.md` (required; placeholder/fake-green still fails Close)
+- Approve: `task.py start-execution --approved` after explicit user approval. `--check` is a CLI preflight only — it must not impersonate human approval
+- Execute on the **main Agent**. Do not require Subagent, worktree, or Parent for Lite
+- Close writes Outcome (`archive`). Missing `.git` is not a Close failure. Physical directory retention is not a completion condition
+- Low interaction: no hard-Risk Lite does **not** add extra mechanical confirmation gates. Do not re-ask facts the repo already has
+- Context: prefer `get_context.py --mode lite` (budgeted). Do not inject Parent / VCS / retrieval-extended unless that On-demand module is active
+
+Full / Parent / Micro-Grill still use the decision tree above. User-visible `planning` / `in_progress` / `completed` names stay unchanged.
+
 ## Why this rule exists
 
 Request Triage must be visible **on every turn**, not only at session start. `.cursor/rules` with `alwaysApply: true` is the reliable per-turn channel on Cursor. `sessionStart` `additional_context` delivers session-level orientation (dashboard, workflow summary) once per session — useful but insufficient for a per-turn hard gate. The full decision tree also lives in `.cstl/workflow.md` for on-demand loading via `get_context.py` / `cstl-continue`.

@@ -65,6 +65,29 @@ export {
 } from "./kernel-contract.js";
 
 export type {
+  LitePackErrorCode,
+  LitePackArtifact,
+  LitePackItem,
+  LitePackOmission,
+  LiteContextPackRequest,
+  LiteContextPack,
+} from "./lite-context-pack.js";
+
+export {
+  LITE_PACK_VERSION,
+  LITE_PACK_SOURCE,
+  LITE_BASELINE_MODULES,
+  LITE_BLOCKED_ON_DEMAND_MODULES,
+  LITE_RETRIEVAL_INTENTS,
+  LITE_DEFAULT_MAX_ITEMS,
+  LITE_DEFAULT_MAX_ESTIMATED_TOKENS,
+  LiteContextPackError,
+  isBlockedOnDemandModule,
+  estimateLiteTokens,
+  buildLiteContextPack,
+} from "./lite-context-pack.js";
+
+export type {
   KernelReadResult,
   KernelTransitionResult,
   KernelCommandResult,
