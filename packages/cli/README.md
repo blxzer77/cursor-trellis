@@ -61,7 +61,7 @@ cstl init --cursor
 
 **3. Open the project in Cursor** and use Agent mode. User-facing slash commands include `/cstl-continue` and `/cstl-finish-work`. Default always-on policy is `.cursor/rules/cstl-bootstrap.mdc`.
 
-Product path: `cstl init --cursor` (Native). Cursor++ retired — see [cursor.md](docs/cursor.md). Env detection (`cursorEnv`) may still appear for retrieval.
+Product path: `cstl init --cursor` (Native). Cursor++ retired — see [cursor.md](docs/cursor.md). Env detection (`cursorEnv`) may still appear for retrieval. Default install is Native Cursor; CSTL does **not** embed BYOK.
 
 ## Upgrade to 0.4.0 (draft)
 
@@ -72,7 +72,7 @@ cd /path/to/project
 cstl update
 ```
 
-Highlights (0.4.0 minor): **review pool** (`pool.py` + `.cstl/pool/` skeleton), **task depends_on Plan A/B** (`set-deps` / `set-depends-mode` / `--ignore-deps`), workflow + guides alignment, `goal-release-regression-runbook`. Details: [CHANGELOG](packages/cli/CHANGELOG.md#unreleased).
+Highlights (0.4.0 minor): **review pool** (`pool.py` + `.cstl/pool/` skeleton), **task depends_on Plan A/B** (`set-deps` / `set-depends-mode` / `--ignore-deps`), workflow + guides alignment. Details: [CHANGELOG](packages/cli/CHANGELOG.md#unreleased).
 
 ## Upgrade from 0.3.0 (v0.3.1)
 
@@ -245,6 +245,6 @@ Local harness layout (`D:\MyHarness`), Git remote policy, release/publish, and d
 ## License
 
 
-> **Cursor++ retired:** Trellis no longer ships Cursor++ setup (`cstl-cursor2plus-setup`, `.cstl/local/cursor2plus/`). Product path = **Native Cursor**. Do **not** run `patch_wpelc8.py`. Leftover local bundles are residue (`cstl update` hash-safe cleanup removes pristine managed copies). Env detection (`cursorEnv` / `TRELLIS_CURSOR_BYOK` / `~/.ccursor/routes.json`) may remain for retrieval routing only.
+> **Cursor++ retired:** Trellis no longer ships Cursor++ setup (`cstl-cursor2plus-setup`, `.cstl/local/cursor2plus/`). Product path = **Native Cursor**. CSTL does **not** embed BYOK. Do **not** run `patch_wpelc8.py`. Leftover local bundles are residue (`cstl update` hash-safe cleanup removes pristine managed copies). Env detection (`cursorEnv` / `TRELLIS_CURSOR_BYOK` / `~/.ccursor/routes.json`) may remain for retrieval routing only.
 
 AGPL-3.0-only — see package metadata in `packages/cli/package.json`.

@@ -28,6 +28,7 @@ When **creating** or making a **behavioral/structural** change to a Trellis bund
 | Intent | Use | Do not |
 | --- | --- | --- |
 | Session handoff | `/cstl-handoff` → report temp path | task `handoff.md`; ad-hoc workspace handoff |
+| Durable objective | official Cursor `/goal` | restore `cstl-goal`; treat as Parent/Child or a Trellis task type |
 | User slash surface | only listed `/cstl-*` commands | assume internal skills are slash commands |
 | Internal skills (brainstorm, …) | workflow says load → Read documented path (see guides); not user slash | claim loaded with no file read |
 
@@ -41,6 +42,12 @@ Internal auto-triggered skills are **not** shipped to `.cursor/skills/` and have
 - Skill authoring (new / structural) → **must Read** bundled `cstl-skill-creator/SKILL.md` then `references/review-checklist.md` (paths in `internal-skills-cursor-reachability.md`). Not a slash command.
 - Full skill × load-channel matrix → **`Read .cstl/framework/internal-skills-cursor-reachability.md`**.
 - Dogfood-only install surfaces (never shipped by default) → **`Read .cstl/framework/dogfood-only-surfaces.md`**.
+
+## Durable objectives (official /goal)
+
+For a persistent in-session objective, use Cursor's official `/goal`. That is **not** a Trellis task type and **not** Parent/Child. Do **not** restore or invent `cstl-goal` / `cstl goal`.
+
+Default install is **Native Cursor**. CSTL does **not** embed BYOK (no install-time BYOK; an optional independent track stays outside this package).
 
 ## Web research routing (smart-search first)
 

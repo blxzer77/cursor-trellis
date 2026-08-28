@@ -78,6 +78,18 @@ Good candidates for references:
 
 Keep references one level deep and link them directly from `SKILL.md`. Avoid reference chains where one reference requires reading another reference before it is useful.
 
+## Writing for agents (four techniques)
+
+Write instructions for how agents consume text: tokens in, behavior out. Apply these techniques to `SKILL.md`, descriptions, and references.
+
+1. **Leading words** — Open each instruction with the load-bearing verb or decision; agents anchor behavior on the first tokens of a line or sentence. Criterion: the first two words of every instruction state the action, not the context. Bad: "After checking the environment, update the file." Good: "Inspect local files first, then edit."
+
+2. **No-op test** — Test redundancy by deleting the whole sentence, not a word. Criterion: if the skill still holds with the sentence removed, cut it; word-level trimming hides leftover redundancy. Bad: deleting "local" from "inspect local files" leaves the same ambiguity.
+
+3. **Negation anti-pattern** — Prefer positive wording over stacked "do not" instructions. Criterion: each "do not"/"never" line should be rewritable as a "do" statement or merged into an existing constraint. Bad: "Do not edit files you have not read." Good: "Read a file before editing it."
+
+4. **Context pointer wording** — Phrase references with their trigger branch so the agent knows when to load them. Criterion: every pointer names the condition or decision that should open it. Vague: "See authoring rules." Actionable: "Load `references/authoring-rules.md` when reviewing skill shape or descriptions."
+
 ## Deterministic Scripts
 
 Add scripts only when they make the skill more reliable than generated ad hoc code.

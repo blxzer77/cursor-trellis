@@ -94,7 +94,7 @@ cstl init --cursor
 | --- | --- |
 | `--cursor` | Cursor（`.cursor/`）— 默认文档路径 |
 
-本 fork 的 init 与公开文档为 **Cursor-only**：[../../docs/cursor.zh-CN.md](../../docs/cursor.zh-CN.md)。
+本 fork 的 init 与公开文档为 **Cursor-only**：[../../docs/cursor.zh-CN.md](../../docs/cursor.zh-CN.md)。默认分发为 Native Cursor；CSTL **不内嵌 BYOK**。
 
 ### 常用标志
 
@@ -209,6 +209,6 @@ Release 与 npm 发布流程**不在**公开 README 中；见内部维护文档�
 - [Cursor 集成](../../docs/cursor.zh-CN.md)
 - [架构概览](../../docs/architecture.zh-CN.md)
 
-> **Cursor++ 已废弃：** Trellis 不再提供 Cursor++ 安装面（`cstl-cursor2plus-setup`、`.cstl/local/cursor2plus/`）。产品路径 = **Native Cursor**。**勿**运行 `patch_wpelc8.py`。遗留 local 包视为残渣（`cstl update` 对未改动的托管文件做哈希安全清理）。`cursorEnv` / `TRELLIS_CURSOR_BYOK` / `~/.ccursor/routes.json` 仅作检索环境探测。
+> **Cursor++ 已废弃：** Trellis 不再提供 Cursor++ 安装面（`cstl-cursor2plus-setup`、`.cstl/local/cursor2plus/`）。产品路径 = **Native Cursor**。CSTL **不内嵌 BYOK**。**勿**运行 `patch_wpelc8.py`。遗留 local 包视为残渣（`cstl update` 对未改动的托管文件做哈希安全清理）。`cursorEnv` / `TRELLIS_CURSOR_BYOK` / `~/.ccursor/routes.json` 仅作检索环境探测。
 
 - [CHANGELOG](./CHANGELOG.md)

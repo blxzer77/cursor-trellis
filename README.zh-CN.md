@@ -81,7 +81,7 @@ cstl init --cursor
 
 **3. 用 Cursor 打开项目**，使用 Agent 模式。用户可见斜杠命令包括 `/cstl-continue`、`/cstl-finish-work`。Request Triage 由 `.cursor/rules/cstl-triage.mdc` 强制执行。
 
-产品路径：`cstl init --cursor`（Native）。Cursor++ 路径已废弃 —— 见 [cursor.zh-CN.md](docs/cursor.zh-CN.md)。检索仍可能使用 `cursorEnv` 环境探测。
+产品路径：`cstl init --cursor`（Native）。Cursor++ 路径已废弃 —— 见 [cursor.zh-CN.md](docs/cursor.zh-CN.md)。检索仍可能使用 `cursorEnv` 环境探测。默认分发为 Native Cursor；CSTL **不内嵌 BYOK**。
 
 ## 从 0.3.0 升级（v0.3.1）
 
@@ -233,6 +233,6 @@ pnpm mirror-check   # dogfood .cursor 与模板同步（贡献者）
 ## 许可证
 
 
-> **Cursor++ 已废弃：** Trellis 不再提供 Cursor++ 安装面（`cstl-cursor2plus-setup`、`.cstl/local/cursor2plus/`）。产品路径 = **Native Cursor**。**勿**运行 `patch_wpelc8.py`。遗留 local 包视为残渣（`cstl update` 对未改动的托管文件做哈希安全清理）。`cursorEnv` / `TRELLIS_CURSOR_BYOK` / `~/.ccursor/routes.json` 仅作检索环境探测。
+> **Cursor++ 已废弃：** Trellis 不再提供 Cursor++ 安装面（`cstl-cursor2plus-setup`、`.cstl/local/cursor2plus/`）。产品路径 = **Native Cursor**。CSTL **不内嵌 BYOK**。**勿**运行 `patch_wpelc8.py`。遗留 local 包视为残渣（`cstl update` 对未改动的托管文件做哈希安全清理）。`cursorEnv` / `TRELLIS_CURSOR_BYOK` / `~/.ccursor/routes.json` 仅作检索环境探测。
 
 AGPL-3.0-only — 见 `packages/cli/package.json`。

@@ -35,7 +35,7 @@ This skill is the authoring and review guide for skill files. It is not the loca
 ## References
 
 - `references/cstl-skill-locations.md`: Choose project-local, shared, platform-specific, or upstream bundled skill locations.
-- `references/authoring-rules.md`: Frontmatter, trigger descriptions, hard-constraint form, progressive disclosure, deterministic scripts, and anti-patterns.
+- `references/authoring-rules.md`: Frontmatter, trigger descriptions, hard-constraint form, progressive disclosure, writing-for-agents techniques, deterministic scripts, and anti-patterns.
 - `references/general-authoring.md`: General authoring method — principles, directory layout, patterns, utility scripts, and the minimal template.
 - `references/review-checklist.md`: Final quality checklist before handing off a skill change.
 

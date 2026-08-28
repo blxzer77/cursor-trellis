@@ -14,6 +14,8 @@
 
 **Session boundary** — Continue → clear → handoff (`cstl-handoff`, when the work needs to travel) → subagent → compact. A task directory's `handoff.md` is integration/delivery evidence, not a session handoff document.
 
+**Durable objectives** — Cursor official `/goal` (persistent in-session run). Not a Trellis task type, not Parent/Child, not `cstl-handoff`. Do **not** restore `cstl-goal`.
+
 ---
 
 ## Trellis System
