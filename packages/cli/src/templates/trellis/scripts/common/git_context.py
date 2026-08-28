@@ -30,6 +30,7 @@ from .packages_context import (
 from .paths import get_repo_root
 from .project_file_stats import resolve_project_file_count_arg
 from .retrieval_pack_context import output_retrieval_pack_json, read_evidence_input
+from .lite_context import LiteContextPackError, get_lite_context_json
 from .trellis_config import read_trellis_config
 from .workflow_phase import (
     filter_platform,
@@ -60,13 +61,14 @@ def main() -> None:
     parser.add_argument(
         "--mode",
         "-m",
-        choices=["default", "record", "packages", "phase", "retrieval-pack"],
+        choices=["default", "record", "packages", "phase", "retrieval-pack", "lite"],
         default="default",
         help=(
             "Output mode: default (full context), record (for record-session), "
             "packages (package info only), phase (workflow step extraction), "
             "retrieval-pack (score and pack already-collected retrieval evidence; "
-            "use after research collection, not on every SessionStart)"
+            "use after research collection, not on every SessionStart), "
+            "lite (Personal Lite phase pack with budget; no Parent/VCS/retrieval-extended)"
         ),
     )
     parser.add_argument(
@@ -153,6 +155,12 @@ def main() -> None:
             pretty=args.json,
             project_file_count=project_file_count,
         )
+    elif args.mode == "lite":
+        try:
+            pack = get_lite_context_json()
+        except LiteContextPackError as error:
+            parser.exit(1, f"lite context pack error: {error}\n")
+        print(json.dumps(pack, indent=2 if args.json else None, ensure_ascii=False))
     else:
         if args.json:
             output_json()

@@ -188,6 +188,23 @@ Classification mark (R2 — visible audit trail). Start your reply with one line
 
 Consent gate. After classifying into any mode that creates a task, ask the user for task-creation consent before creating any Trellis artifact. User approval to create a task is **not** approval to start implementation — planning still happens first. If the user declines a task for a simple request, skip Trellis for this session.
 
+### Personal Lite path (Open → Close)
+
+Personal Lite is the default runnable slice: **main Agent**, Definition / Evidence dual surfaces, **no Parent topology**, **no Git requirement**. Kernel phase names are internal; user-visible `planning` / `in_progress` / `completed` stay unchanged.
+
+| Step | Event / surface | Notes |
+| --- | --- | --- |
+| Open | Triage Outcome `No Task` or `Lite` | Event-style; do not require Parent. Full always-on tree stays for Full/Parent. |
+| Define | `prd.md` | Created on `task.py create`; fill Acceptance Criteria before Execute. |
+| Approve | `task.py start-execution --approved` | `--check` is CLI preflight only — it does **not** impersonate human approval. |
+| Execute | Main Agent | Do not force Subagent, worktree, or Parent. |
+| Verify | `verify.md` | Required Evidence. Placeholder / fake-green still fails Close. |
+| Close | `task.py archive` | Writes Outcome. Missing `.git` or `task-map.md` / `children[]` must not fail Lite Close. Physical directory retention is not a completion condition. |
+
+Context: `python3 ./.cstl/scripts/get_context.py --mode lite --json` assembles a **budgeted** pack (Definition / Evidence / thin exact-semantic-structural-external router). Unactivated On-demand (Parent / VCS / retrieval-extended) and a full `workflow.md` dump are refused rather than silently stuffed in.
+
+Low interaction: no hard-Risk Lite does not add extra mechanical confirmation gates. The Agent retrieves repo facts; the user decides intent, risk acceptance, and the Approve/Close gates above.
+
 Selected-task continuity. When a `selected_task` already exists, do not rerun global classification on every follow-up; continue inside the selected task unless a strong conflict exists (explicit exit/switch/create language, out-of-scope request, different artifact/archive target, new independent deliverable, contract-changing request, or evidence pollution risk).
 
 Review-pool boundary. In-session requests that are clear and directly actionable go straight to Lite / Full / Parent task creation and do **not** enter the pool (`.cstl/pool/`). Ideas, directions, gaps, or unformed thoughts go into the pool. Only `accepted` pool entries may be turned into tasks via `task.py create`. The pool is a candidate queue; a Task is a commitment. See `.cstl/pool/README.md` for the full state machine and role split. Pool entry ↔ task links and pool/plan validation are maintained via the pool CLI: `python3 ./.cstl/scripts/pool.py --help` (link/unlink/validate/plan-check/show). Choosing the next item: treat `plan.md` closed/mainline sections as authoritative → item status → `task.py list` → ask the user; landed items/mechanisms must leave fog (discipline in `.cstl/pool/README.md` 「下一项怎么选 + fog 卫生」).
