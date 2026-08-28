@@ -26,6 +26,7 @@ from .task_map import (
     validate_child_archive_state,
     validate_parent_children_complete,
 )
+from .full_quality import full_quality_archive_errors, rigor_from_required_controls
 
 SCHEMA_VERSION = 1
 BASELINE_GATE = "baseline-check"
@@ -215,6 +216,10 @@ def task_closeout_profile(task_dir: Path, task_data: dict | None = None) -> str:
 
     if explicit_lite:
         return "lite"
+
+    persisted = rigor_from_required_controls(data)
+    if persisted in ("lite", "full"):
+        return persisted
 
     if (task_dir / "design.md").is_file() and (task_dir / "implement.md").is_file():
         return "full"
@@ -504,7 +509,13 @@ def write_gate_record(task_data: dict, transition: str, gate: str, record: dict)
     transition_records[gate] = record
 
 
-KERNEL_PROJECTION_EXTRA_KEYS = ("quality_gate_results", "execution_approval")
+KERNEL_PROJECTION_EXTRA_KEYS = (
+    "quality_gate_results",
+    "execution_approval",
+    "required_controls",
+    "ac_evidence_ledger",
+    "independent_check",
+)
 
 
 def collect_kernel_projection_extras(task_data: dict) -> dict:
@@ -1015,6 +1026,7 @@ def validate_archive(
 
     errors.extend(_required_file_errors(task_dir, ["verify.md"]))
     errors.extend(_verify_evidence_errors(task_dir, task_data))
+    errors.extend(full_quality_archive_errors(task_dir, task_data))
 
     parent_name = task_data.get("parent")
     if isinstance(parent_name, str) and parent_name:

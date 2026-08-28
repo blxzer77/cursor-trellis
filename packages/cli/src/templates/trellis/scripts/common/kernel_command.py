@@ -199,6 +199,7 @@ def kernel_create(
     actor: str,
     idempotency_key: str,
     evidence: str | None = None,
+    extras: dict | None = None,
 ) -> dict:
     payload: dict = {
         "op": "create",
@@ -207,6 +208,8 @@ def kernel_create(
         "idempotencyKey": idempotency_key,
         "record": to_kernel_record(record),
     }
+    if extras:
+        payload["extras"] = extras
     if evidence:
         payload["evidence"] = evidence
     return run_kernel_command(payload)
@@ -264,7 +267,13 @@ def kernel_record_gate(
     return run_kernel_command(payload)
 
 
-KERNEL_PROJECTION_EXTRA_KEYS = ("quality_gate_results", "execution_approval")
+KERNEL_PROJECTION_EXTRA_KEYS = (
+    "quality_gate_results",
+    "execution_approval",
+    "required_controls",
+    "ac_evidence_ledger",
+    "independent_check",
+)
 
 
 def kernel_projection_extras(task_data: dict) -> dict:

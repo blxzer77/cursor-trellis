@@ -176,6 +176,7 @@ function parseCreateRequest(
     actor: requireString(input.actor, "actor"),
     idempotencyKey: requireString(input.idempotencyKey, "idempotencyKey"),
     record: parseRecord(input.record),
+    extras: parseExtras(input.extras),
     evidence:
       input.evidence === undefined
         ? undefined

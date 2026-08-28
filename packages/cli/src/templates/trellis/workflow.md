@@ -205,6 +205,24 @@ Context: `python3 ./.cstl/scripts/get_context.py --mode lite --json` assembles a
 
 Low interaction: no hard-Risk Lite does not add extra mechanical confirmation gates. The Agent retrieves repo facts; the user decides intent, risk acceptance, and the Approve/Close gates above.
 
+### Full Quality path (conditional Design + ledger + graded Check)
+
+Full keeps the same user-visible `planning` / `in_progress` / `completed` names. Kernel persists resolved `required_controls`; **do not infer Rigor from whether `design.md` happens to exist**.
+
+| Role | Default surface | Required? |
+| --- | --- | --- |
+| Definition | `prd.md` | Yes |
+| Execution Contract | `implement.md` (strategy contract) | Yes |
+| Verification Plan | `implement.md` | Yes |
+| Evidence | `verify.md` (human projection) | Yes |
+| Independent Check | `self-review` or `true-independent` verdict | Yes for Full; **not** for Lite |
+| Design | `design.md` | Only when Risk/Policy or `verification_profile: architecture` requires it |
+
+- `verification_profile` expands to gates; Kernel stores the final `required_controls`.
+- AC → Evidence Ledger is machine-readable (`ac_evidence_ledger` on `task.json`); `verify.md` is the human projection. Missing mapping, placeholder evidence, or a stale fingerprint after definition/code change blocks Close.
+- Independent Check is **read-only**. Repair returns to Execute. Platform without a reliable independent worker must label `self-review` and must not claim independent. `true-independent` without a worker **blocks**.
+- Lite Open→Close is unchanged and does not gain Independent Check from this path.
+
 Selected-task continuity. When a `selected_task` already exists, do not rerun global classification on every follow-up; continue inside the selected task unless a strong conflict exists (explicit exit/switch/create language, out-of-scope request, different artifact/archive target, new independent deliverable, contract-changing request, or evidence pollution risk).
 
 Review-pool boundary. In-session requests that are clear and directly actionable go straight to Lite / Full / Parent task creation and do **not** enter the pool (`.cstl/pool/`). Ideas, directions, gaps, or unformed thoughts go into the pool. Only `accepted` pool entries may be turned into tasks via `task.py create`. The pool is a candidate queue; a Task is a commitment. See `.cstl/pool/README.md` for the full state machine and role split. Pool entry ↔ task links and pool/plan validation are maintained via the pool CLI: `python3 ./.cstl/scripts/pool.py --help` (link/unlink/validate/plan-check/show). Choosing the next item: treat `plan.md` closed/mainline sections as authoritative → item status → `task.py list` → ask the user; landed items/mechanisms must leave fog (discipline in `.cstl/pool/README.md` 「下一项怎么选 + fog 卫生」).
@@ -218,7 +236,7 @@ Classify by risk and persistence, not raw effort size. A short change to durable
 | No Task | Conversation, status, explanation, read-only lookup, or a tiny one-turn action with no durable project change. | explain / status / lookup / read-only / one-liner | None. No archive unless upgraded. |
 | Micro-Grill | The user needs focused clarification, decision pressure, or a small requirement interrogation before deciding whether work exists. | small + underspecified / "depends" / needs clarification / decision tree first | Usually none. Upgrade before durable edits, validation, gates, or archive evidence. |
 | Lite Task | Low-risk durable work with narrow scope, local validation, and no shared contract change. | low-risk / single file / local validation / no contract / narrow scope | `task.json`, `prd.md`, `verify.md`, and archive evidence. |
-| Full Task | Durable code, template, runtime, workflow, or cross-file behavior where design, execution strategy, validation, or reviewer gates matter. | cross-file / framework semantics / contract change / template / runtime / workflow / multi-file behavior | `prd.md`, `design.md`, `implement.md`, `verify.md`, Development Strategy Contract, `verification_profile`, `quality_gates`, and archive evidence. |
+| Full Task | Durable code, template, runtime, workflow, or cross-file behavior where design, execution strategy, validation, or reviewer gates matter. | cross-file / framework semantics / contract change / template / runtime / workflow / multi-file behavior | `prd.md`, `implement.md`, `verify.md`, Execution/Verification contract, `required_controls`, AC ledger, Independent Check; `design.md` only when Risk/Policy requires it |
 | Parent Task / Child Tasks | One request contains independent deliverables, staged execution, parallel execution, or final integration authority that must be owned by a Parent. | multiple independent deliverables / staged / parallel / integration authority | Parent `task-map.md`, Child task artifacts, Child handoff evidence, Parent final integration evidence. |
 
 Default Trellis framework semantics, task model, platform adapters, MCP/capability setup, runtime integration, retrieval/graph tooling, Parent/Child orchestration, and quality-gate work to Full Task or higher.
@@ -267,8 +285,8 @@ Details: archived `06-15-child-phase3-task-ladder` → `research/task-ladder-ite
 - `design.md` — technical design for complex tasks: boundaries, contracts, data flow, tradeoffs, compatibility, rollout / rollback shape.
 - `implement.md` — execution plan for complex tasks: ordered checklist, Development Strategy Contract, validation commands, review gates, and rollback points. Parent / Full Task fan-out also declare parallel-first fields (可并行组 / 合并点 / 冲突面 / `serial_reason`) — see Parallel-first above and `.cstl/framework/parallel-first-execution.md`.
 - `implement.jsonl` / `check.jsonl` — spec and research manifests for sub-agent context. They do not replace `implement.md`.
-- `verification_profile` / `quality_gates` — gate policy belongs in task artifacts and `task.json`; `task.json.quality_gate_results` is compact machine-checkable state, not human review prose.
-- Lightweight tasks may be PRD-only. Complex tasks must have `prd.md`, `design.md`, and `implement.md` before `task.py start-execution --check`.
+- `verification_profile` / `quality_gates` — gate policy belongs in task artifacts and `task.json`; Kernel persists resolved `required_controls`. `task.json.quality_gate_results` is compact machine-checkable state, not human review prose. `ac_evidence_ledger` is the machine AC → Evidence map; `verify.md` is the human projection.
+- Lightweight tasks may be PRD-only. Full tasks need Definition + Execution/Verification contract (`implement.md` default) before `task.py start-execution --check`. Design is required only when Risk/Policy or `verification_profile: architecture` says so — do not treat a leftover `design.md` as Full.
 - `start-execution` planning gates (`requirements-review`, `architecture-review` when enabled) auto-record on `--approved` when artifacts pass CLI checks; use `record-gate` only as a manual override.
 
 ### Parent / Child Task Trees

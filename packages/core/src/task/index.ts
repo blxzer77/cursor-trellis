@@ -88,6 +88,40 @@ export {
 } from "./lite-context-pack.js";
 
 export type {
+  FullQualityRigor,
+  FullQualityPhase,
+  FullQualityControlId,
+  IndependentCheckMode,
+  IndependentCheckResult,
+  ResolveRequiredControlsInput,
+  RequiredControlsBundle,
+  AcceptanceItem,
+  AcEvidenceMapping,
+  AcEvidenceLedger,
+  IndependentCheckVerdict,
+  EvaluateIndependentCheckInput,
+} from "./full-quality.js";
+
+export {
+  FULL_QUALITY_SOURCE,
+  FULL_QUALITY_SCHEMA_VERSION,
+  FULL_BASELINE_CONTROLS,
+  FULL_OPTIONAL_CONTROLS,
+  DEFAULT_CONTROL_SURFACES,
+  DESIGN_RISK_SIGNALS,
+  qualityFingerprint,
+  resolveRequiredControls,
+  parseAcceptanceItems,
+  buildAcEvidenceLedger,
+  evaluateIndependentCheck,
+  readRequiredControls,
+  normalizeRequiredControls,
+  normalizeRequiredControlsInExtras,
+  assertFullQualityForPhase,
+  assertIndependentCheckGateRecord,
+} from "./full-quality.js";
+
+export type {
   KernelReadResult,
   KernelTransitionResult,
   KernelCommandResult,

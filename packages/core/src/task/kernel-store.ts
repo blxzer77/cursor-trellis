@@ -10,6 +10,11 @@
 import fs from "node:fs";
 import path from "node:path";
 
+import {
+  assertFullQualityForPhase,
+  assertIndependentCheckGateRecord,
+  normalizeRequiredControlsInExtras,
+} from "./full-quality.js";
 import { loadTaskRecord, writeTaskRecord } from "./records.js";
 import {
   TASK_RECORD_FIELD_ORDER,
@@ -68,6 +73,7 @@ export interface KernelCreateRequest {
   actor: string;
   idempotencyKey: string;
   record: TrellisTaskRecord;
+  extras?: Record<string, unknown>;
   evidence?: string;
   gate?: unknown;
   policy?: unknown;
@@ -463,6 +469,18 @@ function cloneJsonObject(value: Record<string, unknown>): Record<string, unknown
   return JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
 }
 
+function mergeExtras(
+  current: Record<string, unknown>,
+  incoming: Record<string, unknown> | undefined,
+): Record<string, unknown> {
+  const merged = {
+    ...cloneJsonObject(current),
+    ...(incoming === undefined ? {} : cloneJsonObject(incoming)),
+  };
+  normalizeRequiredControlsInExtras(merged);
+  return merged;
+}
+
 function requireEvidence(
   value: string | undefined,
   field: string,
@@ -673,6 +691,7 @@ export function applyKernelCreate(
     ...request.record,
     status: request.record.status || "planning",
   });
+  const extras = mergeExtras({}, request.extras);
   const evidence = requireEvidence(request.evidence, "evidence");
 
   fs.mkdirSync(dir, { recursive: true });
@@ -721,7 +740,7 @@ export function applyKernelCreate(
       gates: emptyKernelGates(),
       projection: null,
     };
-    const next = attachProjection(snapshot, record, {}, "planning");
+    const next = attachProjection(snapshot, record, extras, "planning");
     const result = commitKernelAndProject(dir, next);
     return { ...result, audit, idempotent: false };
   });
@@ -744,7 +763,6 @@ export function applyKernelStart(
     );
   }
   const record = taskRecordSchema.parse(request.record);
-  const extras = cloneJsonObject(request.extras ?? {});
   const evidence = requireEvidence(request.evidence, "evidence");
 
   return withKernelLock(dir, () => {
@@ -764,6 +782,11 @@ export function applyKernelStart(
       };
     }
     expectRevision(current.kernel, request.expectedRevision);
+    const extras = mergeExtras(
+      current.kernel.projection?.extras ?? {},
+      request.extras,
+    );
+    assertFullQualityForPhase(dir, extras, "start");
     const hops = hopsToExecute(current.kernel.phase);
     const hopped = hopKernelSnapshot(current.kernel, hops, {
       actor,
@@ -799,7 +822,9 @@ export function applyKernelRecordGate(
     );
   }
   assertHonestGateRecord(request.record);
-  const extras = cloneJsonObject(request.extras ?? {});
+  if (gateName === "independent-check") {
+    assertIndependentCheckGateRecord(request.record);
+  }
   const evidence =
     requireEvidence(request.evidence, "evidence") ??
     (typeof request.record.evidence === "string"
@@ -842,19 +867,31 @@ export function applyKernelRecordGate(
     const baseRecord =
       current.kernel.projection?.record ??
       loadTaskRecord({ taskDir: dir });
-    const extrasWithGates = {
-      ...extras,
-      quality_gate_results:
-        extras.quality_gate_results ??
-        {
-          schema_version: 1,
-          transitions: gates.transitions,
-        },
-    };
+    const extras = mergeExtras(
+      current.kernel.projection?.extras ?? {},
+      request.extras,
+    );
+    extras.quality_gate_results =
+      extras.quality_gate_results ??
+      {
+        schema_version: 1,
+        transitions: gates.transitions,
+      };
+    if (gateName === "independent-check" && extras.independent_check === undefined) {
+      extras.independent_check = {
+        schema_version: 1,
+        mode: request.record.mode ?? request.record.assurance,
+        readonly: true,
+        result: request.record.result,
+        evidence: request.record.evidence,
+        independent_worker: request.record.independent_worker === true,
+        code_fingerprint: request.record.code_fingerprint ?? "",
+      };
+    }
     const next = attachProjection(
       { ...hopped.snapshot, gates },
       baseRecord,
-      extrasWithGates,
+      extras,
       baseRecord.status,
     );
     const result = commitKernelAndProject(dir, next);
@@ -879,7 +916,6 @@ export function applyKernelArchive(
     );
   }
   const record = taskRecordSchema.parse(request.record);
-  const extras = cloneJsonObject(request.extras ?? {});
   const evidence = requireEvidence(request.evidence, "evidence");
 
   return withKernelLock(dir, () => {
@@ -899,6 +935,11 @@ export function applyKernelArchive(
       };
     }
     expectRevision(current.kernel, request.expectedRevision);
+    const extras = mergeExtras(
+      current.kernel.projection?.extras ?? {},
+      request.extras,
+    );
+    assertFullQualityForPhase(dir, extras, "archive");
     const hops = hopsToClose(current.kernel.phase);
     const hopped = hopKernelSnapshot(current.kernel, hops, {
       actor,
@@ -1012,7 +1053,9 @@ export function applyKernelPatch(
     assertNoLifecycleStatusHop(baseRecord.status, nextRecord.status);
 
     const baseExtras = cloneJsonObject(current.kernel.projection?.extras ?? {});
-    const extras = extrasPatch === undefined ? baseExtras : { ...baseExtras, ...extrasPatch };
+    const extras =
+      extrasPatch === undefined ? baseExtras : { ...baseExtras, ...extrasPatch };
+    normalizeRequiredControlsInExtras(extras);
 
     const hopped = hopKernelSnapshot(current.kernel, [], {
       actor,
