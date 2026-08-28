@@ -1,7 +1,7 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { getAllScripts } from "../../src/templates/trellis/index.js";
+import { getAllScriptsForTests } from "../../src/templates/trellis/index.js";
 
 export const EVAL_TASK_PATH = ".cstl/tasks/06-13-eval";
 export const EVAL_DEVELOPER = "eval-dev";
@@ -57,7 +57,7 @@ export function writeJson(root: string, rel: string, data: unknown): void {
 
 export function writeTrellisScripts(root: string): void {
   const scriptsDir = path.join(root, ".cstl", "scripts");
-  for (const [rel, content] of getAllScripts()) {
+  for (const [rel, content] of getAllScriptsForTests()) {
     writeFile(scriptsDir, rel, content);
   }
 }

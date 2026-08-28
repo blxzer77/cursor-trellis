@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { getAllScripts } from "../../src/templates/trellis/index.js";
+import { getAllScriptsForTests } from "../../src/templates/trellis/index.js";
 import {
   buildMixedSourceBundle,
   listProjectFiles,
@@ -73,7 +73,7 @@ describe.skipIf(pythonCmd === null)("context_pack.py", () => {
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-context-pack-"));
     const scriptsDir = path.join(tmpDir, ".cstl", "scripts");
-    for (const [rel, content] of getAllScripts()) {
+    for (const [rel, content] of getAllScriptsForTests()) {
       const target = path.join(scriptsDir, rel);
       fs.mkdirSync(path.dirname(target), { recursive: true });
       fs.writeFileSync(target, content, "utf-8");

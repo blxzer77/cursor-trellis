@@ -55,13 +55,13 @@ describe("assessCstlDirectoryMigrate (conservative default)", () => {
     expect(assessCstlDirectoryMigrate(tmpDir).ok).toBe(true);
   });
 
-  it("allows migrate when F2 (cstl-triage.mdc) present and no upstream", () => {
+  it("allows migrate when F2 (cstl-bootstrap.mdc) present and no upstream", () => {
     const tmpDir = makeTmpDir();
     writeTrellis(tmpDir);
     fs.mkdirSync(path.join(tmpDir, ".cursor", "rules"), { recursive: true });
     fs.writeFileSync(
-      path.join(tmpDir, ".cursor", "rules", "cstl-triage.mdc"),
-      "# triage",
+      path.join(tmpDir, ".cursor", "rules", "cstl-bootstrap.mdc"),
+      "# bootstrap",
     );
     expect(assessCstlDirectoryMigrate(tmpDir).ok).toBe(true);
   });

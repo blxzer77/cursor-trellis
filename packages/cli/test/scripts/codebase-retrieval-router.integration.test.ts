@@ -4,14 +4,14 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { CODEBASE_RETRIEVAL_ROUTER_VERSION } from "../../src/utils/codebase-retrieval-router.js";
-import { getAllScripts } from "../../src/templates/trellis/index.js";
+import { getAllScriptsForTests } from "../../src/templates/trellis/index.js";
 import { resolvePython } from "./retrieval-eval-fixtures.js";
 
 const pythonCmd = resolvePython();
 
 function writeTrellisScripts(root: string): void {
   const scriptsDir = path.join(root, ".cstl", "scripts");
-  for (const [rel, content] of getAllScripts()) {
+  for (const [rel, content] of getAllScriptsForTests()) {
     const target = path.join(scriptsDir, rel);
     fs.mkdirSync(path.dirname(target), { recursive: true });
     fs.writeFileSync(target, content, "utf-8");

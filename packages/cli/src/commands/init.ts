@@ -32,6 +32,10 @@ import {
   type WriteMode,
 } from "../utils/file-writer.js";
 import { insertCstlManagedBlock } from "../utils/agents-md.js";
+import {
+  applyKernelCreate,
+  applyKernelStart,
+} from "@blxzer/cursor-trellis-core/task";
 import { emptyTaskJson, type TaskJson } from "../utils/task-json.js";
 import {
   detectProjectType,
@@ -319,11 +323,23 @@ function writeTaskSkeleton(
 
   try {
     fs.mkdirSync(taskDir, { recursive: true });
-    fs.writeFileSync(
-      path.join(taskDir, FILE_NAMES.TASK_JSON),
-      JSON.stringify(taskJson, null, 2),
-      "utf-8",
-    );
+    const created = applyKernelCreate({
+      taskDir,
+      actor: "cstl init",
+      idempotencyKey: `init:${taskName}`,
+      record: { ...taskJson, status: "planning" },
+      evidence: "cstl init skeleton",
+    });
+    if (taskJson.status === "in_progress") {
+      applyKernelStart({
+        taskDir,
+        expectedRevision: created.kernel.revision,
+        actor: "cstl init",
+        idempotencyKey: `init-start:${taskName}`,
+        record: { ...taskJson, status: "in_progress" },
+        evidence: "cstl init skeleton start",
+      });
+    }
     fs.writeFileSync(path.join(taskDir, FILE_NAMES.PRD), prdContent, "utf-8");
     return true;
   } catch {

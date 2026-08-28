@@ -46,6 +46,7 @@ import {
   collectProjectCapabilityTemplates,
   loadProjectCapabilities,
 } from "../utils/project-capabilities.js";
+import { applyKernelCreate } from "@blxzer/cursor-trellis-core/task";
 import { emptyTaskJson } from "../utils/task-json.js";
 
 // Import templates for comparison
@@ -2824,9 +2825,13 @@ export async function update(options: UpdateOptions): Promise<void> {
           createdAt: todayStr,
         });
 
-        // Write task.json
-        const taskJsonPath = path.join(taskDir, "task.json");
-        fs.writeFileSync(taskJsonPath, JSON.stringify(taskJson, null, 2));
+        applyKernelCreate({
+          taskDir,
+          actor: "cstl update",
+          idempotencyKey: `update:${taskSlug}`,
+          record: taskJson,
+          evidence: "cstl update migration skeleton",
+        });
 
         // Build PRD content
         let prdContent = `# Migration Task: Upgrade to v${cliVersion}\n\n`;

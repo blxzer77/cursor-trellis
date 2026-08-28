@@ -100,6 +100,12 @@ def to_kernel_record(task_data: dict) -> dict:
             record[field] = None
     if not isinstance(record["meta"], dict):
         record["meta"] = {}
+    else:
+        record["meta"] = {
+            key: value
+            for key, value in record["meta"].items()
+            if key not in {"classification", "task_kind", "task_type", "mode"}
+        }
     for array_field in _STRING_ARRAYS:
         value = record[array_field]
         if not isinstance(value, list):

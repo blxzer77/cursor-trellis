@@ -28,8 +28,6 @@ from .packages_context import (
     get_context_packages_json,
 )
 from .paths import get_repo_root
-from .project_file_stats import resolve_project_file_count_arg
-from .retrieval_pack_context import output_retrieval_pack_json, read_evidence_input
 from .lite_context import LiteContextPackError, get_lite_context_json
 from .trellis_config import read_trellis_config
 from .workflow_phase import (
@@ -140,12 +138,18 @@ def main() -> None:
         print(content, end="")
     elif args.mode == "retrieval-pack":
         try:
+            from .project_file_stats import resolve_project_file_count_arg
+            from .retrieval_pack_context import (
+                output_retrieval_pack_json,
+                read_evidence_input,
+            )
+
             evidence = read_evidence_input(args.input)
             project_file_count = resolve_project_file_count_arg(
                 args.project_file_count,
                 repo_root=get_repo_root(),
             )
-        except (OSError, json.JSONDecodeError, ValueError) as error:
+        except (OSError, json.JSONDecodeError, ValueError, ImportError) as error:
             parser.exit(1, f"retrieval pack error: {error}\n")
         output_retrieval_pack_json(
             evidence_input=evidence,

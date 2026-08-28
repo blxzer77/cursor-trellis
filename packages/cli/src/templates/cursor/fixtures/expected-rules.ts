@@ -4,7 +4,7 @@
  */
 
 export interface ExpectedRule {
-  /** Filename including .mdc extension, e.g. "cstl-triage.mdc" */
+  /** Filename including .mdc extension, e.g. "cstl-bootstrap.mdc" */
   filename: string;
   /** Substrings that must appear in rule body (case-sensitive) */
   requiredSections: string[];
@@ -22,35 +22,6 @@ export const expectedRules: ExpectedRule[] = [
       "Optional",
       "Native SSOT",
     ],
-    minBytes: 400,
-  },
-  {
-    filename: "cstl-triage.mdc",
-    requiredSections: [
-      "Decision tree",
-      "Classification mark",
-      "Consent gate",
-    ],
-    minBytes: 500,
-  },
-  {
-    filename: "cstl-subagent-dispatch.mdc",
-    requiredSections: ["Layer 2", "generate_dispatch_prompt", "CLI"],
-    minBytes: 400,
-  },
-  {
-    filename: "retrieval-routing.mdc",
-    requiredSections: ["Prefer", "Adapt", "Own", "Native", "BYOK", "codegraph", "smart-search"],
-    minBytes: 600,
-  },
-  {
-    filename: "cstl-session-rename.mdc",
-    requiredSections: ["rename_chat", "select", "start-execution", "skip silently"],
-    minBytes: 300,
-  },
-  {
-    filename: "cstl-cursor-modes.mdc",
-    requiredSections: ["Prefer Cursor native modes", "Quick routing", "Hard boundaries", "Rollback"],
     minBytes: 400,
   },
 ];

@@ -3,7 +3,7 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { getAllScripts } from "../../src/templates/trellis/index.js";
+import { getAllScriptsForTests } from "../../src/templates/trellis/index.js";
 import {
   buildMixedSourceBundle,
   resolvePython,
@@ -19,7 +19,7 @@ const pythonCmd = resolvePythonLocal();
 
 function writeTrellisScripts(root: string): void {
   const scriptsDir = path.join(root, ".cstl", "scripts");
-  for (const [rel, content] of getAllScripts()) {
+  for (const [rel, content] of getAllScriptsForTests()) {
     const target = path.join(scriptsDir, rel);
     fs.mkdirSync(path.dirname(target), { recursive: true });
     fs.writeFileSync(target, content, "utf-8");

@@ -22,7 +22,6 @@ from pathlib import Path
 from .active_task import resolve_context_key
 from .artifact_locale import artifact_locale_summary, resolve_artifact_locale
 from .config import get_git_packages, get_journal_snippet_enabled
-from .session_memory import get_latest_journal_summary
 from .git import run_git
 from .packages_context import get_packages_section
 from .tasks import iter_active_tasks, load_task, get_all_statuses, children_progress
@@ -864,6 +863,10 @@ def _resolve_journal_snippet(
     developer: str | None,
 ) -> str:
     if not journal_file or not developer:
+        return ""
+    try:
+        from .session_memory import get_latest_journal_summary
+    except ImportError:
         return ""
     return get_latest_journal_summary(journal_file, repo_root, developer)
 

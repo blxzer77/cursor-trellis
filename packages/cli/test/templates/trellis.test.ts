@@ -297,26 +297,17 @@ describe("getAllScripts", () => {
     expect(scripts.has("common/__init__.py")).toBe(true);
     expect(scripts.has("common/paths.py")).toBe(true);
     expect(scripts.has("common/active_task.py")).toBe(true);
-    expect(scripts.has("common/artifact_search.py")).toBe(true);
-    expect(scripts.has("common/session_memory.py")).toBe(true);
-    expect(scripts.has("common/smart_search_evidence.py")).toBe(true);
-    expect(scripts.has("common/smart_search_resolve.py")).toBe(true);
-    expect(scripts.has("common/retrieval_evidence.py")).toBe(true);
-    expect(scripts.has("common/retrieval_agent_instructions.py")).toBe(true);
-    expect(scripts.has("common/context_pack.py")).toBe(true);
-    expect(scripts.has("common/retrieval_pack.py")).toBe(true);
-    expect(scripts.has("common/retrieval_pack_context.py")).toBe(true);
-    expect(scripts.has("build_context_pack.py")).toBe(true);
-    expect(scripts.has("build_retrieval_pack.py")).toBe(true);
+    expect(scripts.has("common/kernel_command.py")).toBe(true);
     expect(scripts.has("task.py")).toBe(true);
     expect(scripts.has("get_developer.py")).toBe(true);
-    expect(scripts.has("search_artifacts.py")).toBe(true);
-    expect(scripts.has("search_memory.py")).toBe(true);
-    expect(scripts.has("run_smart_search.py")).toBe(true);
     expect(scripts.has("common/lite_context.py")).toBe(true);
     expect(scripts.has("common/full_quality.py")).toBe(true);
     expect(scripts.has("common/ondemand_topology.py")).toBe(true);
     expect(scripts.has("common/adapter_middleware.py")).toBe(true);
+    expect(scripts.has("common/artifact_search.py")).toBe(false);
+    expect(scripts.has("search_artifacts.py")).toBe(false);
+    expect(scripts.has("run_smart_search.py")).toBe(false);
+    expect(scripts.has("build_retrieval_pack.py")).toBe(false);
   });
 
   it("has at least one entry", () => {
@@ -335,43 +326,7 @@ describe("getAllScripts", () => {
     const scripts = getAllScripts();
     expect(scripts.get("__init__.py")).toBe(scriptsInit);
     expect(scripts.get("common/__init__.py")).toBe(commonInit);
-    expect(scripts.get("common/artifact_search.py")).toBe(commonArtifactSearch);
-    expect(scripts.get("common/session_memory.py")).toBe(commonSessionMemory);
-    expect(scripts.get("common/smart_search_evidence.py")).toBe(
-      commonSmartSearchEvidence,
-    );
-    expect(scripts.get("common/smart_search_resolve.py")).toBe(
-      commonSmartSearchResolve,
-    );
-    expect(scripts.get("common/retrieval_evidence.py")).toBe(
-      commonRetrievalEvidence,
-    );
-    expect(scripts.get("common/codebase_retrieval_router.py")).toBe(
-      commonCodebaseRetrievalRouter,
-    );
-    expect(scripts.get("common/project_file_stats.py")).toBe(
-      commonProjectFileStats,
-    );
-    expect(scripts.get("common/retrieval_agent_instructions.py")).toBe(
-      commonRetrievalAgentInstructions,
-    );
-    expect(scripts.get("common/context_pack.py")).toBe(commonContextPack);
-    expect(scripts.get("common/retrieval_pack.py")).toBe(commonRetrievalPack);
-    expect(scripts.get("common/retrieval_pack_context.py")).toBe(
-      commonRetrievalPackContext,
-    );
-    expect(scripts.get("build_context_pack.py")).toBe(buildContextPackScript);
-    expect(scripts.get("build_retrieval_pack.py")).toBe(buildRetrievalPackScript);
-    expect(scripts.get("route_codebase_retrieval.py")).toBe(
-      routeCodebaseRetrievalScript,
-    );
-    expect(scripts.get("codegraph_session_smoke.py")).toBe(
-      codegraphSessionSmokeScript,
-    );
     expect(scripts.get("task.py")).toBe(taskScript);
-    expect(scripts.get("search_artifacts.py")).toBe(searchArtifactsScript);
-    expect(scripts.get("search_memory.py")).toBe(searchMemoryScript);
-    expect(scripts.get("run_smart_search.py")).toBe(runSmartSearchScript);
   });
 
   it("does not contain multi_agent entries", () => {

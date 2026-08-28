@@ -530,7 +530,7 @@ function appendCodebaseRetrievalIntentBranches(lines: string[]): void {
     "",
     "- Use when the question has no named symbol, path, or protocol constant but asks how behavior works, spans modules/packages, or uses conceptual phrasing (for example English *how does* / *across packages*, or Chinese 如何 / 机制 / 跨).",
     "- The deterministic router emits intent `cross-cutting-discovery` and promotes semantic recall to plan order 1–2 (after `policy-docs-rg` when policy intent also matches); follow with exact `rg` on returned keywords and paths.",
-    "- **On Cursor (Native, `cursorEnv: native`)**: router `platform-semantic` — built-in codebase / semantic search (e.g. SemanticSearch); see `.cursor/rules/retrieval-routing.mdc`.",
+    "- **On Cursor (Native, `cursorEnv: native`)**: router `platform-semantic` — built-in codebase / semantic search (e.g. SemanticSearch); see on-demand retrieval docs.",
     "- **On Cursor++ BYOK (`cursorEnv: byok`)**: concept recall Primary is **fast_context_search** (fast-context MCP); built-in semantic is often absent (Experiment D). Select **codebase-retrieval** at init to generate `.cursor/mcp.json` entries for fast-context and codegraph.",
     "- **On Codex, Claude Code, and other non-Cursor hosts**: router `semantic-fast-context` — invoke `fast_context_search` when semantic recall is required after uncorroborated exact `rg`.",
     "- When exact-symbol or F/G preserve intents match, keep exact `rg` primary; do not apply this branch.",
@@ -619,7 +619,7 @@ function appendCodebaseRetrievalWorkflow(lines: string[]): void {
     "",
     "Semantic routing is **split by `cursorEnv`** (see `cursor_retrieval_env` / `~/.ccursor/routes.json` `byokMode`): **Native** → built-in `platform-semantic`; **BYOK** → **fast-context MCP** (`fast_context_search`) as Primary. **codebase-retrieval** is an **optional** init capability — when selected, init/update writes **fast-context** and **codegraph** into `.cursor/mcp.json`; BYOK local concept retrieval should select it.",
     "",
-    "Prefer `.cursor/rules/retrieval-routing.mdc` and `retrieval-daily-guide.md` for tool names.",
+    "Prefer `retrieval-daily-guide.md` for tool names (no always-on retrieval rule).",
     "",
   );
 
@@ -683,7 +683,7 @@ export function renderCapabilitiesMarkdown(
     "- CodeGraph output is structural guidance until index freshness and current source/Git evidence are confirmed.",
     "- fast-context output is semantic recall only and must be converted into exact source checks before final claims; on Cursor BYOK it is the compliant Primary for concept recall.",
     "- On **Cursor**, semantic recall follows **cursorEnv** (Native built-in vs BYOK fast-context). See **Semantic recall (Cursor)** under codebase-retrieval.",
-    "- On Cursor, per-query tool order also lives in `.cursor/rules/retrieval-routing.mdc` (`alwaysApply`).",
+    "- On Cursor, per-query tool order lives in on-demand retrieval docs, not an always-on rule.",
     "- GitHub MCP uses the GitHub API server package; remote writes require explicit user intent and the host's credential/tool posture must be clear.",
     "- Playwright MCP should be used for rendered UI evidence only when browser verification is part of the task.",
     "",

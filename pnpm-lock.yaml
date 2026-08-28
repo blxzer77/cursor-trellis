@@ -13,9 +13,6 @@ importers:
       '@blxzer/cursor-trellis-core':
         specifier: workspace:*
         version: link:../core
-      '@blxzer/smart-search':
-        specifier: ^0.2.0
-        version: 0.2.0
       chalk:
         specifier: ^5.3.0
         version: 5.6.2
@@ -71,6 +68,10 @@ importers:
       vitest:
         specifier: ^4.0.18
         version: 4.0.18(@types/node@20.19.28)(yaml@2.8.2)
+    optionalDependencies:
+      '@blxzer/smart-search':
+        specifier: ^0.2.0
+        version: 0.2.0
 
   packages/core:
     devDependencies:
@@ -1332,7 +1333,8 @@ snapshots:
 
   '@bcoe/v8-coverage@1.0.2': {}
 
-  '@blxzer/smart-search@0.2.0': {}
+  '@blxzer/smart-search@0.2.0':
+    optional: true
 
   '@esbuild/aix-ppc64@0.27.3':
     optional: true

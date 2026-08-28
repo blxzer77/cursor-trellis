@@ -24,13 +24,88 @@ function pythonExe(): string {
 
 const PY = pythonExe();
 
+const FAKE_KERNEL = `import json, sys
+from pathlib import Path
+req = json.loads(sys.stdin.read())
+op = req.get("op")
+task_dir = Path(req["taskDir"])
+task_dir.mkdir(parents=True, exist_ok=True)
+kernel_path = task_dir / "kernel.json"
+task_path = task_dir / "task.json"
+
+def dump(payload, code=0):
+    sys.stdout.write(json.dumps(payload) + "\\n")
+    sys.exit(code)
+
+def read_kernel():
+    if kernel_path.is_file():
+        return json.loads(kernel_path.read_text(encoding="utf-8"))
+    return {
+        "schemaVersion": 1,
+        "identity": {"taskId": "missing"},
+        "revision": 0,
+        "phase": "define",
+        "condition": "ready",
+        "outcome": None,
+        "audit": [],
+        "gates": {"schemaVersion": 1, "transitions": {}},
+        "projection": None,
+    }
+
+if op == "migrate":
+    dump({"ok": True, "op": "migrate", "dryRun": True, "wrote": False, "scanned": 0, "findings": []})
+if op == "read":
+    kernel = read_kernel()
+    status = "planning"
+    if task_path.is_file():
+        status = json.loads(task_path.read_text(encoding="utf-8")).get("status", "planning")
+    dump({"ok": True, "op": "read", "kernel": kernel, "persisted": kernel_path.is_file(),
+          "legacy": {"status": status, "id": kernel["identity"]["taskId"], "name": kernel["identity"]["taskId"], "title": ""}})
+
+record = req.get("record") or {}
+existing_task = json.loads(task_path.read_text(encoding="utf-8")) if task_path.is_file() else {}
+status_by_op = {"create": "planning", "start": "in_progress", "archive": "completed"}
+status = existing_task.get("status", "planning") if op in {"patch", "record-gate"} else status_by_op.get(op, "planning")
+prev = read_kernel()
+revision = int(prev.get("revision") or 0) + 1
+task_id = (record.get("id") if isinstance(record, dict) else None) or prev.get("identity", {}).get("taskId") or "task"
+kernel = {
+    "schemaVersion": 1,
+    "identity": {"taskId": task_id},
+    "revision": revision,
+    "phase": prev.get("phase", "define"),
+    "condition": "ready",
+    "outcome": "completed" if op == "archive" else None,
+    "audit": list(prev.get("audit") or []) + [{"id": "a1", "idempotencyKey": req.get("idempotencyKey")}],
+    "gates": prev.get("gates") or {"schemaVersion": 1, "transitions": {}},
+    "projection": {"status": status, "record": record, "extras": req.get("extras") or {}},
+}
+if op == "record-gate":
+    kernel["gates"].setdefault("transitions", {}).setdefault(req["transition"], {})[req["gate"]] = req["record"]
+kernel_path.write_text(json.dumps(kernel, indent=2), encoding="utf-8")
+projected = dict(existing_task)
+if op != "record-gate" and isinstance(record, dict) and record:
+    projected.update(record)
+    projected["status"] = status
+projected.update(req.get("extras") or {})
+if projected:
+    task_path.write_text(json.dumps(projected, indent=2), encoding="utf-8")
+dump({"ok": True, "op": op, "kernel": kernel, "persisted": True, "projected": True, "idempotent": False,
+      "legacy": {"status": status, "id": task_id, "name": task_id, "title": ""}, "audit": kernel["audit"][-1]})
+`;
+
 function runTask(
   repo: string,
   args: string[],
 ): { status: number | null; stdout: string; stderr: string } {
+  const fakeKernel = path.join(repo, ".cstl", "scripts", "_fake_kernel.py");
   const r = spawnSync(PY, [".cstl/scripts/task.py", ...args], {
     cwd: repo,
     encoding: "utf-8",
+    env: {
+      ...process.env,
+      TRELLIS_KERNEL_CLI: `${PY} ${fakeKernel}`,
+    },
   });
   return {
     status: r.status,
@@ -44,6 +119,11 @@ function setupRepo(tmp: string): void {
   fs.cpSync(TEMPLATE_SCRIPTS, path.join(tmp, ".cstl", "scripts"), {
     recursive: true,
   });
+  fs.writeFileSync(
+    path.join(tmp, ".cstl", "scripts", "_fake_kernel.py"),
+    FAKE_KERNEL,
+    "utf-8",
+  );
 }
 
 function writeJson(file: string, data: unknown): void {
@@ -167,8 +247,9 @@ describe("task_gates transition contract", () => {
           "parent = Path('.cstl/tasks/parent')",
           "parent.mkdir(parents=True)",
           "print(task_closeout_profile(lite, {'meta': {'classification': 'lite'}}))",
-          "print(task_closeout_profile(full, {}))",
+          "print(task_closeout_profile(full, {'required_controls': {'rigor': 'full'}}))",
           "print(task_closeout_profile(parent, {'children': ['c1'], 'meta': {'classification': 'parent'}}))",
+          "print(task_closeout_profile(full, {}))",
         ].join("\n"),
       ],
       { cwd: tmp, encoding: "utf-8" },
@@ -179,7 +260,7 @@ describe("task_gates transition contract", () => {
         .trim()
         .split(/\r?\n/)
         .map((line) => line.trim()),
-    ).toEqual(["lite", "full", "parent"]);
+    ).toEqual(["lite", "full", "parent", "lite"]);
   });
 
   it("rejects record-gate PASS when verify evidence is placeholder-only", () => {
@@ -294,7 +375,7 @@ describe("task_gates transition contract", () => {
       "--evidence",
       "verify.md",
     ]);
-    expect(gateResult.status).toBe(0);
+    expect(gateResult.status, gateResult.stdout + gateResult.stderr).toBe(0);
 
     const result = runTask(tmp, [
       "review-child",
@@ -458,7 +539,7 @@ describe("task_gates transition contract", () => {
       "--evidence",
       "verify.md",
     ]);
-    expect(record.status).toBe(0);
+    expect(record.status, record.stdout + record.stderr).toBe(0);
 
     const archive = runTask(tmp, ["archive", parentName, "--check"]);
     expect(archive.status).toBe(0);

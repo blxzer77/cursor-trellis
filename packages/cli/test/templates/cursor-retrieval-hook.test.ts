@@ -34,11 +34,12 @@ describe("cursor retrieval plan hook", () => {
     expect(hook?.content).toContain("## 代码库检索计划");
   });
 
-  it("retrieval-routing.mdc mentions beforeSubmitPrompt injection", () => {
+  it("default Cursor rules are bootstrap-only", () => {
     const rule = readFileSync(
-      join(templatesRoot, "cursor/rules/retrieval-routing.mdc"),
+      join(templatesRoot, "cursor/rules/cstl-bootstrap.mdc"),
       "utf-8",
     );
-    expect(rule).toMatch(/beforeSubmitPrompt|inject-retrieval-plan/);
+    expect(rule).toContain("Event Bridge");
+    expect(rule).not.toMatch(/alwaysApply rules \(triage/);
   });
 });

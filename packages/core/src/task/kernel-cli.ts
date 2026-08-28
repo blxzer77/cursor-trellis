@@ -5,6 +5,10 @@
  * Stage 1 kernel.json-only hop (no status rewrite).
  */
 
+import {
+  scanContractMigration,
+  type ContractMigrateReport,
+} from "./contract-migrate.js";
 import { isPlainObject, taskRecordSchema, type TrellisTaskRecord } from "./schema.js";
 import {
   KernelError,
@@ -37,7 +41,8 @@ export type KernelCliSuccess =
   | ({
       ok: true;
       op: "create" | "start" | "record-gate" | "archive" | "patch";
-    } & KernelCommandResult);
+    } & KernelCommandResult)
+  | ({ ok: true; op: "migrate" } & ContractMigrateReport);
 
 export interface KernelCliFailure {
   ok: false;
@@ -127,6 +132,9 @@ function dispatchKernelRequest(
   if (op === "patch") {
     const result = applyKernelPatch(parsePatchRequest(input, cwd));
     return { ok: true, op: "patch", ...result };
+  }
+  if (op === "migrate") {
+    return { ok: true, op: "migrate", ...parseMigrateDryRun(input, cwd) };
   }
   throw new KernelError(
     "INVALID_REQUEST",
@@ -312,6 +320,27 @@ function parseRecord(value: unknown): TrellisTaskRecord {
       }`,
     );
   }
+}
+
+function parseMigrateDryRun(
+  input: Record<string, unknown>,
+  cwd: string | undefined,
+): ContractMigrateReport {
+  if (input.dryRun !== true) {
+    throw new KernelError(
+      "INVALID_REQUEST",
+      "migrate is read-only and requires dryRun: true",
+    );
+  }
+  const root =
+    typeof input.cwd === "string" && input.cwd.trim() !== ""
+      ? input.cwd
+      : cwd ?? process.cwd();
+  const tasksDir =
+    input.tasksDir === undefined || input.tasksDir === null
+      ? undefined
+      : requireString(input.tasksDir, "tasksDir");
+  return scanContractMigration({ root, tasksDir });
 }
 
 function parseExtras(value: unknown): Record<string, unknown> | undefined {
