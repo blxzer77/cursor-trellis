@@ -8,7 +8,8 @@ import sys
 from pathlib import Path
 
 from .config import CONFIG_FILE
-from .io import read_json, write_json
+from .io import read_json
+from .kernel_command import kernel_expected_revision, kernel_patch, kernel_projection_extras
 from .paths import DIR_TASKS, DIR_WORKFLOW, FILE_TASK_JSON, get_repo_root
 
 VALID_LOCALES = ("zh", "en")
@@ -272,7 +273,7 @@ def set_workspace_artifact_locale(locale: str, repo_root: Path | None = None) ->
 
 
 def set_task_artifact_locale(task_dir: Path, locale: str, repo_root: Path | None = None) -> None:
-    """Write task.json meta.artifact_locale."""
+    """Write task.json meta.artifact_locale via Kernel patch."""
     _ = repo_root
     normalized = normalize_locale(locale)
     if not normalized:
@@ -291,4 +292,12 @@ def set_task_artifact_locale(task_dir: Path, locale: str, repo_root: Path | None
         meta = {}
     meta[_ARTIFACT_LOCALE_KEY] = normalized
     data["meta"] = meta
-    write_json(task_json, data)
+    kernel_patch(
+        task_dir,
+        data,
+        kernel_projection_extras(data),
+        expected_revision=kernel_expected_revision(task_dir),
+        actor="artifact_locale.set_task_artifact_locale",
+        idempotency_key=f"patch:artifact-locale:{task_dir.name}:{normalized}",
+        evidence="meta.artifact_locale",
+    )

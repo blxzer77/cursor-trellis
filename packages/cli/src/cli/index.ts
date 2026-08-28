@@ -402,7 +402,7 @@ program
 program
   .command("kernel")
   .description(
-    "Kernel JSON stdin/stdout (Stage 2 create/start/record-gate/archive + Stage 1 transition)",
+    "Kernel JSON stdin/stdout (Stage 2 create/start/record-gate/archive/patch + Stage 1 transition)",
   )
   .requiredOption(
     "--json",

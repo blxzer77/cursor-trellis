@@ -1,8 +1,8 @@
 """JSON CLI bridge to the TypeScript Kernel (P30 Stage 2 strangler).
 
-Python create / start-execution / record-gate / archive submit a Kernel
-Command. `task.json` status and gate extras are a same-command projection,
-not a second core-state writer.
+Python create / start-execution / record-gate / archive / patch submit a
+Kernel Command. `task.json` status, meta, and gate extras are a same-command
+projection, not a second core-state writer.
 """
 
 from __future__ import annotations
@@ -122,7 +122,7 @@ def kernel_cli_argv() -> list[str]:
         return [cstl, "kernel", "--json"]
     raise KernelCliNotFound(
         "Kernel CLI not found. Set TRELLIS_KERNEL_CLI or put `cstl` on PATH. "
-        "Stage 2 create/start-execution/record-gate/archive require `cstl kernel --json`."
+        "Stage 2 create/start-execution/record-gate/archive/patch require `cstl kernel --json`."
     )
 
 
@@ -264,6 +264,18 @@ def kernel_record_gate(
     return run_kernel_command(payload)
 
 
+KERNEL_PROJECTION_EXTRA_KEYS = ("quality_gate_results", "execution_approval")
+
+
+def kernel_projection_extras(task_data: dict) -> dict:
+    """Non-canonical task.json fields owned by the same Kernel Command."""
+    extras: dict = {}
+    for key in KERNEL_PROJECTION_EXTRA_KEYS:
+        if key in task_data:
+            extras[key] = task_data[key]
+    return extras
+
+
 def kernel_archive(
     task_dir: Path,
     record: dict,
@@ -283,6 +295,32 @@ def kernel_archive(
         "record": to_kernel_record(record),
         "extras": extras,
     }
+    if evidence:
+        payload["evidence"] = evidence
+    return run_kernel_command(payload)
+
+
+def kernel_patch(
+    task_dir: Path,
+    record: dict | None = None,
+    extras: dict | None = None,
+    *,
+    expected_revision: int,
+    actor: str,
+    idempotency_key: str,
+    evidence: str | None = None,
+) -> dict:
+    payload: dict = {
+        "op": "patch",
+        "taskDir": str(task_dir),
+        "expectedRevision": expected_revision,
+        "actor": actor,
+        "idempotencyKey": idempotency_key,
+    }
+    if record is not None:
+        payload["record"] = to_kernel_record(record)
+    if extras is not None:
+        payload["extras"] = extras
     if evidence:
         payload["evidence"] = evidence
     return run_kernel_command(payload)

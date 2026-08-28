@@ -17,11 +17,14 @@ from common.kernel_command import (
     kernel_archive,
     kernel_create,
     kernel_expected_revision,
+    kernel_patch,
+    kernel_projection_extras,
     kernel_record_gate,
     kernel_start,
     run_kernel_command,
     to_kernel_record,
 )
+from common.artifact_locale import set_task_artifact_locale
 from common.task_gates import collect_kernel_projection_extras, write_gate_record
 
 FAKE_KERNEL = r"""
@@ -74,14 +77,21 @@ if op == "read":
     })
 
 record = req.get("record") or {}
+existing_task = {}
+if task_path.is_file():
+    existing_task = json.loads(task_path.read_text(encoding="utf-8"))
+
 status_by_op = {
     "create": "planning",
     "start": "in_progress",
     "archive": "completed",
 }
-status = status_by_op.get(op, "planning")
-if op == "record-gate" and task_path.is_file():
-    status = json.loads(task_path.read_text(encoding="utf-8")).get("status", "planning")
+if op == "patch":
+    status = existing_task.get("status") or (record.get("status") if isinstance(record, dict) else None) or "planning"
+elif op == "record-gate" and existing_task:
+    status = existing_task.get("status", "planning")
+else:
+    status = status_by_op.get(op, "planning")
 
 prev = read_kernel()
 revision = int(prev.get("revision") or 0) + 1
@@ -96,6 +106,7 @@ phase_by_op = {
     "start": "execute",
     "archive": "close",
     "record-gate": prev.get("phase", "define"),
+    "patch": prev.get("phase", "define"),
 }
 kernel = {
     "schemaVersion": 1,
@@ -116,15 +127,15 @@ if op == "record-gate":
     kernel["gates"].setdefault("transitions", {}).setdefault(req["transition"], {})[req["gate"]] = req["record"]
 
 kernel_path.write_text(json.dumps(kernel, indent=2), encoding="utf-8")
-if isinstance(record, dict) and record:
-    projected = dict(record)
+projected = dict(existing_task)
+if op != "record-gate" and isinstance(record, dict) and record:
+    projected.update(record)
+    if isinstance(record.get("meta"), dict) and isinstance(existing_task.get("meta"), dict):
+        projected["meta"] = {**existing_task["meta"], **record["meta"]}
     projected["status"] = status
-    projected.update(req.get("extras") or {})
+projected.update(req.get("extras") or {})
+if projected:
     task_path.write_text(json.dumps(projected, indent=2), encoding="utf-8")
-elif op == "record-gate" and task_path.is_file():
-    data = json.loads(task_path.read_text(encoding="utf-8"))
-    data.update(req.get("extras") or {})
-    task_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
 dump({
     "ok": True,
@@ -280,3 +291,36 @@ def test_half_conversion_is_not_success(tmp_path, monkeypatch):
     assert "HALF_CONVERSION" in str(exc.value)
     assert exc.value.result["halfConversion"]["kernelPersisted"] is True
     assert exc.value.result["halfConversion"]["projectionPersisted"] is False
+
+
+def test_kernel_patch_updates_meta_and_kernel_revision(fake_kernel, tmp_path):
+    task_dir = tmp_path / "task"
+    kernel_create(task_dir, _record(), actor="a", idempotency_key="create:shim-demo")
+    data = json.loads((task_dir / "task.json").read_text(encoding="utf-8"))
+    data["meta"] = {"pool_items": ["P28"]}
+    patched = kernel_patch(
+        task_dir,
+        data,
+        kernel_projection_extras(data),
+        expected_revision=kernel_expected_revision(task_dir),
+        actor="pool.py link",
+        idempotency_key="patch:pool-link:task:P28",
+    )
+    assert patched["ok"] is True
+    kernel = json.loads((task_dir / "kernel.json").read_text(encoding="utf-8"))
+    assert kernel["revision"] >= 2
+    assert kernel["audit"][-1]["idempotencyKey"] == "patch:pool-link:task:P28"
+    task = json.loads((task_dir / "task.json").read_text(encoding="utf-8"))
+    assert task["status"] == "planning"
+    assert task["meta"]["pool_items"] == ["P28"]
+
+
+def test_set_task_artifact_locale_goes_through_kernel(fake_kernel, tmp_path):
+    task_dir = tmp_path / "task"
+    kernel_create(task_dir, _record(), actor="a", idempotency_key="create:shim-demo")
+    set_task_artifact_locale(task_dir, "en")
+    kernel = json.loads((task_dir / "kernel.json").read_text(encoding="utf-8"))
+    assert kernel["revision"] >= 2
+    task = json.loads((task_dir / "task.json").read_text(encoding="utf-8"))
+    assert task["meta"]["artifact_locale"] == "en"
+    assert task["status"] == "planning"

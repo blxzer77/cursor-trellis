@@ -114,6 +114,7 @@ export const KERNEL_COMMAND_OPS = [
   "start",
   "record-gate",
   "archive",
+  "patch",
 ] as const;
 
 export type KernelCommandOp = (typeof KERNEL_COMMAND_OPS)[number];

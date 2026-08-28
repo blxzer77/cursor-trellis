@@ -11,6 +11,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from common import kernel_command as kernel_command_mod
 from common.pool_store import (
     check_plan,
     find_item_path,
@@ -26,6 +27,19 @@ from common.pool_store import (
     validate_pool,
     write_item_frontmatter,
 )
+from common.test_kernel_command import FAKE_KERNEL
+
+
+@pytest.fixture(autouse=True)
+def fake_kernel(tmp_path, monkeypatch):
+    script = tmp_path / "fake_kernel.py"
+    script.write_text(FAKE_KERNEL, encoding="utf-8")
+    monkeypatch.setattr(
+        kernel_command_mod,
+        "kernel_cli_argv",
+        lambda: [sys.executable, str(script)],
+    )
+    return script
 
 ITEM_TEMPLATE = """\
 ---
@@ -205,6 +219,9 @@ def test_link_item_task_writes_both_sides_idempotent(tmp_path: Path) -> None:
     assert get_linked_tasks(item) == ["08-09-some-task"]
     data = json.loads((task_dir / "task.json").read_text(encoding="utf-8"))
     assert get_pool_items(data) == ["P01"]
+    kernel = json.loads((task_dir / "kernel.json").read_text(encoding="utf-8"))
+    assert kernel["revision"] >= 1
+    assert kernel["audit"][-1]["idempotencyKey"].startswith("patch:pool-link:")
 
     second = link_item_task(repo, "P01", "08-09-some-task")
     assert second.ok

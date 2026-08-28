@@ -9,6 +9,7 @@ import { KERNEL_JSON_BASENAME, KernelError } from "../../src/task/kernel-contrac
 import {
   applyKernelArchive,
   applyKernelCreate,
+  applyKernelPatch,
   applyKernelRecordGate,
   applyKernelStart,
   applyKernelTransition,
@@ -356,5 +357,167 @@ describe("Stage 2 Kernel commands + half-conversion", () => {
       expect((err as KernelError).code).toBe("REVISION_CONFLICT");
     }
     expect(fs.readFileSync(path.join(taskDir, "task.json"), "utf-8")).toBe(before);
+  });
+
+  it("patch updates meta, bumps revision, and keeps planning status", () => {
+    applyKernelCreate({
+      taskDir,
+      actor: "a",
+      idempotencyKey: "create:kernel-cmd",
+      record: demoRecord(),
+    });
+    const patched = applyKernelPatch({
+      taskDir,
+      expectedRevision: 1,
+      actor: "pool.py link",
+      idempotencyKey: "patch:pool-link:kernel-cmd:P28",
+      record: { meta: { pool_items: ["P28"] } },
+    });
+
+    expect(patched.kernel.phase).toBe("define");
+    expect(patched.legacy.status).toBe("planning");
+    expect(patched.kernel.revision).toBe(2);
+    expect(patched.kernel.projection?.record.meta).toEqual({ pool_items: ["P28"] });
+
+    const taskJson = JSON.parse(
+      fs.readFileSync(path.join(taskDir, "task.json"), "utf-8"),
+    ) as { status: string; meta?: { pool_items?: string[] } };
+    expect(taskJson.status).toBe("planning");
+    expect(taskJson.meta?.pool_items).toEqual(["P28"]);
+  });
+
+  it("patch rejects lifecycle status hops", () => {
+    applyKernelCreate({
+      taskDir,
+      actor: "a",
+      idempotencyKey: "create:kernel-cmd",
+      record: demoRecord(),
+    });
+    try {
+      applyKernelPatch({
+        taskDir,
+        expectedRevision: 1,
+        actor: "a",
+        idempotencyKey: "patch:status-hop",
+        record: { status: "in_progress" },
+      });
+      expect.unreachable("status hop should throw");
+    } catch (err) {
+      expect(err).toBeInstanceOf(KernelError);
+      expect((err as KernelError).code).toBe("INVALID_TRANSITION");
+    }
+    const taskJson = JSON.parse(
+      fs.readFileSync(path.join(taskDir, "task.json"), "utf-8"),
+    ) as { status: string };
+    expect(taskJson.status).toBe("planning");
+    expect(readKernel({ taskDir }).kernel.revision).toBe(1);
+  });
+
+  it("patch JSON op updates extras without changing phase", () => {
+    applyKernelCreate({
+      taskDir,
+      actor: "a",
+      idempotencyKey: "create:kernel-cmd",
+      record: demoRecord(),
+    });
+    const json = handleKernelRequest({
+      op: "patch",
+      taskDir,
+      expectedRevision: 1,
+      actor: "cli",
+      idempotencyKey: "patch:locale",
+      record: { meta: { artifact_locale: "en" } },
+      extras: { execution_approval: { approved_by: "user" } },
+    });
+    expect(json.ok).toBe(true);
+    if (!json.ok) return;
+    expect(json.op).toBe("patch");
+    expect(json.kernel.phase).toBe("define");
+    const taskJson = JSON.parse(
+      fs.readFileSync(path.join(taskDir, "task.json"), "utf-8"),
+    ) as {
+      status: string;
+      meta?: { artifact_locale?: string };
+      execution_approval?: { approved_by?: string };
+    };
+    expect(taskJson.status).toBe("planning");
+    expect(taskJson.meta?.artifact_locale).toBe("en");
+    expect(taskJson.execution_approval?.approved_by).toBe("user");
+  });
+
+  it("patch half-conversion commits kernel.json and recovers via idempotency", () => {
+    applyKernelCreate({
+      taskDir,
+      actor: "a",
+      idempotencyKey: "create:kernel-cmd",
+      record: demoRecord(),
+    });
+    setKernelAfterWriteHook(() => {
+      throw new Error("injected projection failure");
+    });
+    try {
+      applyKernelPatch({
+        taskDir,
+        expectedRevision: 1,
+        actor: "a",
+        idempotencyKey: "patch:half",
+        record: { meta: { pool_items: ["P28"] } },
+      });
+      expect.unreachable("half-conversion should throw");
+    } catch (err) {
+      expect((err as KernelError).code).toBe("HALF_CONVERSION");
+    }
+    expect(fs.existsSync(kernelJsonPath(taskDir))).toBe(true);
+    fs.rmSync(path.join(taskDir, "task.json"));
+
+    const json = handleKernelRequest({
+      op: "patch",
+      taskDir,
+      expectedRevision: 1,
+      actor: "a",
+      idempotencyKey: "patch:half",
+      record: { meta: { pool_items: ["P28"] } },
+    });
+    expect(json.ok).toBe(false);
+    if (json.ok) return;
+    expect(json.error.code).toBe("HALF_CONVERSION");
+    expect(json.halfConversion?.kernelPersisted).toBe(true);
+
+    setKernelAfterWriteHook(null);
+    const recovered = applyKernelPatch({
+      taskDir,
+      expectedRevision: 1,
+      actor: "a",
+      idempotencyKey: "patch:half",
+      record: { meta: { pool_items: ["P28"] } },
+    });
+    expect(recovered.projected).toBe(true);
+    const taskJson = JSON.parse(
+      fs.readFileSync(path.join(taskDir, "task.json"), "utf-8"),
+    ) as { status: string; meta?: { pool_items?: string[] } };
+    expect(taskJson.status).toBe("planning");
+    expect(taskJson.meta?.pool_items).toEqual(["P28"]);
+  });
+
+  it("patch rejects unimplemented gate hooks instead of fake-green", () => {
+    applyKernelCreate({
+      taskDir,
+      actor: "a",
+      idempotencyKey: "create:kernel-cmd",
+      record: demoRecord(),
+    });
+    try {
+      applyKernelPatch({
+        taskDir,
+        expectedRevision: 1,
+        actor: "a",
+        idempotencyKey: "patch:gated",
+        record: { meta: { pool_items: ["P28"] } },
+        gate: { result: "PASS" },
+      });
+      expect.unreachable("gate hook should throw");
+    } catch (err) {
+      expect((err as KernelError).code).toBe("GATE_HOOK_UNIMPLEMENTED");
+    }
   });
 });
