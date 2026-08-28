@@ -237,6 +237,7 @@ describe("shouldExcludeFromBackup", () => {
     ".cstl/workspace/developer/journal-1.md",
     ".cstl/tasks/04-17-foo/prd.md",
     ".cstl/spec/cli/backend/index.md",
+    ".cstl/middleware/smart-search.yaml",
     ".cstl/backlog/idea.md",
     ".cstl/agent-traces/trace.jsonl",
   ])("excludes user data %s", (p) => {

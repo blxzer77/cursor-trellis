@@ -101,6 +101,11 @@ def cmd_show(args: argparse.Namespace) -> int:
     print(f"title: {item.title or '<missing>'}")
     print(f"status: {item.status or '<missing>'}")
     print(f"type: {item.type or '<missing>'}")
+    priority = item.frontmatter.get("priority")
+    if isinstance(priority, str) and priority.strip():
+        print(f"priority: {priority.strip()}")
+    else:
+        print("priority: <unlabeled>")
     print(f"path: {item.path}")
     if not item.linked_tasks:
         print("linked_tasks: []")

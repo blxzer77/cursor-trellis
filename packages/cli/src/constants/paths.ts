@@ -23,6 +23,8 @@ export const DIR_NAMES = {
   SCRIPTS: "scripts",
   /** Review-pool directory (under .cstl/) */
   POOL: "pool",
+  /** User middleware overlay (under .cstl/) — never written/hashed by init/update */
+  MIDDLEWARE: "middleware",
 } as const;
 
 // File names
@@ -59,6 +61,8 @@ export const PATHS = {
   SCRIPTS: `${DIR_NAMES.WORKFLOW}/${DIR_NAMES.SCRIPTS}`,
   /** .cstl/pool/ */
   POOL: `${DIR_NAMES.WORKFLOW}/${DIR_NAMES.POOL}`,
+  /** .cstl/middleware/ — user overlay; update never writes, deletes, or hashes */
+  MIDDLEWARE: `${DIR_NAMES.WORKFLOW}/${DIR_NAMES.MIDDLEWARE}`,
   /** .cstl/.developer */
   DEVELOPER_FILE: `${DIR_NAMES.WORKFLOW}/${FILE_NAMES.DEVELOPER}`,
   /** .cstl/.current-task */
@@ -89,4 +93,16 @@ export function getTaskDir(taskName: string): string {
  */
 export function getArchiveDir(): string {
   return `${PATHS.TASKS}/${DIR_NAMES.ARCHIVE}`;
+}
+
+/**
+ * True for the user middleware overlay and any file under it.
+ * `cstl init` / `cstl update` must never write, delete, or hash these paths.
+ */
+export function isUserMiddlewareOverlayPath(relativePath: string): boolean {
+  const normalized = relativePath.replace(/\\/g, "/");
+  return (
+    normalized === PATHS.MIDDLEWARE ||
+    normalized.startsWith(`${PATHS.MIDDLEWARE}/`)
+  );
 }

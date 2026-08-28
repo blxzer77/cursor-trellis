@@ -6,11 +6,12 @@
 
 ## Core Principles
 
-1. **Plan before code** — figure out what to do before you start
-2. **Specs injected, not remembered** — guidelines are injected via hook/skill, not recalled from memory
-3. **Persist everything** — research, decisions, and lessons all go to files; conversations get compacted, files don't
-4. **Incremental development** — one task at a time
-5. **Capture learnings** — after each task, review and write new knowledge back to spec
+1. **Parallel first** — when ≥2 independent units have isolatable write-sets, default to parallel; serial needs a written reason. Attention order is not a serial lock. Convention + review, not a new CLI gate. See Parallel-first below.
+2. **Plan before code** — figure out what to do before you start
+3. **Specs injected, not remembered** — guidelines are injected via hook/skill, not recalled from memory
+4. **Persist everything** — research, decisions, and lessons all go to files; conversations get compacted, files don't
+5. **Incremental development** — finish a slice before expanding; this is not a serial lock on independent units
+6. **Capture learnings** — after each task, review and write new knowledge back to spec
 
 **Session boundary** — Continue → clear → handoff (`cstl-handoff`, when the work needs to travel) → subagent → compact. A task directory's `handoff.md` is integration/delivery evidence, not a session handoff document.
 
@@ -325,7 +326,11 @@ Use child tasks for deliverables that can be planned, implemented, checked, and 
 
 ### Parallel-first execution
 
-Planning declares parallel structure; **Cursor native** runs it. Trellis does **not** ship a parallel scheduler or a Multitask replacement. Field map and archived Parent 对照: `.cstl/framework/parallel-first-execution.md`.
+This is a **product** principle, not only an execution contract. It applies to the review pool, development-plan batches, Parent/Full fan-out, and independent middleware / protocol / release tracks. Planning declares parallel structure; **Cursor native** runs it. Trellis does **not** ship a parallel scheduler or a Multitask replacement. Field map: `.cstl/framework/parallel-first-execution.md`.
+
+**Does not apply:** Lite / single-file work; write-sets that cannot isolate; HITL / `start-execution --approved` / reviewer / `integrate-child`.
+
+**Does not replace** the existing `serial_reason` list. v1 strength is convention + review call-out, **not** a CLI hard gate.
 
 | Layer | Duty |
 | --- | --- |

@@ -36,7 +36,7 @@ import path from "node:path";
 
 import { collectPlatformTemplates } from "../configurators/index.js";
 import { getWorkflowRootTemplateFiles } from "../configurators/workflow.js";
-import { FILE_NAMES } from "../constants/paths.js";
+import { FILE_NAMES, isUserMiddlewareOverlayPath } from "../constants/paths.js";
 import { getAllMigrations } from "../migrations/index.js";
 import { saveHashes } from "./template-hash.js";
 import { toPosix } from "./posix.js";
@@ -144,7 +144,12 @@ export function pruneOrphanManifestKeys(
     const key = toPosix(rawKey);
     // Always preserve .cstl/ entries — they're for the workflow tree
     // which uninstall removes wholesale and which update needs for
-    // modified-file detection.
+    // modified-file detection. Exception: user middleware overlay must
+    // never stay in the template hash (poisoned or accidental).
+    if (isUserMiddlewareOverlayPath(key)) {
+      pruned.push(key);
+      continue;
+    }
     if (key.startsWith(".cstl/") || key === ".cstl") {
       kept[key] = value;
       continue;

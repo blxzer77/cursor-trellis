@@ -122,6 +122,9 @@ export async function createWorkflowStructure(
   // Review-pool skeleton (mechanism docs only; no sample items)
   await writePoolSkeleton(path.join(cwd, PATHS.POOL));
 
+  // Do not create or write `.cstl/middleware/`. Users drop Manifests there;
+  // init/update never write, delete, or hash that overlay.
+
   // Copy workflow.md (native bundled template or selected marketplace variant)
   await writeFile(
     path.join(cwd, PATHS.WORKFLOW_GUIDE_FILE),

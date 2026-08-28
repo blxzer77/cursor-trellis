@@ -112,4 +112,22 @@ describe("cleanupCursor2plusResidue (P23 hash-safe)", () => {
     );
     expect(fs.existsSync(cmdPath)).toBe(false);
   });
+
+  it("never deletes user files under .cstl/middleware/", () => {
+    const overlayPath = path.join(
+      tmpDir,
+      ".cstl",
+      "middleware",
+      "smart-search.yaml",
+    );
+    fs.mkdirSync(path.dirname(overlayPath), { recursive: true });
+    const content = "id: smart-search\nprotocol: 1\nsource: user\n";
+    fs.writeFileSync(overlayPath, content, "utf-8");
+
+    const result = cleanupCursor2plusResidue(tmpDir);
+    expect(result.deleted.some((rel) => rel.includes("middleware"))).toBe(
+      false,
+    );
+    expect(fs.readFileSync(overlayPath, "utf-8")).toBe(content);
+  });
 });

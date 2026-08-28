@@ -1,0 +1,83 @@
+# Middleware Protocol v1
+
+> 一种中间件。官方与用户同一契约，只靠 `source` 区分。字段名英文；正文跟 `artifact_locale`（当前 zh）。
+>
+> Overlay（已拍）：项目 **`.cstl/middleware/`**。默认可进 git。`cstl init` / `cstl update` **永不写入、不删除、不纳入 `.template-hashes.json`**。Cursor++ 残渣清理是另一条 allow-list，不得误删本目录。
+
+Capability router 只声明 `exact` / `semantic` / `structural` / `external`，不绑 Agent 工具名。
+
+## 双轨
+
+| 轨 | CSTL 管什么 |
+| --- | --- |
+| 集成 | 本协议：Manifest + Profile + 健康 |
+| Extra | 只在宿主里配 Agent / MCP，不写成中间件 → CSTL 不管 |
+
+## 义务
+
+1. **一种 ABI。** `source: shipped | user` 不是两套协议。
+2. **Update 不顶掉。** 用户 overlay 不进模板 hash / 官方 refresh 写集。同 id：用户赢，并报告。
+3. **Secret。** Manifest 只许引用（环境变量名 / 平台 Secret），不许写密钥原文。日志与 Artifact 同样禁止。
+4. **权限。** 新权限首次启用走一次 Resolution Approval。后续 `update` 不得扩大已批权限；要扩大再批一次。
+5. **校验。** 缺必填字段则拒绝接入并说明，不得半接入。
+6. **Hook。** 只订 Event Bridge 已有事件。未订阅模块不得让 hook 失败。
+7. **协议版本。** Manifest 可带 `protocol: 1`。不兼容升级必须在应用前被发现。
+
+本条不实现安装器、不做商店、不改全局 MCP。可选日后加 `cstl middleware add`，非发布阻塞。
+
+## 生命周期
+
+添加（放入 overlay 的 Manifest）→ 启用/停用（Profile `required` / `optional` / `unset`）→ 移除（用户删 overlay，CSTL 忘记）。
+
+停用 ≠ 删除文件。官方 shipped 可被用户停用，不得被 `update` 强行再打开。`update` 可刷新 shipped 声明，但不得删用户 overlay，也不得在用户停用后自动重装实现。
+
+同一 capability 多个 Provider：Profile 选一个 active；其余 standby。不得静默抢当前 active。
+
+## 传输类
+
+`transport` 取其一：`skill+cli` | `mcp` | `skill` | `hook`。宿主里额外配置的，CSTL 不管。
+
+## 发现与健康
+
+发现方式：在 `.cstl/middleware/` 放 Manifest。缺必填字段则拒绝接入。
+
+Status / Continue 在任务需要该 capability 时展示 `ready` / `missing` / `failed` / `degraded`。不把 Extra 轨的 MCP 列进健康表。
+
+## 第一波 shipped（不挡用户自添）
+
+| Provider | Profile | 说明 |
+| --- | --- | --- |
+| smart-search | required `external-knowledge` | 独立包；缺失则 degrade |
+| codegraph / fast-context | optional | 默认不装 |
+| cstl-byok | 协议里占可选位 | **实现与发版延后**；本批发协议，不带 BYOK 安装 |
+| Playwright / GitHub | 默认不集成 | — |
+
+## Manifest 样例
+
+```yaml
+id: smart-search
+protocol: 1
+capability: external-knowledge
+source: shipped          # shipped | user
+ownership:
+  kind: external-package
+  name: smart-search
+transport: skill+cli     # skill+cli | mcp | skill | hook
+profile: required        # required | optional | unset
+readiness:
+  probe: cli
+  command_hint: smart-search doctor
+on_missing: degrade      # degrade | block-if-required
+permissions:
+  network: true
+  shell: true
+  secrets: true
+secret_refs: []          # 只写引用名，不写值
+update_policy: preserve-user-overlay
+```
+
+## 相关
+
+- [upgrade.md](./upgrade.md) — 终端用户升级半页
+- [release-boundary.md](./release-boundary.md) — CSTL 本批 vs cstl-byok
+- `.cstl/workflow.md` — 并行第一原则（约定，不是 CLI gate）

@@ -5,6 +5,9 @@
  * known managed paths only when on-disk content matches a pristine template
  * hash captured from the last shipped SSOT bytes. User-modified files are
  * preserved with a warning.
+ *
+ * Never target `.cstl/middleware/` (user overlay). Residue paths are an
+ * explicit allow-list; overlay isolation is a separate contract.
  */
 
 import fs from "node:fs";

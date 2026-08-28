@@ -794,6 +794,7 @@ describe("init() integration", () => {
       ).toBe(replacePythonCommandLiterals(doc.content));
     }
     expect(fs.existsSync(path.join(frameworkDir, "index.md"))).toBe(true);
+    expect(fs.existsSync(path.join(tmpDir, PATHS.MIDDLEWARE))).toBe(false);
   });
 
   it("#10b spec/guides seeds stay init-only (7 thinking guides + index; no moved docs, no maintainer runbooks)", async () => {
