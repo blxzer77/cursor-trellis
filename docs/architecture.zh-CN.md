@@ -75,7 +75,7 @@ flowchart LR
 Trellis 将代码库与外部事实问题通过一个**检索层**路由，而非依赖单一工具。在 Cursor 上，检索计划通过两个互补通道到达 Agent，两者都**不**依赖不可靠的 `sessionStart` 注入（#158452）：
 
 1. **每查询计划**——`beforeSubmitPrompt` 钩子（`inject-retrieval-plan.py`）向用户提示预置 `## 代码库检索计划` 块，由 `route_codebase_retrieval.py` 生成。
-2. **常驻策略**——`.cursor/rules/retrieval-routing.mdc`（`alwaysApply: true`）定义默认工具顺序与计划块执行规则。
+2. **薄常驻指针**——`.cursor/rules/cstl-bootstrap.mdc`（`alwaysApply: true`）点名四种检索意图。完整做法在 `.cstl/framework/retrieval-daily-guide.md`。`retrieval-routing.mdc` 已退役。
 
 该层涵盖七个适配器（Core / Enhance / Placeholder），基于意图路由，三档证据评分（candidate → corroborated → verified），以及结果层排序。语义后端取决于环境：native `@codebase` vs BYOK `fast_context_search`。完整设计见 [retrieval.zh-CN.md](retrieval.zh-CN.md)。
 

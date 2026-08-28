@@ -13,7 +13,7 @@
 | 层 | 载体 | 职责 | 可靠性 | 典型例子 |
 | --- | --- | --- | --- | --- |
 | **CLI** | `cstl` 命令 | 初始化/更新项目、任务门禁、派发 prompt 生成、规则校验 | **高** — 显式调用、可脚本化 | `cstl init --cursor`、`task.py start-execution --check`、`cstl validate-rules` |
-| **Rule** | `.cursor/rules/*.mdc` | 常驻策略：Triage、检索路由、子代理派发契约 | **高** — Cursor 规则通道 | `cstl-triage.mdc`、`retrieval-routing.mdc` |
+| **Rule** | `.cursor/rules/*.mdc` | 常驻策略：薄 Adapter 指针（Event Bridge、四种检索意图） | **高** — Cursor 规则通道 | `cstl-bootstrap.mdc` |
 | **Hook** | `.cursor/hooks/*.py` + `hooks.json` | 会话/工具前后注入上下文、检索计划、证据 pack | **尽力而为** — 平台限制（如 #158452） | `session-start.py`、`inject-subagent-context.py` |
 | **MCP / 外部工具** | 用户配置的 MCP、smart-search CLI | 代码图、浏览器、GitHub、**外部事实**检索 | **按能力配置** — doctor/就绪检查 | codegraph、fast-context、smart-search |
 
@@ -21,7 +21,7 @@
 
 1. **硬门禁走 CLI + Rule**，不走 Hook 单通道。
 2. **子代理上下文主路径是 CLI Layer 2**（`generate_dispatch_prompt.py` → `Task` 的 `prompt`），Hook 只做补全。
-3. **检索 = 工具策略**：代码事实（Grep/codegraph）与外部事实（smart-search）分流，见 `retrieval-routing.mdc`。
+3. **检索 = 工具策略**：代码事实（Grep/codegraph）与外部事实（smart-search）分流，见 `.cstl/framework/retrieval-daily-guide.md`。
 
 ## CLI：可重复的工程面
 

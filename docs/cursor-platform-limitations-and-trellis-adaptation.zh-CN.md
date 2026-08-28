@@ -151,7 +151,7 @@ Native 与 BYOK 分叉见下文第二、三部分。
 
 | 做法 | 说明 |
 | --- | --- |
-| 常驻规则 | `cstl-triage.mdc`、`retrieval-routing.mdc`，`alwaysApply: true` |
+| 常驻规则 | 仅 `cstl-bootstrap.mdc`（`alwaysApply: true`）。已退役：`cstl-triage.mdc`、`retrieval-routing.mdc` |
 | AGENTS.md | 项目结构、外部资料优先 smart-search、推送策略等 |
 | 少量斜杠命令 | `/cstl-continue`、`/cstl-finish-work`；默认不堆 `.cursor/skills/` |
 | **CLI 生成完整派发说明** | 派发 research/implement/check 前用 `generate_dispatch_prompt.py` 生成全文，再粘贴到 Task 的 prompt。**这是保证子任务看见任务上下文的可靠主路径。** |
@@ -166,7 +166,7 @@ Native 与 BYOK 分叉见下文第二、三部分。
 cstl init --cursor
 ```
 
-确认存在 `.cstl/workflow.md`、`.cursor/rules/cstl-triage.mdc`、`.cursor/agents/cstl-*.md`。
+确认存在 `.cstl/workflow.md`、`.cursor/rules/cstl-bootstrap.mdc`、`.cursor/agents/cstl-*.md`。
 
 **B. Triage**
 
@@ -244,7 +244,7 @@ python ./.cstl/scripts/run_smart_search.py "你的问题" --intent deep-research
 
 **每次 `cstl update` 后**
 
-- [ ] `cstl-triage.mdc` 存在且 `alwaysApply: true`
+- [ ] `cstl-bootstrap.mdc` 存在且 `alwaysApply: true`
 - [ ] 派发子任务前运行 `generate_dispatch_prompt.py` 并粘贴**全文**
 
 **Native**

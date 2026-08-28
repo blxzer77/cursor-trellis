@@ -30,8 +30,8 @@ cstl init --cursor
 
 | 表面 | init 后的 Cursor |
 | --- | --- |
-| `.cursor/commands/` | 面向用户的斜杠命令(`/cstl-continue`、`/cstl-finish-work`、可选 Cursor++ 配置) |
-| `.cursor/rules/*.mdc` | 常驻或 glob 规则(如 Request Triage 硬门禁、检索路由) |
+| `.cursor/commands/` | 面向用户的斜杠命令(`/cstl-continue`、`/cstl-finish-work`、`/cstl-handoff`) |
+| `.cursor/rules/*.mdc` | 默认常驻仅 `cstl-bootstrap.mdc`（薄 Adapter 指针） |
 | `.cursor/agents/` | 子 Agent 定义(`cstl-research`、`cstl-implement`、`cstl-check` 等) |
 | `.cursor/hooks/` + `hooks.json` | Python 钩子脚本与配置 |
 | `.cursor/worktrees.json` | Cursor 原生 worktree 辅助配置 |
@@ -55,8 +55,7 @@ your-project/
       cstl-continue.md
       cstl-finish-work.md
     rules/
-      cstl-triage.mdc             # alwaysApply: true
-      retrieval-routing.mdc          # alwaysApply: true
+      cstl-bootstrap.mdc             # alwaysApply: true（默认唯一常驻）
     agents/
       cstl-research.md
       cstl-implement.md
@@ -71,13 +70,13 @@ your-project/
 
 ## Rules
 
-Cursor 的**用户规则**与项目 **`.cursor/rules`** 是常驻策略的可靠通道。Trellis 发布三个常驻规则:
+Cursor 的**用户规则**与项目 **`.cursor/rules`** 是常驻策略的可靠通道。默认安装只发布**一条**常驻规则：
 
-- `cstl-triage.mdc`(`alwaysApply: true`)——在持久性工作前强制执行 **Request Triage**。
-- `retrieval-routing.mdc`(`alwaysApply: true`)——对代码库问题强制执行[检索层](retrieval.zh-CN.md)路由。
-- `cstl-session-rename.mdc`(`alwaysApply: true`)——在 `task.py select` 或 `start-execution --approved` 后,尽力将**主会话**标签改为任务**目录名**(通过 `cursor-app-control` `rename_chat`;MCP 不可用时静默跳过)。
+- `cstl-bootstrap.mdc`（`alwaysApply: true`）——薄 Adapter：Event Bridge、四种检索意图（`exact` / `semantic` / `structural` / `external`）、独立 smart-search Provider、可选代码智能、Native SSOT、用户 overlay `.cstl/middleware/`。它**只指向**，不承载完整 Triage、门禁或检索方法。
 
-用于弥补已知限制:`sessionStart` 钩子的 `additional_context` 可能无法进入 Agent(#158452)。因此 Triage 与检索策略不能仅依赖钩子注入的 workflow 文本。
+Request Triage、门禁与检索做法在 `.cstl/workflow.md` 与按需 `.cstl/framework/` 指南。`cstl-triage.mdc`、`retrieval-routing.mdc`、`cstl-session-rename.mdc` 是**已退役**的常驻文件；`cstl update` 会迁走未改动的副本。不要把它们当成当前安装产物。
+
+用于弥补已知限制:`sessionStart` 钩子的 `additional_context` 可能无法进入 Agent(#158452)。因此硬策略不能仅依赖钩子注入的 workflow 文本。
 
 ### 会话重命名(鼓励一任务一主会话)
 
@@ -88,7 +87,7 @@ Trellis **鼓励**一个 cstl 任务对应一个主 Agent 会话,便于管理;**
 | `task.py select <task-dir>` | 任务目录名(如 `07-04-my-task`) |
 | `task.py start-execution <task-dir> --approved` | 同上 |
 
-机制:`afterShellExecution` 钩子尽力下发 `agent_message`,加上常驻规则 `cstl-session-rename.mdc` 指示 Agent 调用 **`cursor-app-control` → `rename_chat`**。该 MCP 属于 **Cursor 平台能力**(`cstl init` 不会写入 `.cursor/mcp.json`)。
+机制:`afterShellExecution` 钩子（`rename-session-for-task.py`）尽力下发 `agent_message`，让 Agent 调用 **`cursor-app-control` → `rename_chat`**。该 MCP 属于 **Cursor 平台能力**(`cstl init` 不会写入 `.cursor/mcp.json`)。MCP 不可用时静默跳过。
 
 | 环境 | 说明 |
 | --- | --- |
@@ -97,7 +96,7 @@ Trellis **鼓励**一个 cstl 任务对应一个主 Agent 会话,便于管理;**
 
 去重状态:`.cstl/.runtime/session-rename/`(按会话 context key)。
 
-日常以 `.cstl/workflow.md` 为规范来源;rules 概括聊天中必须遵守的硬门禁。
+日常以 `.cstl/workflow.md` 为规范来源;bootstrap 规则是指针,不是完整方法。
 
 **平台问题、Native/BYOK 分叉、逐步操作与外部证据链接**见：[Cursor 平台限制与 cursor-trellis 适配说明](cursor-platform-limitations-and-trellis-adaptation.zh-CN.md)。
 
@@ -107,8 +106,9 @@ Trellis **鼓励**一个 cstl 任务对应一个主 Agent 会话,便于管理;**
 | --- | --- | --- |
 | `cstl-continue.md` | `/cstl-continue` | 带 Trellis 上下文继续当前任务 |
 | `cstl-finish-work.md` | `/cstl-finish-work` | 验证、学习回写、任务收尾 |
+| `cstl-handoff.md` | `/cstl-handoff` | 将会话交接文档写到 OS 临时目录 |
 
-Cursor 上命令引用前缀为 `/cstl-`（见 `packages/cli/src/types/ai-tools.ts` 中 `AI_TOOLS.cursor`）。
+Cursor 上命令引用前缀为 `/cstl-`（见 `packages/cli/src/types/ai-tools.ts` 中 `AI_TOOLS.cursor`）。Cursor 上 **没有** `/cstl-start` 斜杠项（agent-capable 平台会过滤 `start.md`）。
 
 ## Agents(子 Agent)
 
@@ -189,7 +189,7 @@ init/update 可勾选 `codebase-retrieval`、`github-mcp`、`playwright-mcp`。M
 cstl update
 ```
 
-按模板哈希比对更新,可选 `--migrate` 做路径迁移。敏感仓库建议先 `--dry-run`。详见 [CLI README](../packages/cli/README.zh-CN.md#trellis-update)。
+按模板哈希比对更新,可选 `--migrate` 做路径迁移。看摘要并**确认一次**——拒绝则项目保持原状。五步路径见 [项目 README](../README.zh-CN.md#升级已有项目)。敏感仓库建议先 `--dry-run`。详见 [CLI README](../packages/cli/README.zh-CN.md#trellis-update)。
 
 移除 Trellis 管理的 Cursor 文件:
 

@@ -41,7 +41,7 @@
 - **证据 pack** — finish/check 在 `retrieval-pack-latest.json` 存在时引用；research prompt 含 provider 相关性提示
 - **会话交接** — `/cstl-handoff` 在需要跨会话「旅行」时（换 harness / repo、交给同事、fork 支线）将当前会话压缩成可搬运文档写入 OS 临时目录
 - **双轴 check** — `cstl-check` 分节报告 **Standards**（规范遵循、lint、type-check、测试、Fowler 12 smells、跨层数据流）与 **Spec**（prd 忠实度、scope、学习/spec 同步）——不做合并单一风险榜
-- **内部 skill 可达性** — 内部 workflow skills 默认 **不进** `/` 面板（commands-only），但按设计 **按需可达**：PRD Grill → `.cstl/spec/guides/prd-grill-frontier.md`；完整 skill × 载荷通道矩阵 → `.cstl/spec/guides/internal-skills-cursor-reachability.md`；dogfood-only vs 默认安装清单 → `.cstl/spec/guides/dogfood-only-surfaces.md`
+- **内部 skill 可达性** — 内部 workflow skills 默认 **不进** `/` 面板（commands-only），但按设计 **按需可达**：PRD Grill → `.cstl/framework/prd-grill-frontier.md`；完整 skill × 载荷通道矩阵 → `.cstl/framework/internal-skills-cursor-reachability.md`；dogfood-only vs 默认安装清单 → `.cstl/framework/dogfood-only-surfaces.md`
 
 ## 常用命令
 
@@ -79,9 +79,27 @@ cd /path/to/your-app
 cstl init --cursor
 ```
 
-**3. 用 Cursor 打开项目**，使用 Agent 模式。用户可见斜杠命令包括 `/cstl-continue`、`/cstl-finish-work`。Request Triage 由 `.cursor/rules/cstl-triage.mdc` 强制执行。
+**3. 用 Cursor 打开项目**，使用 Agent 模式。用户可见斜杠命令包括 `/cstl-continue`、`/cstl-finish-work`、`/cstl-handoff`。请求分类在 `.cstl/workflow.md`。默认常驻规则只有 `.cursor/rules/cstl-bootstrap.mdc`（薄指针，不承载完整 Triage 正文）。退役的 `cstl-triage.mdc` 不是现役。
 
 产品路径：`cstl init --cursor`（Native）。Cursor++ 路径已废弃 —— 见 [cursor.zh-CN.md](docs/cursor.zh-CN.md)。检索仍可能使用 `cursorEnv` 环境探测。默认分发为 Native Cursor；CSTL **不内嵌 BYOK**。
+
+## 升级已有项目
+
+不要重做 `init`，不要手搬任务目录。
+
+1. 按发布说明升级 CSTL 包（或你原来的安装面）。
+2. 在**项目根目录**跑一次 **`cstl update`**。
+3. 看摘要：刷新了哪些官方文件、迁了哪些官方规则、哪些进行中的任务仍按旧形状可读、有没有 degraded。
+4. **确认一次。** 拒绝则项目保持原状，不会半写。`--force` / `--skip-all` / `--create-new` 会套官方文件，但不算这次确认，也不写停读旗标。
+5. 照常开对话或 `/cstl-continue`。进行中的任务还能做、还能收工。
+
+官方面（CSTL 装进项目的指令与规则）能随这次 `update` 开迁。任务产物先双读，以后再写。确认后才会停读旧形状。从更老的版本一次升上来，也走同一条 `update`。
+
+你改过的官方文件会单独列出并保留。只在 Cursor 里配了 MCP、没写成中间件的，CSTL 不管。失败则回滚或维持双读，项目仍可用。
+
+团队其他人：拉代码即可。若这次只改了本地未提交文件，发布说明会写清谁跑 `update`、谁只要 pull。
+
+从 0.3.0 升上来时，先跑 `cstl update --migrate`（见下），之后的小版本仍走上面五步。
 
 ## 从 0.3.0 升级（v0.3.1）
 
@@ -124,7 +142,7 @@ cstl update --migrate
 
 ```text
 your-app/
-  .cstl/          workflow、spec、tasks、workspace、scripts
+  .cstl/          workflow、spec、framework、tasks、workspace、scripts
   CONTEXT.md          项目领域词汇表（on-demand 读取）
   docs/adr/           架构决策记录（惰性创建规则）
   AGENTS.md          Trellis 管理的 Agent 入口
