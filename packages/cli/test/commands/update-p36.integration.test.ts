@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { spawnSync } from "node:child_process";
+import { execSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -170,6 +170,8 @@ describe("update() P36 A+B+C", () => {
       true,
     );
     expect(logs.some((line) => line.includes("确认后才会停读旧形状"))).toBe(true);
+    expect(logs.some((line) => line.includes(".p36-wave-c.json"))).toBe(true);
+    expect(logs.some((line) => line.includes("--force"))).toBe(true);
     expect(logs.some((line) => /Stage\s*[0-7]/.test(line))).toBe(false);
   });
 
@@ -209,6 +211,55 @@ describe("update() P36 A+B+C", () => {
       topology: { kind: "single", parent_id: "some-parent", children: [] },
     };
     expect(closeoutProfile(tmpDir, taskDir, leftover)).toBe("lite");
+  });
+
+  it("smoke failure still reaches Proceed?; refuse writes no flag", async () => {
+    plantLegacySurfaces();
+    vi.mocked(execSync).mockImplementation((cmd: string) => {
+      if (cmd === `${PY} --version`) return "Python 3.11.12";
+      if (cmd === "smart-search doctor --format json") {
+        const error = new Error("Command failed: smart-search doctor");
+        Object.assign(error, {
+          status: 2,
+          stdout: JSON.stringify({
+            ok: false,
+            minimum_profile_ok: false,
+            error: "standard minimum profile is not configured",
+          }),
+        });
+        throw error;
+      }
+      return "";
+    });
+    vi.mocked(inquirer.prompt).mockResolvedValue({ proceed: false });
+    await update({ skipPostUpdateSmoke: true });
+    expect(inquirer.prompt).toHaveBeenCalled();
+    expect(isWaveCConfirmed(tmpDir)).toBe(false);
+    expect(fs.existsSync(projectFile(WAVE_C_STATE_REL))).toBe(false);
+  });
+
+  it("smoke failure still reaches Proceed?; yes writes the Wave C flag", async () => {
+    plantLegacySurfaces();
+    vi.mocked(execSync).mockImplementation((cmd: string) => {
+      if (cmd === `${PY} --version`) return "Python 3.11.12";
+      if (cmd === "smart-search doctor --format json") {
+        const error = new Error("Command failed: smart-search doctor");
+        Object.assign(error, {
+          status: 2,
+          stdout: JSON.stringify({
+            ok: false,
+            minimum_profile_ok: false,
+            error: "standard minimum profile is not configured",
+          }),
+        });
+        throw error;
+      }
+      return "";
+    });
+    vi.mocked(inquirer.prompt).mockResolvedValue({ proceed: true });
+    await update({ skipPostUpdateSmoke: true });
+    expect(inquirer.prompt).toHaveBeenCalled();
+    expect(isWaveCConfirmed(tmpDir)).toBe(true);
   });
 
   it("file-conflict flags apply A but do not write the Wave C flag", async () => {

@@ -38,6 +38,10 @@ vi.mock("node:child_process", () => ({
 
 // === Imports ===
 
+import {
+  isWaveCConfirmed,
+  WAVE_C_STATE_REL,
+} from "@blxzer/cursor-trellis-core/task";
 import { init } from "../../src/commands/init.js";
 import { update } from "../../src/commands/update.js";
 import { VERSION } from "../../src/constants/version.js";
@@ -320,11 +324,15 @@ describe("update() integration", () => {
     );
   });
 
-  it("#1c blocks update before backup or writes when Smart Search readiness fails", async () => {
+  it("#1c continues to Proceed? when Smart Search readiness fails", async () => {
     await setupProject();
 
     const targetFull = path.join(tmpDir, MANAGED_FILE);
     fs.writeFileSync(targetFull, "user customized content");
+    const waveCFlag = path.join(tmpDir, WAVE_C_STATE_REL);
+    if (fs.existsSync(waveCFlag)) {
+      fs.unlinkSync(waveCFlag);
+    }
 
     vi.mocked(execSync).mockImplementation(((cmd: string) => {
       if (cmd === "smart-search doctor --format json") {
@@ -344,14 +352,15 @@ describe("update() integration", () => {
       return "";
     }) as typeof execSync);
 
-    await expect(update({ force: true })).rejects.toThrow(
-      /Smart Search readiness failed[\s\S]*cstl update --skip-readiness/,
+    await update({ skipPostUpdateSmoke: true });
+    expect(inquirer.prompt).toHaveBeenCalled();
+    expect(console.warn).toHaveBeenCalledWith(
+      expect.stringMatching(/Smart Search readiness unverified/),
     );
     expect(fs.readFileSync(targetFull, "utf-8")).toBe(
       "user customized content",
     );
-    const entries = fs.readdirSync(path.join(tmpDir, DIR_NAMES.WORKFLOW));
-    expect(entries.filter((e) => e.startsWith(".backup-"))).toEqual([]);
+    expect(isWaveCConfirmed(tmpDir)).toBe(true);
   });
 
   it("#1d --skip-readiness bypasses Smart Search doctor and allows update writes", async () => {
@@ -474,7 +483,7 @@ describe("update() integration", () => {
     expect(entries.filter((e) => e.startsWith(".backup-"))).toEqual([]);
   });
 
-  it("#1f blocks update before writes when selected capability readiness fails", async () => {
+  it("#1f continues when selected capability readiness fails (force is not stop-read)", async () => {
     await init({
       yes: true,
       capability: ["codebase-retrieval"],
@@ -483,6 +492,10 @@ describe("update() integration", () => {
 
     const targetFull = path.join(tmpDir, MANAGED_FILE);
     fs.writeFileSync(targetFull, "user customized content");
+    const waveCFlag = path.join(tmpDir, WAVE_C_STATE_REL);
+    if (fs.existsSync(waveCFlag)) {
+      fs.unlinkSync(waveCFlag);
+    }
 
     vi.mocked(execSync).mockImplementation(((cmd: string) => {
       if (cmd === "smart-search doctor --format json") {
@@ -494,14 +507,14 @@ describe("update() integration", () => {
       return "";
     }) as typeof execSync);
 
-    await expect(update({ force: true })).rejects.toThrow(
-      /Selected project capability readiness failed[\s\S]*codebase-retrieval[\s\S]*rg[\s\S]*cstl update --skip-readiness/,
+    await update({ force: true, skipPostUpdateSmoke: true });
+    expect(console.warn).toHaveBeenCalledWith(
+      expect.stringMatching(/codebase-retrieval capability unverified/),
     );
-    expect(fs.readFileSync(targetFull, "utf-8")).toBe(
+    expect(fs.readFileSync(targetFull, "utf-8")).not.toBe(
       "user customized content",
     );
-    const entries = fs.readdirSync(path.join(tmpDir, DIR_NAMES.WORKFLOW));
-    expect(entries.filter((e) => e.startsWith(".backup-"))).toEqual([]);
+    expect(isWaveCConfirmed(tmpDir)).toBe(false);
   });
 
   it("#2b dry run with --json emits structured rollout evidence without mutating", async () => {

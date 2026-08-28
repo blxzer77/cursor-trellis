@@ -84,6 +84,8 @@ describe("P36 official-surface A planner", () => {
     });
     const text = plan.vernacular.join("\n");
     expect(text).toMatch(/官方面/);
+    expect(text).toMatch(/--force \/ --skip-all \/ --create-new/);
+    expect(text).toMatch(/\.p36-wave-c\.json/);
     expect(text).toMatch(/确认后才会停读旧形状/);
     expect(text).not.toMatch(/Stage\s*[0-7]/);
     expect(text).not.toMatch(/MyHarness/);
@@ -100,6 +102,10 @@ describe("P36 official-surface A planner", () => {
   it("user upgrade page stays half-page and gates stop-read on confirm", () => {
     const text = fs.readFileSync(UPGRADE_MD, "utf-8");
     expect(text).toMatch(/确认后才会停读旧形状/);
+    expect(text).toMatch(/--force/);
+    expect(text).toMatch(/--skip-all/);
+    expect(text).toMatch(/--create-new/);
+    expect(text).toMatch(/不算这次确认/);
     expect(text).not.toMatch(/Stage\s*[0-7]/);
     expect(text).not.toMatch(/MyHarness/);
     expect(text).not.toMatch(/write-artifacts/);

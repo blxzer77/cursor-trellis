@@ -145,6 +145,7 @@ export function composeP36Plan(options: {
     options.official.preserved.length + options.official.preserve.length;
   const vernacular = [
     `官方面：将刷新 ${officialCount} 个未改过的官方文件/规则；你改过的 ${preservedCount} 个已保留。`,
+    "--force / --skip-all / --create-new 会套官方文件，但不写 .p36-wave-c.json；只有交互确认 Proceed? 才停读。",
     ...formatArtifactVernacular(options.artifacts, options.writeArtifacts),
     ...formatWaveCVernacular(options.waveC),
   ];

@@ -44,8 +44,8 @@ import { compareVersions } from "../utils/compare-versions.js";
 import { toPosix } from "../utils/posix.js";
 import { setupProxy } from "../utils/proxy.js";
 import {
-  checkProjectCapabilityReadiness,
-  checkSmartSearchReadiness,
+  reportUpdateReadiness,
+  snapshotReadinessForRollout,
 } from "../utils/readiness.js";
 import {
   collectProjectCapabilityTemplates,
@@ -109,7 +109,6 @@ import {
   type UpdateReleaseBlocker,
   type UpdateRolloutReport,
 } from "../utils/update-rollout-report.js";
-import { snapshotReadinessForRollout } from "../utils/readiness.js";
 
 function logCursor2plusRetiredResidueNotice(cwd: string): void {
   if (!hasCursor2plusBundleResidue(cwd)) {
@@ -1889,10 +1888,10 @@ function releaseBlockersFromReadiness(
   if (!readiness.skipped && !readiness.smartSearch.ok) {
     blockers.push({
       code: "smart_search_readiness",
-      message: "Smart Search readiness did not pass",
+      message: "Smart Search readiness unverified (does not block Proceed?)",
       recovery: [
         "smart-search doctor --format json",
-        "cstl update --skip-readiness",
+        "Treat Smart Search as unverified; official files can still update after Proceed?",
       ],
     });
   }
@@ -1900,8 +1899,10 @@ function releaseBlockersFromReadiness(
     if (!cap.ok) {
       blockers.push({
         code: `capability_${cap.id}`,
-        message: `Capability ${cap.id} readiness failed`,
-        recovery: ["cstl update --skip-readiness"],
+        message: `Capability ${cap.id} readiness unverified (does not block Proceed?)`,
+        recovery: [
+          "Treat this capability as unverified; official files can still update after Proceed?",
+        ],
       });
     }
   }
@@ -1999,22 +2000,12 @@ export async function update(options: UpdateOptions): Promise<void> {
   // Set up proxy before any network calls (npm version check)
   setupProxy();
 
-  checkSmartSearchReadiness({
-    skipReadiness: options.skipReadiness,
-    skipReadinessCommand: "cstl update --skip-readiness",
-  });
-  checkProjectCapabilityReadiness({
-    cwd,
-    selected: loadProjectCapabilities(cwd),
-    skipReadiness: options.skipReadiness,
-    skipReadinessCommand: "cstl update --skip-readiness",
-  });
-
   readinessSnapshot = snapshotReadinessForRollout({
     cwd,
     selected: loadProjectCapabilities(cwd),
     skipReadiness: options.skipReadiness,
   });
+  reportUpdateReadiness(readinessSnapshot);
 
   // Get versions
   projectVersion = getInstalledVersion(cwd);

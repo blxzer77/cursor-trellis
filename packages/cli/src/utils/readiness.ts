@@ -517,6 +517,65 @@ function smokeCommandsForCapability(
   return smoke ? [smoke] : [];
 }
 
+/**
+ * Print update readiness. Failures are unverified warnings, not a hard stop.
+ * `--skip-readiness` remains a maintainer hatch, not the Cursor-user default.
+ */
+export function reportUpdateReadiness(snapshot: UpdateReadinessSnapshot): void {
+  if (snapshot.skipped) {
+    console.warn(
+      chalk.yellow(
+        "⚠ Smart Search readiness skipped (--skip-readiness); framework readiness is not verified.",
+      ),
+    );
+    console.warn(
+      chalk.yellow(
+        "⚠ Selected project capability readiness skipped (--skip-readiness); selected capabilities are not verified.",
+      ),
+    );
+    return;
+  }
+
+  console.log(chalk.blue("🔎 Checking Smart Search readiness..."));
+  if (snapshot.smartSearch.ok) {
+    console.log(chalk.green("✓ Smart Search readiness verified"));
+  } else {
+    console.warn(
+      chalk.yellow(
+        "⚠ Smart Search readiness unverified; official files can still update after confirmation.",
+      ),
+    );
+    for (const detail of snapshot.smartSearch.details) {
+      console.warn(chalk.yellow(`  ${detail}`));
+    }
+  }
+
+  if (snapshot.capabilities.length === 0) {
+    return;
+  }
+
+  console.log(chalk.blue("🔌 Checking selected project capabilities..."));
+  for (const cap of snapshot.capabilities) {
+    if (cap.ok) {
+      console.log(
+        chalk.green(`✓ ${cap.id} capability readiness baseline checked`),
+      );
+    } else {
+      console.warn(
+        chalk.yellow(
+          `⚠ ${cap.id} capability unverified; official files can still update after confirmation.`,
+        ),
+      );
+      for (const failure of cap.failures) {
+        console.warn(chalk.yellow(`  ${failure}`));
+      }
+    }
+    for (const warning of cap.warnings) {
+      console.warn(chalk.yellow(`⚠ ${cap.id}: ${warning}`));
+    }
+  }
+}
+
 /** Non-throwing readiness snapshot for structured update/rollout evidence. */
 export function snapshotReadinessForRollout(options: {
   cwd: string;
