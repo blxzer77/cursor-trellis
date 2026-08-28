@@ -51,8 +51,21 @@ import {
   collectProjectCapabilityTemplates,
   loadProjectCapabilities,
 } from "../utils/project-capabilities.js";
-import { applyKernelCreate } from "@blxzer/cursor-trellis-core/task";
+import {
+  applyArtifactMigration,
+  applyKernelCreate,
+  planArtifactMigration,
+} from "@blxzer/cursor-trellis-core/task";
 import { emptyTaskJson } from "../utils/task-json.js";
+import {
+  applyOfficialRetire,
+  composeP36Plan,
+  officialWorkPending,
+  planOfficialSurfaceA,
+  printP36Vernacular,
+  p36SummaryForRollout,
+  type P36UpgradePlan,
+} from "../utils/p36-upgrade.js";
 
 // Import templates for comparison
 import {
@@ -127,6 +140,11 @@ export interface UpdateOptions {
    * even when upstream Trellis signals are detected. Requires `--migrate`.
    */
   forceCstlMigrate?: boolean;
+  /**
+   * Maintainer / harness: after one confirm, write artifact B projections.
+   * User default stays dual-read only.
+   */
+  writeArtifacts?: boolean;
   /** Filled on completion for `cstl rollout` aggregation. */
   lastReport?: UpdateRolloutReport;
 }
@@ -1836,6 +1854,7 @@ function rolloutOptionsFromUpdate(
     migrate: Boolean(options.migrate),
     allowDowngrade: Boolean(options.allowDowngrade),
     skipReadiness: Boolean(options.skipReadiness),
+    writeArtifacts: Boolean(options.writeArtifacts),
   };
 }
 
@@ -2303,6 +2322,8 @@ export async function update(options: UpdateOptions): Promise<void> {
       safeDeletePaths,
     });
 
+  const p36State: { report?: UpdateRolloutReport["p36"] } = {};
+
   const emitRollout = (
     outcome: UpdateRolloutReport["outcome"],
     extra?: Partial<{
@@ -2312,6 +2333,7 @@ export async function update(options: UpdateOptions): Promise<void> {
       files: ReturnType<typeof buildFilePlanFromChanges>;
       breakingMigrationGateRequired: boolean;
       backupPath: string | null;
+      p36: UpdateRolloutReport["p36"];
     }>,
   ): void => {
     const readiness =
@@ -2346,12 +2368,29 @@ export async function update(options: UpdateOptions): Promise<void> {
         cliVersion,
         latestNpmVersion,
       ),
+      p36: extra?.p36 ?? p36State.report,
     });
     finishRollout(options, report);
   };
 
   // Print summary
   printChangeSummary(changes);
+
+  const officialPlan = planOfficialSurfaceA({
+    cwd,
+    hashes,
+    refresh: changes.autoUpdateFiles.map((file) => file.relativePath),
+    preserved: changes.changedFiles.map((file) => file.relativePath),
+    added: changes.newFiles.map((file) => file.relativePath),
+  });
+  const artifactPlan = planArtifactMigration({ root: cwd });
+  const p36Plan: P36UpgradePlan = composeP36Plan({
+    official: officialPlan,
+    artifacts: artifactPlan,
+    writeArtifacts: Boolean(options.writeArtifacts),
+  });
+  p36State.report = p36SummaryForRollout(p36Plan);
+  printP36Vernacular(p36Plan);
 
   // First-time hash tracking hint
   if (isFirstHashTracking && changes.changedFiles.length > 0) {
@@ -2380,12 +2419,18 @@ export async function update(options: UpdateOptions): Promise<void> {
     (classifiedMigrations.auto.length > 0 ||
       classifiedMigrations.confirm.length > 0);
 
+  const hasOfficialP36 = officialWorkPending(officialPlan);
+  const hasMaintainerArtifactWrites =
+    Boolean(options.writeArtifacts) && artifactPlan.writable.length > 0;
+
   if (
     changes.newFiles.length === 0 &&
     changes.autoUpdateFiles.length === 0 &&
     changes.changedFiles.length === 0 &&
     !hasPendingMigrations &&
-    !hasSafeDeletes
+    !hasSafeDeletes &&
+    !hasOfficialP36 &&
+    !hasMaintainerArtifactWrites
   ) {
     if (!options.dryRun && missingAgentsMdHash.size > 0) {
       updateHashes(cwd, missingAgentsMdHash);
@@ -2525,6 +2570,15 @@ export async function update(options: UpdateOptions): Promise<void> {
   if (backupDir) {
     console.log(
       chalk.gray(`\nBackup created: ${path.relative(cwd, backupDir)}/`),
+    );
+  }
+
+  const officialRetired = applyOfficialRetire(cwd, officialPlan);
+  if (officialRetired > 0) {
+    console.log(
+      chalk.cyan(
+        `\nStopped ${officialRetired} extra official always-on rule(s)`,
+      ),
     );
   }
 
@@ -2746,6 +2800,30 @@ export async function update(options: UpdateOptions): Promise<void> {
     updateHashes(cwd, filesToHash);
   }
 
+  let artifactApply: ReturnType<typeof applyArtifactMigration> | null = null;
+  if (options.writeArtifacts && artifactPlan.writable.length > 0) {
+    artifactApply = applyArtifactMigration({
+      root: cwd,
+      plan: artifactPlan,
+    });
+    if (artifactApply.ok) {
+      console.log(
+        chalk.cyan(
+          `\nWrote ${artifactApply.written} artifact projection(s); business text kept.`,
+        ),
+      );
+    } else {
+      console.log(
+        chalk.yellow(
+          "产物写入失败，已回到双读。项目仍可用，可再跑 update。",
+        ),
+      );
+      if (artifactApply.error) {
+        console.log(chalk.gray(`  ${artifactApply.error}`));
+      }
+    }
+  }
+
   // Print summary
   console.log(chalk.cyan("\n--- Summary ---\n"));
   if (added > 0) {
@@ -2768,6 +2846,15 @@ export async function update(options: UpdateOptions): Promise<void> {
   }
   if (configSectionsAppended > 0) {
     console.log(`  Config sections added: ${configSectionsAppended}`);
+  }
+  if (officialRetired > 0) {
+    console.log(`  Official always-on stopped: ${officialRetired}`);
+  }
+  if (artifactApply?.ok && artifactApply.written > 0) {
+    console.log(`  Artifact projections written: ${artifactApply.written}`);
+  }
+  if (artifactApply && !artifactApply.ok) {
+    console.log("  Artifact projections: rolled back to dual-read");
   }
   if (backupDir) {
     console.log(`  Backup: ${path.relative(cwd, backupDir)}/`);

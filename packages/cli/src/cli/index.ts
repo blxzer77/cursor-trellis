@@ -7,6 +7,7 @@ import {
 } from "../commands/capability-smoke.js";
 import { init } from "../commands/init.js";
 import { update } from "../commands/update.js";
+import { migratePreview } from "../commands/migrate.js";
 import { rollout } from "../commands/rollout.js";
 import { upgrade } from "../commands/upgrade.js";
 import { uninstall } from "../commands/uninstall.js";
@@ -199,6 +200,11 @@ program
     "--force-cstl-migrate",
     "Force the .trellis/ → .cstl/ rename even when upstream Trellis signals are detected (escape hatch)",
   )
+  .option(
+    "--write-artifacts",
+    "Maintainer: after one confirm, write artifact B projections (required_controls / Topology)",
+  )
+  .option("--maintainer", "Alias for --write-artifacts")
   .action(async (options: Record<string, unknown>) => {
     try {
       await update({
@@ -212,6 +218,8 @@ program
         json: options.json as boolean,
         skipPostUpdateSmoke: options.skipPostUpdateSmoke as boolean,
         forceCstlMigrate: options.forceCstlMigrate as boolean,
+        writeArtifacts:
+          options.writeArtifacts === true || options.maintainer === true,
       });
     } catch (error) {
       console.error(
@@ -223,6 +231,25 @@ program
       }
       process.exit(1);
     }
+  });
+
+program
+  .command("migrate")
+  .description(
+    "Optional P36 preview (dry-run only). Apply official + artifact writes with cstl update",
+  )
+  .option("--dry-run", "Preview only (default; this command never writes)")
+  .option(
+    "--write-artifacts",
+    "Show the maintainer artifact-write plan (still dry-run)",
+  )
+  .option("--maintainer", "Alias for --write-artifacts")
+  .action((options: Record<string, unknown>) => {
+    migratePreview({
+      dryRun: true,
+      writeArtifacts:
+        options.writeArtifacts === true || options.maintainer === true,
+    });
   });
 
 program

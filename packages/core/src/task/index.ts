@@ -262,3 +262,19 @@ export {
   stripRetiredMeta,
   scanContractMigration,
 } from "./contract-migrate.js";
+
+export type {
+  ArtifactWriteTarget,
+  ArtifactTaskScan,
+  ArtifactMigratePlan,
+  PlanArtifactMigrationOptions,
+  ApplyArtifactMigrationOptions,
+  ApplyArtifactMigrationResult,
+} from "./p36-artifact-migrate.js";
+
+export {
+  P36_ARTIFACT_SOURCE,
+  planArtifactMigration,
+  applyArtifactMigration,
+  formatArtifactVernacular,
+} from "./p36-artifact-migrate.js";

@@ -93,6 +93,16 @@ export interface UpdateRolloutReport {
     migrate: boolean;
     allowDowngrade: boolean;
     skipReadiness: boolean;
+    writeArtifacts?: boolean;
+  };
+  p36?: {
+    officialRefresh: number;
+    officialPreserved: number;
+    officialRetire: number;
+    artifactDualRead: number;
+    artifactWritable: number;
+    degraded: string[];
+    writeArtifacts: boolean;
   };
   plan: {
     upgradeDirection: "upgrade" | "downgrade" | "same" | "unknown";
@@ -191,6 +201,7 @@ export function createBaseRolloutReport(input: {
   apply?: UpdateRolloutReport["apply"];
   postUpdateSmoke?: UpdateSmokeCheckResult[];
   releaseBlockers?: UpdateReleaseBlocker[];
+  p36?: UpdateRolloutReport["p36"];
 }): UpdateRolloutReport {
   return {
     schemaVersion: UPDATE_ROLLOUT_REPORT_SCHEMA_VERSION,
@@ -219,6 +230,7 @@ export function createBaseRolloutReport(input: {
     readiness: input.readiness,
     postUpdateSmoke: input.postUpdateSmoke ?? [],
     releaseBlockers: input.releaseBlockers ?? [],
+    p36: input.p36,
   };
 }
 
