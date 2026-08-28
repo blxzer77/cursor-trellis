@@ -5,7 +5,6 @@ import { describe, expect, it } from "vitest";
 
 import {
   applyCodexCapabilityConfig,
-  applyCursorSdkSelectionGate,
   buildProjectCapabilityTemplates,
   loadProjectCapabilities,
   loadStoredCapabilityStates,
@@ -30,30 +29,12 @@ describe("project capabilities", () => {
       "codebase-retrieval",
       "github-mcp",
       "playwright-mcp",
-      "cursor-sdk",
-      "campaign-mcp",
     ]);
 
-    expect(parseProjectCapabilities(["sdk", "trellis-campaign"])).toEqual([
-      "cursor-sdk",
-      "campaign-mcp",
+    expect(parseProjectCapabilities(["github", "playwright"])).toEqual([
+      "github-mcp",
+      "playwright-mcp",
     ]);
-  });
-
-  it("applies cursor-sdk selection gate from CURSOR_API_KEY (D1)", () => {
-    const skipped = applyCursorSdkSelectionGate(
-      ["campaign-mcp", "cursor-sdk"],
-      {},
-    );
-    expect(skipped.skippedSdk).toBe(true);
-    expect(skipped.selected).toEqual(["campaign-mcp"]);
-    expect(skipped.message).toMatch(/CURSOR_API_KEY/);
-
-    const enabled = applyCursorSdkSelectionGate(["cursor-sdk"], {
-      CURSOR_API_KEY: "test-key-not-a-secret-for-unit",
-    });
-    expect(enabled.enabledSdk).toBe(true);
-    expect(enabled.selected).toEqual(["cursor-sdk"]);
   });
 
   it("rejects unknown capability ids", () => {
@@ -117,9 +98,9 @@ describe("project capabilities", () => {
     );
   });
 
-  it("merges mcp.json preserving foreign servers and upserting trellis-campaign (M1)", () => {
+  it("merges mcp.json preserving foreign servers and removing deselected managed servers", () => {
     const merged = JSON.parse(
-      renderMcpJson(["campaign-mcp"], {
+      renderMcpJson(["playwright-mcp"], {
         "user-custom": {
           command: "node",
           args: ["custom-server.js"],
@@ -137,13 +118,12 @@ describe("project capabilities", () => {
       command: "node",
       args: ["custom-server.js"],
     });
-    expect(merged.mcpServers["trellis-campaign"]).toEqual({
+    expect(merged.mcpServers.playwright).toEqual({
       command: "npx",
-      args: ["-y", "@blxzer/cursor-trellis", "campaign", "mcp"],
+      args: ["-y", "@playwright/mcp@latest"],
     });
     // managed github deselected → removed
     expect(merged.mcpServers.github).toBeUndefined();
-    expect(JSON.stringify(merged)).not.toMatch(/TRELLIS_CAMPAIGN_PARENT/);
   });
 
   it("loads existing mcp.json when building cursor templates", () => {
@@ -160,7 +140,7 @@ describe("project capabilities", () => {
       );
 
       const files = buildProjectCapabilityTemplates(
-        ["campaign-mcp"],
+        ["playwright-mcp"],
         ["cursor"],
         undefined,
         { cwd: tmpDir },
@@ -172,7 +152,7 @@ describe("project capabilities", () => {
         command: "echo",
         args: ["ok"],
       });
-      expect(parsed.mcpServers["trellis-campaign"].command).toBe("npx");
+      expect(parsed.mcpServers.playwright.command).toBe("npx");
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }

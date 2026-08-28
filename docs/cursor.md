@@ -164,25 +164,11 @@ You do **not** pick one environment forever. Trellis is designed for setups wher
 - **Retrieval** (`route_codebase_retrieval.py`): `cursorEnv` → Native built-in semantic vs BYOK `fast_context_search`. Projects with `--capability codebase-retrieval` get **project-local** fast-context + codegraph entries in `.cursor/mcp.json` (important for BYOK concept retrieval).
 - **Dispatch** (Task subagents): Method 2.5 patch is **machine-local** (Cursor++ `extension.js`); json5 maps are global with optional per-repo override. Method 4 ephemeral frontmatter is **Native-only**.
 
-### Optional capabilities: Cursor SDK + Campaign MCP
+### Optional capabilities
 
-Init/update can also select:
+Init/update can select `codebase-retrieval`, `github-mcp`, and `playwright-mcp`. MCP writes **merge** into existing `.cursor/mcp.json`: Trellis-managed server names are upserted/removed from the current selection; unrelated servers are preserved.
 
-| Capability id | What it does | Gate |
-| --- | --- | --- |
-| `cursor-sdk` | Records SDK RUN enablement + readiness; uses the **CLI-bundled** `@cursor/sdk` (does not add npm deps to your app) | Requires `CURSOR_API_KEY` in the **current process**. Checkbox stays visible; without a key Trellis **skips enablement** and prints setup steps. |
-| `campaign-mcp` | Merges `trellis-campaign` (`npx -y @blxzer/cursor-trellis campaign mcp`) into project `.cursor/mcp.json` | No API key. Does **not** write `TRELLIS_CAMPAIGN_PARENT` into mcp.json — set env / `--parent` / tool args yourself. |
-
-MCP writes **merge** into existing `.cursor/mcp.json`: Trellis-managed server names are upserted/removed from the current selection; unrelated servers are preserved.
-
-Discovery without guessing Cursor login state:
-
-```powershell
-cstl sdk status
-# or: cstl sdk status --json
-```
-
-**Native / BYOK vs SDK live:** IDE model routing (`cursorEnv` Native vs Cursor++ BYOK) does **not** replace `CURSOR_API_KEY` for `cstl sdk run --live`. They are separate channels. Never commit the key.
+`cursor-sdk` and `campaign-mcp` have been **removed**. Daily execution is IDE Agent / Task and BYOK. Do not set `CURSOR_API_KEY` to enable a Trellis SDK bridge. See the retired notes in the harness spec (`rpc-full-core.md`, `campaign-ui-mix.md`) if you need history.
 
 ### Method 2.5 vs Method 4 (coexistence cheat sheet)
 
