@@ -17,6 +17,7 @@ import {
 } from "./full-quality.js";
 import { normalizeStage6InExtrasAndAssert } from "./adapter-middleware.js";
 import { normalizeStage5InExtrasAndAssert } from "./ondemand-topology.js";
+import { stripRetiredExtras, stripRetiredMeta } from "./contract-migrate.js";
 import { loadTaskRecord, writeTaskRecord } from "./records.js";
 import {
   TASK_RECORD_FIELD_ORDER,
@@ -477,10 +478,10 @@ function mergeExtras(
   record?: { id?: string; parent?: string | null; children?: string[] },
   phase: "create" | "start" | "archive" | "patch" = "patch",
 ): Record<string, unknown> {
-  const merged = {
+  const merged = stripRetiredExtras({
     ...cloneJsonObject(current),
     ...(incoming === undefined ? {} : cloneJsonObject(incoming)),
-  };
+  });
   normalizeRequiredControlsInExtras(merged);
   normalizeStage5InExtrasAndAssert(merged, record ?? {}, phase);
   normalizeStage6InExtrasAndAssert(merged, phase);
@@ -635,8 +636,12 @@ function attachProjection(
 ): KernelSnapshot {
   const projection: KernelLegacyProjection = {
     status,
-    record: taskRecordSchema.parse({ ...record, status }),
-    extras: cloneJsonObject(extras),
+    record: taskRecordSchema.parse({
+      ...record,
+      status,
+      meta: stripRetiredMeta(record.meta),
+    }),
+    extras: cloneJsonObject(stripRetiredExtras(extras)),
   };
   return { ...snapshot, projection };
 }

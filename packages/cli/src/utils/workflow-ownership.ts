@@ -25,7 +25,7 @@ export interface AssessCstlMigrateOptions {
  *
  * Fingerprints (positive proof of cursor-trellis ownership):
  *   F1 — any `.cursor/commands/cstl-*.md`
- *   F2 — `.cursor/rules/cstl-triage.mdc`
+ *   F2 — `.cursor/rules/cstl-bootstrap.mdc`
  *   F3 — `.trellis/scripts/common/cli_adapter.py` contains `cstl`
  *
  * Upstream Trellis signals (suggest `.trellis/` is NOT cursor-trellis-owned):
@@ -75,7 +75,7 @@ export function assessCstlDirectoryMigrate(
       ok: false,
       reason:
         "No cursor-trellis fingerprint found (no .cursor/commands/cstl-*.md, " +
-        "no .cursor/rules/cstl-triage.mdc, and .trellis/scripts/common/cli_adapter.py " +
+        "no .cursor/rules/cstl-bootstrap.mdc, and .trellis/scripts/common/cli_adapter.py " +
         "is not cstl-flavored). Refusing to rename .trellis/ — it may belong to " +
         "upstream Trellis. To add cursor-trellis alongside upstream Trellis, run " +
         "`cstl init --cursor` (creates .cstl/ without touching .trellis/). " +
@@ -104,8 +104,8 @@ function detectCstlFingerprint(cwd: string): boolean {
   if (hasFileGlob(cursorCommandsDir, (f) => f.startsWith("cstl-") && f.endsWith(".md"))) {
     return true;
   }
-  // F2 — .cursor/rules/cstl-triage.mdc
-  if (fs.existsSync(path.join(cwd, ".cursor", "rules", "cstl-triage.mdc"))) {
+  // F2 — .cursor/rules/cstl-bootstrap.mdc
+  if (fs.existsSync(path.join(cwd, ".cursor", "rules", "cstl-bootstrap.mdc"))) {
     return true;
   }
   // F3 — cstl-flavored .trellis/scripts/common/cli_adapter.py

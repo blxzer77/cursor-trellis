@@ -259,6 +259,36 @@ export const MAINTAINER_ONLY_SCRIPT_PATHS = new Set([
   "common/test_ondemand_topology.py",
   "common/test_adapter_middleware.py",
   "hooks/linear_sync.py",
+  "common/artifact_search.py",
+  "common/session_memory.py",
+  "common/smart_search_evidence.py",
+  "common/smart_search_resolve.py",
+  "common/retrieval_evidence.py",
+  "common/codebase_retrieval_router.py",
+  "common/cursor_retrieval_env.py",
+  "common/project_file_stats.py",
+  "common/retrieval_tool_classification.py",
+  "common/retrieval_agent_instructions.py",
+  "common/retrieval_plan_gate.py",
+  "common/semantic_plan_gate.py",
+  "common/retrieval_result_ranking.py",
+  "common/retrieval_adapter_metadata.py",
+  "common/context_pack.py",
+  "common/retrieval_pack.py",
+  "common/retrieval_pack_context.py",
+  "common/injection_budget.py",
+  "search_artifacts.py",
+  "search_memory.py",
+  "run_smart_search.py",
+  "build_context_pack.py",
+  "build_retrieval_pack.py",
+  "route_codebase_retrieval.py",
+  "codegraph_session_smoke.py",
+  "rank_retrieval_candidates.py",
+  "score_evidence.py",
+  "injection_budget_probe.py",
+  "spec_health_outcomes.py",
+  "verify_evidence_probe.py",
 ]);
 
 /**
@@ -298,12 +328,35 @@ export function getAllScripts(): Map<string, string> {
   scripts.set("common/task_map.py", commonTaskMap);
   scripts.set("common/parent_orchestration.py", commonParentOrchestration);
   scripts.set("common/subagent_dispatch.py", commonSubagentDispatch);
-  scripts.set("common/injection_budget.py", commonInjectionBudget);
   scripts.set("common/kernel_command.py", commonKernelCommand);
   scripts.set("common/lite_context.py", commonLiteContext);
   scripts.set("common/full_quality.py", commonFullQuality);
   scripts.set("common/ondemand_topology.py", commonOndemandTopology);
   scripts.set("common/adapter_middleware.py", commonAdapterMiddleware);
+  scripts.set("common/session_context.py", commonSessionContext);
+  scripts.set("common/packages_context.py", commonPackagesContext);
+  scripts.set("common/workflow_phase.py", commonWorkflowPhase);
+  scripts.set("common/trellis_config.py", commonTrellisConfig);
+  scripts.set("common/safe_commit.py", commonSafeCommit);
+
+  // Main user-facing Kernel shims
+  scripts.set("get_developer.py", getDeveloperScript);
+  scripts.set("init_developer.py", initDeveloperScript);
+  scripts.set("task.py", taskScript);
+  scripts.set("pool.py", poolScript);
+  scripts.set("get_context.py", getContextScript);
+  scripts.set("add_session.py", addSessionScript);
+  scripts.set("generate_dispatch_prompt.py", generateDispatchPromptScript);
+
+  return scripts;
+}
+
+/**
+ * Retrieval / evidence / probe scripts kept in the template tree for
+ * maintainers and integration tests. Not shipped by default init/update.
+ */
+export function getMaintainerScripts(): Map<string, string> {
+  const scripts = new Map<string, string>();
   scripts.set("common/artifact_search.py", commonArtifactSearch);
   scripts.set("common/session_memory.py", commonSessionMemory);
   scripts.set("common/smart_search_evidence.py", commonSmartSearchEvidence);
@@ -327,20 +380,7 @@ export function getAllScripts(): Map<string, string> {
   scripts.set("common/context_pack.py", commonContextPack);
   scripts.set("common/retrieval_pack.py", commonRetrievalPack);
   scripts.set("common/retrieval_pack_context.py", commonRetrievalPackContext);
-  scripts.set("common/session_context.py", commonSessionContext);
-  scripts.set("common/packages_context.py", commonPackagesContext);
-  scripts.set("common/workflow_phase.py", commonWorkflowPhase);
-  scripts.set("common/trellis_config.py", commonTrellisConfig);
-  scripts.set("common/safe_commit.py", commonSafeCommit);
-
-  // Main
-  scripts.set("get_developer.py", getDeveloperScript);
-  scripts.set("init_developer.py", initDeveloperScript);
-  scripts.set("task.py", taskScript);
-  scripts.set("pool.py", poolScript);
-  scripts.set("verify_evidence_probe.py", verifyEvidenceProbeScript);
-  scripts.set("get_context.py", getContextScript);
-  scripts.set("add_session.py", addSessionScript);
+  scripts.set("common/injection_budget.py", commonInjectionBudget);
   scripts.set("search_artifacts.py", searchArtifactsScript);
   scripts.set("search_memory.py", searchMemoryScript);
   scripts.set("run_smart_search.py", runSmartSearchScript);
@@ -351,10 +391,14 @@ export function getAllScripts(): Map<string, string> {
   scripts.set("rank_retrieval_candidates.py", rankRetrievalCandidatesScript);
   scripts.set("score_evidence.py", scoreEvidenceScript);
   scripts.set("injection_budget_probe.py", injectionBudgetProbeScript);
-  scripts.set("generate_dispatch_prompt.py", generateDispatchPromptScript);
   scripts.set("spec_health_outcomes.py", specHealthOutcomesScript);
-
+  scripts.set("verify_evidence_probe.py", verifyEvidenceProbeScript);
   return scripts;
+}
+
+/** Test helper: Baseline thin set plus maintainer retrieval/evidence scripts. */
+export function getAllScriptsForTests(): Map<string, string> {
+  return new Map([...getAllScripts(), ...getMaintainerScripts()]);
 }
 
 /**

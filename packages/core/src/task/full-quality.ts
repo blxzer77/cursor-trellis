@@ -342,6 +342,7 @@ export function normalizeRequiredControlsInExtras(
   extras: Record<string, unknown>,
 ): void {
   if (extras.required_controls === undefined || extras.required_controls === null) {
+    extras.required_controls = resolveRequiredControls({ rigor: "lite" });
     return;
   }
   extras.required_controls = normalizeRequiredControls(extras.required_controls);

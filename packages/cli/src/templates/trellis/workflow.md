@@ -1,5 +1,7 @@
 # Development Workflow
 
+> **Human overview — not runtime SSOT.** This file is a copy-template reading guide for people. Gates, Rigor, Topology, and Task state are Kernel/`task.json` projections (`required_controls`, Topology, Event Bridge). Do not parse this document as the runtime program of record.
+
 ---
 
 ## Core Principles

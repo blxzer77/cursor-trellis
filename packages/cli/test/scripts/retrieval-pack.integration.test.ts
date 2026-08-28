@@ -6,7 +6,7 @@ import os from "node:os";
 
 import path from "node:path";
 
-import { getAllScripts } from "../../src/templates/trellis/index.js";
+import { getAllScriptsForTests } from "../../src/templates/trellis/index.js";
 
 import {
 
@@ -64,7 +64,7 @@ describe.skipIf(pythonCmd === null)("retrieval_pack.py", () => {
 
     const scriptsDir = path.join(tmpDir, ".cstl", "scripts");
 
-    for (const [rel, content] of getAllScripts()) {
+    for (const [rel, content] of getAllScriptsForTests()) {
 
       const target = path.join(scriptsDir, rel);
 

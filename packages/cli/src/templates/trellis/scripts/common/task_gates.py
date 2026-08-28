@@ -184,11 +184,21 @@ def normalize_result(result: str) -> str:
 
 
 def task_closeout_profile(task_dir: Path, task_data: dict | None = None) -> str:
-    """Return lite, full, or parent closeout profile."""
+    """Return lite, full, or parent closeout profile.
+
+    New Tasks use persisted ``required_controls`` / Topology only. Missing
+    contract is explicit Lite. Historical Archive / old task.json may still
+    be *read* via legacy kind/mode/classification fields. File existence and
+    ``children[]`` are not used to infer Rigor or Parent.
+    """
     data = task_data or {}
-    child_names = data.get("children")
-    if isinstance(child_names, list) and any(isinstance(name, str) for name in child_names):
+    topology = data.get("topology") if isinstance(data.get("topology"), dict) else {}
+    if topology.get("kind") == "parent-child":
         return "parent"
+
+    persisted = rigor_from_required_controls(data)
+    if persisted in ("lite", "full"):
+        return persisted
 
     meta = data.get("meta") if isinstance(data.get("meta"), dict) else {}
     candidates = [
@@ -201,8 +211,6 @@ def task_closeout_profile(task_dir: Path, task_data: dict | None = None) -> str:
         meta.get("classification"),
         meta.get("mode"),
     ]
-
-    explicit_lite = False
     for value in candidates:
         if not isinstance(value, str):
             continue
@@ -212,17 +220,8 @@ def task_closeout_profile(task_dir: Path, task_data: dict | None = None) -> str:
         if "full" in normalized:
             return "full"
         if "lite" in normalized:
-            explicit_lite = True
+            return "lite"
 
-    if explicit_lite:
-        return "lite"
-
-    persisted = rigor_from_required_controls(data)
-    if persisted in ("lite", "full"):
-        return persisted
-
-    if (task_dir / "design.md").is_file() and (task_dir / "implement.md").is_file():
-        return "full"
     return "lite"
 
 

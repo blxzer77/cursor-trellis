@@ -247,3 +247,18 @@ export type {
 } from "./kernel-cli.js";
 
 export { handleKernelRequest, runKernelJsonCli } from "./kernel-cli.js";
+
+export type {
+  ContractMigrateFindingKind,
+  ContractMigrateFinding,
+  ContractMigrateReport,
+  ScanContractMigrationOptions,
+} from "./contract-migrate.js";
+
+export {
+  RETIRED_TOP_LEVEL_FIELDS,
+  RETIRED_META_FIELDS,
+  stripRetiredExtras,
+  stripRetiredMeta,
+  scanContractMigration,
+} from "./contract-migrate.js";

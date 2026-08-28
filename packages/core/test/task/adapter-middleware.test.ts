@@ -312,12 +312,10 @@ describe("Stage 6 Adapter and Middleware", () => {
     expect(bootstrap).toMatch(/Optional/i);
     expect(bootstrap).not.toMatch(/always-on codegraph/i);
 
-    const routing = fs.readFileSync(
-      path.join(cliTemplates, "cursor/rules/retrieval-routing.mdc"),
-      "utf-8",
-    );
-    expect(routing).toMatch(/Optional/i);
-    expect(routing).not.toMatch(/fast-context MCP is \*\*required\*\*/);
+    const ruleNames = fs
+      .readdirSync(path.join(cliTemplates, "cursor/rules"))
+      .filter((name) => name.endsWith(".mdc"));
+    expect(ruleNames).toEqual(["cstl-bootstrap.mdc"]);
 
     const commandsDir = path.join(cliTemplates, "cursor/commands");
     const commandFiles = fs.existsSync(commandsDir)

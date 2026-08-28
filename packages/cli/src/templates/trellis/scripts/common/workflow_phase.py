@@ -3,6 +3,9 @@
 """
 Workflow Phase Extraction.
 
+Convenience reader for the human-overview copy of `.cstl/workflow.md`.
+That file is not the runtime SSOT — Kernel extras and `task.json` are.
+
 Extracts step-level content from .cstl/workflow.md and optionally filters
 platform-specific blocks.
 

@@ -67,6 +67,6 @@ describe("Stage 1–2 task.json writer freeze", () => {
     const writers = walkTs(cliSrc)
       .filter((file) => isCliTaskJsonWriter(fs.readFileSync(file, "utf-8")))
       .map((file) => rel(cliSrc, file));
-    expect(writers).toEqual(["commands/init.ts", "commands/update.ts"]);
+    expect(writers).toEqual([]);
   });
 });

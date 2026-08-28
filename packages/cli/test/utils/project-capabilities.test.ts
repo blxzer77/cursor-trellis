@@ -343,7 +343,7 @@ describe("project capabilities", () => {
     expect(capabilitiesMd).not.toContain("do not substitute fast-context MCP");
     expect(capabilitiesMd).toContain("platform-semantic");
     expect(capabilitiesMd).toContain("### Cross-cutting / conceptual discovery");
-    expect(capabilitiesMd).toContain("retrieval-routing.mdc");
+    expect(capabilitiesMd).toContain("on-demand retrieval docs");
     expect(capabilitiesMd).toContain("### Caller and assembly chain (B-class)");
     expect(capabilitiesMd).toContain(
       "### Trap demotion and package boundary (E-class)",

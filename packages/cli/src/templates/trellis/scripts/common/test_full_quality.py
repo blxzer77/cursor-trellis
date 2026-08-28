@@ -36,6 +36,39 @@ def test_resolve_controls_does_not_require_design_for_standard_full() -> None:
     assert "design" in architecture["controls"]
 
 
+def test_closeout_does_not_infer_from_files_or_children(tmp_path: Path) -> None:
+    task_dir = tmp_path / "inferred"
+    task_dir.mkdir()
+    (task_dir / "design.md").write_text("# design\n", encoding="utf-8")
+    (task_dir / "implement.md").write_text("# implement\n", encoding="utf-8")
+    assert task_closeout_profile(task_dir, {"children": ["c1"]}) == "lite"
+    assert task_closeout_profile(task_dir, {}) == "lite"
+
+
+def test_closeout_reads_legacy_classification_but_prefers_topology(
+    tmp_path: Path,
+) -> None:
+    task_dir = tmp_path / "legacy"
+    task_dir.mkdir()
+    assert (
+        task_closeout_profile(
+            task_dir,
+            {"meta": {"classification": "parent"}, "children": []},
+        )
+        == "parent"
+    )
+    assert (
+        task_closeout_profile(
+            task_dir,
+            {
+                "required_controls": resolve_required_controls(rigor="lite"),
+                "topology": {"kind": "parent-child", "parent_id": None, "children": ["c1"]},
+            },
+        )
+        == "parent"
+    )
+
+
 def test_closeout_profile_prefers_required_controls_over_files(tmp_path: Path) -> None:
     task_dir = tmp_path / "task"
     task_dir.mkdir()
