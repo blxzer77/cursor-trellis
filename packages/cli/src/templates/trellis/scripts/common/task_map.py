@@ -75,7 +75,7 @@ def ensure_task_map(
         data = {
             "parent_id": parent_data.get("id") or parent_dir.name,
             "contract_epoch": 1,
-            "execution_topology": "serial",
+            "execution_topology": "parallel",
             "merge_limit": 1,
             "children": [],
             "stages": [],
@@ -85,7 +85,7 @@ def ensure_task_map(
 
     data.setdefault("parent_id", parent_data.get("id") or parent_dir.name)
     data.setdefault("contract_epoch", 1)
-    data.setdefault("execution_topology", "serial")
+    data.setdefault("execution_topology", "parallel")
     data.setdefault("merge_limit", 1)
     data.setdefault("children", [])
     data.setdefault("stages", [])
@@ -492,12 +492,21 @@ def _default_body() -> str:
     return (
         "# Task Map\n\n"
         "## Orchestration notes\n\n"
-        "- `execution_topology: parallel` — children with empty `depends_on` may run concurrently; "
-        "Parent integrates serially up to `merge_limit`.\n"
+        "- **parallel-first:** Prefer Cursor Multitask / Build in Parallel / Agent `Task` / native "
+        "worktree. Trellis does not schedule workers or replace Multitask.\n"
+        "- `execution_topology: parallel` — default when ≥2 children have empty `depends_on`. "
+        "Parent `integrate-child`, HITL, `start-execution --approved`, and reviewer gates stay "
+        "serial (`merge_limit`).\n"
+        "- `serial_reason` — required when topology is `serial`. One of: shared write-set / "
+        "HITL or reviewer gate / `depends_on` unmet / user asked serial / conflict surface "
+        "cannot isolate.\n"
+        "- `stages:` (or `parallel_groups`) — concurrently runnable child id groups.\n"
+        "- `merge_points` — where serial join happens (usually `integrate-child` + gates). "
+        "Default `merge_limit: 1`.\n"
+        "- `touches` (or `conflict_surface`) — write-sets that can collide; declare before dispatch.\n"
         "- Child-reported states: `open` → `working` → `blocked` | `review`.\n"
         "- Parent-controlled states: `review` → `changes` | `accepted` → `integrating` → "
         "`integrated` | `cancelled`.\n"
-        "- Declare `touches` per child before dispatch to reduce merge conflicts.\n"
         "- `isolation: git-worktree` — run `prepare-child-worktree` from the **git package root** "
         "(not a non-git harness root).\n\n"
         "## Event Log\n\n"
@@ -594,10 +603,18 @@ def _format_frontmatter(data: dict) -> str:
     lines = [
         f"parent_id: {_format_value(data.get('parent_id'))}",
         f"contract_epoch: {_format_value(data.get('contract_epoch', 1))}",
-        f"execution_topology: {_format_value(data.get('execution_topology', 'serial'))}",
+        f"execution_topology: {_format_value(data.get('execution_topology', 'parallel'))}",
         f"merge_limit: {_format_value(data.get('merge_limit', 1))}",
-        "children:",
     ]
+    if data.get("serial_reason"):
+        lines.append(f"serial_reason: {_format_value(data.get('serial_reason'))}")
+    if data.get("parallel_groups"):
+        lines.append(f"parallel_groups: {_format_value(data.get('parallel_groups'))}")
+    if data.get("merge_points"):
+        lines.append(f"merge_points: {_format_value(data.get('merge_points'))}")
+    if data.get("conflict_surface"):
+        lines.append(f"conflict_surface: {_format_value(data.get('conflict_surface'))}")
+    lines.append("children:")
     children = data.get("children", [])
     if isinstance(children, list):
         for child in children:

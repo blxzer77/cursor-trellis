@@ -20,7 +20,7 @@
 | `cstl-check` | `bundled-skills/cstl-check/SKILL.md` | **Agent form `.cursor/agents/cstl-check.md`** (Task tool, dual-axis) — prefer Agent when `execution_mode: worker` | no | yes |
 | `cstl-meta` | `bundled-skills/cstl-meta/SKILL.md` | Maintainer skill; body in npm package; no Cursor project file (not routed in consumer workflows) | no | yes |
 | `cstl-spec-bootstrap` | `bundled-skills/cstl-spec-bootstrap/SKILL.md` | One-shot scaffolding skill; body in npm package; not routed in steady-state consumer workflow | no | yes |
-| `cstl-skill-creator` | `bundled-skills/cstl-skill-creator/SKILL.md` | Authoring-time skill; body in npm package; not routed in consumer workflow | no | yes |
+| `cstl-skill-creator` | `bundled-skills/cstl-skill-creator/SKILL.md` | **Authoring-time (mandatory for new / structural skill edits):** Read `cursor-trellis/packages/cli/src/templates/common/bundled-skills/cstl-skill-creator/SKILL.md` then `…/references/review-checklist.md`. Harness dogfood copy: `.claude/skills/cstl-skill-creator/SKILL.md` and `.claude/skills/cstl-skill-creator/references/review-checklist.md`. Installed npm: `dist/templates/common/bundled-skills/cstl-skill-creator/`. Not a slash command. Skip typo/link-only. Does **not** apply to Cursor product skills (`~/.cursor/skills-cursor/`). | no | yes |
 | `smart-search-cli` | `bundled-skills/smart-search-cli/SKILL.md` | **`python ./.cstl/scripts/run_smart_search.py "<question>" --intent deep-research --json`** (shipped script); Cursor web tools are downgrade-only fallback | no | yes |
 | `cstl-handoff` | `bundled-skills/cstl-handoff/SKILL.md` | **Slash `/cstl-handoff`** (writes session handoff to OS temp dir) | **yes** | n/a (user command) |
 | `cstl-continue` / `cstl-finish-work` / `cstl-start` | `common/commands/*.md` | **Slash `/cstl-continue`, `/cstl-finish-work`** (`cstl-start` filtered on agent-capable platforms) | **yes** | n/a (user commands) |
@@ -28,9 +28,10 @@
 
 ## Reading this matrix
 
-- **Reachable on-demand** (green path): brainstorm → guide; check → agent; smart-search → script; micro-grill → embedded contract.
+- **Reachable on-demand** (green path): brainstorm → guide; check → agent; smart-search → script; micro-grill → embedded contract; **skill authoring → Read `cstl-skill-creator/SKILL.md` + `review-checklist.md`** (paths in the matrix row).
 - **Body in npm package only**: the skill is real and shipped, but a pure Cursor project has no project-relative copy. The workflow routes its **behavior** directly; the full body is discoverable under the installed package (`npm root -g` → `dist/templates/…`). Do not claim these are loaded without reading the actual body when the behavior matters.
-- **Maintainer/authoring-only** (`cstl-meta`, `cstl-spec-bootstrap`, `cstl-skill-creator`): named in AGENTS for framework completeness; not part of the consumer execution path. They stay on the list because they are real shipped skills, but no consumer-facing load path is promised beyond the package body.
+- **Maintainer-only** (`cstl-meta`, `cstl-spec-bootstrap`): named in AGENTS for framework completeness; not part of the consumer execution path. No extra consumer load path beyond the package body.
+- **Authoring-time mandatory** (`cstl-skill-creator`): not a consumer runtime path and not a slash command, but **must** be Read before creating or structurally changing Trellis / blaze-skills / harness skills. Cursor product skills are out of scope.
 
 ## Honesty rule
 

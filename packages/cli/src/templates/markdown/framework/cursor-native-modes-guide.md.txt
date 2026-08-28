@@ -31,7 +31,7 @@
 | **Plan** | Scope / design / tradeoffs before code | **Try `SwitchMode(plan)`**; after review, `SwitchMode(agent)` or Build; **Save to workspace** → map into task files | Keep writing `prd.md` / `design.md` / `implement.md` + `cstl-brainstorm` in Agent | Phase 1 files |
 | **Agent** | Approved build / verify | Default; `SwitchMode(agent)` when returning from Plan | — | Diff, `verify.md`, gates |
 | **Debug** | Repro / runtime / regressions | Prefer real Cursor Debug when the user/session can reach it | Evidence → `verify.md`; `cstl-break-loop` if looped | Notes / logs in `verify.md` |
-| **Multitask** | Independent Parent children post-approval | Prefer `/multitask` / Build in Parallel / Agent `Task` background workers **when useful** | Explicit `.cstl/tasks/<dir>` prompts + Parent `integrate-child` | Child `verify`/`handoff`; Parent `task-map` |
+| **Multitask** | Independent Parent children post-approval (**default** when ≥2 units, empty `depends_on`) | Prefer `/multitask` / Build in Parallel / Agent `Task` / native worktree — **not** a Trellis scheduler | Explicit `.cstl/tasks/<dir>` prompts + Parent `integrate-child`; serial needs `serial_reason` | Child `verify`/`handoff`; Parent `task-map` |
 
 ### Phase quick map
 
@@ -40,7 +40,7 @@ Triage (No Task / Micro-Grill)  → Ask surface if present; else No Task in Agen
 Phase 1                         → SwitchMode(plan) when useful; else write artifacts in Agent
 Phase 2–3                       → Agent (+ workers when contracted)
 Stuck / repeat failure          → Debug when reachable; else verify.md + break-loop
-Parent parallel children        → Multitask / Task parallel when useful; Parent integrates
+Parent parallel children        → Multitask / Task parallel **by default**; serial needs serial_reason; Parent integrates
 ```
 
 ---
@@ -67,10 +67,11 @@ Parent parallel children        → Multitask / Task parallel when useful; Paren
 
 ### Multitask ↔ Parent/Child
 
-1. Trellis remains source of truth for status, gates, integration.
-2. Prefer native parallel surfaces to support independent Children when they help isolation/throughput.
-3. Every worker prompt includes **explicit `.cstl/tasks/<dir>`** — never rely on `selected_task`.
-4. Parent alone `integrate-child`; no collision guarantee without worktrees + review.
+1. Trellis remains source of truth for status, gates, integration. This is **not** a Trellis-built parallel product — Prefer Cursor Multitask / Build in Parallel / Agent `Task` / native worktree.
+2. **Default parallel** when planning has ≥2 independent units (Parent children with empty `depends_on`, or Full Task fan-out). Lite / single-file work is not forced into parallel agents.
+3. **Serial needs a written reason** (`serial_reason`): shared write-set / HITL or reviewer gate / `depends_on` unmet / user asked serial / conflict surface cannot isolate. HITL, `start-execution --approved`, reviewer gates, and `integrate-child` stay serial even when workers run in parallel (`merge_limit: 1`).
+4. Every worker prompt includes **explicit `.cstl/tasks/<dir>`** — never rely on `selected_task`.
+5. Parent alone `integrate-child`; no collision guarantee without worktrees + review. Declare 可并行组 / 合并点 / 冲突面 on the task-map — see `.cstl/framework/parallel-first-execution.md`.
 
 ---
 
@@ -79,7 +80,7 @@ Parent parallel children        → Multitask / Task parallel when useful; Paren
 | Surface | Plan | Agent | Ask | Debug | Parallel Children |
 | --- | --- | --- | --- | --- | --- |
 | Agent `SwitchMode` | Yes → `plan` | Yes → `agent` | — | — | — |
-| Agent `Task` / Multitask | — | workers | — | — | Prefer when useful |
+| Agent `Task` / Multitask | — | workers | — | — | Prefer **by default** (serial needs `serial_reason`) |
 | User / CLI modes | Plan UI / `/plan` | default | Ask UI / `/ask` | Debug UI | `/multitask`, Build in Parallel |
 
 Details: `research/modes-callability-matrix.md`.
@@ -93,6 +94,7 @@ Details: `research/modes-callability-matrix.md`.
 - Parallel agents cannot conflict without Trellis/worktree discipline.
 - `SwitchMode` can open Ask or Debug.
 - Shipping a parallel fake Plan/Ask/Debug product, or documenting gaps as “本版本不适配”.
+- Replacing Cursor Multitask with a Trellis scheduler, queue, or new parallel CLI.
 
 ---
 
@@ -102,7 +104,7 @@ Details: `research/modes-callability-matrix.md`.
 | --- | --- | --- |
 | **Plan** | Schema or live `SwitchMode(plan)` note in verify | Prefer path documented; quiet Agent fallback if unused |
 | **Ask / Debug** | Callability matrix | Quiet spine behavior; no “不适配” section |
-| **Multitask** | Task parallel or doc contract | Explicit child paths; Parent integrates |
+| **Multitask** | Task parallel or doc contract | Explicit child paths; default parallel; serial has `serial_reason`; Parent integrates |
 | **Agent** | Session implements under contract | Artifacts on disk |
 
 ---
@@ -111,7 +113,7 @@ Details: `research/modes-callability-matrix.md`.
 
 Docs + rules only:
 
-1. Delete `.cursor/rules/cstl-cursor-modes.mdc` and `.cstl/framework/cursor-native-modes-guide.md`.
+1. Delete `.cursor/rules/cstl-cursor-modes.mdc`, `.cstl/framework/cursor-native-modes-guide.md`, and `.cstl/framework/parallel-first-execution.md`.
 2. Drop related `guides/index.md` / `workflow.md` rows, or `cstl update` from pre-P1 templates.
 3. **cursor-trellis**: revert this Child’s tip or delete mirrored template paths.
 
@@ -123,3 +125,4 @@ Docs + rules only:
 - `{TASK}/research/cursor-modes-external.md`
 - `.cursor/rules/cstl-cursor-modes.mdc`
 - `.cstl/framework/cursor-subagent-policy.md`
+- `.cstl/framework/parallel-first-execution.md`

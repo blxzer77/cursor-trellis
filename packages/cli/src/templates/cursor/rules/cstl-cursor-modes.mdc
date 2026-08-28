@@ -15,7 +15,7 @@ cstl **prefers** Cursor native modes and maps them to Trellis Triage/phases. **D
 | Scope / design before code | **Try `SwitchMode(plan)`**; if poor, write artifacts in Agent | Phase 1 → `prd.md` / `design.md` / `implement.md`; `--check` |
 | Approved build / verify | **Agent**; `SwitchMode(agent)` after Plan | Phase 2–3; `execution_mode` |
 | Runtime / repeat failure | **Debug** when reachable; else verify + break-loop | Evidence → `verify.md` |
-| Independent Parent children (post-approval) | **Multitask** / `Task` parallel when useful | Explicit `.cstl/tasks/<dir>` per worker; Parent integrates |
+| Independent Parent children (post-approval) | **Multitask** / `Task` parallel **by default** (≥2 independent units) | Explicit `.cstl/tasks/<dir>` per worker; serial needs `serial_reason`; Parent integrates |
 
 ## Quiet fallback
 
@@ -24,7 +24,7 @@ When native cannot be task-driven well: continue on the **cstl spine** (Triage /
 ## Hard boundaries
 
 - Plan default save = **home dir** until Save to workspace → map into task files.
-- Multitask/subagents: **never** rely on `selected_task`; worktrees + Parent review.
+- Multitask/subagents: **never** rely on `selected_task`; worktrees + Parent review. Default parallel when callable; serial must write `serial_reason`. HITL / gates / `integrate-child` stay serial. Not a Trellis Multitask replacement.
 - Agent `SwitchMode`: **`plan` / `agent` only** (Ask/Debug not in the tool enum).
 
 ## Rollback
