@@ -313,7 +313,8 @@ describe("getAllScripts", () => {
     expect(scripts.has("search_artifacts.py")).toBe(true);
     expect(scripts.has("search_memory.py")).toBe(true);
     expect(scripts.has("run_smart_search.py")).toBe(true);
-    expect(scripts.has("common/execution_strategy.py")).toBe(true);
+    expect(scripts.has("common/lite_context.py")).toBe(true);
+    expect(scripts.has("common/full_quality.py")).toBe(true);
   });
 
   it("has at least one entry", () => {

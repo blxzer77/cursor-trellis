@@ -43,6 +43,10 @@ Lite Open is an **event-style Triage Outcome**, not a dump of the full always-on
 - Low interaction: no hard-Risk Lite does **not** add extra mechanical confirmation gates. Do not re-ask facts the repo already has
 - Context: prefer `get_context.py --mode lite` (budgeted). Do not inject Parent / VCS / retrieval-extended unless that On-demand module is active
 
+## Full Quality (conditional Design + ledger + Check)
+
+Full uses persisted `required_controls`, not “`design.md` exists”. Execution/Verification contract (`implement.md` default) is required; Design only if Risk/Policy or architecture profile says so. Close needs a machine-readable AC → Evidence ledger (`verify.md` is the human projection) and a graded Independent Check (`self-review` vs `true-independent`). Check is read-only; repairs return to Execute. Do not claim independent when the platform has no independent worker. Lite does **not** require Independent Check.
+
 Full / Parent / Micro-Grill still use the decision tree above. User-visible `planning` / `in_progress` / `completed` names stay unchanged.
 
 ## Why this rule exists
