@@ -52,24 +52,26 @@ export interface ScanContractMigrationOptions {
   tasksDir?: string;
 }
 
+function omitKeys(
+  source: Record<string, unknown>,
+  keys: readonly string[],
+): Record<string, unknown> {
+  const omitted = new Set(keys);
+  return Object.fromEntries(
+    Object.entries(source).filter(([key]) => !omitted.has(key)),
+  );
+}
+
 export function stripRetiredExtras(
   extras: Record<string, unknown>,
 ): Record<string, unknown> {
-  const out = { ...extras };
-  for (const key of RETIRED_TOP_LEVEL_FIELDS) {
-    delete out[key];
-  }
-  return out;
+  return omitKeys(extras, RETIRED_TOP_LEVEL_FIELDS);
 }
 
 export function stripRetiredMeta(
   meta: Record<string, unknown>,
 ): Record<string, unknown> {
-  const out = { ...meta };
-  for (const key of RETIRED_META_FIELDS) {
-    delete out[key];
-  }
-  return out;
+  return omitKeys(meta, RETIRED_META_FIELDS);
 }
 
 export function scanContractMigration(
