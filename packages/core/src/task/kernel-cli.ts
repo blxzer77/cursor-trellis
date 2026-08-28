@@ -1,10 +1,11 @@
 /**
- * Stateless Kernel JSON CLI (stdin → stdout). This is the Stage 1 write
- * channel for core Task state. Python/old callers stay on the read
- * projection until Stage 2 Writer Strangler.
+ * Stateless Kernel JSON CLI (stdin → stdout). Stage 2 write channel for
+ * Task core state: create / start / record-gate / archive project the
+ * legacy task.json surface as the same command. `transition` stays the
+ * Stage 1 kernel.json-only hop (no status rewrite).
  */
 
-import { isPlainObject } from "./schema.js";
+import { isPlainObject, taskRecordSchema, type TrellisTaskRecord } from "./schema.js";
 import {
   KernelError,
   isKernelPhase,
@@ -13,19 +14,33 @@ import {
   type TransitionRequest,
 } from "./kernel-contract.js";
 import {
+  applyKernelArchive,
+  applyKernelCreate,
+  applyKernelRecordGate,
+  applyKernelStart,
   applyKernelTransition,
   readKernel,
+  type KernelArchiveRequest,
+  type KernelCommandResult,
+  type KernelCreateRequest,
   type KernelReadResult,
+  type KernelRecordGateRequest,
+  type KernelStartRequest,
   type KernelTransitionResult,
 } from "./kernel-store.js";
 
 export type KernelCliSuccess =
   | ({ ok: true; op: "read" } & KernelReadResult)
-  | ({ ok: true; op: "transition" } & KernelTransitionResult);
+  | ({ ok: true; op: "transition" } & KernelTransitionResult)
+  | ({
+      ok: true;
+      op: "create" | "start" | "record-gate" | "archive";
+    } & KernelCommandResult);
 
 export interface KernelCliFailure {
   ok: false;
   error: { code: KernelErrorCode | "INVALID_REQUEST"; message: string };
+  halfConversion?: { kernelPersisted: boolean; projectionPersisted: boolean };
 }
 
 export type KernelCliResponse = KernelCliSuccess | KernelCliFailure;
@@ -91,6 +106,22 @@ function dispatchKernelRequest(
     const result = applyKernelTransition(request);
     return { ok: true, op: "transition", ...result };
   }
+  if (op === "create") {
+    const result = applyKernelCreate(parseCreateRequest(input, cwd));
+    return { ok: true, op: "create", ...result };
+  }
+  if (op === "start") {
+    const result = applyKernelStart(parseStartRequest(input, cwd));
+    return { ok: true, op: "start", ...result };
+  }
+  if (op === "record-gate") {
+    const result = applyKernelRecordGate(parseRecordGateRequest(input, cwd));
+    return { ok: true, op: "record-gate", ...result };
+  }
+  if (op === "archive") {
+    const result = applyKernelArchive(parseArchiveRequest(input, cwd));
+    return { ok: true, op: "archive", ...result };
+  }
   throw new KernelError(
     "INVALID_REQUEST",
     `unsupported Kernel op: ${String(op)}`,
@@ -130,6 +161,130 @@ function parseTransitionRequest(
   return request;
 }
 
+function parseCreateRequest(
+  input: Record<string, unknown>,
+  cwd: string | undefined,
+): KernelCreateRequest {
+  return {
+    taskDir: requireTaskDir(input.taskDir),
+    actor: requireString(input.actor, "actor"),
+    idempotencyKey: requireString(input.idempotencyKey, "idempotencyKey"),
+    record: parseRecord(input.record),
+    evidence:
+      input.evidence === undefined
+        ? undefined
+        : requireString(input.evidence, "evidence"),
+    gate: input.gate,
+    policy: input.policy,
+    cwd: optionalCwd(input.cwd, cwd),
+  };
+}
+
+function parseStartRequest(
+  input: Record<string, unknown>,
+  cwd: string | undefined,
+): KernelStartRequest {
+  if (!isNonNegativeInt(input.expectedRevision)) {
+    throw new KernelError(
+      "INVALID_REQUEST",
+      "expectedRevision must be a non-negative integer",
+    );
+  }
+  return {
+    taskDir: requireTaskDir(input.taskDir),
+    expectedRevision: input.expectedRevision,
+    actor: requireString(input.actor, "actor"),
+    idempotencyKey: requireString(input.idempotencyKey, "idempotencyKey"),
+    record: parseRecord(input.record),
+    extras: parseExtras(input.extras),
+    evidence:
+      input.evidence === undefined
+        ? undefined
+        : requireString(input.evidence, "evidence"),
+    gate: input.gate,
+    policy: input.policy,
+    cwd: optionalCwd(input.cwd, cwd),
+  };
+}
+
+function parseRecordGateRequest(
+  input: Record<string, unknown>,
+  cwd: string | undefined,
+): KernelRecordGateRequest {
+  if (!isNonNegativeInt(input.expectedRevision)) {
+    throw new KernelError(
+      "INVALID_REQUEST",
+      "expectedRevision must be a non-negative integer",
+    );
+  }
+  if (!isPlainObject(input.record)) {
+    throw new KernelError("INVALID_REQUEST", "record must be a JSON object");
+  }
+  return {
+    taskDir: requireTaskDir(input.taskDir),
+    expectedRevision: input.expectedRevision,
+    actor: requireString(input.actor, "actor"),
+    idempotencyKey: requireString(input.idempotencyKey, "idempotencyKey"),
+    transition: requireString(input.transition, "transition"),
+    gateName: requireString(input.gate, "gate"),
+    record: input.record,
+    extras: parseExtras(input.extras),
+    evidence:
+      input.evidence === undefined
+        ? undefined
+        : requireString(input.evidence, "evidence"),
+    cwd: optionalCwd(input.cwd, cwd),
+  };
+}
+
+function parseArchiveRequest(
+  input: Record<string, unknown>,
+  cwd: string | undefined,
+): KernelArchiveRequest {
+  if (!isNonNegativeInt(input.expectedRevision)) {
+    throw new KernelError(
+      "INVALID_REQUEST",
+      "expectedRevision must be a non-negative integer",
+    );
+  }
+  return {
+    taskDir: requireTaskDir(input.taskDir),
+    expectedRevision: input.expectedRevision,
+    actor: requireString(input.actor, "actor"),
+    idempotencyKey: requireString(input.idempotencyKey, "idempotencyKey"),
+    record: parseRecord(input.record),
+    extras: parseExtras(input.extras),
+    evidence:
+      input.evidence === undefined
+        ? undefined
+        : requireString(input.evidence, "evidence"),
+    gate: input.gate,
+    policy: input.policy,
+    cwd: optionalCwd(input.cwd, cwd),
+  };
+}
+
+function parseRecord(value: unknown): TrellisTaskRecord {
+  try {
+    return taskRecordSchema.parse(value);
+  } catch (err) {
+    throw new KernelError(
+      "INVALID_REQUEST",
+      `record is not a canonical task.json shape: ${
+        err instanceof Error ? err.message : String(err)
+      }`,
+    );
+  }
+}
+
+function parseExtras(value: unknown): Record<string, unknown> | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (!isPlainObject(value)) {
+    throw new KernelError("INVALID_REQUEST", "extras must be a JSON object");
+  }
+  return value;
+}
+
 function requireTaskDir(value: unknown): string {
   return requireString(value, "taskDir");
 }
@@ -151,7 +306,17 @@ function optionalCwd(fromRequest: unknown, fallback: string | undefined): string
 
 function toFailure(err: unknown): KernelCliFailure {
   if (err instanceof KernelError) {
-    return { ok: false, error: { code: err.code, message: err.message } };
+    const failure: KernelCliFailure = {
+      ok: false,
+      error: { code: err.code, message: err.message },
+    };
+    if (err.code === "HALF_CONVERSION") {
+      failure.halfConversion = {
+        kernelPersisted: true,
+        projectionPersisted: false,
+      };
+    }
+    return failure;
   }
   return {
     ok: false,
