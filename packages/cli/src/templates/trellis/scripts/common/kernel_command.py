@@ -280,6 +280,10 @@ KERNEL_PROJECTION_EXTRA_KEYS = (
     "dependency_satisfied",
     "decompose_proposal",
     "profile_health",
+    "event_bridge",
+    "middleware_providers",
+    "capability_router",
+    "required_capabilities",
 )
 
 

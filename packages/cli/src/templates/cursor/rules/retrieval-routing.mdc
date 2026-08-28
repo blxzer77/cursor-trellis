@@ -16,9 +16,9 @@ Before answering **code-location / architecture / caller-chain / config-schema**
 | Exact literal / path | **Grep** | — | — |
 | Named-symbol definition (known identifier) | **Grep → Read** | Path hints from semantic when file unknown | codegraph when cross-package trap, overload ambiguity, or blast context needed |
 | Agent-session diagnostics | **ReadLints** (when in tool table) | — | — |
-| Conceptual / how does X work | **Native:** built-in `@codebase` / semantic search (index embeddings; ≠ LSP) | **BYOK:** **fast_context_search** (fast-context MCP). Plans show `cursorEnv`. | — |
-| Caller chain / blast radius | Grep for imports/callbacks (gap-fill) | — | **codegraph_callers** / **codegraph_explore** |
-| Cross-package trap / extension symbol | Grep scoped by package or `extensions/` | — | **codegraph_search** / **codegraph_explore** |
+| Conceptual / how does X work | **Native:** built-in `@codebase` / semantic search (index embeddings; ≠ LSP) | **BYOK env probe:** Optional fast-context only if the Profile selected it. Plans may show `cursorEnv`. | — |
+| Caller chain / blast radius | Grep for imports/callbacks (gap-fill) | — | Optional codegraph (`codegraph_callers` / `codegraph_explore`) only if selected |
+| Cross-package trap / extension symbol | Grep scoped by package or `extensions/` | — | Optional codegraph (`codegraph_search` / `codegraph_explore`) only if selected |
 | Raw LSP / GO_TO_DEFINITION **as Agent tool** | **Not in Agent tool table** (official docs + Native probe 2026-08-05) | IDE Editor has LSP; Agents Window may lack parity — human UI, not Agent routing | codegraph when Grep+Read insufficient |
 
 **Rollback:** revert this rule + `retrieval-daily-guide.md` Prefer rows to the pre-P1 codegraph-first definition wording; keep codegraph MCP enabled.
@@ -50,17 +50,21 @@ python ./.cstl/scripts/route_codebase_retrieval.py "<question>" --json
 | Exact string / path | **Grep** (Instant Grep) |
 | Named-symbol definition | **Grep** → **Read** (Prefer native); **codegraph_explore** / **codegraph_search** when trap, overload, or blast context needed |
 | IDE diagnostics | **ReadLints** on touched or cited files |
-| Who calls / blast radius | **codegraph_callers** / **codegraph_explore** → Grep for imports/callbacks |
-| Same name across packages (trap) | **codegraph_search** / **codegraph_explore** → Grep |
-| Extension symbols | **codegraph_search** under `extensions/` |
-| Conceptual / how does X work | **Native:** built-in `@codebase` / semantic search. **BYOK:** **fast_context_search** (fast-context MCP). Plans show `cursorEnv`. |
+| Who calls / blast radius | Grep first; Optional codegraph only if the Profile selected it |
+| Same name across packages (trap) | Grep scoped by package; Optional codegraph if selected |
+| Extension symbols | Grep under `extensions/`; Optional codegraph if selected |
+| Conceptual / how does X work | **Native:** built-in `@codebase` / semantic search. **BYOK env:** Optional fast-context only if selected. Plans may show `cursorEnv`. |
 | Policy / architecture / boundaries / storage rules | **Grep** on `AGENTS.md`, `**/AGENTS.md`, `.cstl/spec/**`, `README.md` (router `policy-docs-rg`) before implementation modules |
 | Wide cross-cutting explore | **Native:** DEEP_SEARCH or Explore subagent. **BYOK:** **Task explore** subagent, then Grep/codegraph/Read |
+
+## Baseline retrieval intents
+
+Baseline only declares `exact` / `semantic` / `structural` / `external`. codegraph and fast-context are **Optional** Providers: they enter Resolution / Context only when the Profile selected them. They are not default always-on and are not a forced install.
 
 ## Semantic on Cursor (`platform-semantic`)
 
 - **cursorEnv native:** built-in codebase semantic search (`platformNative`). Do **not** use fast-context MCP for semantic Primary.
-- **cursorEnv byok:** **fast-context MCP** is **required** for concept retrieval; built-in `@codebase` is not available in the agent tool list.
+- **cursorEnv byok:** this is an **environment probe**, not a product install. Optional fast-context may be used when the Profile selected it; it is not a required always-on install. Built-in `@codebase` may be unavailable in the agent tool list.
 - Override detection: `TRELLIS_CURSOR_BYOK=0|1` or `~/.ccursor/routes.json` `byokMode`.
 
 ## Result-layer ranking (B / E / D)

@@ -316,6 +316,7 @@ describe("getAllScripts", () => {
     expect(scripts.has("common/lite_context.py")).toBe(true);
     expect(scripts.has("common/full_quality.py")).toBe(true);
     expect(scripts.has("common/ondemand_topology.py")).toBe(true);
+    expect(scripts.has("common/adapter_middleware.py")).toBe(true);
   });
 
   it("has at least one entry", () => {

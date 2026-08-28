@@ -1,4 +1,7 @@
-"""Detect Cursor Native vs Cursor++ BYOK for retrieval routing."""
+"""Detect Cursor Native vs BYOK environment for retrieval routing.
+
+This is an environment probe, not a product install surface.
+"""
 
 from __future__ import annotations
 
@@ -92,7 +95,7 @@ def semantic_route_spec(cursor_env: CursorRetrievalEnv) -> dict[str, object]:
         return {
             "commands": ["fast_context_search (fast-context MCP)"],
             "rationale_suffix": (
-                " Cursor++ BYOK: built-in semantic unavailable; fast-context MCP primary."
+                " BYOK env probe: built-in semantic unavailable; Optional fast-context only if selected."
                 + unknown_caveat
             ),
             "platformNative": False,

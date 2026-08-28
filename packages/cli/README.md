@@ -163,23 +163,24 @@ Not needed for quick one-file edits or exploratory coding.
 
 ## smart-search integration
 
-Trellis integrates with [smart-search](https://github.com/blxzer77/smart-search), a CLI tool for agents to retrieve current information from the web. smart-search is automatically installed as a dependency when you install cursor-trellis.
+Trellis treats [smart-search](https://github.com/blxzer77/smart-search) as an **independent Middleware Provider** for the `external-knowledge` capability. CSTL probes readiness at runtime. It does **not** contract that installing cursor-trellis automatically installs smart-search, and smart-search releases must not force a CSTL Core release.
 
 **Installation:**
 
-When you install cursor-trellis, smart-search is installed automatically:
+Install the Provider separately (or accept optional install when the package manager offers it):
 
 ```bash
-npm install -g @blxzer/cursor-trellis
-# smart-search is now available
+npm install -g @blxzer/smart-search
 smart-search --version
 ```
+
+If the Provider is missing, Profile health is `degraded`. Tasks that do not need external knowledge can still Close. Tasks that require it block or follow an explicit Policy degrade. Platform native Web is a downgrade, not an equivalent.
 
 **Links:**
 - npm package: https://www.npmjs.com/package/@blxzer/smart-search
 - GitHub repository: https://github.com/blxzer77/smart-search
 
-The workflow routes external fact queries to smart-search when available. See the repository for configuration and usage details.
+The workflow routes external fact queries to smart-search when the Provider is ready. See the repository for configuration and usage details.
 
 ## Common commands
 
@@ -197,7 +198,7 @@ Full CLI reference: [packages/cli/README.md](packages/cli/README.md).
 | --- | --- |
 | **npm CLI** | `@blxzer/cursor-trellis` (`cstl`) |
 | **Core SDK** | `@blxzer/cursor-trellis-core` |
-| **smart-search** | `@blxzer/smart-search` (auto-installed dependency) |
+| **smart-search** | `@blxzer/smart-search` (independent Middleware Provider; optional / runtime probe) |
 | **Repository** | https://github.com/blxzer77/cursor-trellis |
 | **Original Trellis** | [mindfold-ai/Trellis](https://github.com/mindfold-ai/Trellis) |
 

@@ -53,6 +53,10 @@ Full / Parent / Micro-Grill still use the decision tree above. User-visible `pla
 
 Rigor and Topology are independent. Lite/Full Single is not a Parent. Decompose does not auto-create Child; Capture Candidate does not create a Task. `requires` blocks readiness, `advisory` does not. `task-map.md` is a Kernel graph projection. Untriggered On-demand (Parent-Child / VCS / Memory / Retention) stays out of the resident pack. Parent holds integrate-child. Do not invent a Trellis scheduler.
 
+## Adapter and Middleware (Stage 6)
+
+Cursor hooks go through Event Bridge extras; unsubscribed modules must not fail the hook. Baseline retrieval is `exact` / `semantic` / `structural` / `external` only. smart-search is an independent `external-knowledge` Provider: missing is `degraded`, and ordinary Lite/Full may still Close. codegraph / fast-context stay Optional. Native SSOT has no Cursor++ / cstl-byok live install. See `cstl-bootstrap.mdc`.
+
 ## Why this rule exists
 
 Request Triage must be visible **on every turn**, not only at session start. `.cursor/rules` with `alwaysApply: true` is the reliable per-turn channel on Cursor. `sessionStart` `additional_context` delivers session-level orientation (dashboard, workflow summary) once per session — useful but insufficient for a per-turn hard gate. The full decision tree also lives in `.cstl/workflow.md` for on-demand loading via `get_context.py` / `cstl-continue`.

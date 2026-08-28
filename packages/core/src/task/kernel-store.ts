@@ -15,6 +15,7 @@ import {
   assertIndependentCheckGateRecord,
   normalizeRequiredControlsInExtras,
 } from "./full-quality.js";
+import { normalizeStage6InExtrasAndAssert } from "./adapter-middleware.js";
 import { normalizeStage5InExtrasAndAssert } from "./ondemand-topology.js";
 import { loadTaskRecord, writeTaskRecord } from "./records.js";
 import {
@@ -482,6 +483,7 @@ function mergeExtras(
   };
   normalizeRequiredControlsInExtras(merged);
   normalizeStage5InExtrasAndAssert(merged, record ?? {}, phase);
+  normalizeStage6InExtrasAndAssert(merged, phase);
   return merged;
 }
 
@@ -1067,6 +1069,7 @@ export function applyKernelPatch(
       extrasPatch === undefined ? baseExtras : { ...baseExtras, ...extrasPatch };
     normalizeRequiredControlsInExtras(extras);
     normalizeStage5InExtrasAndAssert(extras, nextRecord, "patch");
+    normalizeStage6InExtrasAndAssert(extras, "patch");
 
     const hopped = hopKernelSnapshot(current.kernel, [], {
       actor,

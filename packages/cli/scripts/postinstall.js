@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
-// smart-search is now a dependency (@blxzer/smart-search)
-// and handles its own postinstall setup.
-// This script is kept for backward compatibility but does nothing.
+// smart-search is an optional independent Middleware Provider.
+// Missing package must not fail CSTL install. This script stays a no-op.
 
 process.exit(0);

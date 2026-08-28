@@ -271,7 +271,7 @@ def build_child_prompt(
                 f"Selected task: {child_rel}",
                 "",
                 "Delivery mode: subagent (Cursor)",
-                "- **Default:** Parent session dispatches **Task** with `subagent_type=cstl-implement` and this prompt as the task description (writable sub-agent). Model under Cursor++ BYOK comes from `.cstl/local/cursor2plus/` routing (see `.cstl/framework/cursor-subagent-policy.md` Method 2.5/2.6).",
+                "- **Default:** Parent session dispatches **Task** with `subagent_type=cstl-implement` and this prompt as the task description (writable sub-agent). Native Cursor `model:` frontmatter still applies. Cursor++ / cstl-byok are not Native install surfaces.",
                 "- **Exception:** If parent `child-prompts.md` or the user names this child for a **separate writable Agent chat**, open a new Agent session, pick the model manually, paste this prompt — do not use Task from Parent.",
                 "- Parent retains `review-child` / `integrate-child`. Child must not nest further `cstl-research` / `cstl-implement` / `cstl-check` Task dispatches.",
                 f"- Parent orchestration: `execution_topology={topo}`, `merge_limit={merge_lim}`.",

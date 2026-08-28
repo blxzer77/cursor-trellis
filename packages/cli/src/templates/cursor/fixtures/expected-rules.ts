@@ -14,6 +14,17 @@ export interface ExpectedRule {
 
 export const expectedRules: ExpectedRule[] = [
   {
+    filename: "cstl-bootstrap.mdc",
+    requiredSections: [
+      "Event Bridge",
+      "Capability router",
+      "external-knowledge",
+      "Optional",
+      "Native SSOT",
+    ],
+    minBytes: 400,
+  },
+  {
     filename: "cstl-triage.mdc",
     requiredSections: [
       "Decision tree",

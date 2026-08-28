@@ -110,7 +110,7 @@ python3 ./.cstl/scripts/get_context.py --mode retrieval-pack --json --input <evi
 
 **Retrieval daily guide:** `.cstl/framework/retrieval-daily-guide.md` — when to use rg, codegraph, fast-context-mcp, smart-search-cli (and Cursor web fallback), artifact/session memory, codebase router (suggest-only), and explicit retrieval-pack scoring.
 
-**Cursor subagent dispatch:** `.cstl/framework/cursor-subagent-policy.md` — `cstl-research` / `cstl-implement` / `cstl-check`; Parent child default **Task** `cstl-implement` from Parent session (`generate-child-prompt --mode subagent`). **Cursor++ BYOK:** per-type models via `.cstl/local/cursor2plus/` + user/project JSON maps (not committed slugs). **Native Cursor API:** frontmatter `model:` on agents still works. PRD Grill stays in the planning session (Read `.cstl/framework/prd-grill-frontier.md`), not a subagent. **Cursor++:** compatible v0.0.11+ (SubAgent readonly bug fixed).
+**Cursor subagent dispatch:** `.cstl/framework/cursor-subagent-policy.md` — `cstl-research` / `cstl-implement` / `cstl-check`; Parent child default **Task** `cstl-implement` from Parent session (`generate-child-prompt --mode subagent`). **Native Cursor API:** frontmatter `model:` on agents still works. PRD Grill stays in the planning session (Read `.cstl/framework/prd-grill-frontier.md`), not a subagent. Cursor++ / cstl-byok are **not** Native install surfaces (no command, skill, or init ask).
 
 ---
 
@@ -236,6 +236,16 @@ Rigor (`lite` / `full`) and Topology (`single` / `parent-child`) are orthogonal.
 - `integration-handoff` is owned by Parent-Child. `session-transfer` is a separate owner.
 - Missing lifecycle slots still block start. Missing Profile-required On-demand is `degraded`, not fake-green. Physical Retention does not change Close Outcome.
 - User-visible `planning` / `in_progress` / `completed` names stay unchanged.
+
+### Adapter and Middleware (Stage 6)
+
+Cursor Adapter stays thin: a generic Event Bridge, one Bootstrap rule, and a short AGENTS pointer. Modules subscribe to standard hook events; an unsubscribed module must not fail the hook. Baseline capability routing is only `exact` / `semantic` / `structural` / `external`.
+
+- smart-search is an independent `external-knowledge` Middleware Provider. CSTL holds capability, readiness, compatibility range, and evidence pointers — not the Provider implementation.
+- Missing or failed Provider marks Profile `degraded`. Tasks that do not need external knowledge may Open→Close. Tasks that require it block, or degrade when Policy says so. Platform native Web is a downgrade, not an equivalent.
+- codegraph and fast-context are Optional. They are not default always-on and are not forced into the install surface.
+- Native SSOT has no Cursor++ / cstl-byok live entry. Environment probe fields may remain.
+- Do not rewrite smart-search or codegraph here. Do not invent a Trellis scheduler.
 
 Selected-task continuity. When a `selected_task` already exists, do not rerun global classification on every follow-up; continue inside the selected task unless a strong conflict exists (explicit exit/switch/create language, out-of-scope request, different artifact/archive target, new independent deliverable, contract-changing request, or evidence pollution risk).
 

@@ -10,6 +10,10 @@
     ],
     "sessionStart": [
       {
+        "command": "{{PYTHON_CMD}} .cursor/hooks/event-bridge.py --event sessionStart",
+        "timeout": 10
+      },
+      {
         "command": "{{PYTHON_CMD}} .cursor/hooks/session-start.py",
         "timeout": 30
       }
