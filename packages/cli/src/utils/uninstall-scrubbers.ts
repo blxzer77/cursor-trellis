@@ -20,17 +20,60 @@ export interface ScrubResult {
 /**
  * Test whether a hook command string references any of the given manifest paths.
  *
- * Trellis-emitted hook commands always have the shape
- *   `<python-cmd> <manifest-path>`
- * so the trailing whitespace-delimited token is the script path. We compare
- * that last token (with surrounding quotes stripped) against the manifest
- * delete-set. This is intentionally stricter than substring matching: a
- * user-added hook whose body merely mentions a deleted path inside an `echo`
- * or comment argument (`echo "see .claude/hooks/session-start.py"`) does NOT
- * match, because the trailing token is `inspiration"` (or similar) — not the
- * path. We also accept absolute-path variants like
- * `/Users/me/proj/.claude/hooks/session-start.py` via `endsWith("/" + p)`.
+ * Trellis-emitted hook commands have the shape
+ *   `<python-cmd> [interpreter-flags] <manifest-path> [hook-args…]`
+ * e.g. `python .cursor/hooks/event-bridge.py --event sessionStart`.
+ * The invoked script is the first non-flag token after the interpreter, not
+ * necessarily the last token. Matching only the last token left leftover
+ * `event-bridge.py` references after uninstall.
+ *
+ * This is still stricter than substring matching: a user hook whose body
+ * merely mentions a deleted path inside an `echo` argument
+ * (`echo "see .claude/hooks/session-start.py for inspiration" && python3 my-hook.py`)
+ * does NOT match, because the invoked script is `my-hook.py`. Absolute-path
+ * variants like `/Users/me/proj/.claude/hooks/session-start.py` match via
+ * `endsWith("/" + p)`.
  */
+function isPythonCommandToken(token: string): boolean {
+  const base = token
+    .replace(/^["']|["']$/g, "")
+    .replace(/\\/g, "/")
+    .split("/")
+    .pop()
+    ?.toLowerCase();
+  return (
+    base === "python" ||
+    base === "python3" ||
+    base === "python.exe" ||
+    base === "python3.exe" ||
+    base === "py" ||
+    base === "py.exe"
+  );
+}
+
+function extractInvokedScriptToken(command: string): string {
+  const tokens = command.trim().split(/\s+/);
+  if (tokens.length === 0) return "";
+
+  for (let i = 0; i < tokens.length; i++) {
+    if (!isPythonCommandToken(tokens[i])) continue;
+    let j = i + 1;
+    while (j < tokens.length) {
+      const opt = tokens[j].replace(/^["']|["']$/g, "");
+      if (opt.startsWith("-") && !opt.includes("/") && !opt.endsWith(".py")) {
+        j += 1;
+        continue;
+      }
+      break;
+    }
+    if (j < tokens.length) {
+      return tokens[j].replace(/^["']|["']$/g, "");
+    }
+  }
+
+  return tokens[tokens.length - 1].replace(/^["']|["']$/g, "");
+}
+
 function commandMatchesDeletedPath(
   command: string,
   deletedPaths: readonly string[],
@@ -38,12 +81,11 @@ function commandMatchesDeletedPath(
   const trimmed = command.trim();
   if (trimmed.length === 0) return false;
 
-  const tokens = trimmed.split(/\s+/);
-  const lastToken = tokens[tokens.length - 1].replace(/^["']|["']$/g, "");
-  if (lastToken.length === 0) return false;
+  const scriptToken = extractInvokedScriptToken(trimmed);
+  if (scriptToken.length === 0) return false;
 
   for (const p of deletedPaths) {
-    if (lastToken === p || lastToken.endsWith("/" + p)) {
+    if (scriptToken === p || scriptToken.endsWith("/" + p)) {
       return true;
     }
   }

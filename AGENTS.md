@@ -5,7 +5,10 @@ These instructions are for AI assistants working in this project.
 
 This project is managed by cursor-trellis. The working knowledge you need lives under `.cstl/`:
 
-- `.cstl/workflow.md` — development phases, when to create tasks, skill routing
+- `.cstl/workflow.md` — human overview of phases and skill routing (not runtime SSOT). Parallel first (convention, not a CLI gate). Personal Lite: Open→Close without Parent/Git; Full Quality: `required_controls` + AC ledger + graded Check; Topology/On-demand: Rigor × Topology, `task-map` is a graph projection; Adapter/Middleware: Event Bridge + four retrieval intents + independent smart-search Provider; user overlay `.cstl/middleware/` is never touched by `cstl update`; prefer `get_context.py --mode lite` for Lite
+- `.cstl/framework/middleware-protocol.md` — Middleware Protocol v1 (one ABI; Manifest sample)
+- `.cstl/framework/upgrade.md` — terminal-user upgrade half-page
+- `.cstl/framework/release-boundary.md` — CSTL this-batch ship vs independent cstl-byok ship
 - `.cstl/spec/` — package- and layer-scoped coding guidelines (read before writing code in a given layer)
 - `.cstl/workspace/` — per-developer journals and session traces
 - `.cstl/tasks/` — active and archived tasks (PRDs, research, jsonl context)
@@ -51,7 +54,7 @@ Default install is **Native Cursor**. CSTL does **not** embed BYOK (no install-t
 
 ## Web research routing (smart-search first)
 
-For **any external / current / web fact**, run **`python ./.cstl/scripts/run_smart_search.py "<question>" --intent deep-research --json`** first. That script is the **only** Trellis web-research evidence entrypoint (it shells out to the `smart-search` CLI). Do not guess paths under package source trees or sibling repos. Platform built-in web tools (Cursor `WebSearch` / `WebFetch`, or native web tools elsewhere) are **downgrade-only fallbacks**, used solely when smart-search is unavailable (`doctor` not ok, status `not_configured` / `failed`, or search timeout). Do not reach for built-in web search while smart-search is healthy. On Cursor, `smart-search-cli` is an **internal workflow skill name** only (not shipped under `.cursor/skills/`); follow `.cstl/framework/retrieval-daily-guide.md` and `.cursor/rules/retrieval-routing.mdc` for the executable contract.
+For **any external / current / web fact**, use the independent **smart-search** Provider (`smart-search` CLI when installed). Maintainer installs may still have `run_smart_search.py`; it is not Baseline. Platform built-in web tools are **downgrade-only fallbacks**. Follow `.cstl/framework/retrieval-daily-guide.md`.
 
 **External-knowledge gate:** If the answer would be wrong because the **world or a third-party API moved** and that matters → use smart-search (cheap `docs` / `broad-search` when enough; `deep-research` when multi-source). If truth lives only in this workspace → do not default to web. When unsure, prefer a cheap probe over guessing. See `.cstl/framework/retrieval-daily-guide.md` § External-knowledge gate.
 

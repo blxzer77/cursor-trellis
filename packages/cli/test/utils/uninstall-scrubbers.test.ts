@@ -19,6 +19,7 @@ const CLAUDE_DELETE_PATHS = [
 const CURSOR_DELETE_PATHS = [
   ".cursor/hooks/inject-subagent-context.py",
   ".cursor/hooks/session-start.py",
+  ".cursor/hooks/event-bridge.py",
   ".cursor/hooks/inject-workflow-state.py",
   ".cursor/hooks/inject-shell-session-context.py",
 ];
@@ -223,6 +224,36 @@ describe("scrubHooksJson — flat schema", () => {
     expect(parsed.hooks).toBeUndefined();
     expect(parsed.version).toBe(1);
     expect(fullyEmpty).toBe(false);
+  });
+
+  it("strips event-bridge entries that carry --event args after the script path", () => {
+    const input = {
+      version: 1,
+      hooks: {
+        sessionStart: [
+          {
+            command:
+              "python3 .cursor/hooks/event-bridge.py --event sessionStart",
+            timeout: 30,
+          },
+          {
+            command: "python3 .cursor/hooks/session-start.py",
+            timeout: 30,
+          },
+        ],
+      },
+    };
+
+    const { content, fullyEmpty } = scrubHooksJson(
+      JSON.stringify(input, null, 2),
+      CURSOR_DELETE_PATHS,
+      "flat",
+    );
+    const parsed = JSON.parse(content);
+    expect(parsed.hooks).toBeUndefined();
+    expect(parsed.version).toBe(1);
+    expect(fullyEmpty).toBe(false);
+    expect(content).not.toContain("event-bridge.py");
   });
 
   it("preserves user-added flat hook entries", () => {
