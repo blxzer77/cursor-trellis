@@ -38,7 +38,7 @@ Day-to-day integration: [Cursor integration](cursor.md). Subagent dispatch detai
 
 In both environments, `.cursor/agents`, `.cursor/hooks`, and `.cursor/rules` in your project **usually still load**. Differences matter for: **which model subtasks use**, **whether built-in semantic search is available to the Agent**, and **whether an optional local patch is needed**.
 
-**Coexistence:** You can use Native on some repos and BYOK on others from the same machine. `--cursor2plus` is per-project; `cursorEnv` is resolved per session. See [Native and BYOK coexistence](cursor.md#native-and-byok-coexistence-not-eitheror).
+**Coexistence:** You can use Native on some repos and BYOK on others from the same machine. `` is per-project; `cursorEnv` is resolved per session. See [Native and BYOK coexistence](cursor.md#native-and-byok-coexistence-not-eitheror).
 
 Initialize:
 
@@ -48,7 +48,7 @@ cd /path/to/your-project
 cstl init --cursor
 
 # Only if you use Cursor++ and need fixed per-role models:
-cstl init --cursor --cursor2plus
+cstl init --cursor
 ```
 
 ---
@@ -216,7 +216,7 @@ Use other web search only when smart-search is unavailable.
 | --- | --- |
 | Env detection | `TRELLIS_CURSOR_BYOK` or `~/.ccursor/routes.json` |
 | BYOK semantic | Retrieval plans use **fast-context MCP** (`fast_context_search`), not built-in semantic |
-| Optional bundle | `cstl init --cursor --cursor2plus` → `.cstl/local/cursor2plus/` |
+| Optional bundle | `cstl init --cursor` → `.cstl/local/cursor2plus/` |
 | Subtask context | Same as Native: CLI dispatch prompt is primary |
 | Mapping files | `~/.ccursor/trellis-task-models.json5` or `.cstl/local/subagent-models.json` |
 | Optional patch | `patch_wpelc8.py` only with your explicit consent |
@@ -226,7 +226,7 @@ Use other web search only when smart-search is unavailable.
 **1. Initialize**
 
 ```bash
-cstl init --cursor --cursor2plus
+cstl init --cursor
 ```
 
 Native users can ignore the entire `cursor2plus` directory.
@@ -245,20 +245,20 @@ Edit `~/.ccursor/trellis-task-models.json5` (slugs from `providers.json` `id` fi
 
 ```bash
 cd .cstl/local/cursor2plus
-python patch_wpelc8.py --print-map
+(retired — do not run patch_wpelc8.py)
 ```
 
 **3. Apply patch (high risk; your consent required)**
 
 ```bash
-python patch_wpelc8.py
+(retired — do not run patch_wpelc8.py)
 ```
 
 Then **Developer: Reload Window**. Dispatch a test Task; subagent should report a different model than parent when slugs differ.
 
 **4. After upgrades**
 
-Re-run print-map / patch, or `python patch_wpelc8.py --revert` and reload.
+Re-run print-map / patch, or `(retired — do not run patch_wpelc8.py)
 
 **5. Without patching**
 
@@ -268,7 +268,7 @@ Re-run print-map / patch, or `python patch_wpelc8.py --revert` and reload.
 | Explore subagent | Read-only exploration; pick model in Cursor++ panel |
 | Manual dispatch | New chat, pick model, paste CLI dispatch prompt |
 
-Slash command `/cstl-cursor2plus-setup` can guide setup.
+Slash command `(cstl-cursor2plus-setup retired)` can guide setup.
 
 ---
 
@@ -348,5 +348,8 @@ Maintainer traces: harness research task `06-26-cursor-platform-adaptation-resea
 | [workflow.md](workflow.md) | Task lifecycle |
 
 **Feedback**: [cursor-trellis Issues](https://github.com/blxzer77/cursor-trellis/issues) (include Cursor version, Native/BYOK, repro steps).
+
+
+> **Cursor++ retired:** Trellis no longer ships Cursor++ setup (`cstl-cursor2plus-setup`, `.cstl/local/cursor2plus/`). Product path = **Native Cursor**. Do **not** run `patch_wpelc8.py`. Leftover local bundles are residue (`cstl update` hash-safe cleanup removes pristine managed copies). Env detection (`cursorEnv` / `TRELLIS_CURSOR_BYOK` / `~/.ccursor/routes.json`) may remain for retrieval routing only.
 
 **Document version**: 1.0 (2026-06-26)

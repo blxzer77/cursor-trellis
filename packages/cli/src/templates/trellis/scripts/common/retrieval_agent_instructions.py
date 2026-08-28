@@ -312,11 +312,11 @@ def render_agent_instructions(
             label = (
                 "**语义合规（cursorEnv 未知，保守 BYOK）：**"
                 if cursor_env == ENV_UNKNOWN
-                else "**语义合规（Cursor++ BYOK）：**"
+                else "**语义合规（BYOK env）：**"
             )
             if locale != "zh":
                 lines.append(
-                    "**Semantic compliance (Cursor++ BYOK):**"
+                    "**Semantic compliance (BYOK env):**"
                     if cursor_env != ENV_UNKNOWN
                     else "**Semantic compliance (cursorEnv unknown, conservative BYOK):**"
                 )

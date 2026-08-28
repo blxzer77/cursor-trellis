@@ -38,7 +38,7 @@
 
 两种环境下，项目里的 `.cursor/agents`、`.cursor/hooks`、`.cursor/rules` **通常都能加载**。差异主要在：**子任务用哪个模型**、**Agent 能否用内置语义搜索**、**是否需要本机可选补丁**。
 
-**并存**：同一台机器上可对不同仓库分别使用 Native 与 BYOK；`--cursor2plus` 按项目物化，`cursorEnv` 按会话解析。见 [Native 与 BYOK 并存](cursor.zh-CN.md#native-与-byok-并存非二选一)。
+**并存**：同一台机器上可对不同仓库分别使用 Native 与 BYOK；`` 按项目物化，`cursorEnv` 按会话解析。见 [Native 与 BYOK 并存](cursor.zh-CN.md#native-与-byok-并存非二选一)。
 
 初始化：
 
@@ -48,7 +48,7 @@ cd /path/to/your-project
 cstl init --cursor
 
 # 仅当你使用 Cursor++ 且需要「按角色固定模型」时：
-cstl init --cursor --cursor2plus
+cstl init --cursor
 ```
 
 ---
@@ -216,7 +216,7 @@ python ./.cstl/scripts/run_smart_search.py "你的问题" --intent deep-research
 | --- | --- |
 | 环境检测 | `TRELLIS_CURSOR_BYOK` 或 `~/.ccursor/routes.json` |
 | BYOK 语义 | 检索计划用 **fast-context MCP**（`fast_context_search`），不用内置 semantic |
-| 可选包 | `cstl init --cursor --cursor2plus` → `.cstl/local/cursor2plus/` |
+| 可选包 | `cstl init --cursor` → `.cstl/local/cursor2plus/` |
 | 子任务上下文 | 与 Native 相同：CLI 生成派发说明为主路径 |
 | 映射文件 | `~/.ccursor/trellis-task-models.json5` 或 `.cstl/local/subagent-models.json` |
 | 可选补丁 | `patch_wpelc8.py`：仅在你明确同意后执行 |
@@ -226,7 +226,7 @@ python ./.cstl/scripts/run_smart_search.py "你的问题" --intent deep-research
 **1. 初始化**
 
 ```bash
-cstl init --cursor --cursor2plus
+cstl init --cursor
 ```
 
 Native 用户可忽略整个 `cursor2plus` 目录。
@@ -245,20 +245,20 @@ Native 用户可忽略整个 `cursor2plus` 目录。
 
 ```bash
 cd .cstl/local/cursor2plus
-python patch_wpelc8.py --print-map
+(retired — do not run patch_wpelc8.py)
 ```
 
 **3. 应用补丁（高风险，须本人同意）**
 
 ```bash
-python patch_wpelc8.py
+(retired — do not run patch_wpelc8.py)
 ```
 
 然后 **Developer: Reload Window**。派发测试 Task，确认子 Agent 自报模型与主会话不同（若你配置了不同 slug）。
 
 **4. 升级后**
 
-重新 print-map / patch，或 `python patch_wpelc8.py --revert` 后重载。
+重新 print-map / patch，或 `(retired — do not run patch_wpelc8.py)
 
 **5. 不想打补丁**
 
@@ -268,7 +268,7 @@ python patch_wpelc8.py
 | Explore 子 Agent | 只读探索，在 Cursor++ 面板选模型 |
 | 手动派发 | 新对话选手动模型 + 粘贴 CLI 生成的派发说明 |
 
-也可用斜杠命令 `/cstl-cursor2plus-setup` 引导配置。
+也可用斜杠命令 `(cstl-cursor2plus-setup retired)` 引导配置。
 
 ---
 
@@ -350,3 +350,5 @@ python patch_wpelc8.py
 **反馈**：[cursor-trellis Issues](https://github.com/blxzer77/cursor-trellis/issues)（附 Cursor 版本、Native/BYOK、复现步骤）。
 
 **文档版本**：1.0（2026-06-26）
+
+> **Cursor++ 已废弃：** Trellis 不再提供 Cursor++ 安装面（`cstl-cursor2plus-setup`、`.cstl/local/cursor2plus/`）。产品路径 = **Native Cursor**。**勿**运行 `patch_wpelc8.py`。遗留 local 包视为残渣（`cstl update` 对未改动的托管文件做哈希安全清理）。`cursorEnv` / `TRELLIS_CURSOR_BYOK` / `~/.ccursor/routes.json` 仅作检索环境探测。

@@ -37,7 +37,7 @@
 - **审核池** — `.cstl/pool/` 候选队列 + `pool.py` validate/link/plan-check；仅 `accepted` 条目可建 Task
 - **校验门禁** — `cstl validate-rules` + `pnpm mirror-check` 强制 dogfood/模板同步；`init`/`update` 回归时抛错
 - **检索合规** — BYOK/Native 分叉 + `unknown` 保守路由；LSP 过度承诺软化为 codegraph + Read；telemetry 区分 planned vs executed semantic
-- **Cursor++ 安全** — Method 2.5 patch 需显式 `--approve`；`--check-compat` 预检；`smoke.py` 健康检查（不读 secret）
+- **Cursor++ 已废弃** — 勿运行 Method 2.5 / `patch_wpelc8.py`；产品路径为 Native Cursor
 - **证据 pack** — finish/check 在 `retrieval-pack-latest.json` 存在时引用；research prompt 含 provider 相关性提示
 - **会话交接** — `/cstl-handoff` 在需要跨会话「旅行」时（换 harness / repo、交给同事、fork 支线）将当前会话压缩成可搬运文档写入 OS 临时目录
 - **双轴 check** — `cstl-check` 分节报告 **Standards**（规范遵循、lint、type-check、测试、Fowler 12 smells、跨层数据流）与 **Spec**（prd 忠实度、scope、学习/spec 同步）——不做合并单一风险榜
@@ -81,7 +81,7 @@ cstl init --cursor
 
 **3. 用 Cursor 打开项目**，使用 Agent 模式。用户可见斜杠命令包括 `/cstl-continue`、`/cstl-finish-work`。Request Triage 由 `.cursor/rules/cstl-triage.mdc` 强制执行。
 
-可选：`cstl init --cursor --cursor2plus` 物化**按仓库**的 Cursor++ BYOK 包（非全局二选一）。同一机器上 Native 与 BYOK 可并存 —— 见 [Native 与 BYOK 并存](docs/cursor.zh-CN.md#native-与-byok-并存非二选一)。
+产品路径：`cstl init --cursor`（Native）。Cursor++ / `` 已废弃 —— 见 [cursor.zh-CN.md](docs/cursor.zh-CN.md)。检索仍可能使用 `cursorEnv` 环境探测。
 
 ## 从 0.3.0 升级（v0.3.1）
 
@@ -116,7 +116,7 @@ cstl update --migrate
 
 0.3.0 之后日常 CLI 小版本可用 `cstl upgrade`。升级到 0.3.0 后，旧的 `trellis upgrade` 命令已不存在。
 
-**Cursor++ BYOK**（可选，仅 `.cstl/local/cursor2plus/`）：将 `trellis-task-models.json5` 中的 `trellis-research/implement/check` 键改为 `cstl-research/implement/check`，然后重跑 `patch_wpelc8.py --apply`。可在 Agent 模式使用 `/cstl-cursor2plus-setup`。
+**Cursor++ 已废弃：** 勿运行 setup/patch。若遗留 `.cstl/local/cursor2plus/` 或历史 `trellis-task-models.json5`，视为残渣——`cstl update` 清理未改动的托管副本；无用时手动删除。
 
 详见 [CHANGELOG](packages/cli/CHANGELOG.md#030---2026-07-01)。
 
@@ -159,7 +159,7 @@ your-app/
 - **Agents** — `cstl-research`、`cstl-implement`、`cstl-check`。
 - **Hooks** — Python 脚本：会话、终端、子 Agent 上下文。
 
-深入说明：[docs/cursor.zh-CN.md](docs/cursor.zh-CN.md) — Native vs Cursor++ BYOK 双环境、子 Agent 派发 Method 1–4、环境探测。检索层设计：[docs/retrieval.zh-CN.md](docs/retrieval.zh-CN.md)。
+深入说明：[docs/cursor.zh-CN.md](docs/cursor.zh-CN.md) — Native Cursor 产品路径、子 Agent 派发、环境探测（cursorEnv）。检索层设计：[docs/retrieval.zh-CN.md](docs/retrieval.zh-CN.md)。
 
 ## 适用场景
 
@@ -231,5 +231,8 @@ pnpm mirror-check   # dogfood .cursor 与模板同步（贡献者）
 [LINUX DO](https://linux.do)
 
 ## 许可证
+
+
+> **Cursor++ 已废弃：** Trellis 不再提供 Cursor++ 安装面（`cstl-cursor2plus-setup`、`.cstl/local/cursor2plus/`）。产品路径 = **Native Cursor**。**勿**运行 `patch_wpelc8.py`。遗留 local 包视为残渣（`cstl update` 对未改动的托管文件做哈希安全清理）。`cursorEnv` / `TRELLIS_CURSOR_BYOK` / `~/.ccursor/routes.json` 仅作检索环境探测。
 
 AGPL-3.0-only — 见 `packages/cli/package.json`。

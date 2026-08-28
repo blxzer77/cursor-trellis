@@ -44,7 +44,6 @@ import {
 
 import { writeFile, ensureDir } from "../utils/file-writer.js";
 import { replacePythonCommandLiterals } from "./shared.js";
-import { writeCursor2plusLocalBundle } from "./cursor2plus-local.js";
 import {
   sanitizePkgName,
   type ProjectType,
@@ -89,15 +88,6 @@ export interface WorkflowOptions {
    * entry for non-native workflows so update.ts treats them as user-managed.
    */
   workflowMdOverride?: string;
-  /**
-   * Whether to materialize the Cursor++ BYOK local operator bundle
-   * (`.cstl/local/cursor2plus/`). Defaults to `false` from 1.1.0: only
-   * written when the user opts in during `cstl init` (interactive BYOK
-   * question) or passes `--cursor2plus`. Native Cursor API users do not need
-   * these assets. `cstl update` keeps existing bundles (detected by
-   * directory presence) regardless of this flag.
-   */
-  cursor2plus?: boolean;
 }
 
 /**
@@ -175,10 +165,6 @@ export async function createWorkflowStructure(
 
   // Create tasks/ directory
   ensureDir(path.join(cwd, PATHS.TASKS));
-
-  if (options?.cursor2plus) {
-    await writeCursor2plusLocalBundle(cwd);
-  }
 
   // Create spec templates based on project type
   // These are NOT dogfooded - they are generic templates for new projects

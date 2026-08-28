@@ -106,7 +106,7 @@ Trellis **鼓励**一个 cstl 任务对应一个主 Agent 会话,便于管理;**
 | --- | --- | --- |
 | `cstl-continue.md` | `/cstl-continue` | 带 Trellis 上下文继续当前任务 |
 | `cstl-finish-work.md` | `/cstl-finish-work` | 验证、学习回写、任务收尾 |
-| `cstl-cursor2plus-setup.md` | `/cstl-cursor2plus-setup` | 把子 Agent 角色映射到 Cursor++ BYOK 模型(可选,仅 BYOK) |
+| `cstl-cursor2plus-setup.md` | `(cstl-cursor2plus-setup retired)` | 把子 Agent 角色映射到 Cursor++ BYOK 模型(可选,仅 BYOK) |
 
 Cursor 上命令引用前缀为 `/trellis-`(见 `packages/cli/src/types/ai-tools.ts` 中 `AI_TOOLS.cursor`)。
 
@@ -144,7 +144,7 @@ Cursor 上命令引用前缀为 `/trellis-`(见 `packages/cli/src/types/ai-tools
 
 | 常见场景 | 做法 |
 | --- | --- |
-| **Native 为主 + 个别 BYOK 仓库** | 每个 repo 执行 `cstl init --cursor`；仅在对 Method 2.5 有需求的 repo 加 `--cursor2plus`（物化 `.cstl/local/cursor2plus/`）。 |
+| **Native 为主 + 个别 BYOK 仓库** | 每个 repo 执行 `cstl init --cursor`；仅在对 Method 2.5 有需求的 repo 加 ``（物化 `.cstl/local/cursor2plus/`）。 |
 | **多 repo harness / 工作区** | 每个项目根各自 `.cstl/` + `.cursor/`；init/update/migrate **按仓库**执行，不是整机一次。 |
 | **测试时强制路由** | 打开 Cursor 前设 `TRELLIS_CURSOR_BYOK=0` 或 `1` —— 影响检索 `cursorEnv`，无需删掉 `~/.ccursor/`。 |
 
@@ -156,7 +156,7 @@ Cursor 上命令引用前缀为 `/trellis-`(见 `packages/cli/src/types/ai-tools
 | **用户 / 机器** | `~/.ccursor/routes.json`（`byokMode`）、`~/.ccursor/trellis-task-models.json5`、`providers.json` | 本机 Cursor 会话（BYOK 栈） |
 | **会话覆盖** | `TRELLIS_CURSOR_BYOK=0|1` | 当前 Agent 会话的检索路由 |
 
-`--cursor2plus` 只是在**该项目**物化 BYOK 运维包；**不会**卸载 Native Cursor，也不阻止兄弟仓库只用 `cstl init --cursor`。Native 订阅用户完全可以打开带 `cursor2plus/` 的仓库 —— Trellis 仍按**探测到的** `cursorEnv` 给检索与派发建议。
+`` 只是在**该项目**物化 BYOK 运维包；**不会**卸载 Native Cursor，也不阻止兄弟仓库只用 `cstl init --cursor`。Native 订阅用户完全可以打开带 `cursor2plus/` 的仓库 —— Trellis 仍按**探测到的** `cursorEnv` 给检索与派发建议。
 
 ### 检索 vs 派发（同机多仓库）
 
@@ -194,7 +194,7 @@ cstl sdk status
 
 ### Cursor 可选附录
 
-仅 BYOK 需要的物料：init 时 `--cursor` 与 `--cursor2plus` 一起传入，生成 `.cstl/local/cursor2plus/` 与 `/cstl-cursor2plus-setup`。不需要 Method 2.5 的 Native 用户可忽略或删除该目录。细节见下文 [Method 2.5 详情](#method-25-详情byok-json5-patch)。
+仅 BYOK 需要的物料：init 时 `--cursor` 与 `` 一起传入，生成 `.cstl/local/cursor2plus/` 与 `(cstl-cursor2plus-setup retired)`。不需要 Method 2.5 的 Native 用户可忽略或删除该目录。细节见下文 [Method 2.5 详情](#method-25-详情byok-json5-patch)。
 
 ## Cursor 环境(Native vs BYOK)
 
@@ -242,27 +242,27 @@ Trellis 支持两种 Cursor 环境。**同一个** `trellis-*` 子 Agent 名可�
 
 **Cursor / Cursor++ 升级后（BYOK 运维）:**
 
-1. `python .cstl/local/cursor2plus/patch_wpelc8.py --check-compat`
+1. `(retired — do not run patch_wpelc8.py)
 2. 若 `fail` / `not_locatable`：`patch_wpelc8.py --revert` → Reload Window → 等待 Trellis 更新锚点或按文档手动重定位。
 3. 若 `ok`：按需 `--print-map` 后 `--apply --approve`。
 
 `cstl update` 会刷新 `.cstl/local/cursor2plus/` 内脚本，**不会**自动重打 extension patch。
 
-**Trellis 发布**(每次 `cstl init`/`cstl update`,传 `--cursor2plus` 时):`.cstl/local/cursor2plus/` 含 `patch_wpelc8.py`、`README.md`、`config.local.json.example`。Native Cursor API 用户可忽略此目录。
+**Trellis 发布**(每次 `cstl init`/`cstl update`,传 `` 时):`.cstl/local/cursor2plus/` 含 `patch_wpelc8.py`、`README.md`、`config.local.json.example`。Native Cursor API 用户可忽略此目录。
 
 **操作流程(仅 BYOK):**
 
 1. 填 `~/.ccursor/trellis-task-models.json5`,`subagent_type` → `~/.ccursor/providers.json` `id` 字段的 slug。
 2. 可选每仓库覆盖:`.cstl/local/subagent-models.json`(项目同键优先)。
-3. 从 `.cstl/local/cursor2plus/`:`python patch_wpelc8.py --print-map` → `python patch_wpelc8.py` → **Developer: Reload Window**。
+3. 从 `.cstl/local/cursor2plus/`:`(retired — do not run patch_wpelc8.py)
 4. 验证:`taskToolCall dispatching` → `resolvedModelId` 匹配 slug。
-5. **还原:** `python patch_wpelc8.py --revert`;Reload Window。Cursor/Cursor++ 升级后重跑 patch。
+5. **还原:** `(retired — do not run patch_wpelc8.py)
 
 Native Cursor API:**停止**——frontmatter `model:` 有效;Method 2.5 不适用。
 
-### `--cursor2plus` 初始化
+### `` 初始化
 
-同时传 `--cursor` 与 `--cursor2plus` 给 `cstl init` 可在 `.cstl/local/cursor2plus/` 物化 BYOK 本地包。这会加 `/cstl-cursor2plus-setup` 斜杠命令,启动 agent 引导流程写 json5 模型映射。不传 `--cursor2plus` 时,此目录不存在,BYOK 用户若想用 Method 2.5 须手动管理 patch。
+同时传 `--cursor` 与 `` 给 `cstl init` 可在 `.cstl/local/cursor2plus/` 物化 BYOK 本地包。这会加 `(cstl-cursor2plus-setup retired)` 斜杠命令,启动 agent 引导流程写 json5 模型映射。不传 `` 时,此目录不存在,BYOK 用户若想用 Method 2.5 须手动管理 patch。
 
 ### 何时问用户模型选择
 
@@ -297,10 +297,10 @@ Trellis 内置两个硬门禁,确保 dogfood 文件(`./cursor/` 与 `./.cstl/scr
 
 Cursor++ 本地 patch 脚本(`patch_wpelc8.py`)现需显式同意才会修改 Cursor 的 `extension.js`:
 
-- **`--approve`** —— patch 步骤无此 flag 拒绝写入。裸 `python patch_wpelc8.py`(无子命令)只打印计划 map 并退出,不再隐式 patch。
+- **`--approve`** —— patch 步骤无此 flag 拒绝写入。裸 `(retired — do not run patch_wpelc8.py)
 - **`--check-compat`** —— 预检，确认当前 Cursor++ 构建中解析器符号与注入锚点仍可定位，再尝试任何 patch（符号名不保证跨版本不变）。
 - **`smoke.py`** —— 健康检查,确认 patched 的 resolver 把 `subagentType` → slug,不读取任何含 secret 的文件(不查 provider key、不查 token)。
-- **Native 安全忽略** —— `cstl init --cursor`(不带 `--cursor2plus`)对 Native API 用户打印一行提示:Cursor++ 附录可安全忽略。
+- **Native 安全忽略** —— `cstl init --cursor`(不带 ``)对 Native API 用户打印一行提示:Cursor++ 附录可安全忽略。
 
 这些门禁存在是因为 Method 2.5 patch 的是 vendored `extension.js`;旧默认(隐式写入)可能在 Cursor++ 升级时破坏 Cursor 而无操作者确认。
 
@@ -325,3 +325,5 @@ cstl uninstall
 - [架构概览](architecture.zh-CN.md)
 - [CLI 包参考](../packages/cli/README.zh-CN.md)
 - [项目 README](../README.zh-CN.md)
+
+> **Cursor++ 已废弃：** Trellis 不再提供 Cursor++ 安装面（`cstl-cursor2plus-setup`、`.cstl/local/cursor2plus/`）。产品路径 = **Native Cursor**。**勿**运行 `patch_wpelc8.py`。遗留 local 包视为残渣（`cstl update` 对未改动的托管文件做哈希安全清理）。`cursorEnv` / `TRELLIS_CURSOR_BYOK` / `~/.ccursor/routes.json` 仅作检索环境探测。

@@ -47,7 +47,7 @@ cstl update --migrate
 
 0.3.0 之后日常 CLI 小版本可用 `cstl upgrade`。升级到 0.3.0 后，旧的 `trellis upgrade` 命令已不存在。
 
-**Cursor++ BYOK**（可选，仅 `.cstl/local/cursor2plus/`）：将 `trellis-task-models.json5` 中的 `trellis-research/implement/check` 键改为 `cstl-research/implement/check`，然后重跑 `patch_wpelc8.py --apply`。可在 Agent 模式使用 `/cstl-cursor2plus-setup`。
+**Cursor++ 已废弃：** 勿运行 setup/patch。遗留 `.cstl/local/cursor2plus/` 或历史 `trellis-task-models.json5` 视为残渣——`cstl update` 清理未改动托管副本。
 
 详见 [CHANGELOG](./CHANGELOG.md#030---2026-07-01)。
 
@@ -93,7 +93,6 @@ cstl init --cursor
 | 标志 | 平台 |
 | --- | --- |
 | `--cursor` | Cursor（`.cursor/`）— 默认文档路径 |
-| `--cursor2plus` | Cursor++ BYOK 本地包（须同时 `--cursor`） |
 
 本 fork 的 init 与公开文档为 **Cursor-only**：[../../docs/cursor.zh-CN.md](../../docs/cursor.zh-CN.md)。
 
@@ -104,7 +103,6 @@ cstl init --cursor
 | `-y, --yes` | 非交互默认项 |
 | `-f, --force` | 覆盖已有受管文件 |
 | `-s, --skip-existing` | 跳过已存在文件 |
-| `--cursor2plus` | 物化 Cursor++ BYOK 包（须同时 `--cursor`） |
 | `-u, --user <name>` | 开发者身份 |
 | `--skip-readiness` | 跳过 smart-search / 能力项 readiness |
 | `--capability <id>` | 启用可选能力（可重复；`all` 表示全部可选） |
@@ -209,4 +207,7 @@ Release 与 npm 发布流程**不在**公开 README 中；见内部维护文档�
 - [项目 README](../../README.zh-CN.md)
 - [Cursor 集成](../../docs/cursor.zh-CN.md)
 - [架构概览](../../docs/architecture.zh-CN.md)
+
+> **Cursor++ 已废弃：** Trellis 不再提供 Cursor++ 安装面（`cstl-cursor2plus-setup`、`.cstl/local/cursor2plus/`）。产品路径 = **Native Cursor**。**勿**运行 `patch_wpelc8.py`。遗留 local 包视为残渣（`cstl update` 对未改动的托管文件做哈希安全清理）。`cursorEnv` / `TRELLIS_CURSOR_BYOK` / `~/.ccursor/routes.json` 仅作检索环境探测。
+
 - [CHANGELOG](./CHANGELOG.md)

@@ -54,7 +54,7 @@ describe("retrieval agent instructions", () => {
     expect(text).toContain("cursorEnv）：byok");
     expect(text).toContain("fast_context_search");
     expect(text).not.toContain("内置代码库语义搜索");
-    expect(text).toContain("语义合规（Cursor++ BYOK）");
+    expect(text).toContain("语义合规（BYOK env / cursorEnv=byok）");
   });
 
   it("renders trap intent with codegraph disambiguation", () => {

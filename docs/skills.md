@@ -124,14 +124,10 @@ Three forms inherit differently:
 | **Role** | CLI-first web research: `doctor` preflight → bilingual `search` → `context7`/`exa`/`fetch`/`map` by capability boundary → `research` Deep Research mode orchestrates plan→discover→fetch/read→gap check→evidence-only synthesis |
 | **Boundaries** | Cursor built-in `WebSearch`/`WebFetch` are **downgrade-only fallback**, used solely when `doctor` is `not_configured`/`failed` or search times out. See [retrieval.md](retrieval.md) |
 
-#### `cstl-cursor2plus-setup`
+#### `cstl-cursor2plus-setup` (retired)
 
-| | |
-| --- | --- |
-| **Definition** | `bundled-skills/cstl-cursor2plus-setup/SKILL.md` |
-| **Triggers** | `cstl init` selects Cursor and user wants Cursor++ BYOK per-subagent models; `providers.json` changes |
-| **Role** | Guide Cursor++ BYOK users to write `~/.ccursor/trellis-task-models.json5` (primary/fallback), run `patch_wpelc8.py` (reversible json5 slug mapping), report resolver WARN/ERROR |
-| **Boundaries** | Native Cursor API users do not need this. Not in the `AGENTS.md` auto-triggered list (conditional, BYOK-only). See [cursor.md](cursor.md) for Method 2.5 detail |
+> **Retired.** Not shipped. Do not run. Product path = Native Cursor.
+
 
 ## Optional/experimental skills
 
@@ -170,7 +166,7 @@ The canonical auto-triggered list (10 skills) is generated into `AGENTS.md` from
 | 8 | `cstl-spec-bootstrap` | Spec tree creation/refresh |
 | 9 | `cstl-skill-creator` | Skill authoring |
 | 10 | `smart-search-cli` | External fact retrieval |
-| 11 | `cstl-cursor2plus-setup` | Cursor++ BYOK setup (conditional) |
+| 11 | *(removed)* | Cursor++ setup retired |
 
 ## Skill vs Agent: who does what
 
@@ -199,3 +195,5 @@ Use `cstl-skill-creator` (loaded via `cstl-meta`) for the authoring rules. See i
 - [Task system design](task-system.md) — Phase 1–3 lifecycle, gates, Development Strategy Contract
 - [Cursor integration](cursor.md) — commands-only policy, hooks, environment detection
 - [Workflow in Cursor](workflow.md) — the lifecycle these skills serve
+
+> **Cursor++ retired:** Trellis no longer ships Cursor++ setup (`cstl-cursor2plus-setup`, `.cstl/local/cursor2plus/`). Product path = **Native Cursor**. Do **not** run `patch_wpelc8.py`. Leftover local bundles are residue (`cstl update` hash-safe cleanup removes pristine managed copies). Env detection (`cursorEnv` / `TRELLIS_CURSOR_BYOK` / `~/.ccursor/routes.json`) may remain for retrieval routing only.

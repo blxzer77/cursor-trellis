@@ -82,10 +82,6 @@ program
   .option("--cursor", "Include Cursor commands")
   .option("-y, --yes", "Skip prompts and use defaults")
   .option(
-    "--cursor2plus",
-    "Materialize Cursor++ BYOK local bundle (.cstl/local/cursor2plus/); ignored unless --cursor is also selected",
-  )
-  .option(
     "-u, --user <name>",
     "Initialize developer identity with specified name",
   )

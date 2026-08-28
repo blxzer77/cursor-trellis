@@ -34,6 +34,6 @@ worktrees/
 **/__pycache__/
 **/*.pyc
 
-# Cursor++ BYOK local routing (operator machine; not team-shared)
+# Cursor++ residue (retired product path — ignore if leftover on disk)
 local/cursor2plus/config.local.json
 local/subagent-models.json

@@ -27,11 +27,12 @@ import {
  * palette hygiene and workflow reliability, not a statement about Agent Skills.
  *
  * - commands/cstl-{continue,finish-work}.md — common command templates
- * - commands/cstl-cursor2plus-setup.md — Cursor-only command (BYOK setup)
  * - rules/*.mdc — always-apply / glob-scoped Cursor rules (Triage hard gate etc.)
  * - agents/{name}.md — sub-agent definitions
  * - hooks/*.py — shared hook scripts
  * - hooks.json — hook configuration (separate file, not settings.json)
+ *
+ * Cursor++ setup command/skill/local bundle are retired and no longer shipped.
  */
 export async function configureCursor(cwd: string): Promise<void> {
   const config = AI_TOOLS.cursor;
@@ -39,7 +40,8 @@ export async function configureCursor(cwd: string): Promise<void> {
   const configRoot = path.join(cwd, config.configDir);
 
   // .cursor/commands/ — user-facing slash commands (commands-only policy).
-  // Common commands (continue, finish-work) + Cursor-only commands (cursor2plus-setup).
+  // Common commands (continue, finish-work). Cursor-only extras come from
+  // getCursorCommands() when present (none required for Cursor++).
   const commandsDir = path.join(configRoot, "commands");
   ensureDir(commandsDir);
   for (const cmd of resolveCommands(ctx)) {

@@ -84,7 +84,7 @@ How the main session routes work to a subagent depends on the Cursor environment
 
 ## Native vs BYOK model routing
 
-| Capability | Native Cursor API | Cursor++ BYOK |
+| Capability | Native Cursor API | BYOK env (detection only; Cursor++ product retired) |
 | --- | --- | --- |
 | Agent frontmatter `model:` | ✅ Effective | ❌ Ignored for `trellis-*` types |
 | Cursor Settings per-agent model UI | ✅ Effective | ❌ Does not populate `subagentModelOverrides` |
@@ -181,3 +181,5 @@ Step-by-step:
 - [Cursor integration](cursor.md) — environment detection, Method 2.5 detail, hooks
 - [Workflow in Cursor](workflow.md) — the Phase 2.1/2.2/3.1 steps that trigger dispatch
 - [Retrieval layer](retrieval.md) — how `cstl-research` routes external facts to `smart-search-cli`
+
+> **Cursor++ retired:** Trellis no longer ships Cursor++ setup (`cstl-cursor2plus-setup`, `.cstl/local/cursor2plus/`). Product path = **Native Cursor**. Do **not** run `patch_wpelc8.py`. Leftover local bundles are residue (`cstl update` hash-safe cleanup removes pristine managed copies). Env detection (`cursorEnv` / `TRELLIS_CURSOR_BYOK` / `~/.ccursor/routes.json`) may remain for retrieval routing only.

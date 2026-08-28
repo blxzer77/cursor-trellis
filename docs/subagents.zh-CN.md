@@ -181,3 +181,5 @@ Method 2 与 4 都依赖 Agent 文件上的**一次性 `model:` overlay**。工�
 - [Cursor 集成](cursor.zh-CN.md) — 环境探测、Method 2.5 细节、hooks
 - [Cursor 中的工作流](workflow.zh-CN.md) — 触发派发的 Phase 2.1/2.2/3.1 步骤
 - [检索层](retrieval.zh-CN.md) — `cstl-research` 如何把外部事实路由到 `smart-search-cli`
+
+> **Cursor++ 已废弃：** Trellis 不再提供 Cursor++ 安装面（`cstl-cursor2plus-setup`、`.cstl/local/cursor2plus/`）。产品路径 = **Native Cursor**。**勿**运行 `patch_wpelc8.py`。遗留 local 包视为残渣（`cstl update` 对未改动的托管文件做哈希安全清理）。`cursorEnv` / `TRELLIS_CURSOR_BYOK` / `~/.ccursor/routes.json` 仅作检索环境探测。
