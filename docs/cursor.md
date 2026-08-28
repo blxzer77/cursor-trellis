@@ -1,4 +1,6 @@
 # Cursor integration
+> **⚠️ Cursor++ retired (P23):** Trellis no longer ships Cursor++ product surfaces (`cstl-cursor2plus-setup`, `--cursor2plus`, `.cstl/local/cursor2plus/`). Do **not** install Cursor++, run `patch_wpelc8.py`, or treat Method 2.5 as setup. **Product path = Native Cursor** — `cstl init --cursor`. Env detection (`cursorEnv` / `TRELLIS_CURSOR_BYOK` / `~/.ccursor/routes.json`) may remain for **retrieval routing only**.
+
 
 English | [简体中文](cursor.zh-CN.md)
 
@@ -93,7 +95,7 @@ Mechanism: `afterShellExecution` hook emits an `agent_message` (best-effort) plu
 | Environment | Notes |
 | --- | --- |
 | Native Cursor API | Expected to work when `rename_chat` is in the agent tool list |
-| Cursor++ BYOK | Same code path; `rename_chat` availability is **environment-dependent** — verify in your BYOK setup. If unavailable, Trellis skips silently and task workflow continues |
+| BYOK env (detection) | Same rename path when MCP available; skip silently if not |
 
 Dedup state: `.cstl/.runtime/session-rename/` (per conversation context key).
 
@@ -139,132 +141,57 @@ Local overrides may live in `.cstl/hooks.local.json` (gitignored in Trellis sour
 
 For the retrieval injection channel, see [Retrieval layer design](retrieval.md#cursor-dual-injection-channel).
 
-## Native and BYOK coexistence (not either/or)
+## Product path: Native Cursor
 
-You do **not** pick one environment forever. Trellis is designed for setups where **both** Native Cursor API and Cursor++ BYOK appear in real life — different repos in one harness, one laptop used for both subscription and BYOK experiments, or teammates sharing patterns but not the same Cursor routing.
+Run `cstl init --cursor` per project. Multi-repo harnesses still init **per repo**. There is **no** `--cursor2plus` flag and **no** Cursor++ local bundle install path.
 
-| Typical setup | What to do |
-| --- | --- |
-| **Mix of Native-first and BYOK repos** | Run `cstl init --cursor` on each repo. Do **not** pass `` (flag removed). Product path is Native Cursor per repo. |
-| **Multi-repo harness / workspace** | Each project root owns its own `.cstl/` and `.cursor/`. Init/update/migrate are **per repo**, not once per machine. |
-| **Force routing for a test session** | Set `TRELLIS_CURSOR_BYOK=0` or `1` before opening Cursor — affects retrieval `cursorEnv` without deleting `~/.ccursor/`. |
+### Env detection (retrieval only)
 
-### Configuration layers
+`cursorEnv` (`native` | `byok` | `unknown`) may be resolved from:
 
-| Layer | Examples | Scope |
-| --- | --- | --- |
-| **Project** | `.cursor/mcp.json` from `--capability codebase-retrieval` (Cursor++ local bundle retired) | This repo only |
-| **User / machine** | `~/.ccursor/routes.json` (`byokMode`), `~/.ccursor/trellis-task-models.json5`, `~/.ccursor/providers.json` | All Cursor sessions on this machine (BYOK stack) |
-| **Session override** | `TRELLIS_CURSOR_BYOK=0|1` | Current agent session retrieval routing |
+1. `TRELLIS_CURSOR_BYOK=0|1`
+2. `~/.ccursor/routes.json` `byokMode`
+3. Presence of `~/.ccursor/providers.json` (legacy signal)
 
-Cursor++ materialization is **retired**. Sibling repos still use `cstl init --cursor` independently. Trellis follows **detected** `cursorEnv` for retrieval guidance only.
-
-### Retrieval vs dispatch (same machine, different repos)
-
-- **Retrieval** (`route_codebase_retrieval.py`): `cursorEnv` → Native built-in semantic vs BYOK `fast_context_search`. Projects with `--capability codebase-retrieval` get **project-local** fast-context + codegraph entries in `.cursor/mcp.json` (important for BYOK concept retrieval).
-- **Dispatch** (Task subagents): Method 4 ephemeral frontmatter is **Native-only**. Cursor++ Method 2.5 patching is **retired** — do not run.
+Use this only to choose retrieval backends (Native built-in semantic vs `fast_context_search` MCP). It is **not** a Cursor++ install or Method 2.5 setup signal.
 
 ### Optional capabilities: Cursor SDK + Campaign MCP
 
-Init/update can also select:
-
 | Capability id | What it does | Gate |
 | --- | --- | --- |
-| `cursor-sdk` | Records SDK RUN enablement + readiness; uses the **CLI-bundled** `@cursor/sdk` (does not add npm deps to your app) | Requires `CURSOR_API_KEY` in the **current process**. Checkbox stays visible; without a key Trellis **skips enablement** and prints setup steps. |
-| `campaign-mcp` | Merges `trellis-campaign` (`npx -y @blxzer/cursor-trellis campaign mcp`) into project `.cursor/mcp.json` | No API key. Does **not** write `TRELLIS_CAMPAIGN_PARENT` into mcp.json — set env / `--parent` / tool args yourself. |
-
-MCP writes **merge** into existing `.cursor/mcp.json`: Trellis-managed server names are upserted/removed from the current selection; unrelated servers are preserved.
-
-Discovery without guessing Cursor login state:
+| `cursor-sdk` | Records SDK RUN enablement + readiness; uses the **CLI-bundled** `@cursor/sdk` | Requires `CURSOR_API_KEY` in the current process |
+| `campaign-mcp` | Merges `trellis-campaign` into project `.cursor/mcp.json` | No API key; set env / `--parent` yourself |
 
 ```powershell
 cstl sdk status
-# or: cstl sdk status --json
 ```
 
-**Native / BYOK vs SDK live:** IDE model routing (`cursorEnv` Native vs BYOK env detection) does **not** replace `CURSOR_API_KEY` for `cstl sdk run --live`. They are separate channels. Never commit the key.
+IDE `cursorEnv` detection does **not** replace `CURSOR_API_KEY` for `cstl sdk run --live`.
 
-### Method 2.5 vs Method 4 (coexistence cheat sheet)
+## Subagent dispatch strategy (Native)
 
-| Your goal | Environment | Use |
+Abstract policy: `model_policy: cursor-configured` — do not hardcode vendor model IDs in committed defaults.
+
+| Method | Mechanism | Use when |
 | --- | --- | --- |
-| Fixed per-role models for `cstl-research` / `cstl-implement` / `cstl-check` | *(Cursor++ retired)* | **Not supported** via Trellis — use Native Method 4 or inherit |
-| One-off different model for a single Task dispatch | Native Cursor API | **Method 4** — temporary frontmatter `model:`, then restore |
-| Parent session model is fine for the subagent | Both | **Method 1** — inherit (default) |
+| **1. Inherit** (default) | Task subagents inherit parent session model | Parent model is fine |
+| **2. Explore** | Built-in Explore subagent + Native model picker | Read-only codebase exploration |
+| **3. Manual dispatch** | New chat, pick model, paste CLI dispatch prompt | Need a different model without frontmatter |
+| **4. Ephemeral overlay** | Temporary frontmatter `model:`, then restore | Native one-off per-dispatch model |
 
-Full method table: [Subagent dispatch strategy](#subagent-dispatch-strategy) and [subagents.md](subagents.md).
-
-### Cursor optional appendix
-
-Cursor++ appendix / `` / Method 2.5 operator steps are **retired**. See historical note below; do not treat as setup instructions.
-
-## Cursor environments (Native vs BYOK)
-
-Trellis supports two Cursor environments. The **same** `trellis-*` subagent names are reached via three entry points (Agent session, Task dispatch, Skill form) with **different** model routing. Identify your entry point before touching model config.
-
-### Environment comparison
-
-| Capability | Native Cursor API | BYOK env (detection only; Cursor++ product retired) |
-| --- | --- | --- |
-| Agent frontmatter `model:` | ✅ Works (server-side routing) | ❌ Not wired for `trellis-*`; frontmatter ignored |
-| Cursor Settings per-agent model UI | ✅ Works | ❌ Does not populate `subagentModelOverrides` for `trellis-*` |
-| Explore subagent model | ✅ Native model picker | ✅ Independent model via Cursor++ panel (v0.0.11+) |
-| Task subagent (`trellis-*`) model | ✅ Frontmatter / Settings | ❌ Without Method 2.5, **inherits** parent session BYOK model |
-| Built-in `@codebase` semantic search | ✅ `platformNative: true` | ❌ Not in agent tool list |
-| `fast_context_search` MCP | Not Primary | ✅ Required for concept retrieval |
-
-### Environment detection
-
-`cursorEnv` is resolved from (first match wins):
-
-1. `TRELLIS_CURSOR_BYOK=0|1` environment variable
-2. `~/.ccursor/routes.json` `byokMode` field
-3. Presence of `~/.ccursor/providers.json` (Cursor++ data dir)
-
-The router envelope (`route_codebase_retrieval.py`) always includes `cursorEnv` so the agent knows which semantic backend to call. See [Semantic routing](retrieval.md#semantic-routing-cursor).
-
-## Subagent dispatch strategy
-
-When a subagent dispatch is imminent, the dispatch method depends on environment and user choice. The abstract policy is `model_policy: cursor-configured` — Trellis workflow, agents, skills, and hooks **must not** hardcode vendor model IDs in committed defaults.
-
-### Dispatch methods
-
-| Method | Environment | Mechanism | Use when |
-| --- | --- | --- | --- |
-| **1. Inherit** (default) | Both | Custom Task subagents inherit parent session model. No frontmatter edit. | Parent model is appropriate; user says "inherit" / "用当前模型派发" |
-| **2. Explore + custom model** | BYOK | Dispatch built-in **Explore** subagent (read-only) with independent model via Cursor++ panel | Pure codebase exploration; no file writing, no external search |
-| **2.5. BYOK proxy map** | BYOK only | Reversible patch to Cursor++ `extension.js` task resolver (historically `WPeLc8`; symbol names can change between Cursor++ builds); maps `subagentType` → BYOK slug from `~/.ccursor/trellis-task-models.json5`; evaluated **before** inherit branch | Need fixed per-role models for `cstl-research` / `cstl-implement` / `cstl-check` under BYOK |
-| **2.6. Temporary Task types** | BYOK | Add `.cursor/agents/cstl-worker-<id>.md` + project `subagent-models.json` key; re-run patch; dispatch; remove when done | Rare per-dispatch model without changing global slots |
-| **3. Manual dispatch** | Both | Main session prepares full dispatch prompt; user opens new chat, selects model, pastes prompt, returns results | Subagent work benefits significantly from a different model, Method 2.5 unavailable |
-| **4. Ephemeral overlay** | Native only | Before dispatch: edit frontmatter `model: <id>`; after dispatch: restore frontmatter | Native API, need temporary per-dispatch model. **Does NOT work under BYOK** |
-
-### Method 2.5 detail (historical / retired)
-
-> **Retired.** Do not run patch_wpelc8.py, --check-compat, or Reload Window as a Trellis setup step. Historical Method 2.5 evidence may remain in changelogs and archives only.
-
-### `` initialization
-
-Pass both `--cursor` and `` to `cstl init` to materialize the BYOK local bundle at `.cstl/local/cursor2plus/`. This adds the `(cstl-cursor2plus-setup retired)` slash command, which launches an agent-led workflow to write the json5 model map. Without ``, this directory is absent and BYOK users must manage the patch manually if they want Method 2.5.
-
-### When to ask the user for model choice
-
-**Ask** when a subagent dispatch is imminent **AND** the dispatch method depends on user choice (e.g. Method 2 vs 2.5 vs 3).
-
-**Do not ask** for: planning-only turns, PRD Grill / micro-grill, inline edits in the main session, `cstl-check` skill without spawning the check agent, or any turn where no Trellis subagent will run this round.
-
-Task mode (Lite / Full / Parent) does **not** by itself trigger the question — only **impending subagent dispatch** does.
-
-### Dispatch decision flow
+**Ask** for model choice only when a Trellis subagent dispatch is imminent and the method depends on user choice. Do **not** ask for planning-only / PRD Grill / no-subagent turns.
 
 ```text
 Subagent dispatch needed
-├─ Cursor++ BYOK + trellis-* needs fixed per-role models?
-│  └─ Method 2.5 applied on this machine? → dispatch Task normally (map handles routing)
-├─ Parent model appropriate for trellis-*? → Method 1 (inherit)
-├─ Read-only codebase exploration only? → Method 2 (Explore + Cursor++ panel)
-├─ Native Cursor API (non-BYOK)? → Method 1 (inherit) or Method 4 (ephemeral frontmatter)
-└─ Need a different model, Method 2.5 unavailable? → Method 3 (manual dispatch)
+├─ Parent model appropriate? → Method 1 (inherit)
+├─ Read-only exploration only? → Method 2 (Explore)
+├─ Need temporary Native model? → Method 4 (ephemeral frontmatter)
+└─ Otherwise → Method 3 (manual dispatch)
 ```
+
+## Historical appendix (retired; not SOP)
+
+> **Not operational.** Cursor++ / Method 2.5 / `--cursor2plus` / `cstl-cursor2plus-setup` / `patch_wpelc8.py` are **retired**. Do not patch `extension.js`, do not Reload Window for Trellis setup, do not edit `trellis-task-models.json5` as a product step. Leftover `.cstl/local/cursor2plus/` is residue — `cstl update` hash-safe cleanup removes pristine managed copies. Historical evidence may remain in changelogs and migration manifests only.
 
 ## Validated gates (since 0.2.8)
 
@@ -275,9 +202,6 @@ Trellis ships two hard gates that keep dogfood files (`./cursor/` and `./.cstl/s
 
 `cstl init` and `cstl update` call `assertCursorRulesValid()` before writing, so a regression in the manifest aborts the operation instead of leaving the project in a half-init state. Run `cstl validate-rules` manually after hand-editing `.cursor/rules/` to re-check.
 
-## Cursor++ Method 2.5 safety gate (retired)
-
-> **Retired.** No executable patch gates. Product path = Native Cursor.
 
 ## Keeping Cursor files current
 
@@ -300,5 +224,3 @@ cstl uninstall
 - [Architecture](architecture.md)
 - [CLI package reference](../packages/cli/README.md)
 - [Project README](../README.md)
-
-> **Cursor++ retired:** Trellis no longer ships Cursor++ setup (`cstl-cursor2plus-setup`, `.cstl/local/cursor2plus/`). Product path = **Native Cursor**. Do **not** run `patch_wpelc8.py`. Leftover local bundles are residue (`cstl update` hash-safe cleanup removes pristine managed copies). Env detection (`cursorEnv` / `TRELLIS_CURSOR_BYOK` / `~/.ccursor/routes.json`) may remain for retrieval routing only.

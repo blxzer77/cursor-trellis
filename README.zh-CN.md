@@ -81,7 +81,7 @@ cstl init --cursor
 
 **3. 用 Cursor 打开项目**，使用 Agent 模式。用户可见斜杠命令包括 `/cstl-continue`、`/cstl-finish-work`。Request Triage 由 `.cursor/rules/cstl-triage.mdc` 强制执行。
 
-产品路径：`cstl init --cursor`（Native）。Cursor++ / `` 已废弃 —— 见 [cursor.zh-CN.md](docs/cursor.zh-CN.md)。检索仍可能使用 `cursorEnv` 环境探测。
+产品路径：`cstl init --cursor`（Native）。Cursor++ 路径已废弃 —— 见 [cursor.zh-CN.md](docs/cursor.zh-CN.md)。检索仍可能使用 `cursorEnv` 环境探测。
 
 ## 从 0.3.0 升级（v0.3.1）
 

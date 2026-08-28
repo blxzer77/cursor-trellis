@@ -1,11 +1,13 @@
 # Cursor 平台限制与 cursor-trellis 适配说明（用户与开发者版）
+> **⚠️ Cursor++ 已废弃（P23）：** Trellis 不再提供 Cursor++ 产品面（`cstl-cursor2plus-setup`、`--cursor2plus`、`.cstl/local/cursor2plus/`）。**勿**安装 Cursor++、运行 `patch_wpelc8.py`，或把 Method 2.5 当操作指南。**产品路径 = Native Cursor** — `cstl init --cursor`。`cursorEnv` / `TRELLIS_CURSOR_BYOK` / `~/.ccursor/routes.json` 仅作**检索环境探测**。
+
 
 [English](cursor-platform-limitations-and-trellis-adaptation.md)
 
 > **文档性质**：独立说明，面向最终用户与贡献者。  
 > **最后核对**：2026-06-26  
 > **证据**：Cursor 官方文档/博客、社区论坛、本仓库实测，以及 Trellis 包装的 smart-search 深度检索（2026-06-25 共 6 次，均成功）。  
-> **诚实声明**：Cursor 与 Cursor++ 更新频繁；下文描述的是当前已验证行为。你的版本若不同，请按文中「自检步骤」自行复测。
+> **诚实声明**：Cursor 更新频繁；Trellis 中 Cursor++ 产品路径已废弃；下文描述的是当前已验证行为。你的版本若不同，请按文中「自检步骤」自行复测。
 
 ---
 
@@ -14,40 +16,35 @@
 使用 **cursor-trellis**（在 Cursor 中运行 Trellis 工作流的 CLI 与模板）时，常见问题包括：
 
 - 写了钩子（hook），Agent 却像没看见工作流；
-- 在 **Cursor++（自备 API 模型）** 下，研究/实现/检查子任务没有按预期换模型；
+- 在 **BYOK env 探测**（`cursorEnv=byok`）下，Agent 工具表可能缺少 Native 语义搜索；
 - 检索计划写了「语义搜索」，Agent 却一直在做文本搜索；
-- 不清楚 **Cursor Native（官方订阅）** 与 **Cursor++** 是否应使用同一套配置。
+- 不清楚 **环境探测**（`TRELLIS_CURSOR_BYOK` / `routes.json`）如何影响检索相对 Native 派发。
 
 本文分四块说明（尽量不用内部代号，必要处会解释）：
 
 1. **Cursor 官方/社区已报告的平台问题**（附链接）
 2. **Cursor Native**：cursor-trellis 会遇到什么、如何解决、你怎么操作
-3. **Cursor++ BYOK**：同上
+3. **历史 Cursor++ 说明**（已废弃；非 SOP）
 4. **仍存在的不足**（平台 + cursor-trellis）
 
 日常集成见 [Cursor 集成](cursor.zh-CN.md)；子任务派发见 [子 Agent 派发](subagents.zh-CN.md)。
 
 ---
 
-## 先分清两种环境
+## 环境说明
 
 | 名称 | 含义 | 如何判断 |
 | --- | --- | --- |
-| **Cursor Native** | 使用 Cursor 官方模型与 API（常见为 Cursor 订阅）。 | 未用 Cursor++，或未设置环境变量 `TRELLIS_CURSOR_BYOK=1`。 |
-| **Cursor++ BYOK** | 通过 **Cursor++**（社区常称 ccursor）使用自备 API Key / 模型商。配置多在用户目录 `~/.ccursor/`。 | 存在 `~/.ccursor/providers.json`，或 `routes.json` 里 `byokMode` 为真，或 `TRELLIS_CURSOR_BYOK=1`。 |
+| **Cursor Native** | 官方 Cursor 模型 / API（**产品路径**） | 默认；`cstl init --cursor` |
+| **BYOK env（探测）** | 经 `cursorEnv` 的检索/路由信号 | `TRELLIS_CURSOR_BYOK` 或 `~/.ccursor/routes.json` 的 `byokMode` |
 
-两种环境下，项目里的 `.cursor/agents`、`.cursor/hooks`、`.cursor/rules` **通常都能加载**。差异主要在：**子任务用哪个模型**、**Agent 能否用内置语义搜索**、**是否需要本机可选补丁**。
-
-**并存**：同一台机器上可对不同仓库分别使用 Native 与 BYOK；`` 按项目物化，`cursorEnv` 按会话解析。见 [Native 与 BYOK 并存](cursor.zh-CN.md#native-与-byok-并存非二选一)。
+**产品路径：** 仅 Native Cursor。Cursor++ 安装 / `--cursor2plus` / Method 2.5 patch **已废弃**。环境探测仍可能影响检索后端选择。
 
 初始化：
 
 ```bash
 npm install -g @blxzer/cursor-trellis
 cd /path/to/your-project
-cstl init --cursor
-
-# 仅当你使用 Cursor++ 且需要「按角色固定模型」时：
 cstl init --cursor
 ```
 
@@ -198,77 +195,18 @@ python ./.cstl/scripts/run_smart_search.py "你的问题" --intent deep-research
 
 ---
 
-## 第三部分：Cursor++ BYOK 环境
+## 第三部分：历史附录（Cursor++ 已废弃；非 SOP）
 
-### 3.1 在 Native 问题之上的额外问题
+> **不可操作。** 勿运行 `patch_wpelc8.py`、为 Trellis 安装 Reload Window、`cstl-cursor2plus-setup` 或 `--cursor2plus`。勿把 json5 模型映射当现行安装步骤。
 
-| 问题 | 表现 |
-| --- | --- |
-| 子 Agent 模型跟主会话 | 无法 research A、implement B |
-| frontmatter `model:` 无效 | 改了 agent 文件仍 inherit |
-| Cursor 设置「每 Agent 模型」无效 | 日志仍 inherit parent |
-| 无内置 @codebase 语义 | 计划写内置 semantic 会落空 |
-| 补丁升级失效 | 更新后模型又回到继承 |
+历史上曾存在可选 `.cstl/local/cursor2plus/`、Method 2.5 可逆 patch 实验，以及 BYOK 下子 Agent 继承父模型的限制。这些产品面已在 **P23** 从 Trellis SSOT 移除。
 
-### 3.2 cursor-trellis 的解决办法
+**现行指引：**
 
-| 做法 | 说明 |
-| --- | --- |
-| 环境检测 | `TRELLIS_CURSOR_BYOK` 或 `~/.ccursor/routes.json` |
-| BYOK 语义 | 检索计划用 **fast-context MCP**（`fast_context_search`），不用内置 semantic |
-| 可选包 | `cstl init --cursor` → `.cstl/local/cursor2plus/` |
-| 子任务上下文 | 与 Native 相同：CLI 生成派发说明为主路径 |
-| 映射文件 | `~/.ccursor/trellis-task-models.json5` 或 `.cstl/local/subagent-models.json` |
-| 可选补丁 | `patch_wpelc8.py`：仅在你明确同意后执行 |
-
-### 3.3 推荐操作步骤（BYOK）
-
-**1. 初始化**
-
-```bash
-cstl init --cursor
-```
-
-Native 用户可忽略整个 `cursor2plus` 目录。
-
-**2. 配置映射（先只看、不写程序）**
-
-编辑 `~/.ccursor/trellis-task-models.json5`（slug 来自 `providers.json` 的 `id`，**勿公开该文件**）：
-
-```json5
-{
-  "cstl-research": "model-xxx",
-  "cstl-implement": "model-yyy",
-  "cstl-check": "model-zzz"
-}
-```
-
-```bash
-cd .cstl/local/cursor2plus
-(retired — do not run patch_wpelc8.py)
-```
-
-**3. 应用补丁（高风险，须本人同意）**
-
-```bash
-(retired — do not run patch_wpelc8.py)
-```
-
-然后 **Developer: Reload Window**。派发测试 Task，确认子 Agent 自报模型与主会话不同（若你配置了不同 slug）。
-
-**4. 升级后**
-
-重新 print-map / patch，或 `(retired — do not run patch_wpelc8.py)
-
-**5. 不想打补丁**
-
-| 方案 | 场景 |
-| --- | --- |
-| 继承主会话模型 | 一个模型够用 |
-| Explore 子 Agent | 只读探索，在 Cursor++ 面板选模型 |
-| 手动派发 | 新对话选手动模型 + 粘贴 CLI 生成的派发说明 |
-
-也可用斜杠命令 `(cstl-cursor2plus-setup retired)` 引导配置。
+- 产品路径 = Native `cstl init --cursor`
+- 派发：继承 / Explore / 手动 / Native Method 4 临时 frontmatter
+- 检索：按 `cursorEnv` 选择 Native 语义或 `fast_context_search`
+- 遗留 `cursor2plus/`：残渣；`cstl update` 删除未改动的托管文件
 
 ---
 
@@ -279,7 +217,7 @@ cd .cstl/local/cursor2plus
 - 钩子注入类问题在官方修复前都会影响依赖钩子的产品。
 - 子 Agent 模型路由仍有论坛投诉；需跟 changelog。
 - Agent 语义搜索难以向用户证明「一定执行了」。
-- Cursor++ 与 Cursor 版本差导致补丁滞后。
+- Cursor++ 产品路径已废弃；遗留补丁勿再执行。
 - Automations 与 Trellis 任务生命周期如何对齐尚无定论。
 
 ### 4.2 cursor-trellis 侧
@@ -291,7 +229,7 @@ cd .cstl/local/cursor2plus
 | 三种子任务入口对新手仍绕 | 决策树文档 |
 | `task.py select` 部分环境失败 | 文档强调传 `--task` 路径 |
 | retrieval-pack 消费链不完整 | finish/check 引用 |
-| 补丁绝不默认执行 | smoke 与 setup 引导 |
+| Cursor++ 残渣清理 | update 哈希安全删除 |
 
 ### 4.3 请勿误导他人的说法
 
@@ -314,10 +252,10 @@ cd .cstl/local/cursor2plus
 - [ ] 未误用 Cursor++ 补丁
 - [ ] 外部资料优先 smart-search
 
-**BYOK**
+**BYOK env 探测**
 
-- [ ] 检索计划用 fast-context，非内置 @codebase
-- [ ] 升级后检查补丁；未泄露 `providers.json`
+- [ ] `cursorEnv=byok` 时检索用 fast-context，非内置 @codebase
+- [ ] 勿运行已废弃的 Cursor++ patch
 
 ---
 
@@ -350,5 +288,3 @@ cd .cstl/local/cursor2plus
 **反馈**：[cursor-trellis Issues](https://github.com/blxzer77/cursor-trellis/issues)（附 Cursor 版本、Native/BYOK、复现步骤）。
 
 **文档版本**：1.0（2026-06-26）
-
-> **Cursor++ 已废弃：** Trellis 不再提供 Cursor++ 安装面（`cstl-cursor2plus-setup`、`.cstl/local/cursor2plus/`）。产品路径 = **Native Cursor**。**勿**运行 `patch_wpelc8.py`。遗留 local 包视为残渣（`cstl update` 对未改动的托管文件做哈希安全清理）。`cursorEnv` / `TRELLIS_CURSOR_BYOK` / `~/.ccursor/routes.json` 仅作检索环境探测。

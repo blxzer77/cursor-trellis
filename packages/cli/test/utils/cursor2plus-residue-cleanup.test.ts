@@ -12,8 +12,11 @@ import {
 const testDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(testDir, "../../../..");
 
+/** Pre-P23 commit that still contains Cursor++ template bytes for hash fixtures. */
+const PRE_P23 = "2dbb8e456aa28d8abf0e371c35e46699afb9de1e";
+
 function gitShow(repoRelPath: string): string {
-  return execSync(`git -C "${repoRoot}" show HEAD:${repoRelPath}`, {
+  return execSync(`git -C "${repoRoot}" show ${PRE_P23}:${repoRelPath}`, {
     encoding: "utf-8",
   });
 }

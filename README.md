@@ -61,7 +61,7 @@ cstl init --cursor
 
 **3. Open the project in Cursor** and use Agent mode. User-facing slash commands include `/cstl-continue` and `/cstl-finish-work`. Request Triage is enforced via `.cursor/rules/cstl-triage.mdc`.
 
-Product path: `cstl init --cursor` (Native). Cursor++ / `` retired — see [cursor.md](docs/cursor.md). Env detection (`cursorEnv`) may still appear for retrieval.
+Product path: `cstl init --cursor` (Native). Cursor++ path retired — see [cursor.md](docs/cursor.md). Env detection (`cursorEnv`) may still appear for retrieval.
 
 ## Upgrade to 0.4.0 (draft)
 

@@ -115,13 +115,13 @@ When a Parent task orchestrates Child tasks, dispatch authority is split:
 - **Parent** — uses `task.py prepare-child-worktree` and `task.py integrate-child` with states `changes` / `accepted` / `integrating` / `integrated` / `cancelled`. Default `merge_limit: 1` blocks more than one Child from being `integrating` simultaneously. Integration is serial Git-ref integration: every decision respects `merge_limit: 1` and writes conflicts, merge decisions, and acceptance rationale to `task-map.md` Event Log.
 - **Reviewer orchestration** — Parent sessions can productize child dispatch and review inline:
 
-  ```bash
+ `bash
   python ./.cstl/scripts/task.py parent-status <parent-task>
   python ./.cstl/scripts/task.py generate-child-prompt <parent-task> <child-task> --mode inline
   python ./.cstl/scripts/task.py review-child <parent-task> <child-task> --check
   python ./.cstl/scripts/task.py review-child <parent-task> <child-task> --decision accept --ref <child-ref>
   python ./.cstl/scripts/task.py review-child <parent-task> <child-task> --decision integrate-through --ref <child-ref>
-  ```
+ `
 
   `--mode subagent` is only a delivery hint when the platform can spawn subagents; inline mode is the portable default.
 
