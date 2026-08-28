@@ -41,6 +41,7 @@ type: mechanism    # research | prototype | grilling | task (decision-type tag)
 locale: zh
 created: 2026-08-08
 approved: 2026-08-08  # only when accepted
+priority: P1       # optional; accepted only. P0 | P1 | P2. Missing → treat as P2
 linked_tasks:      # optional: task directory names (many-to-many)
   - 08-08-example-task
 ---
@@ -77,10 +78,18 @@ All commands accept `--root <path>` when the Trellis root is not the current wor
 3. `accepted` → add to `plan.md` (plan cites item ids only; do not rewrite a second narrative).
 4. When a planned item starts work → Task Ladder (`task.py create`).
 
-## Choosing the next item (no global decision map)
+## Choosing the next item (attention, not a serial lock)
 
-- New round: read `plan.md` (closed / mainline sections first) → item status (`accepted` preferred) → `task.py list` reconciliation → **ask the user**.
-- There is no global decision engine: fog / closed sections are not an auto-queue; the user chooses; the Agent only proposes candidates.
+Priority is **attention + start preference**, not a queue lock. Isolatable write-sets still run in parallel (see `.cstl/workflow.md` Parallel-first). Agent proposes; user chooses. Agent must not auto-start, and must not refuse an independent item because a higher band is unfinished.
+
+1. Read `plan.md` (closed / mainline first) → `accepted` items → `task.py list` reconciliation.
+2. Group **accepted** items by attention band: `priority: P0` → `P1` → unlabeled/`P2`. Inbox hold and `rejected` do not rank. `rework` drops priority until re-accepted.
+3. Under each band, same-band independent items are a **parallel group** (not a serial queue by id or created date).
+4. Show the band order **and** the parallel groups → **ask the user**.
+
+`inbox` hold items are not ranked. Do not invent a scheduler CLI. Serial exceptions are the same set as Parallel-first (`serial_reason`).
+
+When this repo is CSTL itself: the workflow package and optional BYOK are **independent ships**. See `.cstl/framework/release-boundary.md`. BYOK readiness is not a workflow-package gate.
 
 ## Fog hygiene
 

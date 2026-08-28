@@ -572,6 +572,28 @@ describe("initializeHashes", () => {
     expect(count).toBe(0);
   });
 
+  it("excludes .cstl/middleware/ overlay from hashing", () => {
+    fs.mkdirSync(path.join(tmpDir, ".cstl", "middleware"), { recursive: true });
+    fs.writeFileSync(
+      path.join(tmpDir, ".cstl", "middleware", "smart-search.yaml"),
+      "id: smart-search\n",
+    );
+
+    const count = initializeHashes(tmpDir);
+    const hashes = loadHashes(tmpDir);
+
+    expect(hashes).not.toHaveProperty(".cstl/middleware/smart-search.yaml");
+    expect(count).toBe(0);
+
+    updateHashes(
+      tmpDir,
+      new Map([[".cstl/middleware/smart-search.yaml", "id: smart-search\n"]]),
+    );
+    expect(loadHashes(tmpDir)).not.toHaveProperty(
+      ".cstl/middleware/smart-search.yaml",
+    );
+  });
+
   it("collectFiles returns POSIX-normalized paths (no backslashes)", () => {
     // Even on Windows where path.join uses `\`, our collected paths must
     // be POSIX so they can be used as cross-platform hash keys.

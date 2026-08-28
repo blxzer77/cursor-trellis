@@ -17,7 +17,11 @@ import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 
-import { DIR_NAMES, FILE_NAMES } from "../constants/paths.js";
+import {
+  DIR_NAMES,
+  FILE_NAMES,
+  isUserMiddlewareOverlayPath,
+} from "../constants/paths.js";
 import type { TemplateHashes } from "../types/migration.js";
 import { toPosix } from "./posix.js";
 import { resolveWorkflowDirName } from "./workflow-dir.js";
@@ -151,6 +155,9 @@ export function updateHashes(cwd: string, files: Map<string, string>): void {
   const hashes = loadHashes(cwd);
 
   for (const [relativePath, content] of files) {
+    if (isUserMiddlewareOverlayPath(relativePath)) {
+      continue;
+    }
     hashes[toPosix(relativePath)] = hashContentForPath(relativePath, content);
   }
 
@@ -161,6 +168,9 @@ export function updateHashes(cwd: string, files: Map<string, string>): void {
  * Update hash for a single file by reading its current content
  */
 export function updateHashFromFile(cwd: string, relativePath: string): void {
+  if (isUserMiddlewareOverlayPath(relativePath)) {
+    return;
+  }
   const fullPath = path.join(cwd, relativePath);
   if (!fs.existsSync(fullPath)) {
     return;
@@ -308,6 +318,7 @@ const EXCLUDE_FROM_HASH = [
   "tasks/", // Task files (user data)
   ".current-task", // Current task marker (file, not directory)
   ".cstl/spec/", // User-customized spec files
+  ".cstl/middleware/", // User middleware overlay (never hashed)
   ".backup-", // Backup directories
 ];
 
@@ -316,6 +327,9 @@ const EXCLUDE_FROM_HASH = [
  */
 function shouldExcludeFromHash(relativePath: string): boolean {
   const normalizedPath = toPosix(relativePath);
+  if (isUserMiddlewareOverlayPath(normalizedPath)) {
+    return true;
+  }
   for (const pattern of EXCLUDE_FROM_HASH) {
     if (normalizedPath.includes(pattern)) {
       return true;

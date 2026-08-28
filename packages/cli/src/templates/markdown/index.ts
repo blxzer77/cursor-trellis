@@ -150,6 +150,15 @@ export const frameworkDogfoodOnlySurfacesGuideContent: string =
 export const frameworkParallelFirstExecutionContent: string = readLocalTemplate(
   "framework/parallel-first-execution.md.txt",
 );
+export const frameworkMiddlewareProtocolContent: string = readLocalTemplate(
+  "framework/middleware-protocol.md.txt",
+);
+export const frameworkUpgradeContent: string = readLocalTemplate(
+  "framework/upgrade.md.txt",
+);
+export const frameworkReleaseBoundaryContent: string = readLocalTemplate(
+  "framework/release-boundary.md.txt",
+);
 
 /**
  * Single source of truth for `.cstl/framework/` docs.
@@ -209,5 +218,14 @@ export const frameworkDocs: readonly {
   {
     name: "parallel-first-execution.md",
     content: frameworkParallelFirstExecutionContent,
+  },
+  {
+    name: "middleware-protocol.md",
+    content: frameworkMiddlewareProtocolContent,
+  },
+  { name: "upgrade.md", content: frameworkUpgradeContent },
+  {
+    name: "release-boundary.md",
+    content: frameworkReleaseBoundaryContent,
   },
 ];

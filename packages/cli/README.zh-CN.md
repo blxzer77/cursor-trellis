@@ -14,6 +14,8 @@ npm install -g @blxzer/cursor-trellis
 
 需要 **Node.js ≥ 18.17**。生成项目的钩子在运行 Cursor 的机器上需要 **Python ≥ 3.9**。
 
+日常升级（本批起）：升包 → 在项目里跑 `cstl update` → 看摘要并确认一次 → 接着干活。半页说明随 `cstl init` / `cstl update` 写到 `.cstl/framework/upgrade.md`。
+
 ## 从 0.3.0 升级（v0.3.1）
 
 v0.3.1 将 cursor-trellis **运行时目录**从 `.trellis/` 迁至 **`.cstl/`**。

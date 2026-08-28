@@ -12,7 +12,7 @@ Frontmatter writes splice a re-serialized header between the raw `---`
 fences so the body is preserved byte-for-byte (including the blank line
 after the closing fence and the final newline), and key order stays stable:
 known keys first (id, title, status, type, locale, created, approved,
-linked_tasks), unknown keys keep their original relative order.
+priority, linked_tasks), unknown keys keep their original relative order.
 """
 
 from __future__ import annotations
@@ -40,6 +40,7 @@ KNOWN_FRONTMATTER_KEY_ORDER = (
     "locale",
     "created",
     "approved",
+    "priority",
     LINKED_TASKS_KEY,
 )
 

@@ -5,7 +5,10 @@ These instructions are for AI assistants working in this project.
 
 This project is managed by cursor-trellis. The working knowledge you need lives under `.cstl/`:
 
-- `.cstl/workflow.md` — human overview of phases and skill routing (not runtime SSOT). Personal Lite: Open→Close without Parent/Git; Full Quality: `required_controls` + AC ledger + graded Check; Topology/On-demand: Rigor × Topology, `task-map` is a graph projection; Adapter/Middleware: Event Bridge + four retrieval intents + independent smart-search Provider; prefer `get_context.py --mode lite` for Lite
+- `.cstl/workflow.md` — human overview of phases and skill routing (not runtime SSOT). Parallel first (convention, not a CLI gate). Personal Lite: Open→Close without Parent/Git; Full Quality: `required_controls` + AC ledger + graded Check; Topology/On-demand: Rigor × Topology, `task-map` is a graph projection; Adapter/Middleware: Event Bridge + four retrieval intents + independent smart-search Provider; user overlay `.cstl/middleware/` is never touched by `cstl update`; prefer `get_context.py --mode lite` for Lite
+- `.cstl/framework/middleware-protocol.md` — Middleware Protocol v1 (one ABI; Manifest sample)
+- `.cstl/framework/upgrade.md` — terminal-user upgrade half-page
+- `.cstl/framework/release-boundary.md` — CSTL this-batch ship vs independent cstl-byok ship
 - `.cstl/spec/` — package- and layer-scoped coding guidelines (read before writing code in a given layer)
 - `.cstl/workspace/` — per-developer journals and session traces
 - `.cstl/tasks/` — active and archived tasks (PRDs, research, jsonl context)

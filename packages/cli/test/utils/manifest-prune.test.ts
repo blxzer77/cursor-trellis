@@ -42,6 +42,24 @@ describe("pruneOrphanManifestKeys", () => {
     expect(kept).toEqual(hashes);
   });
 
+  it("prunes poisoned .cstl/middleware/ overlay keys", () => {
+    const hashes = {
+      ".cstl/workflow.md": "h1",
+      ".cstl/middleware/smart-search.yaml": "user-overlay",
+    };
+    saveHashes(tmpDir, hashes);
+
+    const { pruned, hashes: kept } = pruneOrphanManifestKeys(
+      tmpDir,
+      [],
+      hashes,
+    );
+
+    expect(pruned).toEqual([".cstl/middleware/smart-search.yaml"]);
+    expect(kept).toHaveProperty(".cstl/workflow.md");
+    expect(kept).not.toHaveProperty(".cstl/middleware/smart-search.yaml");
+  });
+
   it("prunes platform-dir entries no current configurator owns", () => {
     const hashes = {
       ".codex/sessions/2026/x.jsonl": "user-data-hash",

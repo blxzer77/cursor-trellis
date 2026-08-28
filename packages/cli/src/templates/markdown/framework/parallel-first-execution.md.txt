@@ -1,8 +1,12 @@
 # Parallel-first execution contract
 
-> **Purpose**: Make “parallel by default, serial by written reason” an executable planning contract. Prefer Cursor native parallel; Trellis owns declaration + integration only.
+> **Purpose**: Make “parallel by default, serial by written reason” a **product** principle and an executable planning contract. Prefer Cursor native parallel; Trellis owns declaration + integration only.
 >
-> **Not a scheduler.** No queue, no new CLI, no Multitask replacement, no cross-platform parallel (P16).
+> **Not a scheduler.** No queue, no new CLI, no Multitask replacement, no cross-platform parallel.
+>
+> **Scope:** review-pool accepted items, development-plan batches, Parent/Full fan-out, and independent middleware / protocol / release tracks. **Not:** Lite / single-file; unisolatable write-sets; HITL / `start-execution --approved` / reviewer / `integrate-child`.
+>
+> **Strength:** convention + review call-out. Not a CLI hard gate. Attention order (`priority`) is not a serial lock.
 
 Full Prefer/Adapt/Own and serial-exception list: `.cstl/workflow.md` (Parallel-first). Native surface: `.cstl/framework/cursor-native-modes-guide.md` (Multitask). Who/where dispatch: `.cstl/framework/execution-strategy.md` (orthogonal).
 

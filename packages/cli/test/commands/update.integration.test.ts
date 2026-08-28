@@ -1641,4 +1641,50 @@ describe("update() integration", () => {
     expect(hashKeys.filter((key) => key.startsWith(`${PATHS.FRAMEWORK}/`)))
       .toHaveLength(frameworkDocs.length);
   });
+
+  it("#middleware-overlay update never writes, deletes, or hashes .cstl/middleware/", async () => {
+    await setupProject();
+
+    const overlayRel = `${PATHS.MIDDLEWARE}/smart-search.yaml`;
+    const overlayContent =
+      "id: smart-search\nprotocol: 1\nsource: user\nsecret: do-not-touch\n";
+    writeProjectFile(overlayRel, overlayContent);
+
+    let hashes = readHashesV2(hashFilePath());
+    hashes = {
+      ...hashes,
+      [overlayRel]: computeHash(overlayContent),
+    };
+    writeHashesV2(hashFilePath(), hashes);
+    fs.writeFileSync(versionFilePath(), "0.4.0");
+
+    vi.mocked(console.log).mockClear();
+    await runUpdate({ force: true, migrate: true });
+
+    expect(readProjectFile(overlayRel)).toBe(overlayContent);
+
+    const hashKeys = Object.keys(readHashesV2(hashFilePath()));
+    expect(hashKeys.filter((key) => key.startsWith(`${PATHS.MIDDLEWARE}/`))).toEqual(
+      [],
+    );
+
+    const output = vi
+      .mocked(console.log)
+      .mock.calls.flat()
+      .filter((part): part is string => typeof part === "string")
+      .join("\n");
+    const managedOverlayLines = output
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(
+        (line) =>
+          (line.startsWith("+") ||
+            line.startsWith("↑") ||
+            line.startsWith("?") ||
+            line.startsWith("✕")) &&
+          line.includes(`${PATHS.MIDDLEWARE}/`),
+      );
+    expect(managedOverlayLines).toEqual([]);
+    expect(output).toContain(`${PATHS.MIDDLEWARE}/`);
+  });
 });

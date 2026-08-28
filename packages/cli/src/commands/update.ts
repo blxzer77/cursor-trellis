@@ -3,7 +3,12 @@ import path from "node:path";
 import chalk from "chalk";
 import inquirer from "inquirer";
 
-import { DIR_NAMES, FILE_NAMES, PATHS } from "../constants/paths.js";
+import {
+  DIR_NAMES,
+  FILE_NAMES,
+  PATHS,
+  isUserMiddlewareOverlayPath,
+} from "../constants/paths.js";
 import type { AITool } from "../types/ai-tools.js";
 import { VERSION, PACKAGE_NAME } from "../constants/version.js";
 import {
@@ -158,6 +163,7 @@ const PROTECTED_PATHS = [
   `${DIR_NAMES.WORKFLOW}/${DIR_NAMES.WORKSPACE}`, // workspace/
   `${DIR_NAMES.WORKFLOW}/${DIR_NAMES.TASKS}`, // tasks/
   `${DIR_NAMES.WORKFLOW}/${DIR_NAMES.SPEC}`, // spec/
+  PATHS.MIDDLEWARE, // user overlay — never write/delete/hash
   `${DIR_NAMES.WORKFLOW}/.developer`,
   `${DIR_NAMES.WORKFLOW}/.current-task`,
 ];
@@ -815,6 +821,15 @@ function collectTemplateFiles(
     files.set(filePath, replacePythonCommandLiterals(content));
   }
 
+  // User overlay is never a template — strip even if a future collector
+  // accidentally adds it. Cursor++ residue cleanup is a separate allow-list
+  // and must not target this directory.
+  for (const [filePath] of [...files]) {
+    if (isUserMiddlewareOverlayPath(filePath)) {
+      files.delete(filePath);
+    }
+  }
+
   return files;
 }
 
@@ -1082,6 +1097,7 @@ const BACKUP_EXCLUDE_PATTERNS = [
   "/workspace/", // Developer workspace (user data)
   "/tasks/", // Task data (user data)
   "/spec/", // Spec files (user-customized content)
+  "/middleware/", // User middleware overlay (never managed)
   "/backlog/", // Backlog data (user data)
   "/agent-traces/", // Agent traces (user data, legacy name)
   // Platform-native worktree dirs — these are full sub-repos the CLI
