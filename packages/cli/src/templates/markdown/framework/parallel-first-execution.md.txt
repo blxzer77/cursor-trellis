@@ -1,0 +1,74 @@
+# Parallel-first execution contract
+
+> **Purpose**: Make “parallel by default, serial by written reason” an executable planning contract. Prefer Cursor native parallel; Trellis owns declaration + integration only.
+>
+> **Not a scheduler.** No queue, no new CLI, no Multitask replacement, no cross-platform parallel (P16).
+
+Full Prefer/Adapt/Own and serial-exception list: `.cstl/workflow.md` (Parallel-first). Native surface: `.cstl/framework/cursor-native-modes-guide.md` (Multitask). Who/where dispatch: `.cstl/framework/execution-strategy.md` (orthogonal).
+
+---
+
+## Declaration fields (task-map / implement.md)
+
+Declare these in Parent `task-map.md` (frontmatter and/or Orchestration notes). For a Full task with explicit Task fan-out and no Parent, put the same block in `implement.md`. **Lite / single-file work omits this block.**
+
+| Need | Field | Where it already lives | Notes |
+| --- | --- | --- | --- |
+| Topology | `execution_topology` | task-map frontmatter | `parallel` (default when ≥2 independent units) or `serial` (requires `serial_reason`) |
+| 可并行组 | `parallel_groups` *or* `stages[].units` | `stages:` already groups units | List child ids that may run concurrently (empty `depends_on`) |
+| 合并点 | `merge_points` *or* `merge_limit` | `merge_limit: 1` + `integrate-child` | HITL, `start-execution --approved`, reviewer gates, and Parent integrate stay **serial** |
+| 冲突面 | `conflict_surface` *or* `children[].touches` | per-child `touches` | Write-sets that can collide; isolate with worktrees or serialize |
+| 串行理由 | `serial_reason` | **new** — required iff topology is `serial` | Exactly one of the exception list below |
+
+`serial_reason` (one of):
+
+- shared write-set
+- HITL or reviewer gate
+- `depends_on` unmet
+- user asked serial
+- conflict surface cannot isolate
+
+Optional YAML (Parent frontmatter or Full `implement.md`):
+
+```yaml
+execution_topology: parallel
+parallel_groups: [child-a, child-b]
+merge_points: [integrate-child, reviewer-gates]
+conflict_surface: [path/that/collides]
+# serial_reason:  # omit when parallel
+```
+
+These fields are **planning declarations**. CLI may round-trip them on `task-map.md` writes; nothing in Trellis auto-dispatches workers from them.
+
+---
+
+## Archived Parent 对照 (do not edit the archive)
+
+Source (read-only): `.cstl/tasks/archive/2026-08/08-05-cursor-trellis-optimization/task-map.md`
+
+That campaign already behaved parallel-first; this table shows which **named** fields the contract would ask for vs what the archive already has. The archive body is **not** rewritten.
+
+| Contract field | Archive evidence | Gap |
+| --- | --- | --- |
+| Default parallel (≥2 children, `depends_on: []`) | Five children, all `depends_on: []`; notes say 可并行尽量并行 | Met |
+| `execution_topology` | `parallel_work_serial_merge` | Met in spirit (parallel work, serial merge). Today’s spelling is `parallel` + serial merge_points — do not rename the archive |
+| 可并行组 | `stages:` `stage-p0` / `stage-p1` / `stage-p1-lsp` with “可并行” titles | Met via `stages:` (alias of `parallel_groups`) |
+| 合并点 | `merge_limit: 1`; Event Log integrates one Child at a time; Suggested integration order: 合入仍串行 | Met via `merge_limit` + notes. Missing the literal key `merge_points:` |
+| 冲突面 | Per-child `touches` (hooks/rules/templates overlap called out) | Met via `touches`. Missing top-level `conflict_surface:` |
+| `serial_reason` | Topology is not `serial`, so none required. HITL/gates stayed serial through `merge_limit` | No gap for this map. A **serial** topology would need one exception line |
+| Prefer native | Parent routing to Multitask / worktrees; workers not scheduled by Trellis | Met (capability). Contract now makes that the **default**, not “when useful” |
+| Worker prompt path | Child prompts under `child-prompts/` with explicit task dirs | Met |
+
+**Would-write `serial_reason` only if** this Parent had set `execution_topology: serial` despite empty `depends_on` — e.g. shared write-set on `cursor-trellis/packages/cli/src/templates/`. It did not; it kept topology parallel and serialized **merge** only.
+
+Contrast (not edited): `.cstl/tasks/archive/2026-08/08-20-08-20-byok-headless-backend/task-map.md` has `execution_topology: serial` with every `depends_on: []` and **no** `serial_reason`. Under this contract that map would add one line (likely shared write-set / same branch `feat/byok-headless`).
+
+---
+
+## Non-goals
+
+- Auto parallel dispatch, queues, or new CLI
+- Forcing Lite tasks into parallel agents
+- Replacing Cursor Multitask
+- Relaxing HITL / `start-execution --approved` / reviewer-gate serial semantics
+- Cross-platform parallel (P16)

@@ -2,6 +2,8 @@
 
 > **Purpose**: Suggest a Development Strategy Contract before you freeze `implement.md`, and align Phase 2 dispatch with the approved contract.
 
+This file answers **who** implements/checks and **where** files are edited. It is **not** a parallel scheduler. Parallel-first (default native parallel, serial needs `serial_reason`) lives in `workflow.md` and `cursor-native-modes-guide.md`; declaration fields in `parallel-first-execution.md`.
+
 ---
 
 ## Two orthogonal dimensions

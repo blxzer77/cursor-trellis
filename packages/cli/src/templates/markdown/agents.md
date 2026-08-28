@@ -19,6 +19,10 @@ Only a handful of Trellis entry points are meant for **manual `/` invocation**. 
 - **User-invocable (manual)**: `cstl-continue`, `cstl-finish-work` (and `cstl-start` when needed).
 - **Internal auto-triggered (do NOT call manually)**: `cstl-brainstorm`, `cstl-before-dev`, `cstl-check`, `cstl-break-loop`, `cstl-update-spec`, `cstl-micro-grill`, `cstl-meta`, `cstl-spec-bootstrap`, `cstl-skill-creator`, `smart-search-cli`. These activate on their own when the workflow/skill matcher decides they fit.
 
+## Skill authoring (mandatory)
+
+When **creating** or making a **behavioral/structural** change to a Trellis bundled skill, a `blaze-skills` skill, or a harness skill, **first Read** `cstl-skill-creator` and follow its workflow + `references/review-checklist.md`. Do not hand-write around it. **Skip** for typo / pure link fixes. This skill is **internal** (not a user `/` command). **Does not apply** to Cursor product skills (e.g. `~/.cursor/skills-cursor/create-skill`). Load paths: see `.cstl/framework/internal-skills-cursor-reachability.md` (`cstl-skill-creator` row).
+
 ## Invocation map (short)
 
 | Intent | Use | Do not |
@@ -34,6 +38,7 @@ Commands-only: internal skills stay **out of** the `/` palette by design; they m
 Internal auto-triggered skills are **not** shipped to `.cursor/skills/` and have **no** default slash command. When the workflow routes to one, load its body by reading a documented path — do **not** claim it is loaded without a file read.
 
 - PRD Grill / brainstorm discipline → **`Read .cstl/framework/prd-grill-frontier.md`** (SSOT: bundled `common/skills/brainstorm.md`).
+- Skill authoring (new / structural) → **must Read** bundled `cstl-skill-creator/SKILL.md` then `references/review-checklist.md` (paths in `internal-skills-cursor-reachability.md`). Not a slash command.
 - Full skill × load-channel matrix → **`Read .cstl/framework/internal-skills-cursor-reachability.md`**.
 - Dogfood-only install surfaces (never shipped by default) → **`Read .cstl/framework/dogfood-only-surfaces.md`**.
 

@@ -147,6 +147,9 @@ export const frameworkInternalSkillsReachabilityGuideContent: string =
   readLocalTemplate("framework/internal-skills-cursor-reachability.md.txt");
 export const frameworkDogfoodOnlySurfacesGuideContent: string =
   readLocalTemplate("framework/dogfood-only-surfaces.md.txt");
+export const frameworkParallelFirstExecutionContent: string = readLocalTemplate(
+  "framework/parallel-first-execution.md.txt",
+);
 
 /**
  * Single source of truth for `.cstl/framework/` docs.
@@ -202,5 +205,9 @@ export const frameworkDocs: readonly {
   {
     name: "dogfood-only-surfaces.md",
     content: frameworkDogfoodOnlySurfacesGuideContent,
+  },
+  {
+    name: "parallel-first-execution.md",
+    content: frameworkParallelFirstExecutionContent,
   },
 ];

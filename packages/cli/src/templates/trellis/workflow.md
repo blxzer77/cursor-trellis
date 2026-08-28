@@ -227,12 +227,12 @@ Before executing an upgrade that creates artifacts, changes task mode, adds gate
 | No selected task + need dashboard | `cstl-start` |
 | Selected task + resume step | `cstl-continue` |
 | Planning / PRD | Read `.cstl/framework/prd-grill-frontier.md` (PRD Grill discipline; full body in the bundled brainstorm skill) |
-| Parent with parallel children | `generate-child-prompt --mode subagent`; writable Agent; see `.cstl/framework/cursor-subagent-policy.md` |
+| Parent with parallel children | Prefer Multitask / `Task` parallel (serial needs `serial_reason`); `generate-child-prompt --mode subagent`; see `cursor-native-modes-guide.md` |
 
 ### Cursor native modes (Prefer — don't replace)
 
 Full map: `.cstl/framework/cursor-native-modes-guide.md` · per-turn slim rule: `.cursor/rules/cstl-cursor-modes.mdc`.  
-Task-driven: try callable native first (`SwitchMode` plan/agent, Multitask/`Task` when useful); **quiet cstl spine fallback** when not — no user-facing “不适配 mode” list.
+Task-driven: try callable native first (`SwitchMode` plan/agent; Multitask/`Task` **by default** when ≥2 independent units); **quiet cstl spine fallback** when not — no user-facing “不适配 mode” list.
 
 | Situation | Prefer Cursor mode | Trellis phase / note |
 | --- | --- | --- |
@@ -240,7 +240,7 @@ Task-driven: try callable native first (`SwitchMode` plan/agent, Multitask/`Task
 | Scope / design before code | **Plan** (`SwitchMode(plan)` when useful) | Phase 1; artifacts → `prd.md` / `design.md` / `implement.md` |
 | Approved build / verify | **Agent** | Phase 2–3; `execution_mode` contract |
 | Repeat failure / runtime debug | **Debug** when reachable | Evidence → `verify.md`; loops → `cstl-break-loop` |
-| Independent Parent children (post-approval) | **Multitask** / Build in Parallel when useful | Explicit task path per worker; Parent integrates |
+| Independent Parent children (post-approval) | **Multitask** / Build in Parallel **by default** when ≥2 independent units | Explicit task path per worker; serial needs `serial_reason`; Parent integrates |
 
 Details: archived `06-15-child-phase3-task-ladder` → `research/task-ladder-iteration.md`.
 
@@ -248,7 +248,7 @@ Details: archived `06-15-child-phase3-task-ladder` → `research/task-ladder-ite
 
 - `prd.md` — requirements, constraints, and acceptance criteria. Do not put technical design or execution checklists here.
 - `design.md` — technical design for complex tasks: boundaries, contracts, data flow, tradeoffs, compatibility, rollout / rollback shape.
-- `implement.md` — execution plan for complex tasks: ordered checklist, Development Strategy Contract, validation commands, review gates, and rollback points.
+- `implement.md` — execution plan for complex tasks: ordered checklist, Development Strategy Contract, validation commands, review gates, and rollback points. Parent / Full Task fan-out also declare parallel-first fields (可并行组 / 合并点 / 冲突面 / `serial_reason`) — see Parallel-first above and `.cstl/framework/parallel-first-execution.md`.
 - `implement.jsonl` / `check.jsonl` — spec and research manifests for sub-agent context. They do not replace `implement.md`.
 - `verification_profile` / `quality_gates` — gate policy belongs in task artifacts and `task.json`; `task.json.quality_gate_results` is compact machine-checkable state, not human review prose.
 - Lightweight tasks may be PRD-only. Complex tasks must have `prd.md`, `design.md`, and `implement.md` before `task.py start-execution --check`.
@@ -259,6 +259,20 @@ Details: archived `06-15-child-phase3-task-ladder` → `research/task-ladder-ite
 Use a parent task when one user request contains several independently verifiable deliverables. The parent task owns the source requirement set, the task map, cross-child acceptance criteria, and final integration review; it normally should not be the implementation target unless it also has direct work.
 
 Use child tasks for deliverables that can be planned, implemented, checked, and archived independently. Ordering between deliverables is an explicit declaration, not an implicit system: child-level ordering lives in the Parent `task-map.md` `children[].depends_on`, and task-level ordering in task.json `depends_on` (`task.py set-deps <task> <dep...>`). By default these declarations are soft hints only — the dashboard and `start-execution --check` show unmet / dangling / cyclic dependencies as warnings and do not block a transition (a task may opt into hard gates with `depends_mode: block`, see Task dependencies below); `depends_on` declares ordering, it does not schedule work. Keep each child's acceptance criteria testable on its own, and keep the Parent as the integration authority.
+
+### Parallel-first execution
+
+Planning declares parallel structure; **Cursor native** runs it. Trellis does **not** ship a parallel scheduler or a Multitask replacement. Field map and archived Parent 对照: `.cstl/framework/parallel-first-execution.md`.
+
+| Layer | Duty |
+| --- | --- |
+| **Prefer** | Cursor Multitask / Build in Parallel / Agent `Task` parallel / native worktree. If it can run native, run native. |
+| **Adapt** | Parent still owns `integrate-child`. HITL, `start-execution --approved`, and reviewer gates stay **serial**. Every worker prompt includes explicit `.cstl/tasks/<dir>` — never rely on `selected_task`. |
+| **Own** | Contract only: default parallel; serial must write `serial_reason`; task-map / `implement.md` declare 可并行组 / 合并点 / 冲突面. No queue, no new CLI. |
+
+**Default parallel when** planning already has ≥2 independent units: Parent children with empty `depends_on`, or a Full task with explicit Task fan-out. Lite / single-file work is **not** forced into parallel agents.
+
+**Serial is an exception.** Write `serial_reason` as one of: shared write-set / HITL or reviewer gate / `depends_on` unmet / user asked serial / conflict surface cannot isolate.
 
 ### Task dependencies (Plan A / Plan B)
 
@@ -398,10 +412,11 @@ When a user request matches one of these intents inside a selected task, route f
 
 
 - Planning or unclear requirements -> **Prefer Plan** when designing scope; read `.cstl/framework/prd-grill-frontier.md` for PRD grill discipline (see `.cstl/framework/cursor-native-modes-guide.md`).
+- Creating or making a **behavioral/structural** change to a Trellis bundled, `blaze-skills`, or harness skill → **must** Read `cstl-skill-creator` (`SKILL.md` + `references/review-checklist.md`) and follow its workflow before editing `SKILL.md`. **Skip** for typo / pure link fixes. Internal skill, not a user slash command. **Does not apply** to Cursor product skills (e.g. `~/.cursor/skills-cursor/create-skill`). Paths: `.cstl/framework/internal-skills-cursor-reachability.md`.
 - Read-only questions with no durable change -> **Prefer Ask**; classify No Task; do not create artifacts without consent.
 - `in_progress` implementation/check -> **Agent** default; if contract `execution_mode: worker`, dispatch `cstl-implement` / `cstl-check`; if `inline`, main session; if `child-task`, Child/Parent orchestration.
 - Repeated debugging / runtime evidence -> **Prefer Debug**; load `cstl-break-loop` when the same issue recurred; persist evidence in `verify.md`.
-- Parent parallel independent children (after execution approval) -> **Multitask** / Build in Parallel with explicit `.cstl/tasks/<dir>` in each worker prompt; Parent retains integration authority.
+- Parent parallel independent children (after execution approval) -> **Multitask** / Build in Parallel **by default** (empty `depends_on`); each worker prompt has explicit `.cstl/tasks/<dir>`; serial needs `serial_reason`; Parent retains integration authority. HITL / gates / `integrate-child` stay serial.
 - Spec updates after learning decision -> `cstl-update-spec`.
 
 
@@ -642,6 +657,8 @@ Read `execution_mode` from the approved Development Strategy Contract in `implem
 | `worker` | Spawn **`cstl-implement`** (Cursor): after `start-execution --approved`, assemble dispatch prompt via CLI Layer 2, then `Task(subagent_type=cstl-implement, prompt=<assembled>)`. Do **not** rely on preToolUse hook alone — see `cursor-context-injection-guide.md`. Tell the spawned agent it is already `cstl-implement` and must not spawn another `cstl-implement` / `cstl-check`. |
 | `child-task` | Child worker session (or Parent `generate-child-prompt`); isolation per contract (`git-worktree` → `prepare-child-worktree` when applicable). |
 
+Independent Parent children (post-approval, empty `depends_on`): Prefer native parallel (Multitask / Build in Parallel / `Task` / worktree). Do **not** invent a Trellis scheduler. HITL, `start-execution --approved`, reviewer gates, and `integrate-child` stay serial (`merge_limit: 1`). Serial work requires `serial_reason` in the task-map / `implement.md` declaration. See Parallel-first above.
+
 Context for worker dispatch includes `implement.jsonl` references, `prd.md`, `design.md` if present, and `implement.md` if present.
 
 #### 2.2 Quality check `[required · repeatable]`
@@ -658,6 +675,7 @@ The check agent's job:
 - Fix implementation defects only when they stay inside the approved contract
 - Route requirement, design, contract, scope, gate, capability, runtime, Parent `contract_epoch`, or Child boundary defects to Return-to-Planning
 - Run lint and typecheck to verify
+- For **new or structurally changed** Trellis / blaze-skills / harness skills: `verify.md` should record that `cstl-skill-creator` workflow + review-checklist was followed (always-on convention, not a CLI gate). Typo / link-only and Cursor product skills are out of scope.
 
 
 

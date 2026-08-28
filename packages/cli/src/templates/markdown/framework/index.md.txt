@@ -14,6 +14,7 @@ Versioned framework and platform-adapter documentation. Project/team knowledge l
 | [cursor-subagent-policy.md](./cursor-subagent-policy.md) | When to spawn Trellis custom agents; model policy stays on the Cursor side |
 | [retrieval-daily-guide.md](./retrieval-daily-guide.md) | Daily retrieval tool routing (search vs retrieval-pack scoring; web-research gate) |
 | [cursor-native-modes-guide.md](./cursor-native-modes-guide.md) | Mapping Cursor Plan / Ask / Debug / Agent / Multitask onto Trellis phases |
+| [parallel-first-execution.md](./parallel-first-execution.md) | Parallel-first contract: native parallel default, `serial_reason`, task-map declaration fields, archived Parent 对照 |
 | [cursor-context-injection-guide.md](./cursor-context-injection-guide.md) | Which Cursor injection channels actually reach the model |
 | [cursor-semantic-compliance.md](./cursor-semantic-compliance.md) | Plan-vs-exec semantic compliance on Cursor |
 | [injection-budget-guide.md](./injection-budget-guide.md) | Context injection budget across reliable Cursor channels |
