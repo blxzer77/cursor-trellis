@@ -1,7 +1,7 @@
 /**
  * Stateless Kernel JSON CLI (stdin → stdout). Stage 2 write channel for
- * Task core state: create / start / record-gate / archive project the
- * legacy task.json surface as the same command. `transition` stays the
+ * Task core state: create / start / record-gate / archive / patch project
+ * the legacy task.json surface as the same command. `transition` stays the
  * Stage 1 kernel.json-only hop (no status rewrite).
  */
 
@@ -16,6 +16,7 @@ import {
 import {
   applyKernelArchive,
   applyKernelCreate,
+  applyKernelPatch,
   applyKernelRecordGate,
   applyKernelStart,
   applyKernelTransition,
@@ -23,6 +24,7 @@ import {
   type KernelArchiveRequest,
   type KernelCommandResult,
   type KernelCreateRequest,
+  type KernelPatchRequest,
   type KernelReadResult,
   type KernelRecordGateRequest,
   type KernelStartRequest,
@@ -34,7 +36,7 @@ export type KernelCliSuccess =
   | ({ ok: true; op: "transition" } & KernelTransitionResult)
   | ({
       ok: true;
-      op: "create" | "start" | "record-gate" | "archive";
+      op: "create" | "start" | "record-gate" | "archive" | "patch";
     } & KernelCommandResult);
 
 export interface KernelCliFailure {
@@ -121,6 +123,10 @@ function dispatchKernelRequest(
   if (op === "archive") {
     const result = applyKernelArchive(parseArchiveRequest(input, cwd));
     return { ok: true, op: "archive", ...result };
+  }
+  if (op === "patch") {
+    const result = applyKernelPatch(parsePatchRequest(input, cwd));
+    return { ok: true, op: "patch", ...result };
   }
   throw new KernelError(
     "INVALID_REQUEST",
@@ -253,6 +259,36 @@ function parseArchiveRequest(
     actor: requireString(input.actor, "actor"),
     idempotencyKey: requireString(input.idempotencyKey, "idempotencyKey"),
     record: parseRecord(input.record),
+    extras: parseExtras(input.extras),
+    evidence:
+      input.evidence === undefined
+        ? undefined
+        : requireString(input.evidence, "evidence"),
+    gate: input.gate,
+    policy: input.policy,
+    cwd: optionalCwd(input.cwd, cwd),
+  };
+}
+
+function parsePatchRequest(
+  input: Record<string, unknown>,
+  cwd: string | undefined,
+): KernelPatchRequest {
+  if (!isNonNegativeInt(input.expectedRevision)) {
+    throw new KernelError(
+      "INVALID_REQUEST",
+      "expectedRevision must be a non-negative integer",
+    );
+  }
+  if (input.record !== undefined && input.record !== null && !isPlainObject(input.record)) {
+    throw new KernelError("INVALID_REQUEST", "record must be a JSON object");
+  }
+  return {
+    taskDir: requireTaskDir(input.taskDir),
+    expectedRevision: input.expectedRevision,
+    actor: requireString(input.actor, "actor"),
+    idempotencyKey: requireString(input.idempotencyKey, "idempotencyKey"),
+    record: input.record,
     extras: parseExtras(input.extras),
     evidence:
       input.evidence === undefined

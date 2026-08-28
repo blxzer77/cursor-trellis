@@ -72,6 +72,7 @@ export type {
   KernelStartRequest,
   KernelRecordGateRequest,
   KernelArchiveRequest,
+  KernelPatchRequest,
 } from "./kernel-store.js";
 
 export {
@@ -81,6 +82,7 @@ export {
   applyKernelStart,
   applyKernelRecordGate,
   applyKernelArchive,
+  applyKernelPatch,
   resolveTaskDir,
   kernelJsonPath,
   setKernelAfterWriteHook,

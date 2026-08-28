@@ -22,7 +22,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from .artifact_search import parse_frontmatter, split_frontmatter
-from .io import read_json, write_json
+from .io import read_json
+from .kernel_command import kernel_expected_revision, kernel_patch, kernel_projection_extras
 from .paths import get_repo_root, get_tasks_dir
 
 POOL_STATUSES = frozenset({"inbox", "review", "accepted", "rejected", "rework"})
@@ -328,7 +329,7 @@ def _iter_task_dirs(tasks_dir: Path):
 
 
 def _task_meta_with_pool_items(task_dir: Path, item_id: str, *, remove: bool) -> bool:
-    """Add/remove item_id in task.json meta.pool_items. True if file changed."""
+    """Add/remove item_id in task.json meta.pool_items via Kernel patch."""
     data = read_json(task_dir / "task.json")
     if not isinstance(data, dict):
         return False
@@ -346,7 +347,17 @@ def _task_meta_with_pool_items(task_dir: Path, item_id: str, *, remove: bool) ->
         pool_items.append(item_id)
     meta[POOL_ITEMS_KEY] = pool_items
     data[META_KEY] = meta
-    return bool(write_json(task_dir / "task.json", data))
+    action = "unlink" if remove else "link"
+    kernel_patch(
+        task_dir,
+        data,
+        kernel_projection_extras(data),
+        expected_revision=kernel_expected_revision(task_dir),
+        actor="pool.py link" if not remove else "pool.py unlink",
+        idempotency_key=f"patch:pool-{action}:{task_dir.name}:{item_id}",
+        evidence="pool_store._task_meta_with_pool_items",
+    )
+    return True
 
 
 def link_item_task(

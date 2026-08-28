@@ -11,7 +11,12 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { loadTaskRecord, writeTaskRecord } from "./records.js";
-import { taskRecordSchema, type TrellisTaskRecord } from "./schema.js";
+import {
+  TASK_RECORD_FIELD_ORDER,
+  isPlainObject,
+  taskRecordSchema,
+  type TrellisTaskRecord,
+} from "./schema.js";
 import {
   KERNEL_JSON_BASENAME,
   KERNEL_SCHEMA_VERSION,
@@ -101,6 +106,20 @@ export interface KernelArchiveRequest {
   actor: string;
   idempotencyKey: string;
   record: TrellisTaskRecord;
+  extras?: Record<string, unknown>;
+  evidence?: string;
+  gate?: unknown;
+  policy?: unknown;
+  cwd?: string;
+}
+
+export interface KernelPatchRequest {
+  taskDir: string;
+  expectedRevision: number;
+  actor: string;
+  idempotencyKey: string;
+  /** Canonical field patch and/or full record. Status hops are rejected. */
+  record?: unknown;
   extras?: Record<string, unknown>;
   evidence?: string;
   gate?: unknown;
@@ -894,5 +913,119 @@ export function applyKernelArchive(
     );
     const result = commitKernelAndProject(dir, next);
     return { ...result, audit: hopped.audit, idempotent: hopped.idempotent };
+  });
+}
+
+function mergeCanonicalRecord(
+  base: TrellisTaskRecord,
+  patch: unknown,
+): TrellisTaskRecord {
+  if (patch === undefined || patch === null) return base;
+  if (!isPlainObject(patch)) {
+    throw new KernelError("INVALID_REQUEST", "record must be a JSON object");
+  }
+  const merged: Record<string, unknown> = { ...base };
+  for (const field of TASK_RECORD_FIELD_ORDER) {
+    if (!(field in patch)) continue;
+    if (field === "meta" && isPlainObject(patch.meta) && isPlainObject(base.meta)) {
+      merged.meta = { ...base.meta, ...patch.meta };
+      continue;
+    }
+    merged[field] = patch[field];
+  }
+  try {
+    return taskRecordSchema.parse(merged);
+  } catch (err) {
+    throw new KernelError(
+      "INVALID_REQUEST",
+      `record is not a canonical task.json shape: ${
+        err instanceof Error ? err.message : String(err)
+      }`,
+    );
+  }
+}
+
+function assertNoLifecycleStatusHop(from: string, to: string): void {
+  if (from === to) return;
+  throw new KernelError(
+    "INVALID_TRANSITION",
+    `Kernel patch cannot change status (${from} -> ${to}); use start or archive`,
+  );
+}
+
+function currentProjectionRecord(
+  dir: string,
+  current: KernelReadResult,
+): TrellisTaskRecord {
+  if (current.kernel.projection?.record) {
+    return current.kernel.projection.record;
+  }
+  return loadTaskRecord({ taskDir: dir });
+}
+
+export function applyKernelPatch(
+  request: KernelPatchRequest,
+): KernelCommandResult {
+  validateTransitionHooks(request);
+  const dir = resolveTaskDir(request.taskDir, request.cwd);
+  const actor = requireNonEmptyString(request.actor, "actor");
+  const idempotencyKey = requireNonEmptyString(
+    request.idempotencyKey,
+    "idempotencyKey",
+  );
+  if (!isNonNegativeInt(request.expectedRevision)) {
+    throw new KernelError(
+      "INVALID_REQUEST",
+      "expectedRevision must be a non-negative integer",
+    );
+  }
+  if (request.record === undefined && request.extras === undefined) {
+    throw new KernelError(
+      "INVALID_REQUEST",
+      "patch requires record and/or extras",
+    );
+  }
+  const extrasPatch =
+    request.extras === undefined ? undefined : cloneJsonObject(request.extras);
+  const evidence = requireEvidence(request.evidence, "evidence");
+
+  return withKernelLock(dir, () => {
+    const current = readKernelUnlocked(dir);
+    const prior = current.kernel.audit.find(
+      (event) => event.idempotencyKey === idempotencyKey,
+    );
+    if (prior) {
+      if (!fs.existsSync(path.join(dir, "task.json")) && current.kernel.projection) {
+        return commitKernelAndProject(dir, current.kernel);
+      }
+      return {
+        ...current,
+        idempotent: true,
+        audit: prior,
+        projected: true,
+      };
+    }
+    expectRevision(current.kernel, request.expectedRevision);
+
+    const baseRecord = currentProjectionRecord(dir, current);
+    const nextRecord = mergeCanonicalRecord(baseRecord, request.record);
+    assertNoLifecycleStatusHop(baseRecord.status, nextRecord.status);
+
+    const baseExtras = cloneJsonObject(current.kernel.projection?.extras ?? {});
+    const extras = extrasPatch === undefined ? baseExtras : { ...baseExtras, ...extrasPatch };
+
+    const hopped = hopKernelSnapshot(current.kernel, [], {
+      actor,
+      idempotencyKey,
+      evidence,
+    });
+    const next = attachProjection(
+      hopped.snapshot,
+      nextRecord,
+      extras,
+      nextRecord.status,
+    );
+    const result = commitKernelAndProject(dir, next);
+    return { ...result, audit: hopped.audit, idempotent: false };
   });
 }
