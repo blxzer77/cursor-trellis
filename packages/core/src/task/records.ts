@@ -62,6 +62,11 @@ export function loadTaskRecord(
  * of silently replacing potentially recoverable local data.
  *
  * The directory containing `task.json` is created if it does not exist.
+ *
+ * Stage 1 (P28/P30): this remains the low-level task.json primitive.
+ * New Kernel core-state mutations must go through `applyKernelTransition`
+ * in `kernel-store.ts` so revision + audit stay atomic. Do not add another
+ * packages/core task.json writer.
  */
 export function writeTaskRecord(options: WriteTaskRecordOptions): void {
   const record = taskRecordSchema.parse(options.record);

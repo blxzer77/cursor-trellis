@@ -1,0 +1,315 @@
+/**
+ * Stage 1 Kernel Data Contract (P28 D05 / P30 Stage 1).
+ *
+ * Frozen here: record categories (identity, revision, 3D state, Transition
+ * Request, atomic audit) and legal phase edges. Disk field names are an
+ * implementation choice for this wave; user-visible `task.json.status`
+ * enumerations are not switched.
+ */
+
+import { isPlainObject } from "./schema.js";
+
+export const KERNEL_SCHEMA_VERSION = 1 as const;
+
+export const KERNEL_JSON_BASENAME = "kernel.json";
+
+export const KERNEL_PHASES = [
+  "open",
+  "define",
+  "approve",
+  "execute",
+  "verify",
+  "integrate",
+  "close",
+] as const;
+
+export type KernelPhase = (typeof KERNEL_PHASES)[number];
+
+export const KERNEL_CONDITIONS = [
+  "ready",
+  "active",
+  "waiting",
+  "blocked",
+] as const;
+
+export type KernelCondition = (typeof KERNEL_CONDITIONS)[number];
+
+export const KERNEL_OUTCOMES = ["completed", "cancelled", "failed"] as const;
+
+export type KernelOutcome = (typeof KERNEL_OUTCOMES)[number];
+
+export type KernelErrorCode =
+  | "INVALID_REQUEST"
+  | "NOT_FOUND"
+  | "REVISION_CONFLICT"
+  | "INVALID_TRANSITION"
+  | "GATE_HOOK_UNIMPLEMENTED"
+  | "POLICY_HOOK_UNIMPLEMENTED"
+  | "IDEMPOTENCY_MISMATCH"
+  | "CORRUPT_STATE"
+  | "LOCK_TIMEOUT";
+
+export class KernelError extends Error {
+  readonly code: KernelErrorCode;
+
+  constructor(code: KernelErrorCode, message: string) {
+    super(message);
+    this.name = "KernelError";
+    this.code = code;
+  }
+}
+
+export interface KernelState {
+  phase: KernelPhase;
+  condition: KernelCondition;
+  outcome: KernelOutcome | null;
+}
+
+export interface KernelIdentity {
+  taskId: string;
+}
+
+export interface KernelAuditEvent {
+  id: string;
+  at: string;
+  actor: string;
+  idempotencyKey: string;
+  evidence: string | null;
+  from: KernelState & { revision: number };
+  to: KernelState & { revision: number };
+}
+
+export interface KernelSnapshot {
+  schemaVersion: typeof KERNEL_SCHEMA_VERSION;
+  identity: KernelIdentity;
+  revision: number;
+  phase: KernelPhase;
+  condition: KernelCondition;
+  outcome: KernelOutcome | null;
+  audit: KernelAuditEvent[];
+}
+
+export interface TransitionRequest {
+  taskDir: string;
+  expectedRevision: number;
+  targetPhase: KernelPhase;
+  actor: string;
+  idempotencyKey: string;
+  evidence?: string;
+  /** Stage 1 placeholder — if present, the transition is rejected (not fake-green). */
+  gate?: unknown;
+  /** Stage 1 placeholder — if present, the transition is rejected (not fake-green). */
+  policy?: unknown;
+  cwd?: string;
+}
+
+export interface LegacyTaskProjection {
+  status: string;
+  id: string;
+  name: string;
+  title: string;
+}
+
+/**
+ * Legal Kernel phase edges for Stage 1. Integrate is optional (P28);
+ * Close is reachable from Verify or Integrate. Condition/outcome are
+ * derived from the target phase — they are not independently requested.
+ */
+export const KERNEL_PHASE_EDGES: readonly (readonly [KernelPhase, KernelPhase])[] =
+  [
+    ["open", "define"],
+    ["define", "approve"],
+    ["approve", "execute"],
+    ["execute", "verify"],
+    ["verify", "integrate"],
+    ["verify", "close"],
+    ["integrate", "close"],
+  ];
+
+const EDGE_SET: ReadonlySet<string> = new Set(
+  KERNEL_PHASE_EDGES.map(([from, to]) => `${from}->${to}`),
+);
+
+export function isKernelPhase(value: unknown): value is KernelPhase {
+  return (
+    typeof value === "string" &&
+    (KERNEL_PHASES as readonly string[]).includes(value)
+  );
+}
+
+export function isKernelCondition(value: unknown): value is KernelCondition {
+  return (
+    typeof value === "string" &&
+    (KERNEL_CONDITIONS as readonly string[]).includes(value)
+  );
+}
+
+export function isKernelOutcome(value: unknown): value is KernelOutcome {
+  return (
+    typeof value === "string" &&
+    (KERNEL_OUTCOMES as readonly string[]).includes(value)
+  );
+}
+
+export function isLegalPhaseEdge(from: KernelPhase, to: KernelPhase): boolean {
+  return EDGE_SET.has(`${from}->${to}`);
+}
+
+export function deriveStateForPhase(phase: KernelPhase): KernelState {
+  switch (phase) {
+    case "open":
+    case "define":
+      return { phase, condition: "ready", outcome: null };
+    case "approve":
+    case "verify":
+    case "integrate":
+      return { phase, condition: "waiting", outcome: null };
+    case "execute":
+      return { phase, condition: "active", outcome: null };
+    case "close":
+      return { phase, condition: "ready", outcome: "completed" };
+  }
+}
+
+/**
+ * Read-only projection of the legacy `task.json.status` enum onto Kernel
+ * 3D state. Does not mutate user-visible status names.
+ */
+export function projectLegacyStatus(status: string): KernelState {
+  switch (status) {
+    case "planning":
+      return deriveStateForPhase("define");
+    case "in_progress":
+      return deriveStateForPhase("execute");
+    case "review":
+      return deriveStateForPhase("verify");
+    case "completed":
+    case "done":
+      return deriveStateForPhase("close");
+    default:
+      return deriveStateForPhase("open");
+  }
+}
+
+export function parseKernelSnapshot(input: unknown): KernelSnapshot {
+  if (!isPlainObject(input)) {
+    throw new KernelError("CORRUPT_STATE", "kernel snapshot must be a JSON object");
+  }
+  if (input.schemaVersion !== KERNEL_SCHEMA_VERSION) {
+    throw new KernelError(
+      "CORRUPT_STATE",
+      `unsupported kernel schemaVersion: ${String(input.schemaVersion)}`,
+    );
+  }
+  if (!isPlainObject(input.identity) || typeof input.identity.taskId !== "string") {
+    throw new KernelError("CORRUPT_STATE", "kernel.identity.taskId must be a string");
+  }
+  if (!isNonNegativeInt(input.revision)) {
+    throw new KernelError("CORRUPT_STATE", "kernel.revision must be a non-negative integer");
+  }
+  if (!isKernelPhase(input.phase)) {
+    throw new KernelError("CORRUPT_STATE", "kernel.phase is invalid");
+  }
+  if (!isKernelCondition(input.condition)) {
+    throw new KernelError("CORRUPT_STATE", "kernel.condition is invalid");
+  }
+  const outcome = parseOutcome(input.outcome);
+  if (!Array.isArray(input.audit)) {
+    throw new KernelError("CORRUPT_STATE", "kernel.audit must be an array");
+  }
+  return {
+    schemaVersion: KERNEL_SCHEMA_VERSION,
+    identity: { taskId: input.identity.taskId },
+    revision: input.revision,
+    phase: input.phase,
+    condition: input.condition,
+    outcome,
+    audit: input.audit.map((event, index) => parseAuditEvent(event, index)),
+  };
+}
+
+function parseOutcome(value: unknown): KernelOutcome | null {
+  if (value === null) return null;
+  if (isKernelOutcome(value)) return value;
+  throw new KernelError("CORRUPT_STATE", "kernel.outcome is invalid");
+}
+
+function parseAuditEvent(input: unknown, index: number): KernelAuditEvent {
+  if (!isPlainObject(input)) {
+    throw new KernelError("CORRUPT_STATE", `kernel.audit[${index}] must be an object`);
+  }
+  if (typeof input.id !== "string" || typeof input.at !== "string") {
+    throw new KernelError("CORRUPT_STATE", `kernel.audit[${index}] is missing id/at`);
+  }
+  if (typeof input.actor !== "string" || typeof input.idempotencyKey !== "string") {
+    throw new KernelError(
+      "CORRUPT_STATE",
+      `kernel.audit[${index}] is missing actor/idempotencyKey`,
+    );
+  }
+  const evidence =
+    input.evidence === null || input.evidence === undefined
+      ? null
+      : typeof input.evidence === "string"
+        ? input.evidence
+        : (() => {
+            throw new KernelError(
+              "CORRUPT_STATE",
+              `kernel.audit[${index}].evidence must be a string or null`,
+            );
+          })();
+  return {
+    id: input.id,
+    at: input.at,
+    actor: input.actor,
+    idempotencyKey: input.idempotencyKey,
+    evidence,
+    from: parseStateRevision(input.from, `kernel.audit[${index}].from`),
+    to: parseStateRevision(input.to, `kernel.audit[${index}].to`),
+  };
+}
+
+function parseStateRevision(
+  input: unknown,
+  path: string,
+): KernelState & { revision: number } {
+  if (!isPlainObject(input)) {
+    throw new KernelError("CORRUPT_STATE", `${path} must be an object`);
+  }
+  if (!isKernelPhase(input.phase)) {
+    throw new KernelError("CORRUPT_STATE", `${path}.phase is invalid`);
+  }
+  if (!isKernelCondition(input.condition)) {
+    throw new KernelError("CORRUPT_STATE", `${path}.condition is invalid`);
+  }
+  if (!isNonNegativeInt(input.revision)) {
+    throw new KernelError("CORRUPT_STATE", `${path}.revision is invalid`);
+  }
+  return {
+    phase: input.phase,
+    condition: input.condition,
+    outcome: parseOutcome(input.outcome),
+    revision: input.revision,
+  };
+}
+
+export function isNonNegativeInt(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0;
+}
+
+export function requireNonEmptyString(value: unknown, field: string): string {
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new KernelError("INVALID_REQUEST", `${field} must be a non-empty string`);
+  }
+  return value;
+}
+
+export function hookIsPresent(value: unknown): boolean {
+  if (value === undefined || value === null) return false;
+  if (typeof value === "string") return value.trim() !== "";
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return true;
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === "object") return Object.keys(value).length > 0;
+  return true;
+}
