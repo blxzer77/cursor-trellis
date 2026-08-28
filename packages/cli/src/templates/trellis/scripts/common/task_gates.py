@@ -478,7 +478,12 @@ def make_baseline_record(
 
 
 def write_gate_record(task_data: dict, transition: str, gate: str, record: dict) -> None:
-    """Write a gate record into task_data in-place."""
+    """Write a gate record into task_data in-place.
+
+    This mutates memory only. Stage 2 persists `quality_gate_results` as a
+    Kernel Command projection (same command as `record-gate` / start / archive).
+    Do not treat this helper as an independent `task.json` writer.
+    """
     qgr = task_data.get("quality_gate_results")
     if not isinstance(qgr, dict):
         qgr = {}
@@ -497,6 +502,18 @@ def write_gate_record(task_data: dict, transition: str, gate: str, record: dict)
         transition_records = {}
         transitions[transition] = transition_records
     transition_records[gate] = record
+
+
+KERNEL_PROJECTION_EXTRA_KEYS = ("quality_gate_results", "execution_approval")
+
+
+def collect_kernel_projection_extras(task_data: dict) -> dict:
+    """Non-canonical task.json fields owned by the same Kernel Command."""
+    extras: dict = {}
+    for key in KERNEL_PROJECTION_EXTRA_KEYS:
+        if key in task_data:
+            extras[key] = task_data[key]
+    return extras
 
 
 def build_reviewer_gate_record(

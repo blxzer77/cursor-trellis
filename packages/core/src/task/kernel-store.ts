@@ -10,21 +10,27 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import { loadTaskRecord } from "./records.js";
-import type { TrellisTaskRecord } from "./schema.js";
+import { loadTaskRecord, writeTaskRecord } from "./records.js";
+import { taskRecordSchema, type TrellisTaskRecord } from "./schema.js";
 import {
   KERNEL_JSON_BASENAME,
   KERNEL_SCHEMA_VERSION,
   KernelError,
   deriveStateForPhase,
+  emptyKernelGates,
   hookIsPresent,
+  hopsToClose,
+  hopsToExecute,
   isKernelPhase,
   isLegalPhaseEdge,
   isNonNegativeInt,
+  kernelPhaseToLegacyStatus,
   parseKernelSnapshot,
   projectLegacyStatus,
   requireNonEmptyString,
   type KernelAuditEvent,
+  type KernelLegacyProjection,
+  type KernelPhase,
   type KernelSnapshot,
   type KernelState,
   type LegacyTaskProjection,
@@ -44,6 +50,69 @@ export interface KernelReadResult {
 export interface KernelTransitionResult extends KernelReadResult {
   idempotent: boolean;
   audit: KernelAuditEvent;
+}
+
+export interface KernelCommandResult extends KernelReadResult {
+  idempotent: boolean;
+  audit: KernelAuditEvent;
+  projected: boolean;
+}
+
+export interface KernelCreateRequest {
+  taskDir: string;
+  actor: string;
+  idempotencyKey: string;
+  record: TrellisTaskRecord;
+  evidence?: string;
+  gate?: unknown;
+  policy?: unknown;
+  cwd?: string;
+}
+
+export interface KernelStartRequest {
+  taskDir: string;
+  expectedRevision: number;
+  actor: string;
+  idempotencyKey: string;
+  record: TrellisTaskRecord;
+  extras?: Record<string, unknown>;
+  evidence?: string;
+  gate?: unknown;
+  policy?: unknown;
+  cwd?: string;
+}
+
+export interface KernelRecordGateRequest {
+  taskDir: string;
+  expectedRevision: number;
+  actor: string;
+  idempotencyKey: string;
+  transition: string;
+  gateName: string;
+  record: Record<string, unknown>;
+  extras?: Record<string, unknown>;
+  evidence?: string;
+  cwd?: string;
+}
+
+export interface KernelArchiveRequest {
+  taskDir: string;
+  expectedRevision: number;
+  actor: string;
+  idempotencyKey: string;
+  record: TrellisTaskRecord;
+  extras?: Record<string, unknown>;
+  evidence?: string;
+  gate?: unknown;
+  policy?: unknown;
+  cwd?: string;
+}
+
+let kernelAfterWriteHook: (() => void) | null = null;
+
+/** Test-only interceptor between kernel.json persist and task.json projection. */
+export function setKernelAfterWriteHook(hook: (() => void) | null): void {
+  kernelAfterWriteHook = hook;
 }
 
 export function resolveTaskDir(taskDir: string, cwd?: string): string {
@@ -147,6 +216,8 @@ export function applyKernelTransition(
       condition: nextState.condition,
       outcome: nextState.outcome,
       audit: [...current.kernel.audit, audit],
+      gates: current.kernel.gates,
+      projection: current.kernel.projection,
     };
     atomicWriteFile(
       kernelJsonPath(dir),
@@ -163,7 +234,10 @@ export function applyKernelTransition(
   });
 }
 
-function validateTransitionHooks(request: TransitionRequest): void {
+function validateTransitionHooks(request: {
+  gate?: unknown;
+  policy?: unknown;
+}): void {
   if (hookIsPresent(request.gate)) {
     throw new KernelError(
       "GATE_HOOK_UNIMPLEMENTED",
@@ -185,6 +259,21 @@ function assertTaskJson(dir: string): void {
 }
 
 function readKernelUnlocked(dir: string): KernelReadResult {
+  const file = kernelJsonPath(dir);
+  const taskFile = path.join(dir, "task.json");
+
+  if (!fs.existsSync(taskFile)) {
+    if (!fs.existsSync(file)) {
+      throw new KernelError("NOT_FOUND", `task.json not found in ${dir}`);
+    }
+    const kernel = loadKernelFile(file);
+    return {
+      kernel,
+      persisted: true,
+      legacy: legacyFromSnapshot(kernel),
+    };
+  }
+
   const record: TrellisTaskRecord = loadTaskRecord({ taskDir: dir });
 
   const legacy: LegacyTaskProjection = {
@@ -194,7 +283,6 @@ function readKernelUnlocked(dir: string): KernelReadResult {
     title: record.title,
   };
 
-  const file = kernelJsonPath(dir);
   if (!fs.existsSync(file)) {
     const projected = projectLegacyStatus(record.status);
     const kernel: KernelSnapshot = {
@@ -205,21 +293,13 @@ function readKernelUnlocked(dir: string): KernelReadResult {
       condition: projected.condition,
       outcome: projected.outcome,
       audit: [],
+      gates: emptyKernelGates(),
+      projection: null,
     };
     return { kernel, persisted: false, legacy };
   }
 
-  const raw = fs.readFileSync(file, "utf-8");
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch (err) {
-    throw new KernelError(
-      "CORRUPT_STATE",
-      `Failed to parse ${file}: ${err instanceof Error ? err.message : String(err)}`,
-    );
-  }
-  const kernel = parseKernelSnapshot(parsed);
+  const kernel = loadKernelFile(file);
   if (kernel.identity.taskId !== record.id) {
     throw new KernelError(
       "CORRUPT_STATE",
@@ -326,4 +406,493 @@ function atomicWriteFile(targetPath: string, contents: string): void {
     }
     throw err;
   }
+}
+
+function loadKernelFile(file: string): KernelSnapshot {
+  const raw = fs.readFileSync(file, "utf-8");
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (err) {
+    throw new KernelError(
+      "CORRUPT_STATE",
+      `Failed to parse ${file}: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+  return parseKernelSnapshot(parsed);
+}
+
+function legacyFromSnapshot(kernel: KernelSnapshot): LegacyTaskProjection {
+  const record = kernel.projection?.record;
+  if (record) {
+    return {
+      status: kernel.projection?.status ?? record.status,
+      id: record.id,
+      name: record.name,
+      title: record.title,
+    };
+  }
+  return {
+    status: kernelPhaseToLegacyStatus(kernel.phase),
+    id: kernel.identity.taskId,
+    name: kernel.identity.taskId,
+    title: kernel.identity.taskId,
+  };
+}
+
+function cloneJsonObject(value: Record<string, unknown>): Record<string, unknown> {
+  return JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
+}
+
+function requireEvidence(
+  value: string | undefined,
+  field: string,
+): string | null {
+  if (value === undefined || value === null) return null;
+  return requireNonEmptyString(value, field);
+}
+
+function persistKernelSnapshot(dir: string, snapshot: KernelSnapshot): void {
+  atomicWriteFile(
+    kernelJsonPath(dir),
+    `${JSON.stringify(snapshot, null, 2)}\n`,
+  );
+}
+
+function commitKernelAndProject(
+  dir: string,
+  snapshot: KernelSnapshot,
+): KernelCommandResult {
+  if (!snapshot.projection) {
+    throw new KernelError(
+      "INVALID_REQUEST",
+      "Kernel command requires a legacy projection",
+    );
+  }
+  persistKernelSnapshot(dir, snapshot);
+  try {
+    if (kernelAfterWriteHook) {
+      kernelAfterWriteHook();
+    }
+    writeTaskRecord({
+      taskDir: dir,
+      record: snapshot.projection.record,
+      extra: snapshot.projection.extras,
+    });
+  } catch (err) {
+    if (err instanceof KernelError && err.code === "HALF_CONVERSION") {
+      throw err;
+    }
+    throw new KernelError(
+      "HALF_CONVERSION",
+      `kernel.json committed at revision ${snapshot.revision} but task.json projection failed: ${
+        err instanceof Error ? err.message : String(err)
+      }`,
+    );
+  }
+  return {
+    kernel: snapshot,
+    persisted: true,
+    legacy: legacyFromSnapshot(snapshot),
+    idempotent: false,
+    audit: snapshot.audit[snapshot.audit.length - 1] as KernelAuditEvent,
+    projected: true,
+  };
+}
+
+function hopKernelSnapshot(
+  current: KernelSnapshot,
+  hops: KernelPhase[],
+  meta: { actor: string; idempotencyKey: string; evidence: string | null },
+): { snapshot: KernelSnapshot; audit: KernelAuditEvent; idempotent: boolean } {
+  const prior = current.audit.find(
+    (event) => event.idempotencyKey === meta.idempotencyKey,
+  );
+  if (prior) {
+    return { snapshot: current, audit: prior, idempotent: true };
+  }
+
+  if (hops.length === 0) {
+    const nextRevision = current.revision + 1;
+    const state: KernelState = {
+      phase: current.phase,
+      condition: current.condition,
+      outcome: current.outcome,
+    };
+    const audit: KernelAuditEvent = {
+      id: crypto.randomUUID(),
+      at: new Date().toISOString(),
+      actor: meta.actor,
+      idempotencyKey: meta.idempotencyKey,
+      evidence: meta.evidence,
+      from: { ...state, revision: current.revision },
+      to: { ...state, revision: nextRevision },
+    };
+    return {
+      snapshot: {
+        ...current,
+        revision: nextRevision,
+        audit: [...current.audit, audit],
+      },
+      audit,
+      idempotent: false,
+    };
+  }
+
+  let snapshot = current;
+  let lastAudit: KernelAuditEvent | undefined;
+  hops.forEach((target, index) => {
+    const key =
+      index === hops.length - 1
+        ? meta.idempotencyKey
+        : `${meta.idempotencyKey}#${target}`;
+    if (!isLegalPhaseEdge(snapshot.phase, target)) {
+      throw new KernelError(
+        "INVALID_TRANSITION",
+        `illegal Kernel edge ${snapshot.phase} -> ${target}`,
+      );
+    }
+    const fromState: KernelState & { revision: number } = {
+      phase: snapshot.phase,
+      condition: snapshot.condition,
+      outcome: snapshot.outcome,
+      revision: snapshot.revision,
+    };
+    const nextState = deriveStateForPhase(target);
+    const nextRevision = snapshot.revision + 1;
+    lastAudit = {
+      id: crypto.randomUUID(),
+      at: new Date().toISOString(),
+      actor: meta.actor,
+      idempotencyKey: key,
+      evidence: meta.evidence,
+      from: fromState,
+      to: { ...nextState, revision: nextRevision },
+    };
+    snapshot = {
+      ...snapshot,
+      revision: nextRevision,
+      phase: nextState.phase,
+      condition: nextState.condition,
+      outcome: nextState.outcome,
+      audit: [...snapshot.audit, lastAudit],
+    };
+  });
+  if (!lastAudit) {
+    throw new KernelError("INVALID_REQUEST", "Kernel hop produced no audit event");
+  }
+  return { snapshot, audit: lastAudit, idempotent: false };
+}
+
+function attachProjection(
+  snapshot: KernelSnapshot,
+  record: TrellisTaskRecord,
+  extras: Record<string, unknown>,
+  status: string,
+): KernelSnapshot {
+  const projection: KernelLegacyProjection = {
+    status,
+    record: taskRecordSchema.parse({ ...record, status }),
+    extras: cloneJsonObject(extras),
+  };
+  return { ...snapshot, projection };
+}
+
+function expectRevision(current: KernelSnapshot, expected: number): void {
+  if (expected !== current.revision) {
+    throw new KernelError(
+      "REVISION_CONFLICT",
+      `expected revision ${expected} but kernel is at ${current.revision}`,
+    );
+  }
+}
+
+function assertHonestGateRecord(record: Record<string, unknown>): void {
+  const result = record.result;
+  if (result !== "PASS" && result !== "FAIL" && result !== "SKIPPED") {
+    throw new KernelError(
+      "INVALID_REQUEST",
+      "gate record.result must be PASS, FAIL, or SKIPPED",
+    );
+  }
+  if (result === "PASS") {
+    if (typeof record.evidence !== "string" || record.evidence.trim() === "") {
+      throw new KernelError(
+        "INVALID_REQUEST",
+        "PASS gate records require non-empty evidence (no fake-green)",
+      );
+    }
+  }
+  if (result === "SKIPPED") {
+    const skip = record.approved_skip;
+    if (
+      !skip ||
+      typeof skip !== "object" ||
+      Array.isArray(skip) ||
+      typeof (skip as Record<string, unknown>).approved_by !== "string" ||
+      typeof (skip as Record<string, unknown>).reason !== "string"
+    ) {
+      throw new KernelError(
+        "INVALID_REQUEST",
+        "SKIPPED gate records require approved_skip.approved_by and reason",
+      );
+    }
+  }
+}
+
+export function applyKernelCreate(
+  request: KernelCreateRequest,
+): KernelCommandResult {
+  validateTransitionHooks(request);
+  const dir = resolveTaskDir(request.taskDir, request.cwd);
+  const actor = requireNonEmptyString(request.actor, "actor");
+  const idempotencyKey = requireNonEmptyString(
+    request.idempotencyKey,
+    "idempotencyKey",
+  );
+  const record = taskRecordSchema.parse({
+    ...request.record,
+    status: request.record.status || "planning",
+  });
+  const evidence = requireEvidence(request.evidence, "evidence");
+
+  fs.mkdirSync(dir, { recursive: true });
+  return withKernelLock(dir, () => {
+    if (fs.existsSync(kernelJsonPath(dir))) {
+      const current = readKernelUnlocked(dir);
+      const prior = current.kernel.audit.find(
+        (event) => event.idempotencyKey === idempotencyKey,
+      );
+      if (prior) {
+        if (!fs.existsSync(path.join(dir, "task.json")) && current.kernel.projection) {
+          return commitKernelAndProject(dir, current.kernel);
+        }
+        return {
+          ...current,
+          idempotent: true,
+          audit: prior,
+          projected: fs.existsSync(path.join(dir, "task.json")),
+        };
+      }
+      throw new KernelError(
+        "INVALID_REQUEST",
+        `kernel.json already exists for ${current.kernel.identity.taskId}`,
+      );
+    }
+
+    const openState = deriveStateForPhase("open");
+    const defineState = deriveStateForPhase("define");
+    const audit: KernelAuditEvent = {
+      id: crypto.randomUUID(),
+      at: new Date().toISOString(),
+      actor,
+      idempotencyKey,
+      evidence,
+      from: { ...openState, revision: 0 },
+      to: { ...defineState, revision: 1 },
+    };
+    const snapshot: KernelSnapshot = {
+      schemaVersion: KERNEL_SCHEMA_VERSION,
+      identity: { taskId: record.id },
+      revision: 1,
+      phase: defineState.phase,
+      condition: defineState.condition,
+      outcome: defineState.outcome,
+      audit: [audit],
+      gates: emptyKernelGates(),
+      projection: null,
+    };
+    const next = attachProjection(snapshot, record, {}, "planning");
+    const result = commitKernelAndProject(dir, next);
+    return { ...result, audit, idempotent: false };
+  });
+}
+
+export function applyKernelStart(
+  request: KernelStartRequest,
+): KernelCommandResult {
+  validateTransitionHooks(request);
+  const dir = resolveTaskDir(request.taskDir, request.cwd);
+  const actor = requireNonEmptyString(request.actor, "actor");
+  const idempotencyKey = requireNonEmptyString(
+    request.idempotencyKey,
+    "idempotencyKey",
+  );
+  if (!isNonNegativeInt(request.expectedRevision)) {
+    throw new KernelError(
+      "INVALID_REQUEST",
+      "expectedRevision must be a non-negative integer",
+    );
+  }
+  const record = taskRecordSchema.parse(request.record);
+  const extras = cloneJsonObject(request.extras ?? {});
+  const evidence = requireEvidence(request.evidence, "evidence");
+
+  return withKernelLock(dir, () => {
+    const current = readKernelUnlocked(dir);
+    const prior = current.kernel.audit.find(
+      (event) => event.idempotencyKey === idempotencyKey,
+    );
+    if (prior) {
+      if (!fs.existsSync(path.join(dir, "task.json")) && current.kernel.projection) {
+        return commitKernelAndProject(dir, current.kernel);
+      }
+      return {
+        ...current,
+        idempotent: true,
+        audit: prior,
+        projected: true,
+      };
+    }
+    expectRevision(current.kernel, request.expectedRevision);
+    const hops = hopsToExecute(current.kernel.phase);
+    const hopped = hopKernelSnapshot(current.kernel, hops, {
+      actor,
+      idempotencyKey,
+      evidence,
+    });
+    const next = attachProjection(
+      hopped.snapshot,
+      record,
+      extras,
+      "in_progress",
+    );
+    const result = commitKernelAndProject(dir, next);
+    return { ...result, audit: hopped.audit, idempotent: hopped.idempotent };
+  });
+}
+
+export function applyKernelRecordGate(
+  request: KernelRecordGateRequest,
+): KernelCommandResult {
+  const dir = resolveTaskDir(request.taskDir, request.cwd);
+  const actor = requireNonEmptyString(request.actor, "actor");
+  const idempotencyKey = requireNonEmptyString(
+    request.idempotencyKey,
+    "idempotencyKey",
+  );
+  const transition = requireNonEmptyString(request.transition, "transition");
+  const gateName = requireNonEmptyString(request.gateName, "gate");
+  if (!isNonNegativeInt(request.expectedRevision)) {
+    throw new KernelError(
+      "INVALID_REQUEST",
+      "expectedRevision must be a non-negative integer",
+    );
+  }
+  assertHonestGateRecord(request.record);
+  const extras = cloneJsonObject(request.extras ?? {});
+  const evidence =
+    requireEvidence(request.evidence, "evidence") ??
+    (typeof request.record.evidence === "string"
+      ? request.record.evidence
+      : null);
+
+  return withKernelLock(dir, () => {
+    const current = readKernelUnlocked(dir);
+    const prior = current.kernel.audit.find(
+      (event) => event.idempotencyKey === idempotencyKey,
+    );
+    if (prior) {
+      if (!fs.existsSync(path.join(dir, "task.json")) && current.kernel.projection) {
+        return commitKernelAndProject(dir, current.kernel);
+      }
+      return {
+        ...current,
+        idempotent: true,
+        audit: prior,
+        projected: true,
+      };
+    }
+    expectRevision(current.kernel, request.expectedRevision);
+
+    const gates = {
+      schemaVersion: 1 as const,
+      transitions: {
+        ...current.kernel.gates.transitions,
+        [transition]: {
+          ...(current.kernel.gates.transitions[transition] ?? {}),
+          [gateName]: cloneJsonObject(request.record),
+        },
+      },
+    };
+    const hopped = hopKernelSnapshot(current.kernel, [], {
+      actor,
+      idempotencyKey,
+      evidence,
+    });
+    const baseRecord =
+      current.kernel.projection?.record ??
+      loadTaskRecord({ taskDir: dir });
+    const extrasWithGates = {
+      ...extras,
+      quality_gate_results:
+        extras.quality_gate_results ??
+        {
+          schema_version: 1,
+          transitions: gates.transitions,
+        },
+    };
+    const next = attachProjection(
+      { ...hopped.snapshot, gates },
+      baseRecord,
+      extrasWithGates,
+      baseRecord.status,
+    );
+    const result = commitKernelAndProject(dir, next);
+    return { ...result, audit: hopped.audit, idempotent: false };
+  });
+}
+
+export function applyKernelArchive(
+  request: KernelArchiveRequest,
+): KernelCommandResult {
+  validateTransitionHooks(request);
+  const dir = resolveTaskDir(request.taskDir, request.cwd);
+  const actor = requireNonEmptyString(request.actor, "actor");
+  const idempotencyKey = requireNonEmptyString(
+    request.idempotencyKey,
+    "idempotencyKey",
+  );
+  if (!isNonNegativeInt(request.expectedRevision)) {
+    throw new KernelError(
+      "INVALID_REQUEST",
+      "expectedRevision must be a non-negative integer",
+    );
+  }
+  const record = taskRecordSchema.parse(request.record);
+  const extras = cloneJsonObject(request.extras ?? {});
+  const evidence = requireEvidence(request.evidence, "evidence");
+
+  return withKernelLock(dir, () => {
+    const current = readKernelUnlocked(dir);
+    const prior = current.kernel.audit.find(
+      (event) => event.idempotencyKey === idempotencyKey,
+    );
+    if (prior) {
+      if (!fs.existsSync(path.join(dir, "task.json")) && current.kernel.projection) {
+        return commitKernelAndProject(dir, current.kernel);
+      }
+      return {
+        ...current,
+        idempotent: true,
+        audit: prior,
+        projected: true,
+      };
+    }
+    expectRevision(current.kernel, request.expectedRevision);
+    const hops = hopsToClose(current.kernel.phase);
+    const hopped = hopKernelSnapshot(current.kernel, hops, {
+      actor,
+      idempotencyKey,
+      evidence,
+    });
+    const next = attachProjection(
+      hopped.snapshot,
+      record,
+      extras,
+      "completed",
+    );
+    const result = commitKernelAndProject(dir, next);
+    return { ...result, audit: hopped.audit, idempotent: hopped.idempotent };
+  });
 }

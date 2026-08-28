@@ -7,7 +7,11 @@
  * enumerations are not switched.
  */
 
-import { isPlainObject } from "./schema.js";
+import {
+  isPlainObject,
+  taskRecordSchema,
+  type TrellisTaskRecord,
+} from "./schema.js";
 
 export const KERNEL_SCHEMA_VERSION = 1 as const;
 
@@ -47,7 +51,8 @@ export type KernelErrorCode =
   | "POLICY_HOOK_UNIMPLEMENTED"
   | "IDEMPOTENCY_MISMATCH"
   | "CORRUPT_STATE"
-  | "LOCK_TIMEOUT";
+  | "LOCK_TIMEOUT"
+  | "HALF_CONVERSION";
 
 export class KernelError extends Error {
   readonly code: KernelErrorCode;
@@ -79,6 +84,17 @@ export interface KernelAuditEvent {
   to: KernelState & { revision: number };
 }
 
+export interface KernelGates {
+  schemaVersion: 1;
+  transitions: Record<string, Record<string, unknown>>;
+}
+
+export interface KernelLegacyProjection {
+  status: string;
+  record: TrellisTaskRecord;
+  extras: Record<string, unknown>;
+}
+
 export interface KernelSnapshot {
   schemaVersion: typeof KERNEL_SCHEMA_VERSION;
   identity: KernelIdentity;
@@ -87,7 +103,20 @@ export interface KernelSnapshot {
   condition: KernelCondition;
   outcome: KernelOutcome | null;
   audit: KernelAuditEvent[];
+  gates: KernelGates;
+  projection: KernelLegacyProjection | null;
 }
+
+export const KERNEL_COMMAND_OPS = [
+  "read",
+  "transition",
+  "create",
+  "start",
+  "record-gate",
+  "archive",
+] as const;
+
+export type KernelCommandOp = (typeof KERNEL_COMMAND_OPS)[number];
 
 export interface TransitionRequest {
   taskDir: string;
@@ -129,6 +158,26 @@ export const KERNEL_PHASE_EDGES: readonly (readonly [KernelPhase, KernelPhase])[
 const EDGE_SET: ReadonlySet<string> = new Set(
   KERNEL_PHASE_EDGES.map(([from, to]) => `${from}->${to}`),
 );
+
+const EXECUTE_PATH: readonly KernelPhase[] = [
+  "open",
+  "define",
+  "approve",
+  "execute",
+];
+
+const CLOSE_PATH: readonly KernelPhase[] = [
+  "open",
+  "define",
+  "approve",
+  "execute",
+  "verify",
+  "close",
+];
+
+export function emptyKernelGates(): KernelGates {
+  return { schemaVersion: 1, transitions: {} };
+}
 
 export function isKernelPhase(value: unknown): value is KernelPhase {
   return (
@@ -191,6 +240,51 @@ export function projectLegacyStatus(status: string): KernelState {
   }
 }
 
+/**
+ * User-visible `task.json.status` names stay on the Stage 1 enum.
+ * Approve maps to planning so start-execution is the only planning→in_progress cut.
+ */
+export function kernelPhaseToLegacyStatus(phase: KernelPhase): string {
+  switch (phase) {
+    case "open":
+    case "define":
+    case "approve":
+      return "planning";
+    case "execute":
+      return "in_progress";
+    case "verify":
+    case "integrate":
+      return "review";
+    case "close":
+      return "completed";
+  }
+}
+
+export function hopsToExecute(from: KernelPhase): KernelPhase[] {
+  if (from === "execute") return [];
+  const index = EXECUTE_PATH.indexOf(from);
+  if (index === -1) {
+    throw new KernelError(
+      "INVALID_TRANSITION",
+      `cannot start-execution from Kernel phase ${from}`,
+    );
+  }
+  return EXECUTE_PATH.slice(index + 1);
+}
+
+export function hopsToClose(from: KernelPhase): KernelPhase[] {
+  if (from === "close") return [];
+  if (from === "integrate") return ["close"];
+  const index = CLOSE_PATH.indexOf(from);
+  if (index === -1) {
+    throw new KernelError(
+      "INVALID_TRANSITION",
+      `cannot archive/close from Kernel phase ${from}`,
+    );
+  }
+  return CLOSE_PATH.slice(index + 1);
+}
+
 export function parseKernelSnapshot(input: unknown): KernelSnapshot {
   if (!isPlainObject(input)) {
     throw new KernelError("CORRUPT_STATE", "kernel snapshot must be a JSON object");
@@ -225,7 +319,74 @@ export function parseKernelSnapshot(input: unknown): KernelSnapshot {
     condition: input.condition,
     outcome,
     audit: input.audit.map((event, index) => parseAuditEvent(event, index)),
+    gates: parseGates(input.gates),
+    projection: parseProjection(input.projection),
   };
+}
+
+function parseGates(input: unknown): KernelGates {
+  if (input === undefined || input === null) return emptyKernelGates();
+  if (!isPlainObject(input)) {
+    throw new KernelError("CORRUPT_STATE", "kernel.gates must be an object");
+  }
+  const schemaVersion = input.schemaVersion === undefined ? 1 : input.schemaVersion;
+  if (schemaVersion !== 1) {
+    throw new KernelError(
+      "CORRUPT_STATE",
+      `unsupported kernel.gates.schemaVersion: ${String(schemaVersion)}`,
+    );
+  }
+  const transitionsIn = input.transitions;
+  if (transitionsIn === undefined || transitionsIn === null) {
+    return emptyKernelGates();
+  }
+  if (!isPlainObject(transitionsIn)) {
+    throw new KernelError("CORRUPT_STATE", "kernel.gates.transitions must be an object");
+  }
+  const transitions: Record<string, Record<string, unknown>> = {};
+  for (const [transition, gates] of Object.entries(transitionsIn)) {
+    if (!isPlainObject(gates)) {
+      throw new KernelError(
+        "CORRUPT_STATE",
+        `kernel.gates.transitions.${transition} must be an object`,
+      );
+    }
+    transitions[transition] = { ...gates };
+  }
+  return { schemaVersion: 1, transitions };
+}
+
+function parseProjection(input: unknown): KernelLegacyProjection | null {
+  if (input === undefined || input === null) return null;
+  if (!isPlainObject(input)) {
+    throw new KernelError("CORRUPT_STATE", "kernel.projection must be an object");
+  }
+  if (typeof input.status !== "string" || input.status.trim() === "") {
+    throw new KernelError("CORRUPT_STATE", "kernel.projection.status must be a string");
+  }
+  const extras =
+    input.extras === undefined || input.extras === null
+      ? {}
+      : isPlainObject(input.extras)
+        ? { ...input.extras }
+        : (() => {
+            throw new KernelError(
+              "CORRUPT_STATE",
+              "kernel.projection.extras must be an object",
+            );
+          })();
+  try {
+    return {
+      status: input.status,
+      record: taskRecordSchema.parse(input.record),
+      extras,
+    };
+  } catch (err) {
+    throw new KernelError(
+      "CORRUPT_STATE",
+      `kernel.projection.record is invalid: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
 }
 
 function parseOutcome(value: unknown): KernelOutcome | null {

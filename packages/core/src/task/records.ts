@@ -25,6 +25,11 @@ export interface WriteTaskRecordOptions {
   record: TrellisTaskRecord;
   /** Optional repo root used to resolve relative `taskDir` values. */
   cwd?: string;
+  /**
+   * Non-canonical projection fields owned by a Kernel Command
+   * (`execution_approval`, `quality_gate_results`, …). Canonical keys are ignored.
+   */
+  extra?: Record<string, unknown>;
 }
 
 /**
@@ -63,10 +68,9 @@ export function loadTaskRecord(
  *
  * The directory containing `task.json` is created if it does not exist.
  *
- * Stage 1 (P28/P30): this remains the low-level task.json primitive.
- * New Kernel core-state mutations must go through `applyKernelTransition`
- * in `kernel-store.ts` so revision + audit stay atomic. Do not add another
- * packages/core task.json writer.
+ * Stage 2 (P28/P30): Kernel Commands may call this for same-command
+ * legacy projection. Do not add another packages/core `writeFileSync`
+ * primitive for `task.json`.
  */
 export function writeTaskRecord(options: WriteTaskRecordOptions): void {
   const record = taskRecordSchema.parse(options.record);
@@ -79,6 +83,12 @@ export function writeTaskRecord(options: WriteTaskRecordOptions): void {
   const recordBag = record as unknown as Record<string, unknown>;
   for (const field of TASK_RECORD_FIELD_ORDER) {
     out[field] = recordBag[field];
+  }
+  if (options.extra) {
+    for (const [key, value] of Object.entries(options.extra)) {
+      if ((TASK_RECORD_FIELD_ORDER as readonly string[]).includes(key)) continue;
+      out[key] = value;
+    }
   }
   if (existing) {
     for (const key of Object.keys(existing)) {

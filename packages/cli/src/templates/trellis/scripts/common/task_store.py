@@ -42,6 +42,14 @@ from .config import (
 from .cli_environment import format_git_repo_errors, print_environment_repair_hints
 from .git import run_git
 from .io import read_json, write_json
+from .kernel_command import (
+    KernelCliNotFound,
+    KernelCommandError,
+    kernel_archive,
+    kernel_create,
+    kernel_expected_revision,
+    print_kernel_error,
+)
 from .log import Colors, colored
 from .paths import (
     DIR_ARCHIVE,
@@ -62,6 +70,7 @@ from .task_gates import (
     BASELINE_GATE,
     archive_repair_hints,
     build_spec_update_scaffold,
+    collect_kernel_projection_extras,
     prepare_archive_evidence,
     validate_archive,
     write_gate_record,
@@ -445,7 +454,33 @@ def cmd_create(args: argparse.Namespace) -> int:
         "meta": {},
     }
 
-    write_json(task_json_path, task_data)
+    parent_dir = None
+    parent_data = None
+    if args.parent:
+        parent_dir = resolve_task_dir(args.parent, repo_root)
+        parent_json_path = parent_dir / FILE_TASK_JSON
+        if not parent_json_path.is_file():
+            print(colored(f"Warning: Parent task.json not found: {args.parent}", Colors.YELLOW), file=sys.stderr)
+        else:
+            parent_data = read_json(parent_json_path)
+            if parent_data:
+                task_data["parent"] = parent_dir.name
+
+    try:
+        kernel_create(
+            task_dir,
+            task_data,
+            actor="task.py create",
+            idempotency_key=f"create:{slug}",
+            evidence="task.py create",
+        )
+    except (KernelCliNotFound, KernelCommandError) as err:
+        print_kernel_error(err)
+        return 1
+
+    persisted = read_json(task_json_path)
+    if persisted:
+        task_data = persisted
 
     prd_path = task_dir / "prd.md"
     if not prd_path.exists():
@@ -473,33 +508,23 @@ def cmd_create(args: argparse.Namespace) -> int:
                 _write_seed_jsonl(jsonl_path, repo_root, task_dir, task_data)
         seeded_jsonl = True
 
-    # Handle --parent: establish bidirectional link
-    if args.parent:
-        parent_dir = resolve_task_dir(args.parent, repo_root)
+    # Handle --parent: Parent-Child children[] + task-map stay on the Python
+    # writer family (out of this Child). The child's `parent` field is part of
+    # the Kernel create record above.
+    if parent_dir is not None and parent_data:
         parent_json_path = parent_dir / FILE_TASK_JSON
-        if not parent_json_path.is_file():
-            print(colored(f"Warning: Parent task.json not found: {args.parent}", Colors.YELLOW), file=sys.stderr)
-        else:
-            parent_data = read_json(parent_json_path)
-            if parent_data:
-                # Add child to parent's children list
-                parent_children = parent_data.get("children", [])
-                if dir_name not in parent_children:
-                    parent_children.append(dir_name)
-                    parent_data["children"] = parent_children
-                    write_json(parent_json_path, parent_data)
-
-                # Set parent in child's task.json
-                task_data["parent"] = parent_dir.name
-                write_json(task_json_path, task_data)
-                ensure_task_map(
-                    parent_dir,
-                    parent_data,
-                    list(parent_data.get("children", [])),
-                    f"Linked Child `{dir_name}`.",
-                )
-
-                print(colored(f"Linked as child of: {parent_dir.name}", Colors.GREEN), file=sys.stderr)
+        parent_children = parent_data.get("children", [])
+        if dir_name not in parent_children:
+            parent_children.append(dir_name)
+            parent_data["children"] = parent_children
+            write_json(parent_json_path, parent_data)
+        ensure_task_map(
+            parent_dir,
+            parent_data,
+            list(parent_data.get("children", [])),
+            f"Linked Child `{dir_name}`.",
+        )
+        print(colored(f"Linked as child of: {parent_dir.name}", Colors.GREEN), file=sys.stderr)
 
     print(colored(f"Created task: {dir_name}", Colors.GREEN), file=sys.stderr)
     print("", file=sys.stderr)
@@ -636,7 +661,21 @@ def _archive_one_task(
             write_gate_record(data, "full-task-complete", BASELINE_GATE, guard.baseline_record)
         data["status"] = "completed"
         data["completedAt"] = today
-        write_json(task_json_path, data)
+        extras = collect_kernel_projection_extras(data)
+        try:
+            expected = kernel_expected_revision(task_dir)
+            kernel_archive(
+                task_dir,
+                data,
+                extras,
+                expected_revision=expected,
+                actor="task.py archive",
+                idempotency_key=f"archive:{dir_name}:{today}",
+                evidence="task.py archive",
+            )
+        except (KernelCliNotFound, KernelCommandError) as err:
+            print_kernel_error(err)
+            return False, [], None
 
         task_children = data.get("children", [])
         if task_children:

@@ -45,7 +45,7 @@ function isCliTaskJsonWriter(source: string): boolean {
   );
 }
 
-describe("Stage 1 task.json writer freeze", () => {
+describe("Stage 1–2 task.json writer freeze", () => {
   it("packages/core/src has exactly one task.json write primitive (records.ts)", () => {
     const writers = walkTs(coreSrc)
       .filter((file) => isCoreTaskJsonWriter(fs.readFileSync(file, "utf-8")))
@@ -53,13 +53,13 @@ describe("Stage 1 task.json writer freeze", () => {
     expect(writers).toEqual(["task/records.ts"]);
   });
 
-  it("Kernel store does not call writeTaskRecord or write task.json", () => {
+  it("Kernel command projection uses writeTaskRecord; store has no extra writeFileSync task.json primitive", () => {
     const store = fs.readFileSync(
       path.join(coreSrc, "task/kernel-store.ts"),
       "utf-8",
     );
     expect(store).toMatch(/KERNEL_JSON_BASENAME/);
-    expect(store).not.toMatch(/writeTaskRecord\s*\(/);
+    expect(store).toMatch(/writeTaskRecord\s*\(/);
     expect(store).not.toMatch(/TASK_JSON_BASENAME/);
   });
 

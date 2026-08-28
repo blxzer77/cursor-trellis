@@ -39,6 +39,9 @@ export type {
   KernelIdentity,
   KernelAuditEvent,
   KernelSnapshot,
+  KernelGates,
+  KernelLegacyProjection,
+  KernelCommandOp,
   TransitionRequest,
   LegacyTaskProjection,
 } from "./kernel-contract.js";
@@ -50,23 +53,37 @@ export {
   KERNEL_CONDITIONS,
   KERNEL_OUTCOMES,
   KERNEL_PHASE_EDGES,
+  KERNEL_COMMAND_OPS,
   KernelError,
   isKernelPhase,
   isLegalPhaseEdge,
   deriveStateForPhase,
   projectLegacyStatus,
+  kernelPhaseToLegacyStatus,
+  hopsToExecute,
+  hopsToClose,
 } from "./kernel-contract.js";
 
 export type {
   KernelReadResult,
   KernelTransitionResult,
+  KernelCommandResult,
+  KernelCreateRequest,
+  KernelStartRequest,
+  KernelRecordGateRequest,
+  KernelArchiveRequest,
 } from "./kernel-store.js";
 
 export {
   readKernel,
   applyKernelTransition,
+  applyKernelCreate,
+  applyKernelStart,
+  applyKernelRecordGate,
+  applyKernelArchive,
   resolveTaskDir,
   kernelJsonPath,
+  setKernelAfterWriteHook,
 } from "./kernel-store.js";
 
 export type {

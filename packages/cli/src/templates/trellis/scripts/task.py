@@ -58,12 +58,21 @@ from common.active_task import (
     resolve_selected_task,
     set_selected_task,
 )
-from common.io import read_json, write_json
+from common.io import read_json
+from common.kernel_command import (
+    KernelCliNotFound,
+    KernelCommandError,
+    kernel_expected_revision,
+    kernel_record_gate,
+    kernel_start,
+    print_kernel_error,
+)
 from common.task_dashboard import render_task_dashboard
 from common.cli_environment import optional_capability_note
 from common.task_gates import (
     BASELINE_GATE,
     build_reviewer_gate_record,
+    collect_kernel_projection_extras,
     read_strategy_contract,
     start_execution_repair_hints,
     validate_start_execution,
@@ -348,8 +357,24 @@ def cmd_start_execution(args: argparse.Namespace) -> int:
     }
     if task_data.get("status") == "planning":
         task_data["status"] = "in_progress"
-    if not write_json(task_json_path, task_data):
-        print(colored("Error: failed to write task.json", Colors.RED), file=sys.stderr)
+
+    extras = collect_kernel_projection_extras(task_data)
+    try:
+        expected = kernel_expected_revision(task_dir)
+        kernel_start(
+            task_dir,
+            task_data,
+            extras,
+            expected_revision=expected,
+            actor="task.py start-execution --approved",
+            idempotency_key=(
+                f"start:{task_data.get('id') or task_dir.name}:"
+                f"{task_data['execution_approval']['approved_at']}"
+            ),
+            evidence="task.py start-execution --approved",
+        )
+    except (KernelCliNotFound, KernelCommandError) as err:
+        print_kernel_error(err)
         return 1
 
     print(colored(f"✓ Execution approved for: {_repo_relative(task_dir, repo_root)}", Colors.GREEN))
@@ -394,8 +419,25 @@ def cmd_record_gate(args: argparse.Namespace) -> int:
 
     assert record is not None
     write_gate_record(task_data, args.transition, args.gate, record)
-    if not write_json(task_json_path, task_data):
-        print(colored("Error: failed to write task.json", Colors.RED), file=sys.stderr)
+    extras = collect_kernel_projection_extras(task_data)
+    try:
+        expected = kernel_expected_revision(task_dir)
+        kernel_record_gate(
+            task_dir,
+            expected_revision=expected,
+            actor="task.py record-gate",
+            idempotency_key=(
+                f"gate:{args.transition}:{args.gate}:"
+                f"{record.get('contract_fingerprint') or record.get('evidence')}"
+            ),
+            transition=args.transition,
+            gate=args.gate,
+            record=record,
+            extras=extras,
+            evidence=str(record.get("evidence") or args.evidence),
+        )
+    except (KernelCliNotFound, KernelCommandError) as err:
+        print_kernel_error(err)
         return 1
 
     print(colored(f"✓ Recorded gate: {args.transition}/{args.gate} = {record['result']}", Colors.GREEN))
