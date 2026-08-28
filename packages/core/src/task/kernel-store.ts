@@ -15,6 +15,7 @@ import {
   assertIndependentCheckGateRecord,
   normalizeRequiredControlsInExtras,
 } from "./full-quality.js";
+import { normalizeStage5InExtrasAndAssert } from "./ondemand-topology.js";
 import { loadTaskRecord, writeTaskRecord } from "./records.js";
 import {
   TASK_RECORD_FIELD_ORDER,
@@ -472,12 +473,15 @@ function cloneJsonObject(value: Record<string, unknown>): Record<string, unknown
 function mergeExtras(
   current: Record<string, unknown>,
   incoming: Record<string, unknown> | undefined,
+  record?: { id?: string; parent?: string | null; children?: string[] },
+  phase: "create" | "start" | "archive" | "patch" = "patch",
 ): Record<string, unknown> {
   const merged = {
     ...cloneJsonObject(current),
     ...(incoming === undefined ? {} : cloneJsonObject(incoming)),
   };
   normalizeRequiredControlsInExtras(merged);
+  normalizeStage5InExtrasAndAssert(merged, record ?? {}, phase);
   return merged;
 }
 
@@ -691,7 +695,7 @@ export function applyKernelCreate(
     ...request.record,
     status: request.record.status || "planning",
   });
-  const extras = mergeExtras({}, request.extras);
+  const extras = mergeExtras({}, request.extras, record, "create");
   const evidence = requireEvidence(request.evidence, "evidence");
 
   fs.mkdirSync(dir, { recursive: true });
@@ -785,6 +789,8 @@ export function applyKernelStart(
     const extras = mergeExtras(
       current.kernel.projection?.extras ?? {},
       request.extras,
+      record,
+      "start",
     );
     assertFullQualityForPhase(dir, extras, "start");
     const hops = hopsToExecute(current.kernel.phase);
@@ -870,6 +876,8 @@ export function applyKernelRecordGate(
     const extras = mergeExtras(
       current.kernel.projection?.extras ?? {},
       request.extras,
+      baseRecord,
+      "patch",
     );
     extras.quality_gate_results =
       extras.quality_gate_results ??
@@ -938,6 +946,8 @@ export function applyKernelArchive(
     const extras = mergeExtras(
       current.kernel.projection?.extras ?? {},
       request.extras,
+      record,
+      "archive",
     );
     assertFullQualityForPhase(dir, extras, "archive");
     const hops = hopsToClose(current.kernel.phase);
@@ -1056,6 +1066,7 @@ export function applyKernelPatch(
     const extras =
       extrasPatch === undefined ? baseExtras : { ...baseExtras, ...extrasPatch };
     normalizeRequiredControlsInExtras(extras);
+    normalizeStage5InExtrasAndAssert(extras, nextRecord, "patch");
 
     const hopped = hopKernelSnapshot(current.kernel, [], {
       actor,

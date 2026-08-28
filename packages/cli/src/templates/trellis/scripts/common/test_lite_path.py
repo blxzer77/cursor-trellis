@@ -93,7 +93,14 @@ def test_lite_context_pack_budget_and_exclusions() -> None:
     assert pack["budget"]["estimatedTokens"] <= pack["budget"]["maxEstimatedTokens"]
     assert any(item["role"] == "retrieval-router" for item in pack["selected"])
     assert not any(
-        item["module"] in ("parent-child", "vcs-integration", "retrieval-extended")
+        item["module"]
+        in (
+            "parent-child",
+            "vcs-integration",
+            "personal-memory",
+            "retention-storage",
+            "retrieval-extended",
+        )
         for item in pack["selected"]
     )
 

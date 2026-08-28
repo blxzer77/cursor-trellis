@@ -223,6 +223,20 @@ Full keeps the same user-visible `planning` / `in_progress` / `completed` names.
 - Independent Check is **read-only**. Repair returns to Execute. Platform without a reliable independent worker must label `self-review` and must not claim independent. `true-independent` without a worker **blocks**.
 - Lite Open→Close is unchanged and does not gain Independent Check from this path.
 
+### On-demand and Topology (Stage 5)
+
+Rigor (`lite` / `full`) and Topology (`single` / `parent-child`) are orthogonal. Parent is an orchestration topology, not a higher quality grade. Kernel extras (`topology`, `dependency_graph`, `ondemand_modules`) are the graph authority; `task-map.md` and the dashboard are projections. Prefer Cursor native parallel (P18); Trellis does not schedule workers.
+
+- Single-parent tree: a Task has at most one Parent. A second Parent is rejected.
+- Decompose only proposes slices. Child directories are not created until the user confirms.
+- Capture Candidate writes a pool candidate. It does not create a Task.
+- Typed edges: `requires` blocks readiness; `advisory` does not. Existing `depends_on` expands to `requires`.
+- Integration authority stays with the Parent. A Child must not `integrate-child`.
+- On-demand modules (Parent-Child, VCS, Memory, Retention, …) are registered and dormant. First legal trigger activates them and is auditable. Lite Single does not force Parent / VCS / Memory / Retention into the resident pack.
+- `integration-handoff` is owned by Parent-Child. `session-transfer` is a separate owner.
+- Missing lifecycle slots still block start. Missing Profile-required On-demand is `degraded`, not fake-green. Physical Retention does not change Close Outcome.
+- User-visible `planning` / `in_progress` / `completed` names stay unchanged.
+
 Selected-task continuity. When a `selected_task` already exists, do not rerun global classification on every follow-up; continue inside the selected task unless a strong conflict exists (explicit exit/switch/create language, out-of-scope request, different artifact/archive target, new independent deliverable, contract-changing request, or evidence pollution risk).
 
 Review-pool boundary. In-session requests that are clear and directly actionable go straight to Lite / Full / Parent task creation and do **not** enter the pool (`.cstl/pool/`). Ideas, directions, gaps, or unformed thoughts go into the pool. Only `accepted` pool entries may be turned into tasks via `task.py create`. The pool is a candidate queue; a Task is a commitment. See `.cstl/pool/README.md` for the full state machine and role split. Pool entry ↔ task links and pool/plan validation are maintained via the pool CLI: `python3 ./.cstl/scripts/pool.py --help` (link/unlink/validate/plan-check/show). Choosing the next item: treat `plan.md` closed/mainline sections as authoritative → item status → `task.py list` → ask the user; landed items/mechanisms must leave fog (discipline in `.cstl/pool/README.md` 「下一项怎么选 + fog 卫生」).
