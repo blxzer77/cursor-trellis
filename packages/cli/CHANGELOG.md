@@ -9,6 +9,29 @@ SemVer: [semver.org](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.4.3] - 2026-08-29
+
+Cursor-native 0.4.3. Lands **Stage 0–7** (Kernel writer, Lite / Full Quality, Topology, Adapter / Middleware) and **Wave C** (stop-read only after you confirm). GitHub user docs and `cstl update` match Native Cursor. Pushing a `cstl-v*` tag now opens a GitHub Release so Latest is not stuck on 0.3.4.
+
+### Added
+
+- **feat(kernel / Stage 0–7)**: Kernel is the task-state writer. Personal Lite Open→Close (no Parent/Git required). Full Quality: `required_controls`, AC evidence ledger, graded Independent Check. Topology (single vs parent-child) and On-demand modules. Event Bridge + independent Middleware Providers; project overlay `.cstl/middleware/` is never written by `cstl update`. Stage 7 contract: dry-run migrate, stop treating retired task fields as the only truth after confirm, thin default Native install.
+- **feat(p36 / Wave C)**: `cstl update` prints a plain-language summary (what will stop-read, what stays dual-read, whether anything is degraded). Stop-read of the old task shape happens only after you confirm **Proceed**. `--force` / `--skip-all` / `--create-new` refresh official files but do **not** count as that confirm and do not write the stop-read flag.
+- **feat(upgrade)**: Official-file and in-progress-artifact upgrade path (dual-read until confirm).
+- **ci**: `.github/workflows/publish.yml` creates a GitHub Release on `cstl-v*` (needs `contents: write`). npm publish is unchanged: core first, then cli, via `publish-packages.js`.
+
+### Changed
+
+- **fix(update)**: Capability / readiness smoke failure no longer aborts `cstl update` before confirm. Unverified smoke is labeled; you can still Proceed, decline, or `--force`.
+- **docs**: GitHub README and user `docs/` match Native Cursor (bootstrap always-on rule, `/cstl-handoff`, skill paths under `.cstl/framework/`). Cursor++ / Method 2.5 is not a product path.
+- **chore(product)**: Default install has no `cstl-goal`, no Cursor++ live surface, no SDK / Campaign / RPC-FULL CORE. Parallel-first is a product principle (convention + review, not a new scheduler). Authoring Trellis skills still requires `cstl-skill-creator`.
+
+### Notes for consumers
+
+- Install `@blxzer/cursor-trellis@0.4.3` (cli and `@blxzer/cursor-trellis-core` stay the same version). In the **project root** run `cstl update` and confirm once. Do not re-run `init`. Do not move task directories by hand.
+- Default product is **Native Cursor**. This package does not embed BYOK.
+- Maintainers: tag **`cstl-v0.4.3`** (not `v0.4.3` — legacy `@blxzer/trellis` tags occupy `v*`). The publish workflow publishes npm **and** creates the GitHub Release. Do not republish 0.4.2.
+
 ## [0.4.2] - 2026-08-10
 
 Cursor reachability index: Goal = CLI, internal skills reachable on-demand (commands-only preserved). Framework docs relocation: versioned framework/platform docs move to a **framework-owned, update-managed** `.cstl/framework/`; `.cstl/spec/` stays fully user-owned.
