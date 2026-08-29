@@ -25,6 +25,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
+      # Same shallow-clone contract as CI: no historical `git show` in tests.
       - uses: actions/checkout@v7
 
       - uses: pnpm/action-setup@v6
@@ -39,6 +40,7 @@ jobs:
 
       - name: Materialize dogfood for tests
         run: |
+          rm -rf .cursor/rules .cursor/agents .cstl/scripts
           mkdir -p .cursor/rules .cursor/agents .cstl/scripts
           cp packages/cli/src/templates/cursor/rules/* .cursor/rules/
           cp packages/cli/src/templates/cursor/agents/* .cursor/agents/

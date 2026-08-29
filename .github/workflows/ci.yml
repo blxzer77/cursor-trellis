@@ -14,6 +14,8 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
+      # Default fetch-depth is 1. Tests must not `git show` historical SHAs or
+      # retired blobs — rewritten history and shallow clones will fail red.
       - uses: actions/checkout@v7
 
       - uses: pnpm/action-setup@v6
@@ -33,6 +35,7 @@ jobs:
 
       - name: Materialize dogfood for tests
         run: |
+          rm -rf .cursor/rules .cursor/agents .cstl/scripts
           mkdir -p .cursor/rules .cursor/agents .cstl/scripts
           cp packages/cli/src/templates/cursor/rules/* .cursor/rules/
           cp packages/cli/src/templates/cursor/agents/* .cursor/agents/

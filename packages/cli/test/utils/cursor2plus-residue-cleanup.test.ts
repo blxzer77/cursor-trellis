@@ -1,24 +1,43 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { fileURLToPath } from "node:url";
 import {
+  CURSOR2PLUS_RESIDUE_TARGETS,
   cleanupCursor2plusResidue,
   hasCursor2plusBundleResidue,
 } from "../../src/utils/cursor2plus-residue-cleanup.js";
+import { computeHash } from "../../src/utils/template-hash.js";
 
-const testDir = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(testDir, "../../../..");
+/**
+ * Synthetic pristine bytes. Do not `git show` retired Cursor++ templates:
+ * those blobs left the tree in P23, and rewritten / shallow clones have no
+ * pre-rewrite SHA (CI fetch-depth: 1).
+ */
+const PRISTINE_PATCH = "# pristine cursor++ patch fixture\n";
+const PRISTINE_README = "# pristine cursor++ readme fixture\n";
+const PRISTINE_CMD = "# pristine cursor++ setup command fixture\n";
 
-/** Pre-P23 commit that still contains Cursor++ template bytes for hash fixtures. */
-const PRE_P23 = "2dbb8e456aa28d8abf0e371c35e46699afb9de1e";
+const TEST_TARGETS = [
+  {
+    pathTemplate: "{workflow}/local/cursor2plus/patch_wpelc8.py",
+    allowedHashes: [computeHash(PRISTINE_PATCH)],
+  },
+  {
+    pathTemplate: "{workflow}/local/cursor2plus/README.md",
+    allowedHashes: [computeHash(PRISTINE_README)],
+  },
+  {
+    pathTemplate: ".cursor/commands/cstl-cursor2plus-setup.md",
+    allowedHashes: [computeHash(PRISTINE_CMD)],
+  },
+] as const;
 
-function gitShow(repoRelPath: string): string {
-  return execSync(`git -C "${repoRoot}" show ${PRE_P23}:${repoRelPath}`, {
-    encoding: "utf-8",
-  });
+function cleanup(
+  cwd: string,
+  extra: { dryRun?: boolean } = {},
+): ReturnType<typeof cleanupCursor2plusResidue> {
+  return cleanupCursor2plusResidue(cwd, { ...extra, targets: TEST_TARGETS });
 }
 
 describe("cleanupCursor2plusResidue (P23 hash-safe)", () => {
@@ -36,11 +55,18 @@ describe("cleanupCursor2plusResidue (P23 hash-safe)", () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it("deletes pristine managed files and preserves user-modified ones", () => {
-    const pristinePatch = gitShow(
-      "packages/cli/src/templates/trellis/local/patch_wpelc8.py",
-    );
+  it("keeps a hash allow-list for retired Cursor++ paths (no git history)", () => {
+    expect(CURSOR2PLUS_RESIDUE_TARGETS.length).toBeGreaterThan(0);
+    for (const target of CURSOR2PLUS_RESIDUE_TARGETS) {
+      expect(target.pathTemplate).toMatch(/cursor2plus|trellis-task-models|subagent-models/i);
+      expect(target.allowedHashes.length).toBeGreaterThan(0);
+      for (const hash of target.allowedHashes) {
+        expect(hash).toMatch(/^[0-9a-f]{64}$/);
+      }
+    }
+  });
 
+  it("deletes pristine managed files and preserves user-modified ones", () => {
     const patchPath = path.join(
       tmpDir,
       ".cstl",
@@ -62,17 +88,13 @@ describe("cleanupCursor2plusResidue (P23 hash-safe)", () => {
       "cstl-cursor2plus-setup.md",
     );
 
-    fs.writeFileSync(patchPath, pristinePatch, "utf-8");
-    fs.writeFileSync(
-      readmePath,
-      gitShow("packages/cli/src/templates/trellis/local/README.md"),
-      "utf-8",
-    );
+    fs.writeFileSync(patchPath, PRISTINE_PATCH, "utf-8");
+    fs.writeFileSync(readmePath, PRISTINE_README, "utf-8");
     fs.writeFileSync(cmdPath, "# user customized setup\n", "utf-8");
 
     expect(hasCursor2plusBundleResidue(tmpDir)).toBe(true);
 
-    const dry = cleanupCursor2plusResidue(tmpDir, { dryRun: true });
+    const dry = cleanup(tmpDir, { dryRun: true });
     expect(dry.deleted).toContain(".cstl/local/cursor2plus/patch_wpelc8.py");
     expect(dry.deleted).toContain(".cstl/local/cursor2plus/README.md");
     expect(dry.preservedModified).toContain(
@@ -80,7 +102,7 @@ describe("cleanupCursor2plusResidue (P23 hash-safe)", () => {
     );
     expect(fs.existsSync(patchPath)).toBe(true);
 
-    const applied = cleanupCursor2plusResidue(tmpDir);
+    const applied = cleanup(tmpDir);
     expect(applied.deleted).toContain(
       ".cstl/local/cursor2plus/patch_wpelc8.py",
     );
@@ -94,19 +116,15 @@ describe("cleanupCursor2plusResidue (P23 hash-safe)", () => {
     expect(fs.readFileSync(cmdPath, "utf-8")).toContain("user customized");
   });
 
-  it("writes command file from pristine template bytes and deletes it", () => {
+  it("writes command file from pristine fixture bytes and deletes it", () => {
     const cmdPath = path.join(
       tmpDir,
       ".cursor",
       "commands",
       "cstl-cursor2plus-setup.md",
     );
-    fs.writeFileSync(
-      cmdPath,
-      gitShow("packages/cli/src/templates/cursor/commands/cursor2plus-setup.md"),
-      "utf-8",
-    );
-    const result = cleanupCursor2plusResidue(tmpDir);
+    fs.writeFileSync(cmdPath, PRISTINE_CMD, "utf-8");
+    const result = cleanup(tmpDir);
     expect(result.deleted).toContain(
       ".cursor/commands/cstl-cursor2plus-setup.md",
     );
@@ -124,7 +142,7 @@ describe("cleanupCursor2plusResidue (P23 hash-safe)", () => {
     const content = "id: smart-search\nprotocol: 1\nsource: user\n";
     fs.writeFileSync(overlayPath, content, "utf-8");
 
-    const result = cleanupCursor2plusResidue(tmpDir);
+    const result = cleanup(tmpDir);
     expect(result.deleted.some((rel) => rel.includes("middleware"))).toBe(
       false,
     );

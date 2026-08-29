@@ -124,7 +124,11 @@ function tryRemoveEmptyParents(filePath: string, stopAt: string): void {
  */
 export function cleanupCursor2plusResidue(
   cwd: string,
-  options: { dryRun?: boolean } = {},
+  options: {
+    dryRun?: boolean;
+    /** Test-only override. Production callers omit this. */
+    targets?: readonly Cursor2plusResidueTarget[];
+  } = {},
 ): Cursor2plusResidueCleanupResult {
   const workflowDirName = resolveWorkflowDirName(cwd) ?? DIR_NAMES.WORKFLOW;
   const result: Cursor2plusResidueCleanupResult = {
@@ -132,8 +136,9 @@ export function cleanupCursor2plusResidue(
     preservedModified: [],
     missing: [],
   };
+  const targets = options.targets ?? CURSOR2PLUS_RESIDUE_TARGETS;
 
-  for (const target of CURSOR2PLUS_RESIDUE_TARGETS) {
+  for (const target of targets) {
     const rel = resolvePathTemplate(target.pathTemplate, workflowDirName);
     const fullPath = path.join(cwd, rel);
     if (!fs.existsSync(fullPath)) {
