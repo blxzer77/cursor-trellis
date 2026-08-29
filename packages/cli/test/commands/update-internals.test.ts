@@ -12,7 +12,9 @@ import path from "node:path";
 
 import {
   cleanupEmptyDirs,
+  collectStaleUpdateSkipPaths,
   loadUpdateSkipPaths,
+  removeUpdateSkipPathsFromConfig,
   shouldExcludeFromBackup,
   sortMigrationsForExecution,
 } from "../../src/commands/update.js";
@@ -141,6 +143,79 @@ describe("loadUpdateSkipPaths", () => {
   it("returns empty array when no config exists", () => {
     const paths = loadUpdateSkipPaths(tmpDir);
     expect(paths).toEqual([]);
+  });
+});
+
+describe("stale update.skip prune", () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-stale-skip-"));
+    fs.mkdirSync(path.join(tmpDir, ".cstl", "scripts", "common"), {
+      recursive: true,
+    });
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it("treats a file skip as stale only when disk matches official template", () => {
+    const rel = ".cstl/scripts/common/adapter_middleware.py";
+    const official = "id: seven-providers\n";
+    fs.writeFileSync(path.join(tmpDir, rel), official);
+    const templates = new Map([[rel, official]]);
+    expect(
+      collectStaleUpdateSkipPaths(tmpDir, [rel, ".cursor/commands/"], templates),
+    ).toEqual([rel]);
+
+    fs.writeFileSync(path.join(tmpDir, rel), "id: local-fork\n");
+    expect(collectStaleUpdateSkipPaths(tmpDir, [rel], templates)).toEqual([]);
+  });
+
+  it("removes the skip item and an empty update: section from config.yaml", () => {
+    fs.writeFileSync(
+      path.join(tmpDir, ".cstl", "config.yaml"),
+      [
+        "# keep this comment",
+        "max_journal_lines: 2000",
+        "",
+        "update:",
+        "  skip:",
+        "    - .cstl/scripts/common/adapter_middleware.py",
+        "    - .cursor/commands/",
+        "",
+      ].join("\n"),
+    );
+    const removed = removeUpdateSkipPathsFromConfig(tmpDir, [
+      ".cstl/scripts/common/adapter_middleware.py",
+    ]);
+    expect(removed).toEqual([".cstl/scripts/common/adapter_middleware.py"]);
+    const next = fs.readFileSync(
+      path.join(tmpDir, ".cstl", "config.yaml"),
+      "utf-8",
+    );
+    expect(next).toContain("# keep this comment");
+    expect(next).toContain("- .cursor/commands/");
+    expect(next).not.toContain("adapter_middleware.py");
+    expect(loadUpdateSkipPaths(tmpDir)).toEqual([".cursor/commands/"]);
+  });
+
+  it("drops update: when the last skip item is removed", () => {
+    fs.writeFileSync(
+      path.join(tmpDir, ".cstl", "config.yaml"),
+      "update:\n  skip:\n    - .cstl/scripts/common/adapter_middleware.py\n",
+    );
+    removeUpdateSkipPathsFromConfig(tmpDir, [
+      ".cstl/scripts/common/adapter_middleware.py",
+    ]);
+    const next = fs.readFileSync(
+      path.join(tmpDir, ".cstl", "config.yaml"),
+      "utf-8",
+    );
+    expect(next).not.toMatch(/^update:/m);
+    expect(next).not.toMatch(/skip:/);
+    expect(loadUpdateSkipPaths(tmpDir)).toEqual([]);
   });
 });
 

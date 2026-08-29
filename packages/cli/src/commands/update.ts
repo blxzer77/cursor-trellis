@@ -637,6 +637,159 @@ export function loadUpdateSkipPaths(cwd: string): string[] {
   }
 }
 
+function normalizeNewlines(text: string): string {
+  return text.replace(/\r\n/g, "\n");
+}
+
+function parseSkipListItemPath(line: string): string | null {
+  const match = line.trimEnd().match(/^\s+-\s+(.+)$/);
+  if (!match) return null;
+  return match[1].trim().replace(/^['"]|['"]$/g, "");
+}
+
+/**
+ * File-level `update.skip` entries that no longer protect a fork: the file on
+ * disk already matches the official template (typical after a release that
+ * absorbs a local dogfood patch). Directory skips are never treated as stale.
+ *
+ * @internal Exported for testing only
+ */
+export function collectStaleUpdateSkipPaths(
+  cwd: string,
+  skipPaths: readonly string[],
+  officialTemplates: Map<string, string>,
+): string[] {
+  const stale: string[] = [];
+  for (const skip of skipPaths) {
+    if (!skip || skip.endsWith("/") || skip === `${DIR_NAMES.WORKFLOW}/config.yaml`) {
+      continue;
+    }
+    const official = officialTemplates.get(skip);
+    if (official === undefined) continue;
+    const fullPath = path.join(cwd, skip);
+    if (!fs.existsSync(fullPath) || !fs.statSync(fullPath).isFile()) continue;
+    const disk = fs.readFileSync(fullPath, "utf-8");
+    if (normalizeNewlines(disk) === normalizeNewlines(official)) {
+      stale.push(skip);
+    }
+  }
+  return stale;
+}
+
+/**
+ * Drop listed paths from `.cstl/config.yaml` `update.skip`. If the skip list
+ * becomes empty, remove `skip:` and a now-empty `update:` key. Does not touch
+ * surrounding comments.
+ *
+ * @internal Exported for testing only
+ */
+export function removeUpdateSkipPathsFromConfig(
+  cwd: string,
+  pathsToRemove: readonly string[],
+): string[] {
+  if (pathsToRemove.length === 0) return [];
+  const removeSet = new Set(pathsToRemove);
+  const configPath = workflowPath(cwd, "config.yaml");
+  if (!configPath || !fs.existsSync(configPath)) return [];
+
+  const original = fs.readFileSync(configPath, "utf-8");
+  const nl = original.includes("\r\n") ? "\r\n" : "\n";
+  const lines = original.split(/\r?\n/);
+  const keep = lines.map(() => true);
+  let inUpdate = false;
+  let inSkip = false;
+  let updateLine = -1;
+  let skipLine = -1;
+  const remainingSkipItems: string[] = [];
+  const removed: string[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trimEnd();
+    if (/^update:\s*$/.test(trimmed)) {
+      inUpdate = true;
+      inSkip = false;
+      updateLine = i;
+      continue;
+    }
+    if (inUpdate && /^\s+skip:\s*$/.test(trimmed)) {
+      inSkip = true;
+      skipLine = i;
+      continue;
+    }
+    if (inSkip) {
+      const itemPath = parseSkipListItemPath(lines[i]);
+      if (itemPath !== null) {
+        if (removeSet.has(itemPath)) {
+          keep[i] = false;
+          removed.push(itemPath);
+        } else {
+          remainingSkipItems.push(itemPath);
+        }
+        continue;
+      }
+      if (trimmed !== "" && !trimmed.startsWith("#")) {
+        inSkip = false;
+        inUpdate = false;
+      }
+    }
+    if (
+      inUpdate &&
+      trimmed !== "" &&
+      !trimmed.startsWith(" ") &&
+      !trimmed.startsWith("#")
+    ) {
+      inUpdate = false;
+      inSkip = false;
+    }
+  }
+
+  if (removed.length === 0) return [];
+
+  if (remainingSkipItems.length === 0 && skipLine >= 0) {
+    keep[skipLine] = false;
+  }
+
+  if (updateLine >= 0 && remainingSkipItems.length === 0) {
+    let hasOtherUpdateKey = false;
+    for (let i = updateLine + 1; i < lines.length; i++) {
+      if (!keep[i]) continue;
+      const trimmed = lines[i].trimEnd();
+      if (trimmed === "" || trimmed.startsWith("#")) continue;
+      if (!trimmed.startsWith(" ") && !trimmed.startsWith("\t")) break;
+      if (/^\s+\S/.test(trimmed) && !/^\s+skip:\s*$/.test(trimmed)) {
+        hasOtherUpdateKey = true;
+        break;
+      }
+    }
+    if (!hasOtherUpdateKey) {
+      keep[updateLine] = false;
+    }
+  }
+
+  let newContent = lines.filter((_, i) => keep[i]).join(nl);
+  if (original.endsWith("\n") && !newContent.endsWith("\n")) {
+    newContent += original.includes("\r\n") ? "\r\n" : "\n";
+  }
+  if (newContent !== original) {
+    fs.writeFileSync(configPath, newContent);
+  }
+  return removed;
+}
+
+function logStaleUpdateSkip(paths: readonly string[], dryRun: boolean): void {
+  if (paths.length === 0) return;
+  const prefix = dryRun
+    ? "Would remove stale update.skip"
+    : "Removed stale update.skip";
+  console.log(
+    chalk.cyan(`  ${prefix} (file already matches official template):`),
+  );
+  for (const skipPath of paths) {
+    console.log(chalk.cyan(`    - ${skipPath}`));
+  }
+  console.log("");
+}
+
 /**
  * Extract a "section" from a config.yaml-style template by sectionHeading.
  *
@@ -2121,12 +2274,20 @@ export async function update(options: UpdateOptions): Promise<void> {
       return md.breaking && md.recommendMigrate;
     })();
 
-  // Collect templates (used for both migration classification and change analysis)
+  // Collect templates (used for both migration classification and change analysis).
+  // Official set ignores update.skip so we can detect skip entries that already
+  // match the shipped template (dogfood pin absorbed by this release).
+  const officialTemplates = collectTemplateFiles(cwd, true);
   const templates = collectTemplateFiles(cwd, breakingBypass);
   printCursorSkillResidueNotice(cwd);
 
   // Load update.skip paths (used for both safe-file-delete and template collection)
   const skipPaths = loadUpdateSkipPaths(cwd);
+  const staleSkipPaths = collectStaleUpdateSkipPaths(
+    cwd,
+    skipPaths,
+    officialTemplates,
+  );
 
   // Collect safe-file-delete items from ALL manifests (hash match is the safety net)
   // This runs regardless of version — unknown version still gets safe cleanup
@@ -2370,6 +2531,9 @@ export async function update(options: UpdateOptions): Promise<void> {
 
   // Print summary
   printChangeSummary(changes);
+  if (options.dryRun) {
+    logStaleUpdateSkip(staleSkipPaths, true);
+  }
 
   const officialPlan = planOfficialSurfaceA({
     cwd,
@@ -2889,6 +3053,17 @@ export async function update(options: UpdateOptions): Promise<void> {
   }
   if (backupDir) {
     console.log(`  Backup: ${path.relative(cwd, backupDir)}/`);
+  }
+
+  const skipAfterApply = loadUpdateSkipPaths(cwd);
+  const staleSkipAfterApply = collectStaleUpdateSkipPaths(
+    cwd,
+    skipAfterApply,
+    officialTemplates,
+  );
+  const prunedSkip = removeUpdateSkipPathsFromConfig(cwd, staleSkipAfterApply);
+  if (prunedSkip.length > 0) {
+    logStaleUpdateSkip(prunedSkip, false);
   }
 
   const actionWord = isDowngrade ? "Downgrade" : "Update";
