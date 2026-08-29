@@ -152,7 +152,7 @@ Installation copies the skill into the project's `.cursor/skills/<name>/` — it
 
 ## Auto-triggered inventory
 
-The canonical auto-triggered list (10 skills) is generated into `AGENTS.md` from `templates/markdown/agents.md`. The 11th skill (`cstl-cursor2plus-setup`) is bundled but conditional — it activates only for Cursor++ BYOK users and is therefore not in the universal auto-triggered set.
+The canonical auto-triggered list (10 skills) is generated into `AGENTS.md` from `templates/markdown/agents.md`. Cursor++ setup is **not** shipped.
 
 | # | Skill | Trigger source |
 | --- | --- | --- |

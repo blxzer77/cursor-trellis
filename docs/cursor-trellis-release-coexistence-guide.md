@@ -103,7 +103,7 @@ Conservative by default for `.trellis/` → `.cstl/` rename:
 | Signal | Meaning |
 | --- | --- |
 | F1 | `.cursor/commands/cstl-*.md` |
-| F2 | `.cursor/rules/cstl-triage.mdc` |
+| F2 | `.cursor/rules/cstl-bootstrap.mdc` |
 | F3 | `.trellis/scripts/common/cli_adapter.py` contains `cstl` |
 | U1 | `.claude/agents/trellis-implement.md` |
 | U2 | Non-Cursor platform `trellis-*` agents/skills |

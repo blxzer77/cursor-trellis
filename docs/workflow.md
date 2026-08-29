@@ -4,7 +4,7 @@ English | [简体中文](workflow.zh-CN.md)
 
 This guide explains how to run the **Trellis task lifecycle** inside **Cursor** after `cstl init --cursor`. It covers the full lifecycle: Request Triage, the Task Ladder, planning artifacts, Parent/Child task trees, the three phases (Plan → Execute → Finish), and the differences between Lite, Micro-Grill, and No Task turns.
 
-The canonical rules live in your project's `.cstl/workflow.md` (generated/updated by Trellis). Cursor agents also see **Request Triage** via `.cursor/rules/cstl-triage.mdc`.
+The canonical workflow lives in your project's `.cstl/workflow.md` (generated/updated by Trellis). The only default always-on Cursor rule is `.cursor/rules/cstl-bootstrap.mdc` (a thin pointer). Request Triage methodology is **not** a separate `cstl-triage.mdc` file — that rule is retired.
 
 ## Prerequisites
 

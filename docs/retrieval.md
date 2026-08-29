@@ -4,7 +4,7 @@ English | [简体中文](retrieval.zh-CN.md)
 
 Trellis routes codebase and external-fact questions through a deliberate **retrieval layer** instead of relying on a single tool. This document explains the adapter stack, the routing envelope, how context reaches the Cursor agent, and the evidence/scoring rules that gate what can be claimed.
 
-This is the public design doc. The canonical, agent-facing guide inside an initialized project is `.cstl/framework/retrieval-daily-guide.md`; the Cursor rule that enforces it is `.cursor/rules/retrieval-routing.mdc` (`alwaysApply: true`).
+This is the public design doc. The canonical, agent-facing guide inside an initialized project is `.cstl/framework/retrieval-daily-guide.md`. Default always-on Cursor policy is the thin `.cursor/rules/cstl-bootstrap.mdc` (four retrieval intents). `retrieval-routing.mdc` is retired.
 
 ## Why a retrieval layer
 
@@ -63,16 +63,19 @@ On Cursor, retrieval plans reach the agent through **two complementary channels*
 
 When the user message looks like a codebase question, the `beforeSubmitPrompt` hook runs `inject-retrieval-plan.py`, which calls the router and prepends a `## 代码库检索计划` (or `## Codebase retrieval plan`) block to the user prompt. This block contains ordered, mandatory steps tailored to that specific question.
 
-### Channel 2: Always-on policy rule (`.cursor/rules/retrieval-routing.mdc`)
+### Channel 2: Thin always-on pointer (`.cursor/rules/cstl-bootstrap.mdc`)
 
-`retrieval-routing.mdc` is shipped with `alwaysApply: true`. It defines:
+Default install ships `cstl-bootstrap.mdc` with `alwaysApply: true`. It names the four baseline intents (`exact` / `semantic` / `structural` / `external`) and points at independent middleware (smart-search) plus optional code intelligence. It does **not** carry the full retrieval how-to.
 
-- The **default tool order** when no plan block is present (Grep for literals → codegraph for callers → semantic for concepts → smart-search for external).
-- **Plan-block execution rules**: when a `## 代码库检索计划` block is present, its steps are mandatory tooling, not suggestions.
-- **Semantic routing policy** (see below).
-- **Result-layer ranking** triggers.
+Methodology lives in `.cstl/framework/retrieval-daily-guide.md` and in the per-query plan block:
 
-**Why not `sessionStart`?** The `sessionStart` hook's `additional_context` field is documented but does not reliably reach the agent context (#158452). Trellis therefore puts durable retrieval policy in an always-on rule and per-query plans in `beforeSubmitPrompt` — neither depends on `sessionStart` injection.
+- Default tool order when no plan block is present: Grep for literals → codegraph for callers (if present) → semantic for concepts → smart-search for external.
+- When a `## 代码库检索计划` block is present, its steps are mandatory tooling, not suggestions.
+- Semantic routing policy (see below).
+
+`retrieval-routing.mdc` is **retired**; `cstl update` migrates unmodified copies off.
+
+**Why not `sessionStart`?** The `sessionStart` hook's `additional_context` field is documented but does not reliably reach the agent context (#158452). Trellis therefore keeps a thin always-on pointer plus per-query plans in `beforeSubmitPrompt` — neither depends on `sessionStart` injection.
 
 ## Evidence scoring
 

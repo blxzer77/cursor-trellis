@@ -151,7 +151,7 @@ Native vs BYOK split: Parts 2 and 3 below.
 
 | Measure | Explanation |
 | --- | --- |
-| Always-on rules | `cstl-triage.mdc`, `retrieval-routing.mdc`, `alwaysApply: true` |
+| Always-on rules | `cstl-bootstrap.mdc` only (`alwaysApply: true`). Retired: `cstl-triage.mdc`, `retrieval-routing.mdc` |
 | AGENTS.md | Project layout, smart-search-first for external facts, remote policy |
 | Small slash surface | `/cstl-continue`, `/cstl-finish-work`; no default `.cursor/skills/` dump |
 | **CLI full dispatch prompt** | Before research/implement/check Task dispatch, run `generate_dispatch_prompt.py`, paste **entire output** into Task `prompt`. **This is the reliable primary path** for subtask context. |
@@ -166,7 +166,7 @@ Native vs BYOK split: Parts 2 and 3 below.
 cstl init --cursor
 ```
 
-Confirm `.cstl/workflow.md`, `.cursor/rules/cstl-triage.mdc`, `.cursor/agents/cstl-*.md`.
+Confirm `.cstl/workflow.md`, `.cursor/rules/cstl-bootstrap.mdc`, `.cursor/agents/cstl-*.md`.
 
 **B. Triage**
 
@@ -244,7 +244,7 @@ What used to exist (evidence only): optional `.cstl/local/cursor2plus/` bundle, 
 
 **After each `cstl update`**
 
-- [ ] `cstl-triage.mdc` exists with `alwaysApply: true`
+- [ ] `cstl-bootstrap.mdc` exists with `alwaysApply: true`
 - [ ] Subtask dispatch uses full `generate_dispatch_prompt.py` output
 
 **Native**

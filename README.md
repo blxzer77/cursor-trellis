@@ -59,20 +59,27 @@ cd /path/to/your-app
 cstl init --cursor
 ```
 
-**3. Open the project in Cursor** and use Agent mode. User-facing slash commands include `/cstl-continue` and `/cstl-finish-work`. Request Triage is enforced via `.cursor/rules/cstl-triage.mdc`.
+**3. Open the project in Cursor** and use Agent mode. User-facing slash commands include `/cstl-continue`, `/cstl-finish-work`, and `/cstl-handoff`. Request classification lives in `.cstl/workflow.md`. The only default always-on rule is `.cursor/rules/cstl-bootstrap.mdc` (a thin pointer — it does not carry the full Triage text). Retired `cstl-triage.mdc` is not current.
 
 Product path: `cstl init --cursor` (Native). Cursor++ path retired — see [cursor.md](docs/cursor.md). Env detection (`cursorEnv`) may still appear for retrieval. Default install is Native Cursor; CSTL does **not** embed BYOK.
 
-## Upgrade to 0.4.0 (draft)
+## Upgrade an existing project
 
-```powershell
-npm install -g @blxzer/cursor-trellis@0.4.0
-# or: cstl upgrade
-cd /path/to/project
-cstl update
-```
+Do not re-run `init`. Do not move task directories by hand.
 
-Highlights (0.4.0 minor): **review pool** (`pool.py` + `.cstl/pool/` skeleton), **task depends_on Plan A/B** (`set-deps` / `set-depends-mode` / `--ignore-deps`), workflow + guides alignment. Details: [CHANGELOG](packages/cli/CHANGELOG.md#unreleased).
+1. Upgrade the CSTL package (or your existing install surface) per the release notes.
+2. In the **project root**, run **`cstl update`**.
+3. Read the summary: which official files refreshed, which official rules migrated, which in-progress tasks stay readable in the old shape, and whether anything is degraded.
+4. **Confirm once.** If you decline, the project stays as-is — no half-write. `--force` / `--skip-all` / `--create-new` apply official files but do **not** count as this confirm and do **not** write the stop-read flag.
+5. Keep chatting, or use `/cstl-continue`. In-progress tasks can still run and finish.
+
+Official surfaces (the instructions and rules CSTL installed into the project) can migrate on this `update`. Task artifacts stay dual-read first; they are rewritten later. Stop-read of the old shape happens only after you confirm. Older versions use the same `update` path.
+
+Files you edited are listed and kept. MCP you only configured in Cursor, and did not write as middleware, is untouched. On failure, the tool rolls back or keeps dual-read; the project remains usable.
+
+Teammates: pull is enough. If this round only changed local uncommitted files, the release notes say who runs `update` and who only pulls.
+
+From 0.3.0, first run `cstl update --migrate` (see below), then use this same five-step path for later bumps.
 
 ## Upgrade from 0.3.0 (v0.3.1)
 

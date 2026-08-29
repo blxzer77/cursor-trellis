@@ -31,7 +31,7 @@ On Cursor, Trellis uses a **commands-only** default:
 | Surface | On Cursor after init |
 | --- | --- |
 | `.cursor/commands/` | User-facing slash commands (`/cstl-continue`, `/cstl-finish-work`, Native Cursor commands only) |
-| `.cursor/rules/*.mdc` | Always-on or glob-scoped rules (e.g. Request Triage hard gate, retrieval routing) |
+| `.cursor/rules/*.mdc` | Default always-on: `cstl-bootstrap.mdc` only (thin Adapter pointer) |
 | `.cursor/agents/` | Sub-agent definitions (`cstl-research`, `cstl-implement`, `cstl-check`, …) |
 | `.cursor/hooks/` + `hooks.json` | Python hook scripts and wiring |
 | `.cursor/worktrees.json` | Cursor native worktree helper config |
@@ -56,9 +56,7 @@ your-project/
       cstl-finish-work.md
       # (Cursor++ setup command retired)
     rules/
-      cstl-triage.mdc             # alwaysApply: true
-      retrieval-routing.mdc          # alwaysApply: true
-      cstl-session-rename.mdc        # alwaysApply: true
+      cstl-bootstrap.mdc             # alwaysApply: true (only default always-on)
     agents/
       cstl-research.md
       cstl-implement.md
@@ -73,13 +71,13 @@ Implementation reference: `packages/cli/src/configurators/cursor.ts` and `packag
 
 ## Rules
 
-Cursor **User Rules** and project **`.cursor/rules`** are the reliable channel for always-on policy on Cursor. Trellis ships three always-on rules:
+Cursor **User Rules** and project **`.cursor/rules`** are the reliable channel for always-on policy on Cursor. Default install ships **one** always-on rule:
 
-- `cstl-triage.mdc` (`alwaysApply: true`) — enforces **Request Triage** before durable work.
-- `retrieval-routing.mdc` (`alwaysApply: true`) — enforces [retrieval layer](retrieval.md) routing for codebase questions.
-- `cstl-session-rename.mdc` (`alwaysApply: true`) — after `task.py select` or `start-execution --approved`, best-effort rename of the **main** chat tab to the task **directory name** via `cursor-app-control` `rename_chat` (skip silently if MCP unavailable).
+- `cstl-bootstrap.mdc` (`alwaysApply: true`) — thin Adapter: Event Bridge, four retrieval intents (`exact` / `semantic` / `structural` / `external`), independent smart-search Provider, optional code intelligence, Native SSOT, user overlay `.cstl/middleware/`. It **points**; it does not carry full Triage, Gate, or retrieval methodology.
 
-This compensates for a known Cursor limitation: `sessionStart` hook `additional_context` may not reach the agent (#158452). Triage and retrieval policy therefore must not depend only on hook-injected workflow text.
+Request Triage, gates, and retrieval how-to live in `.cstl/workflow.md` and on-demand `.cstl/framework/` guides. `cstl-triage.mdc`, `retrieval-routing.mdc`, and `cstl-session-rename.mdc` are **retired** always-on files; `cstl update` migrates unmodified copies off. Do not treat them as current install output.
+
+This compensates for a known Cursor limitation: `sessionStart` hook `additional_context` may not reach the agent (#158452). Hard policy therefore must not depend only on hook-injected workflow text.
 
 ### Session rename (one task per main chat)
 
@@ -90,7 +88,7 @@ Trellis **encourages** binding one cstl task to one main Agent session for clari
 | `task.py select <task-dir>` | Task directory name (e.g. `07-04-my-task`) |
 | `task.py start-execution <task-dir> --approved` | Same |
 
-Mechanism: `afterShellExecution` hook emits an `agent_message` (best-effort) plus always-on rule `cstl-session-rename.mdc` instructing the agent to call **`cursor-app-control` → `rename_chat`**. This MCP is a **Cursor platform** capability (not installed by `cstl init`); Trellis does not add it to `.cursor/mcp.json`.
+Mechanism: `afterShellExecution` hook (`rename-session-for-task.py`) emits a best-effort `agent_message` so the agent can call **`cursor-app-control` → `rename_chat`**. This MCP is a **Cursor platform** capability (not installed by `cstl init`); Trellis does not add it to `.cursor/mcp.json`. Skip silently if the MCP is unavailable.
 
 | Environment | Notes |
 | --- | --- |
@@ -99,7 +97,7 @@ Mechanism: `afterShellExecution` hook emits an `agent_message` (best-effort) plu
 
 Dedup state: `.cstl/.runtime/session-rename/` (per conversation context key).
 
-For day-to-day edits, treat `.cstl/workflow.md` as the canonical workflow spec; rules summarize the hard gates agents must follow in chat.
+For day-to-day edits, treat `.cstl/workflow.md` as the canonical workflow spec; the bootstrap rule is a pointer, not the full methodology.
 
 **Platform issues, Native/BYOK split, step-by-step operations, and external evidence** are documented in [Cursor platform limitations and cursor-trellis adaptation](cursor-platform-limitations-and-trellis-adaptation.md).
 
@@ -109,9 +107,10 @@ For day-to-day edits, treat `.cstl/workflow.md` as the canonical workflow spec; 
 | --- | --- | --- |
 | `cstl-continue.md` | `/cstl-continue` | Resume the active task with Trellis context |
 | `cstl-finish-work.md` | `/cstl-finish-work` | Close out verification, learning, and task status |
+| `cstl-handoff.md` | `/cstl-handoff` | Write a portable session handoff to the OS temp dir |
 | *(removed)* | — | Cursor++ setup command retired |
 
-Placeholder prefix on Cursor is `/trellis-` (see `AI_TOOLS.cursor.templateContext` in `packages/cli/src/types/ai-tools.ts`).
+Command prefix on Cursor is `/cstl-` (see `AI_TOOLS.cursor.templateContext` in `packages/cli/src/types/ai-tools.ts`). On Cursor, `/cstl-start` is **not** in the `/` palette (`start.md` is filtered on agent-capable platforms).
 
 ## Agents (subagents)
 
@@ -202,7 +201,7 @@ Trellis ships two hard gates that keep dogfood files (`./cursor/` and `./.cstl/s
 cstl update
 ```
 
-Compares template hashes, applies safe updates, and can run migrations (`--migrate`). Use `--dry-run` first in sensitive repos. See [CLI README](../packages/cli/README.md#trellis-update).
+Compares template hashes, applies safe updates, and can run migrations (`--migrate`). Read the summary and **confirm once** — decline leaves the project unchanged. Five-step path: [project README](../README.md#upgrade-an-existing-project). Use `--dry-run` first in sensitive repos. See [CLI README](../packages/cli/README.md#trellis-update).
 
 To remove Trellis-managed Cursor files:
 

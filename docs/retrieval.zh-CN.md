@@ -4,7 +4,7 @@
 
 Trellis 将代码库与外部事实问题通过一个**检索层**路由,而不是依赖单一工具。本文说明适配器栈、路由信封、上下文如何进入 Cursor Agent,以及 gating 可以断言什么结论的证据/评分规则。
 
-这是公开设计文档。已初始化项目内面向 Agent 的规范指南是 `.cstl/framework/retrieval-daily-guide.md`;强制执行的 Cursor 规则是 `.cursor/rules/retrieval-routing.mdc`(`alwaysApply: true`)。
+这是公开设计文档。已初始化项目内面向 Agent 的规范指南是 `.cstl/framework/retrieval-daily-guide.md`。默认常驻策略是薄规则 `.cursor/rules/cstl-bootstrap.mdc`（四种检索意图）。`retrieval-routing.mdc` 已退役。
 
 ## 为什么需要检索层
 
@@ -63,16 +63,19 @@ JSON 信封包含:
 
 当用户消息看起来是代码库问题时,`beforeSubmitPrompt` 钩子运行 `inject-retrieval-plan.py`,调用路由器并在用户提示前预置 `## 代码库检索计划`(或 `## Codebase retrieval plan`)块。该块包含针对该具体问题的有序必执行步骤。
 
-### 通道 2:常驻策略规则(`.cursor/rules/retrieval-routing.mdc`)
+### 通道 2:薄常驻指针(`.cursor/rules/cstl-bootstrap.mdc`)
 
-`retrieval-routing.mdc` 以 `alwaysApply: true` 发布。它定义:
+默认安装以 `alwaysApply: true` 发布 `cstl-bootstrap.mdc`。它点名四种基线意图（`exact` / `semantic` / `structural` / `external`），并指向独立中间件（smart-search）与可选代码智能。它**不**承载完整检索做法。
 
-- **默认工具顺序**(无计划块时):字面用 Grep → 调用方用 codegraph → 概念用语义 → 外部用 smart-search。
-- **计划块执行规则**:出现 `## 代码库检索计划` 块时,其步骤是必执行工具,不是建议。
+方法在 `.cstl/framework/retrieval-daily-guide.md` 与每查询计划块：
+
+- **默认工具顺序**(无计划块时):字面用 Grep → 调用方用 codegraph（若有）→ 概念用语义 → 外部用 smart-search。
+- 出现 `## 代码库检索计划` 块时,其步骤是必执行工具,不是建议。
 - **语义路由策略**(见下文)。
-- **结果层排序**触发条件。
 
-**为何不用 `sessionStart`?** `sessionStart` 钩子的 `additional_context` 字段文档化了但不可靠地进入 Agent 上下文(#158452)。因此 Trellis 把持久检索策略放进常驻规则、每查询计划放进 `beforeSubmitPrompt`——两者都不依赖 `sessionStart` 注入。
+`retrieval-routing.mdc` **已退役**；`cstl update` 会迁走未改动的副本。
+
+**为何不用 `sessionStart`?** `sessionStart` 钩子的 `additional_context` 字段文档化了但不可靠地进入 Agent 上下文(#158452)。因此 Trellis 保留薄常驻指针,并把每查询计划放进 `beforeSubmitPrompt`——两者都不依赖 `sessionStart` 注入。
 
 ## 证据评分
 

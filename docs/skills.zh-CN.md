@@ -152,7 +152,7 @@ cstl init --with-optional <name>   # 可重复;例如 cstl init --with-optional 
 
 ## Auto-triggered 清单
 
-规范自动触发清单(10 个技能)从 `templates/markdown/agents.md` 生成到 `AGENTS.md`。第 11 个(`cstl-cursor2plus-setup`)是 bundled 但条件性 —— 仅 Cursor++ BYOK 用户激活,因此不在通用自动触发集。
+规范自动触发清单(10 个技能)从 `templates/markdown/agents.md` 生成到 `AGENTS.md`。Cursor++ setup **不再随包装出**。
 
 | # | 技能 | 触发源 |
 | --- | --- | --- |

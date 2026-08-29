@@ -4,7 +4,7 @@
 
 本文说明在 `cstl init --cursor` 之后,如何在 Cursor 里跑 Trellis **任务生命周期**。覆盖完整生命周期:Request Triage、Task Ladder、规划工件、Parent/Child 任务树、三阶段(Plan → Execute → Finish)以及 Lite、Micro-Grill、No Task 三种模式的差异。
 
-规范原文在项目 `.cstl/workflow.md`(由 Trellis 生成/更新)。Cursor Agent 还会通过 `.cursor/rules/cstl-triage.mdc` 看到 **Request Triage** 硬门禁。
+规范原文在项目 `.cstl/workflow.md`(由 Trellis 生成/更新)。默认常驻规则只有 `.cursor/rules/cstl-bootstrap.mdc`（薄指针）。Request Triage 方法不在单独的 `cstl-triage.mdc` 里——该规则已退役。
 
 ## 前置条件
 
