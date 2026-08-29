@@ -16,7 +16,11 @@
  * Safety:
  *   - Both package.json versions must match before anything is published.
  *   - core is built fresh (dist/ is gitignored, never committed).
- *   - cli relies on its own `prepublishOnly` (test + build + copy-release-assets).
+ *   - cli relies on its own `prepublishOnly` (build + test + copy-release-assets).
+ *   - Stage 2 `task.py` ops need `cstl kernel --json`. This script sets
+ *     `TRELLIS_KERNEL_CLI` to this tree's `bin/cstl.js` when unset, and builds
+ *     cli before `pnpm publish` so `dist/` exists for those tests. Otherwise a
+ *     clean CI runner publishes core and then fails cli (0.4.3).
  *
  * Usage:
  *   node scripts/publish-packages.js              # publish both
@@ -54,6 +58,16 @@ function fail(message) {
   process.exit(1);
 }
 
+/** `kernel_command.py` treats TRELLIS_KERNEL_CLI as the full argv (includes `kernel --json`). */
+function ensureKernelCliEnv() {
+  if (process.env.TRELLIS_KERNEL_CLI?.trim()) {
+    return;
+  }
+  const bin = path.join(CLI_DIR, "bin", "cstl.js");
+  const quoted = /\s/.test(bin) ? `"${bin}"` : bin;
+  process.env.TRELLIS_KERNEL_CLI = `node ${quoted} kernel --json`;
+}
+
 function main() {
   const dryRun = process.argv.includes("--dry-run");
   const publishArgs = dryRun
@@ -89,13 +103,13 @@ function main() {
   run("pnpm run build", { cwd: CORE_DIR });
   run(publishArgs, { cwd: CORE_DIR });
 
-  // Step 4: publish cli. Its prepublishOnly (test + build + copy-release-assets)
-  // runs as part of `pnpm publish` and is the final safety gate. In --dry-run
-  // mode we skip publish entirely (npm pack --dry-run does not trigger
-  // prepublishOnly), so build manually to exercise the same artifact shape.
+  // Step 4: publish cli. Build first so Kernel tests in prepublishOnly can
+  // load `bin/cstl.js` → `dist/`. Then `pnpm publish` runs prepublishOnly
+  // (build + test + copy-release-assets). --dry-run skips that hook.
   console.log("\n— @blxzer/cursor-trellis —");
+  ensureKernelCliEnv();
+  run("pnpm run build", { cwd: CLI_DIR });
   if (dryRun) {
-    run("pnpm run build", { cwd: CLI_DIR });
     run("pnpm run copy:release-assets", { cwd: CLI_DIR });
   }
   run(publishArgs, { cwd: CLI_DIR });

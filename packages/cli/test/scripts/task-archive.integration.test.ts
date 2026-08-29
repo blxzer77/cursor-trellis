@@ -3,21 +3,20 @@
  *
  * The python script lives under
  * `src/templates/trellis/scripts/common/task_store.py`; this test stamps
- * the templates into a fresh git repo and exercises the real `python3
- * task.py archive` path. Two scenarios:
+ * the templates into a fresh git repo and exercises the real
+ * `task.py archive` path. Two scenarios:
  *
  *   1. Scope-creep — archive must NOT bundle dirty changes from OTHER
  *      active task dirs into the archive commit.
  *   2. Phantom-delete — after `shutil.move` of a tracked task dir, the
  *      source-side deletions must land in the archive commit (so the
  *      working tree stays clean against HEAD).
- *   3. Commit-failure visibility — if the archive move succeeds but git
- *      cannot create the bookkeeping commit, `task.py archive` must fail
- *      loudly so callers do not continue to journal over dirty deletes.
+ *   3. Lite + blocked auto-commit — archive move still Close-succeeds;
+ *      VCS failure is on-demand, not a Lite completion condition.
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { execFileSync, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -27,14 +26,16 @@ const TEMPLATE_SCRIPTS = path.resolve(
   "../../src/templates/trellis/scripts",
 );
 
-function hasPython(): boolean {
-  try {
-    execFileSync("python3", ["--version"], { stdio: "ignore" });
-    return true;
-  } catch {
-    return false;
+function pythonExe(): string | null {
+  for (const exe of ["python", "py", "python3"]) {
+    if (spawnSync(exe, ["--version"], { encoding: "utf-8" }).status === 0) {
+      return exe;
+    }
   }
+  return null;
 }
+
+const PY = pythonExe();
 
 function git(cwd: string, ...args: string[]): string {
   const r = spawnSync("git", args, { cwd, encoding: "utf-8" });
@@ -86,31 +87,57 @@ function makeTask(repo: string, name: string, prdBody: string): void {
       id: name,
       name,
       title: name,
+      description: prdBody.trim(),
       status: "in_progress",
+      dev_type: null,
+      scope: null,
+      package: null,
       priority: "P2",
-      createdAt: "2026-05-13",
-      assignee: "test",
       creator: "test",
+      assignee: "test",
+      createdAt: "2026-05-13",
+      completedAt: null,
+      branch: null,
+      base_branch: null,
+      worktree_path: null,
+      commit: null,
+      pr_url: null,
       subtasks: [],
       children: [],
+      parent: null,
       relatedFiles: [],
+      notes: "",
       meta: {},
     }) + "\n",
   );
 }
 
+const CLI_BIN = path.resolve(__dirname, "../../bin/cstl.js");
+
+/** Full argv for `kernel_command.py` (not just the binary path). */
+function kernelCliEnv(): NodeJS.ProcessEnv {
+  const quoted = /\s/.test(CLI_BIN) ? `"${CLI_BIN}"` : CLI_BIN;
+  return {
+    ...process.env,
+    TRELLIS_KERNEL_CLI: `node ${quoted} kernel --json`,
+  };
+}
+
 function runArchive(repo: string, taskName: string): void {
+  if (!PY) {
+    throw new Error("python executable not found");
+  }
   const r = spawnSync(
-    "python3",
+    PY,
     [".cstl/scripts/task.py", "archive", taskName],
-    { cwd: repo, encoding: "utf-8" },
+    { cwd: repo, encoding: "utf-8", env: kernelCliEnv() },
   );
   if (r.status !== 0) {
     throw new Error(`archive failed: ${r.stderr}`);
   }
 }
 
-describe.skipIf(!hasPython())(
+describe.skipIf(!PY)(
   "task.py archive auto-commit",
   () => {
     let tmp: string;
@@ -213,14 +240,13 @@ describe.skipIf(!hasPython())(
       30_000, // python startup + 100-file ops can be slow
     );
 
-    it("fails when archive auto-commit cannot record tracked source deletes", () => {
+    it("Lite Close still succeeds when git auto-commit is blocked", () => {
       makeTask(tmp, "tracked", "# tracked task\n");
       git(tmp, "add", "-A");
       git(tmp, "commit", "-q", "-m", "initial");
 
-      // Simulate a repo where git can stage the archive move but cannot
-      // create the commit. A failing hook is deterministic even when the
-      // developer machine has global git identity configured.
+      // Failing hook is deterministic even when the machine has a global
+      // git identity. Lite treats VCS as on-demand: Close Outcome stands.
       const hookPath = path.join(tmp, ".git", "hooks", "pre-commit");
       fs.writeFileSync(
         hookPath,
@@ -229,17 +255,15 @@ describe.skipIf(!hasPython())(
       fs.chmodSync(hookPath, 0o755);
 
       const r = spawnSync(
-        "python3",
+        PY!,
         [".cstl/scripts/task.py", "archive", "tracked"],
-        { cwd: tmp, encoding: "utf-8" },
+        { cwd: tmp, encoding: "utf-8", env: kernelCliEnv() },
       );
 
-      expect(r.status).not.toBe(0);
-      expect(r.stderr).toContain("Archive moved on disk");
-      expect(r.stderr).toContain("Auto-commit failed");
+      expect(r.status, r.stderr).toBe(0);
+      expect(r.stderr).toMatch(/Auto-commit failed|Lite Close Outcome stands/);
 
       const status = git(tmp, "status", "--porcelain");
-      expect(status).toContain(".cstl/tasks/tracked/");
       expect(status).toContain(".cstl/tasks/archive/");
     });
   },

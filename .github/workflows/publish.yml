@@ -75,6 +75,9 @@ jobs:
         run: node packages/cli/scripts/publish-packages.js
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # cli prepublishOnly runs tests. Archive/create/start-execution call
+          # Kernel; without this, core publishes and cli fails (0.4.3 incident).
+          TRELLIS_KERNEL_CLI: node ${{ github.workspace }}/packages/cli/bin/cstl.js kernel --json
 
       - name: Verify npm registry visibility
         run: node packages/cli/scripts/release-preflight.js verify-npm --package all

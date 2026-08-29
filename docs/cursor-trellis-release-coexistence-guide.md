@@ -38,7 +38,7 @@ node packages/cli/scripts/release-preflight.js verify-npm --package all
 
 - **`npm publish`** from `packages/cli` alone (0.3.1 incident: cli tarball had `workspace:*`, core was missing).
 - Publish cli before core (cli install fails with ETARGET until core exists).
-- Skip `prepublishOnly` (runs test + build + copy-release-assets on cli).
+- Skip `prepublishOnly` (runs build + test + copy-release-assets on cli).
 
 ### Preflight commands
 

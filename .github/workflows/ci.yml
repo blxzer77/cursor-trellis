@@ -39,6 +39,10 @@ jobs:
           cp -r packages/cli/src/templates/trellis/scripts/* .cstl/scripts/
 
       - name: Test
+        env:
+          # task.py archive/create/start-execution need `cstl kernel --json`.
+          # A clean runner has no global `cstl`; point at this checkout's bin.
+          TRELLIS_KERNEL_CLI: node ${{ github.workspace }}/packages/cli/bin/cstl.js kernel --json
         run: pnpm test
 
       - name: Mirror-check
