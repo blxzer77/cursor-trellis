@@ -16,8 +16,10 @@ on:
     tags:
       - "cstl-v*"
 
+# contents: write — GitHub Release on the same tag (Latest was stuck on 0.3.4
+# when only npm published). Do not drop this back to read.
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   publish:
@@ -45,6 +47,27 @@ jobs:
       - name: Verify tag matches package versions
         run: node packages/cli/scripts/release-preflight.js check-versions --require-tag
 
+      - name: Prepare GitHub Release notes from CHANGELOG
+        run: |
+          export NOTES_FILE="${RUNNER_TEMP}/release-notes.md"
+          node <<'NODE'
+          const fs = require("node:fs");
+          const version = JSON.parse(
+            fs.readFileSync("packages/cli/package.json", "utf8"),
+          ).version;
+          const text = fs.readFileSync("packages/cli/CHANGELOG.md", "utf8");
+          const header = `## [${version}]`;
+          const start = text.indexOf(header);
+          if (start < 0) {
+            console.error(`CHANGELOG.md has no ${header} section`);
+            process.exit(1);
+          }
+          const rest = text.slice(start);
+          const next = rest.indexOf("\n## [", 1);
+          const notes = `${(next < 0 ? rest : rest.slice(0, next)).trim()}\n`;
+          fs.writeFileSync(process.env.NOTES_FILE, notes);
+          NODE
+
       - name: Verify packed CLI resolves core dependency
         run: node packages/cli/scripts/release-preflight.js verify-packed-cli
 
@@ -55,3 +78,20 @@ jobs:
 
       - name: Verify npm registry visibility
         run: node packages/cli/scripts/release-preflight.js verify-npm --package all
+
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          NOTES_FILE="${RUNNER_TEMP}/release-notes.md"
+          TAG="${GITHUB_REF_NAME}"
+          TITLE="$(node -p "require('./packages/cli/package.json').version")"
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            gh release edit "${TAG}" --notes-file "${NOTES_FILE}" --title "${TITLE}" --latest
+          else
+            gh release create "${TAG}" \
+              --verify-tag \
+              --notes-file "${NOTES_FILE}" \
+              --title "${TITLE}" \
+              --latest
+          fi
