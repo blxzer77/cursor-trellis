@@ -23,6 +23,7 @@ Cursor-native 0.4.3. Lands **Stage 0–7** (Kernel writer, Lite / Full Quality, 
 ### Changed
 
 - **fix(update)**: Capability / readiness smoke failure no longer aborts `cstl update` before confirm. Unverified smoke is labeled; you can still Proceed, decline, or `--force`.
+- **fix(init)**: Same principle — capability / readiness smoke failure no longer aborts `cstl init`. Unverified smoke is labeled; official files still write and the install can finish.
 - **docs**: GitHub README and user `docs/` match Native Cursor (bootstrap always-on rule, `/cstl-handoff`, skill paths under `.cstl/framework/`). Cursor++ / Method 2.5 is not a product path.
 - **chore(product)**: Default install has no `cstl-goal`, no Cursor++ live surface, no SDK / Campaign / RPC-FULL CORE. Parallel-first is a product principle (convention + review, not a new scheduler). Authoring Trellis skills still requires `cstl-skill-creator`.
 
