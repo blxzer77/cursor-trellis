@@ -306,7 +306,7 @@ describe("init() integration", () => {
     );
   });
 
-  it("#1d blocks init when Smart Search readiness fails", async () => {
+  it("#1d continues init when Smart Search readiness fails", async () => {
     vi.mocked(execSync).mockImplementation(((cmd: string) => {
       const expectedPythonCmd =
         process.platform === "win32" ? "python" : "python3";
@@ -330,17 +330,24 @@ describe("init() integration", () => {
       return "";
     }) as typeof execSync);
 
-    await expect(init({ yes: true })).rejects.toThrow(
-      /Smart Search readiness failed[\s\S]*smart-search setup/,
-    );
+    await init({ yes: true, cursor: true });
+
     expect(execSync).not.toHaveBeenCalledWith(
       "smart-search setup",
       expect.anything(),
     );
-    expect(fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW))).toBe(false);
+    expect(fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW))).toBe(true);
+    expect(
+      fs.existsSync(
+        path.join(tmpDir, ".cursor", "rules", "cstl-bootstrap.mdc"),
+      ),
+    ).toBe(true);
+    expect(console.warn).toHaveBeenCalledWith(
+      expect.stringMatching(/Smart Search readiness unverified/),
+    );
   });
 
-  it("#1d.1 interactive init can run smart-search setup and re-check readiness", async () => {
+  it("#1d.1 interactive init still writes files when Smart Search readiness fails", async () => {
     let doctorCalls = 0;
     vi.mocked(execSync).mockImplementation(((cmd: string) => {
       const expectedPythonCmd =
@@ -350,24 +357,18 @@ describe("init() integration", () => {
       }
       if (cmd === "smart-search doctor --format json") {
         doctorCalls += 1;
-        if (doctorCalls === 1) {
-          const error = new Error("Command failed: smart-search doctor");
-          Object.assign(error, {
-            status: 2,
-            stdout: JSON.stringify({
-              ok: false,
-              minimum_profile_ok: false,
-              minimum_profile_missing: ["main_search"],
-              error_type: "config_error",
-              error: "standard minimum profile is not configured",
-            }),
-          });
-          throw error;
-        }
-        return JSON.stringify({ ok: true, minimum_profile_ok: true });
-      }
-      if (cmd === "smart-search setup") {
-        return "";
+        const error = new Error("Command failed: smart-search doctor");
+        Object.assign(error, {
+          status: 2,
+          stdout: JSON.stringify({
+            ok: false,
+            minimum_profile_ok: false,
+            minimum_profile_missing: ["main_search"],
+            error_type: "config_error",
+            error: "standard minimum profile is not configured",
+          }),
+        });
+        throw error;
       }
       return "";
     }) as typeof execSync);
@@ -380,23 +381,23 @@ describe("init() integration", () => {
     );
     vi.mocked(inquirer.prompt)
       .mockResolvedValueOnce({ tools: ["claude"] })
-      .mockResolvedValueOnce({ capabilities: [] })
-      .mockResolvedValueOnce({ smartSearchSetupAction: "setup" });
+      .mockResolvedValueOnce({ capabilities: [] });
 
     await init({ user: "test-dev" });
 
-    expect(doctorCalls).toBe(2);
-    expect(execSync).toHaveBeenCalledWith("smart-search setup", {
-      stdio: "inherit",
-    });
+    expect(doctorCalls).toBe(1);
+    expect(execSync).not.toHaveBeenCalledWith(
+      "smart-search setup",
+      expect.anything(),
+    );
     expect(fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW))).toBe(true);
-    expect(inquirer.prompt).toHaveBeenCalledWith(
+    expect(console.warn).toHaveBeenCalledWith(
+      expect.stringMatching(/Smart Search readiness unverified/),
+    );
+    expect(inquirer.prompt).not.toHaveBeenCalledWith(
       expect.arrayContaining([
         expect.objectContaining({
           name: "smartSearchSetupAction",
-          message: expect.stringContaining(
-            "Smart Search provider configuration",
-          ),
         }),
       ]),
     );
@@ -415,7 +416,7 @@ describe("init() integration", () => {
     );
   });
 
-  it("#1g blocks init before writes when selected capability readiness fails", async () => {
+  it("#1g continues init when selected capability readiness fails", async () => {
     vi.mocked(execSync).mockImplementation(((cmd: string) => {
       const expectedPythonCmd =
         process.platform === "win32" ? "python" : "python3";
@@ -431,12 +432,20 @@ describe("init() integration", () => {
       return "";
     }) as typeof execSync);
 
-    await expect(
-      init({ yes: true, capability: ["codebase-retrieval"] }),
-    ).rejects.toThrow(
-      /Selected project capability readiness failed[\s\S]*codebase-retrieval[\s\S]*rg[\s\S]*cstl init --skip-readiness/,
+    await init({
+      yes: true,
+      cursor: true,
+      capability: ["codebase-retrieval"],
+    });
+    expect(fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW))).toBe(true);
+    expect(
+      fs.existsSync(
+        path.join(tmpDir, ".cursor", "rules", "cstl-bootstrap.mdc"),
+      ),
+    ).toBe(true);
+    expect(console.warn).toHaveBeenCalledWith(
+      expect.stringMatching(/codebase-retrieval capability unverified/),
     );
-    expect(fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW))).toBe(false);
   });
 
   it("#1h --skip-readiness bypasses selected capability probes", async () => {
@@ -456,7 +465,7 @@ describe("init() integration", () => {
     );
   });
 
-  it("#1h.1 interactive init can re-check selected capability readiness after user-approved setup", async () => {
+  it("#1h.1 interactive init still writes files when selected capability readiness fails", async () => {
     let capabilityLookups = 0;
     vi.mocked(execSync).mockImplementation(((cmd: string) => {
       const expectedPythonCmd =
@@ -469,10 +478,7 @@ describe("init() integration", () => {
       }
       if (cmd === capabilityLookupCommand("rg")) {
         capabilityLookups += 1;
-        if (capabilityLookups === 1) {
-          throw new Error("rg not found");
-        }
-        return "";
+        throw new Error("rg not found");
       }
       return "";
     }) as typeof execSync);
@@ -483,9 +489,6 @@ describe("init() integration", () => {
         json: async () => ({ version: 1, templates: [] }),
       }),
     );
-    vi.mocked(inquirer.prompt).mockResolvedValueOnce({
-      capabilitySetupAction: "recheck",
-    });
 
     await init({
       user: "test-dev",
@@ -493,16 +496,16 @@ describe("init() integration", () => {
       capability: ["codebase-retrieval"],
     });
 
-    expect(capabilityLookups).toBe(2);
+    expect(capabilityLookups).toBeGreaterThanOrEqual(1);
     expect(fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW))).toBe(true);
     expect(fs.existsSync(path.join(tmpDir, ".cursor", "mcp.json"))).toBe(true);
-    expect(inquirer.prompt).toHaveBeenCalledWith(
+    expect(console.warn).toHaveBeenCalledWith(
+      expect.stringMatching(/codebase-retrieval capability unverified/),
+    );
+    expect(inquirer.prompt).not.toHaveBeenCalledWith(
       expect.arrayContaining([
         expect.objectContaining({
           name: "capabilitySetupAction",
-          message: expect.stringContaining(
-            "Selected project capability readiness failed",
-          ),
         }),
       ]),
     );
@@ -554,7 +557,7 @@ describe("init() integration", () => {
     );
   });
 
-  it("#1j blocks retrieval when a generated semantic MCP adapter package is unavailable", async () => {
+  it("#1j continues init when a generated semantic MCP adapter package is unavailable", async () => {
     vi.mocked(execSync).mockImplementation(((cmd: string) => {
       const expectedPythonCmd =
         process.platform === "win32" ? "python" : "python3";
@@ -570,25 +573,37 @@ describe("init() integration", () => {
       return "";
     }) as typeof execSync);
 
-    await expect(
-      init({ yes: true, capability: ["codebase-retrieval"] }),
-    ).rejects.toThrow(
-      /Selected project capability readiness failed[\s\S]*fast-context[\s\S]*cstl init --skip-readiness/,
+    await init({
+      yes: true,
+      cursor: true,
+      capability: ["codebase-retrieval"],
+    });
+    expect(fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW))).toBe(true);
+    expect(
+      fs.existsSync(
+        path.join(tmpDir, ".cursor", "rules", "cstl-bootstrap.mdc"),
+      ),
+    ).toBe(true);
+    expect(console.warn).toHaveBeenCalledWith(
+      expect.stringMatching(/codebase-retrieval capability unverified/),
     );
-    expect(fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW))).toBe(false);
   });
 
-  it("#1k blocks GitHub MCP when the required token env is not visible", async () => {
+  it("#1k continues init when GitHub MCP token env is not visible", async () => {
     vi.stubEnv("GITHUB_TOKEN", "");
     vi.stubEnv("GITHUB_PERSONAL_ACCESS_TOKEN", "");
     vi.stubEnv("GH_TOKEN", "legacy-token");
 
-    await expect(
-      init({ yes: true, capability: ["github-mcp"] }),
-    ).rejects.toThrow(
-      /Selected project capability readiness failed[\s\S]*github-mcp[\s\S]*GITHUB_TOKEN[\s\S]*GITHUB_PERSONAL_ACCESS_TOKEN[\s\S]*cstl init --skip-readiness/,
+    await init({ yes: true, cursor: true, capability: ["github-mcp"] });
+    expect(fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW))).toBe(true);
+    expect(
+      fs.existsSync(
+        path.join(tmpDir, ".cursor", "rules", "cstl-bootstrap.mdc"),
+      ),
+    ).toBe(true);
+    expect(console.warn).toHaveBeenCalledWith(
+      expect.stringMatching(/github-mcp capability unverified/),
     );
-    expect(fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW))).toBe(false);
   });
 
   it("#2 single platform creates only that platform directory", async () => {

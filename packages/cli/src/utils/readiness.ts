@@ -517,22 +517,29 @@ function smokeCommandsForCapability(
   return smoke ? [smoke] : [];
 }
 
-/**
- * Print update readiness. Failures are unverified warnings, not a hard stop.
- * `--skip-readiness` remains a maintainer hatch, not the Cursor-user default.
- */
-export function reportUpdateReadiness(snapshot: UpdateReadinessSnapshot): void {
+function printReadinessReport(
+  snapshot: UpdateReadinessSnapshot,
+  options: {
+    continueHint: string;
+    warnCapabilitySkipWhenEmpty: boolean;
+  },
+): void {
   if (snapshot.skipped) {
     console.warn(
       chalk.yellow(
         "⚠ Smart Search readiness skipped (--skip-readiness); framework readiness is not verified.",
       ),
     );
-    console.warn(
-      chalk.yellow(
-        "⚠ Selected project capability readiness skipped (--skip-readiness); selected capabilities are not verified.",
-      ),
-    );
+    if (
+      options.warnCapabilitySkipWhenEmpty ||
+      snapshot.capabilities.length > 0
+    ) {
+      console.warn(
+        chalk.yellow(
+          "⚠ Selected project capability readiness skipped (--skip-readiness); selected capabilities are not verified.",
+        ),
+      );
+    }
     return;
   }
 
@@ -542,7 +549,7 @@ export function reportUpdateReadiness(snapshot: UpdateReadinessSnapshot): void {
   } else {
     console.warn(
       chalk.yellow(
-        "⚠ Smart Search readiness unverified; official files can still update after confirmation.",
+        `⚠ Smart Search readiness unverified; ${options.continueHint}`,
       ),
     );
     for (const detail of snapshot.smartSearch.details) {
@@ -563,7 +570,7 @@ export function reportUpdateReadiness(snapshot: UpdateReadinessSnapshot): void {
     } else {
       console.warn(
         chalk.yellow(
-          `⚠ ${cap.id} capability unverified; official files can still update after confirmation.`,
+          `⚠ ${cap.id} capability unverified; ${options.continueHint}`,
         ),
       );
       for (const failure of cap.failures) {
@@ -574,6 +581,28 @@ export function reportUpdateReadiness(snapshot: UpdateReadinessSnapshot): void {
       console.warn(chalk.yellow(`⚠ ${cap.id}: ${warning}`));
     }
   }
+}
+
+/**
+ * Print update readiness. Failures are unverified warnings, not a hard stop.
+ * `--skip-readiness` remains a maintainer hatch, not the Cursor-user default.
+ */
+export function reportUpdateReadiness(snapshot: UpdateReadinessSnapshot): void {
+  printReadinessReport(snapshot, {
+    continueHint: "official files can still update after confirmation.",
+    warnCapabilitySkipWhenEmpty: true,
+  });
+}
+
+/**
+ * Print init readiness. Failures are unverified warnings, not a hard stop.
+ * `--skip-readiness` remains a maintainer hatch, not the Cursor-user default.
+ */
+export function reportInitReadiness(snapshot: UpdateReadinessSnapshot): void {
+  printReadinessReport(snapshot, {
+    continueHint: "official files can still be written.",
+    warnCapabilitySkipWhenEmpty: false,
+  });
 }
 
 /** Non-throwing readiness snapshot for structured update/rollout evidence. */

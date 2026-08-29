@@ -70,8 +70,8 @@ import {
 } from "../utils/template-fetcher.js";
 import { setupProxy, maskProxyUrl } from "../utils/proxy.js";
 import {
-  checkProjectCapabilityReadiness,
-  checkSmartSearchReadiness,
+  reportInitReadiness,
+  snapshotReadinessForRollout,
 } from "../utils/readiness.js";
 import {
   getProjectCapability,
@@ -1115,133 +1115,6 @@ interface InitAnswers {
   template?: string;
   existingDirAction?: TemplateStrategy;
   capabilities?: ProjectCapabilityId[];
-  smartSearchSetupAction?: "setup" | "abort";
-  capabilitySetupAction?: "recheck" | "abort";
-}
-
-async function checkSmartSearchReadinessForInit(options: {
-  interactive: boolean;
-  skipReadiness?: boolean;
-}): Promise<void> {
-  const skipReadinessCommand = "cstl init --skip-readiness";
-
-  try {
-    checkSmartSearchReadiness({
-      skipReadiness: options.skipReadiness,
-      skipReadinessCommand,
-    });
-    return;
-  } catch (error) {
-    if (!options.interactive || options.skipReadiness) {
-      throw error;
-    }
-
-    const message = error instanceof Error ? error.message : String(error);
-    console.warn(chalk.yellow(message));
-
-    const answer = await inquirer.prompt<InitAnswers>([
-      {
-        type: "list",
-        name: "smartSearchSetupAction",
-        message:
-          "Smart Search provider configuration is missing or not ready. What should Trellis do?",
-        choices: [
-          {
-            name: "Run `smart-search setup` now, then re-check readiness",
-            value: "setup",
-          },
-          {
-            name: "Abort init so I can configure Smart Search manually",
-            value: "abort",
-          },
-        ],
-        default: "setup",
-      },
-    ]);
-
-    if (answer.smartSearchSetupAction !== "setup") {
-      throw error;
-    }
-
-    console.log(chalk.blue("🔧 Running smart-search setup..."));
-    try {
-      execSync("smart-search setup", { stdio: "inherit" });
-    } catch (setupError) {
-      const setupMessage =
-        setupError instanceof Error ? setupError.message : String(setupError);
-      throw new Error(
-        [
-          "Smart Search setup failed.",
-          `Details: ${setupMessage}`,
-          "Recovery:",
-          "  smart-search setup",
-          `  ${skipReadinessCommand}`,
-        ].join("\n"),
-      );
-    }
-
-    checkSmartSearchReadiness({
-      skipReadiness: false,
-      skipReadinessCommand,
-    });
-  }
-}
-
-async function checkProjectCapabilityReadinessForInit(options: {
-  cwd: string;
-  selected: readonly ProjectCapabilityId[];
-  interactive: boolean;
-  skipReadiness?: boolean;
-}): Promise<void> {
-  const skipReadinessCommand = "cstl init --skip-readiness";
-
-  try {
-    checkProjectCapabilityReadiness({
-      cwd: options.cwd,
-      selected: options.selected,
-      skipReadiness: options.skipReadiness,
-      skipReadinessCommand,
-    });
-    return;
-  } catch (error) {
-    if (!options.interactive || options.skipReadiness) {
-      throw error;
-    }
-
-    const message = error instanceof Error ? error.message : String(error);
-    console.warn(chalk.yellow(message));
-
-    const answer = await inquirer.prompt<InitAnswers>([
-      {
-        type: "list",
-        name: "capabilitySetupAction",
-        message:
-          "Selected project capability readiness failed. Fix setup/config outside Trellis, then choose whether to re-check.",
-        choices: [
-          {
-            name: "I have fixed the selected capability setup/config; re-check readiness",
-            value: "recheck",
-          },
-          {
-            name: "Abort init without writing project files",
-            value: "abort",
-          },
-        ],
-        default: "recheck",
-      },
-    ]);
-
-    if (answer.capabilitySetupAction !== "recheck") {
-      throw error;
-    }
-
-    checkProjectCapabilityReadiness({
-      cwd: options.cwd,
-      selected: options.selected,
-      skipReadiness: false,
-      skipReadinessCommand,
-    });
-  }
 }
 
 /**
@@ -1670,16 +1543,13 @@ export async function init(options: InitOptions): Promise<void> {
     selectedCapabilities = capabilityAnswers.capabilities ?? [];
   }
 
-  await checkSmartSearchReadinessForInit({
-    interactive: !options.yes,
-    skipReadiness: options.skipReadiness,
-  });
-  await checkProjectCapabilityReadinessForInit({
-    cwd,
-    selected: selectedCapabilities,
-    interactive: !options.yes,
-    skipReadiness: options.skipReadiness,
-  });
+  reportInitReadiness(
+    snapshotReadinessForRollout({
+      cwd,
+      selected: selectedCapabilities,
+      skipReadiness: options.skipReadiness,
+    }),
+  );
 
   // ==========================================================================
   // Template Selection (single-repo only; monorepo handles templates above)
