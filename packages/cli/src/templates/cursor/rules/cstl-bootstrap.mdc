@@ -12,6 +12,6 @@ This is the **single thin Bootstrap** for Cursor. It points; it does not carry f
 - **external-knowledge:** smart-search is an independent Middleware Provider. Probe readiness. Missing → Profile `degraded`. Tasks that do not need the capability may Close. Platform Web is a downgrade, not an equivalent.
 - **Optional code intelligence:** codegraph and fast-context stay Optional. Do not treat them as default always-on or forced install.
 - **Native SSOT:** no Cursor++ command/skill/init ask and no cstl-byok live install on this surface. Env probe fields (`TRELLIS_CURSOR_BYOK`, `~/.ccursor/routes.json`) may remain.
-- **User overlay:** project `.cstl/middleware/` Manifests. `cstl init` / `cstl update` never write, delete, or hash that directory. Protocol: `.cstl/framework/middleware-protocol.md`.
+- **User overlay:** project `.cstl/middleware/` Manifests. `cstl init` / `cstl update` never write, delete, or hash that directory. Protocol: `.cstl/framework/middleware-protocol.md`. Shipped optional MCP providers are not force-installed at init.
 
 This is the only default always-on rule. Do **not** add middleware-specific always-on. Methodology lives in `.cstl/workflow.md` (human overview, not runtime SSOT) and on-demand docs.

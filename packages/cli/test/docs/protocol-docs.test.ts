@@ -57,6 +57,27 @@ describe("P31–P36 product protocol docs", () => {
     expect(protocol).not.toMatch(/capability router.*bind/i);
   });
 
+  it("ships seven optional-or-required providers and does not leave Playwright/GitHub as Extra-unmanaged", () => {
+    const protocol = doc("middleware-protocol.md");
+    for (const id of [
+      "smart-search",
+      "codegraph",
+      "fast-context",
+      "chrome-cdp",
+      "playwright",
+      "github",
+      "cursor-ide-browser",
+    ]) {
+      expect(protocol).toContain(`id: ${id}`);
+    }
+    expect(protocol).toContain("blaze-skills/chrome-cdp");
+    expect(protocol).toContain("host-platform");
+    expect(protocol).toContain("GITHUB_TOKEN");
+    expect(protocol).not.toMatch(/Playwright \/ GitHub \| 默认不集成/);
+    expect(protocol).toContain("仅 **smart-search** = `required`");
+    expect(protocol).toContain("强制安装 Playwright / GitHub");
+  });
+
   it("P36 user upgrade is a half-page with no Stage map and no local full-migrate", () => {
     const upgrade = doc("upgrade.md");
     expect(upgrade).toContain("cstl update");
