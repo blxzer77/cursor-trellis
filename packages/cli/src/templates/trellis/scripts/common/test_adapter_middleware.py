@@ -13,11 +13,17 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from common.adapter_middleware import (
     EXTERNAL_KNOWLEDGE_CAPABILITY,
     RETRIEVAL_INTENTS,
+    SHIPPED_MIDDLEWARE_PROVIDERS,
+    SHIPPED_PROVIDER_PROBE,
     AdapterMiddlewareError,
+    apply_middleware_probes,
     assert_external_knowledge,
+    default_middleware_providers,
     dispatch_hook_event,
+    mcp_server_ids_from_config,
     normalize_capability_router,
     probe_smart_search_readiness,
+    select_registered_mcp_servers,
 )
 
 
@@ -54,3 +60,33 @@ def test_capability_router_rejects_optional_tool_names() -> None:
     assert tuple(key for key in RETRIEVAL_INTENTS if router.get(key)) == RETRIEVAL_INTENTS
     with pytest.raises(AdapterMiddlewareError, match="Optional tool"):
         normalize_capability_router({"codegraph": True})
+
+
+def test_default_catalog_is_seven_providers_with_smart_search_required() -> None:
+    providers = default_middleware_providers()
+    assert providers["registered"] == list(SHIPPED_MIDDLEWARE_PROVIDERS)
+    assert providers["required"] == ["smart-search"]
+    assert set(SHIPPED_PROVIDER_PROBE) == set(SHIPPED_MIDDLEWARE_PROVIDERS)
+    assert set(SHIPPED_PROVIDER_PROBE.values()) <= {"cli", "mcp", "host"}
+
+
+def test_optional_mcp_missing_does_not_block_unrelated_assert() -> None:
+    providers = apply_middleware_probes(
+        default_middleware_providers(),
+        {
+            "codegraph": {"present": False},
+            "random-extra-mcp": {"present": True},
+        },
+    )
+    assert providers["readiness"]["codegraph"]["status"] == "missing"
+    assert "random-extra-mcp" not in providers["readiness"]
+    extras: dict = {}
+    assert_external_knowledge(
+        extras,
+        providers["readiness"]["smart-search"],
+        phase="archive",
+    )
+    configured = mcp_server_ids_from_config(
+        {"mcpServers": {"codegraph": {}, "random-extra-mcp": {}, "playwright": {}}},
+    )
+    assert select_registered_mcp_servers(configured) == ["codegraph", "playwright"]

@@ -14,6 +14,34 @@ SMART_SEARCH_PROVIDER = "smart-search"
 EXTERNAL_KNOWLEDGE_CAPABILITY = "external-knowledge"
 RETRIEVAL_INTENTS = ("exact", "semantic", "structural", "external")
 OPTIONAL_CODE_INTEL_PROVIDERS = ("codegraph", "fast-context")
+SHIPPED_MIDDLEWARE_PROVIDERS = (
+    "smart-search",
+    "codegraph",
+    "fast-context",
+    "chrome-cdp",
+    "playwright",
+    "github",
+    "cursor-ide-browser",
+)
+DEFAULT_REQUIRED_MIDDLEWARE_PROVIDERS = (SMART_SEARCH_PROVIDER,)
+SHIPPED_PROVIDER_CAPABILITY = {
+    "smart-search": EXTERNAL_KNOWLEDGE_CAPABILITY,
+    "codegraph": "structural",
+    "fast-context": "semantic",
+    "chrome-cdp": "browser-session",
+    "playwright": "browser-automation",
+    "github": "vcs-host",
+    "cursor-ide-browser": "ide-browser",
+}
+SHIPPED_PROVIDER_PROBE = {
+    "smart-search": "cli",
+    "codegraph": "mcp",
+    "fast-context": "mcp",
+    "chrome-cdp": "cli",
+    "playwright": "mcp",
+    "github": "mcp",
+    "cursor-ide-browser": "host",
+}
 
 
 class AdapterMiddlewareError(RuntimeError):
@@ -28,21 +56,26 @@ def default_event_bridge() -> dict[str, Any]:
     }
 
 
+def _default_readiness() -> dict[str, Any]:
+    return {
+        provider_id: {
+            "status": "unknown",
+            "capability": SHIPPED_PROVIDER_CAPABILITY[provider_id],
+            "evidence": None,
+        }
+        for provider_id in SHIPPED_MIDDLEWARE_PROVIDERS
+    }
+
+
 def default_middleware_providers() -> dict[str, Any]:
     return {
         "schema_version": STAGE6_SCHEMA_VERSION,
         "source": STAGE6_SOURCE,
-        "registered": [SMART_SEARCH_PROVIDER],
-        "required": [SMART_SEARCH_PROVIDER],
+        "registered": list(SHIPPED_MIDDLEWARE_PROVIDERS),
+        "required": list(DEFAULT_REQUIRED_MIDDLEWARE_PROVIDERS),
         "active": [],
         "degraded": [],
-        "readiness": {
-            SMART_SEARCH_PROVIDER: {
-                "status": "unknown",
-                "capability": EXTERNAL_KNOWLEDGE_CAPABILITY,
-                "evidence": None,
-            }
-        },
+        "readiness": _default_readiness(),
     }
 
 
@@ -89,20 +122,102 @@ def dispatch_hook_event(
     }
 
 
-def probe_smart_search_readiness(*, available: bool | None = None, status: str | None = None) -> dict[str, Any]:
-    resolved = status
-    if resolved not in {"ready", "missing", "failed", "unknown"}:
-        if available is True:
-            resolved = "ready"
-        elif available is False:
-            resolved = "missing"
-        else:
-            resolved = "unknown"
+def classify_transport_probe(
+    *,
+    present: bool | None = None,
+    reachable: bool | None = None,
+    available: bool | None = None,
+    status: str | None = None,
+    evidence: str | None = None,
+) -> dict[str, Any]:
+    if status in {"ready", "missing", "failed", "unknown"}:
+        return {"status": status, "evidence": evidence}
+    resolved_present = present if present is not None else available
+    if resolved_present is False:
+        return {"status": "missing", "evidence": evidence}
+    if resolved_present is True and reachable is False:
+        return {"status": "failed", "evidence": evidence}
+    if resolved_present is True:
+        return {"status": "ready", "evidence": evidence}
+    return {"status": "unknown", "evidence": evidence}
+
+
+def mcp_server_ids_from_config(raw: Any) -> list[str]:
+    if not isinstance(raw, dict):
+        return []
+    servers = raw.get("mcpServers")
+    if not isinstance(servers, dict):
+        return []
+    return [str(name) for name in servers.keys()]
+
+
+def select_registered_mcp_servers(
+    configured: list[str] | tuple[str, ...],
+    registered: list[str] | tuple[str, ...] | None = None,
+) -> list[str]:
+    allow = list(registered if registered is not None else SHIPPED_MIDDLEWARE_PROVIDERS)
+    out: list[str] = []
+    for name in configured:
+        if name in allow and name not in out:
+            out.append(name)
+    return out
+
+
+def probe_shipped_provider_readiness(
+    provider_id: str,
+    *,
+    present: bool | None = None,
+    reachable: bool | None = None,
+    available: bool | None = None,
+    status: str | None = None,
+    evidence: str | None = None,
+) -> dict[str, Any]:
+    classified = classify_transport_probe(
+        present=present,
+        reachable=reachable,
+        available=available,
+        status=status,
+        evidence=evidence,
+    )
     return {
-        "status": resolved,
-        "capability": EXTERNAL_KNOWLEDGE_CAPABILITY,
-        "evidence": None,
+        "status": classified["status"],
+        "capability": SHIPPED_PROVIDER_CAPABILITY.get(
+            provider_id,
+            EXTERNAL_KNOWLEDGE_CAPABILITY if provider_id == SMART_SEARCH_PROVIDER else "unknown",
+        ),
+        "evidence": classified["evidence"],
     }
+
+
+def apply_middleware_probes(
+    providers: dict[str, Any],
+    probes: dict[str, Any],
+) -> dict[str, Any]:
+    registered = providers.get("registered") or []
+    readiness = dict(providers.get("readiness") or {})
+    if not isinstance(probes, dict):
+        return providers
+    for provider_id, value in probes.items():
+        if provider_id not in registered or not isinstance(value, dict):
+            continue
+        readiness[provider_id] = probe_shipped_provider_readiness(
+            provider_id,
+            present=value.get("present"),
+            reachable=value.get("reachable"),
+            available=value.get("available"),
+            status=value.get("status"),
+            evidence=value.get("evidence") if isinstance(value.get("evidence"), str) else None,
+        )
+    next_providers = {**providers, "readiness": readiness}
+    return next_providers
+
+
+def probe_smart_search_readiness(*, available: bool | None = None, status: str | None = None) -> dict[str, Any]:
+    return probe_shipped_provider_readiness(
+        SMART_SEARCH_PROVIDER,
+        available=available,
+        status=status,
+    )
 
 
 def normalize_capability_router(raw: Any) -> dict[str, Any]:
