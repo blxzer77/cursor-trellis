@@ -9,17 +9,18 @@
 
 ## Conventions
 
-- **Mainline**: `accepted` item ids, grouped by attention band. Same band + isolatable write-set = a parallel group. Serial needs a written reason (shared write-set / HITL / unmet depends / user asked / cannot isolate).
+- **Mainline**: only `delivery: open` or `in-slice` (accepted remaining obligation), grouped by attention band. Same band + isolatable write-set = a parallel group. Serial needs a written reason (shared write-set / HITL / unmet depends / user asked / cannot isolate).
+- **Standing**: `delivery: standing` live rules. Not a queue; do not rank them as next work.
+- **Closed**: `delivery: landed` or `deferred` (keep a one-line pointer to task dir or reason).
 - **Attention ≠ lock**: unlabeled accepted items count as `priority-2` and remain startable. A higher band still open does not block an independent lower-band item.
 - **Release tracks** (when this repo ships CSTL): the workflow package and optional BYOK are independent ships. See `.cstl/framework/release-boundary.md`. Do not treat BYOK as a workflow-package gate.
-- **Closed**: landed or deliberately dropped ids (keep a one-line pointer to task dir or reason).
 - **Not yet specified (fog)**: open directions without an accepted item yet — keep short; empty → delete section.
 
 ## Mainline
 
 ### Attention band 0 (this batch / release-blocking)
 
-_(empty — add accepted item ids as they enter the plan)_
+_(empty — only `delivery: open` or `in-slice` with that band)_
 
 ### Attention band 1 (wanted, not release-blocking)
 
@@ -35,6 +36,10 @@ Example shape (ids belong in a fence so they are not scanned):
 - <item-id> — short title (link task when created)
   parallel with: <other-id>
 ```
+
+## Standing (live rules, not a queue)
+
+_(empty)_
 
 ## Closed
 
