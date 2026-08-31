@@ -137,6 +137,13 @@ describe("init() joiner onboarding", () => {
     expect(prd).toContain("workflow.md");
     expect(prd).toContain(".cstl/spec/");
     expect(prd).toContain("00-join-bob");
+    expect(prd).toContain("/cstl-continue");
+    expect(prd).toContain("/cstl-finish-work");
+    expect(prd).toContain("not runtime SSOT");
+    expect(prd).not.toContain("/cstl:continue");
+    expect(prd).not.toContain("/cstl:finish-work");
+    expect(prd).not.toContain("/cstl:start");
+    expect(prd).not.toMatch(/loads the Phase Index/i);
     // Fallback text for empty archive
     expect(prd).toContain("archive is empty");
     const expectedPythonCmd = process.platform === "win32" ? "python" : "python3";
