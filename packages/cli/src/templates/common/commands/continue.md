@@ -2,7 +2,7 @@
 
 Resume work **only** when this live session already has a `selected_task`. If no task is selected, show the Task Dashboard and ask for an explicit route. Do not auto-resume a previous or unique task.
 
-This command is a Cursor `/` escape hatch. It does not implement the Session compiler and does not treat `workflow.md` or `get_context.py --mode phase` as runtime SSOT.
+This command is a Cursor `/` escape hatch. It does not implement the Session compiler and does not treat `workflow.md` or `get_context.py --mode phase` as runtime SSOT. Run CLI yourself; do not ask the user to type `python`. Do not open with a “loaded” probe. No selected task → answer directly.
 
 ---
 
@@ -42,12 +42,12 @@ Use the selected task's title or topic as the query. From the JSON results, summ
 When a task is selected, route by Kernel / Dashboard human phase and persisted `required_controls.rigor` / `topology.kind`. `status` is a projection, not the sole truth. This command does not itself approve Execute.
 
 - **Open** → Intake / Open Proposal only; no product code
-- **Define** → author definition + AC; prefer `SwitchMode(plan)` when useful; Full follows `required_controls`, not mere file presence
+- **Define** → Full: `SwitchMode(plan)` immediately; if the switch fails, one sentence (what happened, where `prd.md` landed) and keep writing artifacts. Lite may stay in Agent. Full follows `required_controls`, not mere file presence. Unlanded Plan is not Execute.
 - **Approve** → run `task.py start-execution <task> --check`, report PASS, ask for explicit Execute approval, then `task.py start-execution <task> --approved`. `--check` is not approval
-- **Execute** → implement under the approved contract in Agent
+- **Execute** → implement under the approved contract in Agent. No product-code edits until this gate. Isolatable units: ask the user to open Multitask and hand worker packs; if they do not, `Task()` plus one sentence — do not block
 - **Verify** → map every AC to evidence in `verify.md`; Debug when runtime-stuck
-- **Integrate?** (parent-child / already integrating) → Parent `integrate-child` path, not ordinary Child closeout. `parent_id` alone does **not** make a Child a Parent
-- **Close** → wrap-up via `{{CMD_REF:finish-work}}` when the user is ready
+- **Integrate?** (parent-child / already integrating) → Parent `integrate-child` path (`merge_limit: 1`), serial, not ordinary Child closeout. `parent_id` alone does **not** make a Child a Parent
+- **Close** → wrap-up via `{{CMD_REF:finish-work}}` when the user is ready; `UpdateGoal` complete or cancel (failure does not block)
 
 Return-to-Define when scope, AC, execution contract, verification strategy, or capability assumptions change.
 
