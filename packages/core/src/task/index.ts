@@ -65,6 +65,20 @@ export {
 } from "./kernel-contract.js";
 
 export type {
+  KernelSurfaceLocale,
+  KernelSurfaceInput,
+  KernelSurfaceProjection,
+} from "./kernel-surface.js";
+
+export {
+  KERNEL_PHASE_HUMAN_EN,
+  KERNEL_PHASE_HUMAN_ZH,
+  kernelPhaseHumanTitle,
+  topologyNeedsIntegrate,
+  projectKernelSurface,
+} from "./kernel-surface.js";
+
+export type {
   LitePackErrorCode,
   LitePackArtifact,
   LitePackItem,
@@ -131,6 +145,7 @@ export type {
   DependencyGraph,
   OndemandTrigger,
   OndemandModules,
+  BaselineModules,
   DecomposeProposal,
   CaptureCandidate,
   TaskMapGraphProjection,
@@ -144,11 +159,13 @@ export {
   DEPENDENCY_EDGE_TYPES,
   LIFECYCLE_SLOTS,
   STAGE5_ONDEMAND_MODULES,
+  PROFILE_BASELINE_MODULES,
   ONDEMAND_OWNERS,
   LITE_DORMANT_ONDEMAND,
   topologyKindFromChildren,
   defaultTopology,
   defaultOndemandModules,
+  defaultBaselineModules,
   defaultDependencyGraph,
   captureCandidate,
   proposeDecompose,
@@ -165,6 +182,7 @@ export {
   normalizeTopology,
   normalizeDependencyGraph,
   normalizeOndemandModules,
+  normalizeBaselineModules,
   readTopology,
   readDependencyGraph,
   readOndemandModules,

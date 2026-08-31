@@ -79,6 +79,7 @@ export const commonKernelCommand = readTemplate(
   "scripts/common/kernel_command.py",
 );
 export const commonLiteContext = readTemplate("scripts/common/lite_context.py");
+export const commonSessionPack = readTemplate("scripts/common/session_pack.py");
 export const commonFullQuality = readTemplate("scripts/common/full_quality.py");
 export const commonOndemandTopology = readTemplate(
   "scripts/common/ondemand_topology.py",
@@ -169,6 +170,9 @@ export const verifyEvidenceProbeScript = readTemplate(
   "scripts/verify_evidence_probe.py",
 );
 export const getContextScript = readTemplate("scripts/get_context.py");
+export const compileSessionPackScript = readTemplate(
+  "scripts/compile_session_pack.py",
+);
 export const addSessionScript = readTemplate("scripts/add_session.py");
 export const searchArtifactsScript = readTemplate("scripts/search_artifacts.py");
 export const searchMemoryScript = readTemplate("scripts/search_memory.py");
@@ -258,6 +262,7 @@ export const MAINTAINER_ONLY_SCRIPT_PATHS = new Set([
   "common/test_full_quality.py",
   "common/test_ondemand_topology.py",
   "common/test_adapter_middleware.py",
+  "common/test_task_dashboard.py",
   "hooks/linear_sync.py",
   "common/artifact_search.py",
   "common/session_memory.py",
@@ -330,6 +335,7 @@ export function getAllScripts(): Map<string, string> {
   scripts.set("common/subagent_dispatch.py", commonSubagentDispatch);
   scripts.set("common/kernel_command.py", commonKernelCommand);
   scripts.set("common/lite_context.py", commonLiteContext);
+  scripts.set("common/session_pack.py", commonSessionPack);
   scripts.set("common/full_quality.py", commonFullQuality);
   scripts.set("common/ondemand_topology.py", commonOndemandTopology);
   scripts.set("common/adapter_middleware.py", commonAdapterMiddleware);
@@ -345,6 +351,7 @@ export function getAllScripts(): Map<string, string> {
   scripts.set("task.py", taskScript);
   scripts.set("pool.py", poolScript);
   scripts.set("get_context.py", getContextScript);
+  scripts.set("compile_session_pack.py", compileSessionPackScript);
   scripts.set("add_session.py", addSessionScript);
   scripts.set("generate_dispatch_prompt.py", generateDispatchPromptScript);
 

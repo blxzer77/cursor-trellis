@@ -13,11 +13,13 @@ import path from "node:path";
 import {
   cleanupEmptyDirs,
   collectStaleUpdateSkipPaths,
+  collectTemplateFiles,
   loadUpdateSkipPaths,
   removeUpdateSkipPathsFromConfig,
   shouldExcludeFromBackup,
   sortMigrationsForExecution,
 } from "../../src/commands/update.js";
+import { PATHS } from "../../src/constants/paths.js";
 
 // =============================================================================
 // cleanupEmptyDirs
@@ -354,5 +356,36 @@ describe("shouldExcludeFromBackup", () => {
     ".opencode\\node_modules\\zod\\index.js",
   ])("excludes Windows-style backslash path %s", (p) => {
     expect(shouldExcludeFromBackup(p)).toBe(true);
+  });
+});
+
+describe("collectTemplateFiles — modules vs middleware", () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-collect-"));
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it("includes .cstl/modules index and contracts, never middleware or catalog.ts", () => {
+    const files = collectTemplateFiles(tmpDir);
+    const keys = [...files.keys()];
+
+    expect(files.has(`${PATHS.MODULES}/index.json`)).toBe(true);
+    expect(files.has(`${PATHS.MODULES}/intake-basic/contract.md`)).toBe(true);
+    expect(files.has(`${PATHS.MODULES}/catalog.ts`)).toBe(false);
+    expect(keys.some((key) => key.endsWith("catalog.ts"))).toBe(false);
+    expect(keys.some((key) => key.endsWith(".ts") && key.includes("/modules/"))).toBe(
+      false,
+    );
+    expect(
+      keys.some(
+        (key) =>
+          key === PATHS.MIDDLEWARE || key.startsWith(`${PATHS.MIDDLEWARE}/`),
+      ),
+    ).toBe(false);
   });
 });

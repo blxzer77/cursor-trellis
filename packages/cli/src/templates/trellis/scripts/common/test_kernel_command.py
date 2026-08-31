@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from common import kernel_command as kernel_command_mod
 from common.kernel_command import (
+    KERNEL_PROJECTION_EXTRA_KEYS,
     KernelCommandError,
     kernel_archive,
     kernel_create,
@@ -25,7 +26,11 @@ from common.kernel_command import (
     to_kernel_record,
 )
 from common.artifact_locale import set_task_artifact_locale
-from common.task_gates import collect_kernel_projection_extras, write_gate_record
+from common.task_gates import (
+    KERNEL_PROJECTION_EXTRA_KEYS as GATES_PROJECTION_EXTRA_KEYS,
+    collect_kernel_projection_extras,
+    write_gate_record,
+)
 
 FAKE_KERNEL = r"""
 import json
@@ -324,3 +329,8 @@ def test_set_task_artifact_locale_goes_through_kernel(fake_kernel, tmp_path):
     task = json.loads((task_dir / "task.json").read_text(encoding="utf-8"))
     assert task["meta"]["artifact_locale"] == "en"
     assert task["status"] == "planning"
+
+
+def test_projection_extra_keys_include_baseline_modules() -> None:
+    assert "baseline_modules" in KERNEL_PROJECTION_EXTRA_KEYS
+    assert tuple(KERNEL_PROJECTION_EXTRA_KEYS) == tuple(GATES_PROJECTION_EXTRA_KEYS)

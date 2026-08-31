@@ -62,6 +62,15 @@ describe.skipIf(pythonCmd === null)("get_context.py --mode retrieval-pack", () =
     expect(payload.collection.recommendations).toBeGreaterThan(0);
     expect(payload.contextPack.selected.length).toBeGreaterThan(0);
     expect(payload.scoredEvidence.total).toBeGreaterThan(0);
+    expect(payload.compilerAbi?.intentsOwner).toBe("context-progressive");
+    expect(payload.compilerAbi?.providerOwner).toBe("middleware");
+    expect(payload.compilerAbi?.qualityOwner).toBe("retrieval-extended");
+    expect(payload.compilerAbi?.intents).toEqual([
+      "exact",
+      "semantic",
+      "structural",
+      "external",
+    ]);
   });
 
   it("works without a selected task and returns an explicit empty pack", () => {

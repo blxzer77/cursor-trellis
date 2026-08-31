@@ -1,5 +1,18 @@
 #!/usr/bin/env python3
-"""REC-11: derive evidence_score (0-2) from telemetry + optional rubric row."""
+"""Quality-layer eval helper: derive evidence_score (0-2) from telemetry.
+
+Three-layer retrieval ABI (frozen; do not merge back into workflow.md):
+
+| Layer    | Owner                 | This script                                      |
+| -------- | --------------------- | ------------------------------------------------ |
+| Intent   | context-progressive   | does not own intents                             |
+| Provider | Middleware            | does not take smart-search as a Kernel dependency |
+| Quality  | retrieval-extended    | owner: score already-collected evidence records   |
+
+REC-11 eval proxy only. Does not search. Does not implement a new ranking
+algorithm in this freeze. Input role: collected-evidence. Output is not
+AC Evidence / Close Evidence (that remains verify-basic).
+"""
 
 from __future__ import annotations
 
@@ -8,6 +21,12 @@ import json
 import sys
 from pathlib import Path
 from typing import Any
+
+ABI_INTENT_OWNER = "context-progressive"
+ABI_PROVIDER_OWNER = "middleware"
+ABI_QUALITY_OWNER = "retrieval-extended"
+ABI_LAYER = "quality"
+INPUT_ROLE = "collected-evidence"
 
 _SCRIPT_DIR = Path(__file__).resolve().parent
 if str(_SCRIPT_DIR) not in sys.path:

@@ -3,10 +3,10 @@ import type { TrellisTaskRecord } from "./schema.js";
 /**
  * Coarse-grained Trellis task phase derived from task status.
  *
- * Phase is a projection of {@link TrellisTaskRecord.status} only. There is
- * no separate `current_phase` field stored on disk — `inferTaskPhase`
- * exists so consumers can render the workflow phase without depending on
- * `.trellis/workflow.md` parsing.
+ * This mapping is a **legacy machine alias** of {@link TrellisTaskRecord.status}
+ * (`plan` / `implement` / …). Humans and agents should use Kernel Phase
+ * titles from `projectKernelSurface` (Open / Define / Approve / Execute /
+ * Verify / Integrate? / Close) — not these names, and not `planning`.
  *
  * Mapping:
  *
