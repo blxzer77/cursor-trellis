@@ -144,13 +144,6 @@ def should_skip_injection() -> bool:
     return any(os.environ.get(var) == "1" for var in non_interactive_vars)
 
 
-def read_file(path: Path, fallback: str = "") -> str:
-    try:
-        return path.read_text(encoding="utf-8")
-    except (FileNotFoundError, PermissionError):
-        return fallback
-
-
 def _repo_relative(repo_root: Path, path: Path) -> str:
     try:
         return path.relative_to(repo_root).as_posix()
@@ -429,7 +422,7 @@ def _get_task_status(trellis_dir: Path, input_data: dict) -> str:
     return (
         f"Status: {str(task_status).upper()}\nTask: {task_title}\n"
         f"Present: {present_line}\n"
-        "Next-Action: Follow the matching per-turn workflow-state. "
+        "Next-Action: Continue from the selected task's current status and artifacts. "
         "Implementation/check context order is jsonl entries -> `prd.md` -> `design.md if present` -> `implement.md if present`."
     )
 
@@ -702,79 +695,12 @@ def _build_task_dashboard(trellis_dir: Path, input_data: dict) -> str:
         return f"Task Dashboard unavailable. Run: {_PYTHON_CMD} ./.cstl/scripts/task.py dashboard"
 
 
-def _extract_range(content: str, start_header: str, end_header: str) -> str:
-    """Extract lines starting at `## start_header` up to (but excluding) `## end_header`.
-
-    Both parameters are full header lines WITHOUT the `## ` prefix (e.g. "Phase Index").
-    Returns empty string if start header is not found.
-    End header missing → extracts to end of file.
-    """
-    lines = content.splitlines()
-    start: int | None = None
-    end: int = len(lines)
-    start_match = f"## {start_header}"
-    end_match = f"## {end_header}"
-    for i, line in enumerate(lines):
-        stripped = line.strip()
-        if start is None and stripped == start_match:
-            start = i
-            continue
-        if start is not None and stripped == end_match:
-            end = i
-            break
-    if start is None:
-        return ""
-    return "\n".join(lines[start:end]).rstrip()
-
-
-_BREADCRUMB_TAG_RE = re.compile(
-    r"\[workflow-state:([A-Za-z0-9_-]+)\]\s*\n.*?\n\s*\[/workflow-state:\1\]",
-    re.DOTALL,
-)
-
-
-def _strip_breadcrumb_tag_blocks(content: str) -> str:
-    """Remove `[workflow-state:STATUS]...[/workflow-state:STATUS]` blocks.
-
-    The tag blocks live inside `## Phase Index` (since v0.5.0-rc.0, when
-    they were colocated with their phase summaries) and are consumed by the
-    UserPromptSubmit hook (`inject-workflow-state.py`). The session-start
-    payload already covers the full step bodies, so re-inlining the
-    breadcrumbs here would just duplicate context.
-    """
-    stripped = _BREADCRUMB_TAG_RE.sub("", content)
-    stripped = re.sub(r"<!--.*?-->", "", stripped, flags=re.DOTALL)
-    # Strip orphan bracket-tag lines (residual when a [workflow-state:STATUS]
-    # pair is split across an extraction boundary), but preserve legitimate
-    # documentation examples like `[Triage: <Mode>] <reason>` in the Request
-    # Triage section. The negative lookahead skips both workflow-state tags
-    # (handled by the pair regex above) and Triage classification marks.
-    stripped = re.sub(
-        r"^\[(?!/?workflow-state:|Triage:)/?[^\]\n]+\]\s*\n?",
-        "",
-        stripped,
-        flags=re.MULTILINE,
+def _build_workflow_overview(_workflow_path: Path) -> str:
+    """Bootstrap pointer only. Never slice workflow.md into SessionStart."""
+    return (
+        "Human overview (not runtime SSOT): `.cstl/workflow.md`. "
+        "Load details on demand. Session orientation is <current-state> and <task-status>."
     )
-    return re.sub(r"\n{3,}", "\n\n", stripped).strip()
-
-
-def _build_workflow_overview(workflow_path: Path) -> str:
-    """Inject only the compact Phase Index summary for SessionStart."""
-    content = read_file(workflow_path)
-    if not content:
-        return "No workflow.md found"
-
-    out_lines = [
-        "# Development Workflow - Session Summary",
-        f"Full guide: .cstl/workflow.md. Step detail: `{_PYTHON_CMD} ./.cstl/scripts/get_context.py --mode phase --step <X.Y>`.",
-        "",
-    ]
-
-    phases = _extract_range(content, "Phase Index", "Phase 1: Plan")
-    if phases:
-        out_lines.append(_strip_breadcrumb_tag_blocks(phases).rstrip())
-
-    return "\n".join(out_lines).rstrip()
 
 
 def main():
