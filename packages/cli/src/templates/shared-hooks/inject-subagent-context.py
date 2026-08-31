@@ -87,6 +87,22 @@ def get_selected_task(repo_root: str, input_data: dict) -> str | None:
     return selected.task_path
 
 
+def _worker_orchestration_active(repo_root: str, task_dir: str | None) -> bool:
+    """Unactivated worker-orchestration → no prompt mutation."""
+    scripts_dir = Path(repo_root) / DIR_WORKFLOW / "scripts"
+    if str(scripts_dir) not in sys.path:
+        sys.path.insert(0, str(scripts_dir))
+    try:
+        from common.ondemand_topology import is_ondemand_module_active  # type: ignore[import-not-found]
+    except Exception:
+        return False
+    path: Path | None = None
+    if task_dir:
+        candidate = Path(task_dir)
+        path = candidate if candidate.is_absolute() else Path(repo_root) / task_dir
+    return bool(is_ondemand_module_active(path, "worker-orchestration"))
+
+
 def _string_value(value: Any) -> str:
     if isinstance(value, str):
         return value.strip()
@@ -186,10 +202,13 @@ def main() -> None:
     if str(scripts_dir) not in sys.path:
         sys.path.insert(0, str(scripts_dir))
 
-    from common.subagent_dispatch import (  # type: ignore[import-not-found]
-        build_dispatch_prompt_for_agent,
-        prompt_has_injection_marker,
-    )
+    try:
+        from common.subagent_dispatch import (  # type: ignore[import-not-found]
+            build_dispatch_prompt_for_agent,
+            prompt_has_injection_marker,
+        )
+    except Exception:
+        sys.exit(0)
 
     if prompt_has_injection_marker(original_prompt):
         sys.exit(0)
@@ -207,6 +226,12 @@ def main() -> None:
                         file=sys.stderr,
                     )
                 break
+
+    try:
+        if not _worker_orchestration_active(repo_root, task_dir):
+            sys.exit(0)
+    except Exception:
+        sys.exit(0)
 
     if subagent_type in AGENTS_REQUIRE_TASK:
         if not task_dir:

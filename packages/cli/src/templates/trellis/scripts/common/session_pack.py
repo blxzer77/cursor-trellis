@@ -5,8 +5,9 @@ Legal inputs: Kernel Phase/Condition/Outcome, activated module ids, current
 artifact roles. Illegal inputs: `workflow.md`, AGENTS longform,
 `[workflow-state:*]`, unactivated module bodies.
 
-Wave 3 activators are out of scope: Baseline eight are eligible then
-phase-filtered into layer 2 (compile filter, not installer).
+Activation is profile-runtime: layer 2 Baseline ids are phase-needed
+intersect still-active. On-demand ids come only from
+`ondemand_modules.active`. Unactivated modules are not installed.
 """
 
 from __future__ import annotations
@@ -20,6 +21,7 @@ from typing import Any
 
 PACK_VERSION = 1
 PACK_SOURCE = "context-progressive"
+ACTIVATION_SOURCE_KIND = "profile-runtime"
 
 # Same budget envelope as Personal Lite / retrieval context_pack (do not
 # import maintainer-only context_pack.py; SessionStart must load this file
@@ -257,9 +259,11 @@ def _extras(task_dir: Path | None) -> dict[str, Any]:
     merged = dict(extras)
     for key in (
         "ondemand_modules",
+        "baseline_modules",
         "required_controls",
         "topology",
         "capability_router",
+        "event_bridge",
     ):
         if key not in merged and isinstance(task_data.get(key), dict):
             merged[key] = task_data[key]
@@ -275,6 +279,24 @@ def _ondemand_active(task_dir: Path | None) -> list[str]:
     if not isinstance(raw, list):
         return []
     return _unique([str(item) for item in raw if isinstance(item, str)])
+
+
+def _baseline_active(task_dir: Path | None) -> list[str]:
+    extras = _extras(task_dir)
+    block = extras.get("baseline_modules")
+    if not isinstance(block, dict) or "active" not in block:
+        return list(BASELINE_EIGHT)
+    raw = block.get("active")
+    if not isinstance(raw, list):
+        return []
+    allowed = set(BASELINE_EIGHT)
+    return _unique(
+        [
+            str(item).strip()
+            for item in raw
+            if isinstance(item, str) and str(item).strip() in allowed
+        ]
+    )
 
 
 def _rigor(task_dir: Path | None) -> str:
@@ -337,17 +359,25 @@ def resolve_layer2_ids(
     rigor: str,
     topology_kind: str,
     intake_event: bool,
+    baseline_active: list[str] | None = None,
 ) -> list[str]:
     selected = bool(kernel.get("selected"))
     phase = str(kernel.get("phase") or "open")
+    still_active = set(
+        baseline_active if baseline_active is not None else list(BASELINE_EIGHT)
+    )
     ids: list[str] = []
 
     if not selected:
-        if intake_event:
+        if intake_event and "intake-basic" in still_active:
             ids.append("intake-basic")
         return [name for name in _unique(ids) if name not in NO_TASK_BLOCKED]
 
-    ids.extend(PHASE_LAYER2_BASELINE.get(phase, ()))
+    ids.extend(
+        module_id
+        for module_id in PHASE_LAYER2_BASELINE.get(phase, ())
+        if module_id in still_active
+    )
 
     lite_single = rigor == "lite" and topology_kind != "parent-child"
     for module_id in ondemand_active:
@@ -491,6 +521,7 @@ def compile_session_pack(
     *,
     kernel: dict[str, Any],
     ondemand_active: list[str] | None = None,
+    baseline_active: list[str] | None = None,
     modules_root: Path | str | None = None,
     artifacts: list[dict[str, Any]] | None = None,
     rigor: str = "lite",
@@ -506,12 +537,24 @@ def compile_session_pack(
     if intake_event is None:
         intake_event = not selected
     active = _unique(list(ondemand_active or []))
+    if baseline_active is None:
+        resolved_baseline = list(BASELINE_EIGHT)
+    else:
+        allowed = set(BASELINE_EIGHT)
+        resolved_baseline = _unique(
+            [
+                str(item).strip()
+                for item in baseline_active
+                if str(item).strip() in allowed
+            ]
+        )
     layer2_ids = resolve_layer2_ids(
         kernel=kernel,
         ondemand_active=active,
         rigor=rigor,
         topology_kind=topology_kind,
         intake_event=bool(intake_event),
+        baseline_active=resolved_baseline,
     )
 
     budget_candidates: list[dict[str, Any]] = []
@@ -647,11 +690,14 @@ def compile_session_pack(
         "version": PACK_VERSION,
         "source": PACK_SOURCE,
         "activationSource": {
-            "kind": "wave2-stub",
-            "filter": "compile-phase-filter",
-            "baselineEligible": list(BASELINE_EIGHT),
+            "kind": ACTIVATION_SOURCE_KIND,
+            "filter": "phase-intersect-active",
+            "baselineActive": resolved_baseline,
             "ondemandActive": active,
-            "note": "Baseline eight are eligible until Wave 3; layer 2 is a compile filter, not an installer.",
+            "note": (
+                "Layer 2 is phase-needed intersect still-active. "
+                "Unactivated modules are not installed."
+            ),
         },
         "kernel": {
             "phase": kernel.get("phase"),
@@ -753,6 +799,7 @@ def compile_session_pack_from_trellis(
     return compile_session_pack(
         kernel=kernel,
         ondemand_active=_ondemand_active(task_dir),
+        baseline_active=_baseline_active(task_dir),
         modules_root=modules_root if modules_root.is_dir() else None,
         artifacts=artifacts,
         rigor=_rigor(task_dir),

@@ -97,6 +97,18 @@ def _selected_task(repo_root: Path, input_data: dict) -> str | None:
     return selected.task_path if selected else None
 
 
+def _retrieval_extended_active(repo_root: Path, task_dir: Path) -> bool:
+    """Unactivated retrieval-extended → no pack write, no delivery claim."""
+    scripts_dir = repo_root / DIR_WORKFLOW / "scripts"
+    if str(scripts_dir) not in sys.path:
+        sys.path.insert(0, str(scripts_dir))
+    try:
+        from common.ondemand_topology import is_ondemand_module_active  # type: ignore[import-not-found]
+    except Exception:
+        return False
+    return bool(is_ondemand_module_active(task_dir, "retrieval-extended"))
+
+
 def _relpath(path: Path, repo_root: Path) -> str:
     try:
         return path.resolve().relative_to(repo_root.resolve()).as_posix()
@@ -286,6 +298,12 @@ def main() -> int:
 
     task_dir = (repo_root / task_ref).resolve()
     if not task_dir.is_dir():
+        return 0
+
+    try:
+        if not _retrieval_extended_active(repo_root, task_dir):
+            return 0
+    except Exception:
         return 0
 
     items = collect_evidence_items(task_dir, repo_root)

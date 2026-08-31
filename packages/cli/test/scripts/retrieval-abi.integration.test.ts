@@ -162,12 +162,20 @@ describe.skipIf(pythonCmd === null)("retrieval three-layer ABI freeze", () => {
   });
 
   it("inject-retrieval-plan writes local telemetry and does not claim Prompt injection", () => {
+    const taskJson = path.join(tmpDir, TASK_PATH, "task.json");
+    const existing = JSON.parse(fs.readFileSync(taskJson, "utf-8")) as {
+      ondemand_modules?: { active: string[] };
+    };
+    existing.ondemand_modules = { active: ["retrieval-extended"] };
+    fs.writeFileSync(taskJson, `${JSON.stringify(existing, null, 2)}\n`);
     const hookPath = writeHook(tmpDir, "inject-retrieval-plan.py");
     const result = runPython([hookPath], {
       cwd: tmpDir,
+      env: { TRELLIS_CONTEXT_ID: SESSION_ID },
       input: JSON.stringify({
         cwd: tmpDir,
         cursor_version: "1.0.0",
+        session_id: SESSION_ID,
         prompt: "where is TaskStore defined in the codebase",
       }),
     });
@@ -194,5 +202,57 @@ describe.skipIf(pythonCmd === null)("retrieval three-layer ABI freeze", () => {
     expect(event.additionalContextDelivered).toBe(false);
     expect(event.note ?? "").not.toContain("已注入 Prompt");
     expect(JSON.stringify(event)).not.toMatch(/"additional_context"\s*:/);
+  });
+
+  it("retrieval hooks exit 0 without pack or telemetry when retrieval-extended is unactivated", () => {
+    fs.mkdirSync(path.join(tmpDir, TASK_PATH, "research"), { recursive: true });
+    fs.writeFileSync(
+      path.join(tmpDir, TASK_PATH, "research", "notes.md"),
+      "# collected notes\n",
+      "utf-8",
+    );
+    const packPath = path.join(
+      tmpDir,
+      TASK_PATH,
+      "research",
+      "retrieval-pack-latest.json",
+    );
+    const stopHook = writeHook(tmpDir, "research-end-retrieval-pack.py");
+    const stop = runPython([stopHook], {
+      cwd: tmpDir,
+      env: { TRELLIS_CONTEXT_ID: SESSION_ID },
+      input: JSON.stringify({
+        cwd: tmpDir,
+        cursor_version: "1.0.0",
+        session_id: SESSION_ID,
+      }),
+    });
+    expect(stop.status).toBe(0);
+    expect(stop.stdout.trim()).toBe("");
+    expect(fs.existsSync(packPath)).toBe(false);
+    expect(`${stop.stdout}\n${stop.stderr}`).not.toContain("已注入 Prompt");
+    expect(stop.stdout).not.toContain("wrote `");
+
+    const planHook = writeHook(tmpDir, "inject-retrieval-plan.py");
+    const plan = runPython([planHook], {
+      cwd: tmpDir,
+      env: { TRELLIS_CONTEXT_ID: SESSION_ID },
+      input: JSON.stringify({
+        cwd: tmpDir,
+        cursor_version: "1.0.0",
+        session_id: SESSION_ID,
+        prompt: "where is TaskStore defined in the codebase",
+      }),
+    });
+    expect(plan.status).toBe(0);
+    expect(plan.stdout.trim()).toBe("");
+    const logPath = path.join(
+      tmpDir,
+      ".cstl",
+      ".runtime",
+      "retrieval-plan-events.log",
+    );
+    expect(fs.existsSync(logPath)).toBe(false);
+    expect(`${plan.stdout}\n${plan.stderr}`).not.toContain("已注入 Prompt");
   });
 });

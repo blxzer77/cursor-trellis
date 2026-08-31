@@ -50,7 +50,7 @@ function runPackJson(
 
 interface SessionPack {
   source: string;
-  activationSource: { kind: string; ondemandActive: string[] };
+  activationSource: { kind: string; ondemandActive: string[]; baselineActive?: string[] };
   layers: {
     n: number;
     name: string;
@@ -92,7 +92,7 @@ describe.skipIf(pythonCmd === null)("compile_session_pack.py", () => {
     expect(ran.status, ran.stderr).toBe(0);
     const pack = JSON.parse(ran.stdout) as SessionPack;
     expect(pack.source).toBe("context-progressive");
-    expect(pack.activationSource.kind).toBe("wave2-stub");
+    expect(pack.activationSource.kind).toBe("profile-runtime");
     expect(pack.layers.map((layer) => layer.n)).toEqual([1, 2, 3, 4, 5]);
     const layer2 = pack.layers[1]?.moduleIds ?? [];
     expect(layer2.length).toBeLessThan(20);
@@ -176,6 +176,105 @@ describe.skipIf(pythonCmd === null)("compile_session_pack.py", () => {
     const pack = JSON.parse(result.stdout) as SessionPack;
     expect(pack.source).toBe("context-progressive");
     expect(pack.layers.map((layer) => layer.n)).toEqual([1, 2, 3, 4, 5]);
-    expect(pack.activationSource.kind).toBe("wave2-stub");
+    expect(pack.activationSource.kind).toBe("profile-runtime");
+  });
+
+  it("drops a Baseline id from layer 2 when it is removed from baseline_modules.active", () => {
+    const taskDir = path.join(tmpDir, ".cstl", "tasks", "exec-off");
+    fs.mkdirSync(taskDir, { recursive: true });
+    const baselineSansExecute = [
+      "intake-basic",
+      "define-basic",
+      "approval-personal",
+      "verify-basic",
+      "close-basic",
+      "context-progressive",
+      "observability-local",
+    ];
+    fs.writeFileSync(
+      path.join(taskDir, "kernel.json"),
+      JSON.stringify({
+        phase: "execute",
+        condition: "active",
+        outcome: null,
+        projection: {
+          extras: {
+            required_controls: { rigor: "lite" },
+            topology: { kind: "single" },
+            baseline_modules: { active: baselineSansExecute },
+            ondemand_modules: { active: [] },
+          },
+        },
+      }),
+      "utf-8",
+    );
+    fs.writeFileSync(
+      path.join(taskDir, "task.json"),
+      JSON.stringify({
+        id: "exec-off",
+        status: "in_progress",
+        required_controls: { rigor: "lite" },
+        topology: { kind: "single" },
+        baseline_modules: { active: baselineSansExecute },
+      }),
+      "utf-8",
+    );
+    fs.writeFileSync(path.join(taskDir, "prd.md"), "# Exec off\n\n- [ ] AC\n");
+    const ran = runPackJson(tmpDir, ["--task", ".cstl/tasks/exec-off"]);
+    expect(ran.status, ran.stderr).toBe(0);
+    const pack = JSON.parse(ran.stdout) as SessionPack;
+    expect(pack.activationSource.kind).toBe("profile-runtime");
+    expect(pack.activationSource.kind).not.toBe("wave2-stub");
+    expect(pack.layers[1]?.moduleIds ?? []).not.toContain("execute-agent");
+    expect(pack.layers[1]?.text ?? "").not.toContain("# `execute-agent`");
+  });
+
+  it("omits an On-demand contract until ondemand_modules.active is written", () => {
+    const taskDir = path.join(tmpDir, ".cstl", "tasks", "define-ext");
+    fs.mkdirSync(taskDir, { recursive: true });
+    const writeTask = (active: string[]) => {
+      fs.writeFileSync(
+        path.join(taskDir, "kernel.json"),
+        JSON.stringify({
+          phase: "define",
+          condition: "ready",
+          outcome: null,
+          projection: {
+            extras: {
+              required_controls: { rigor: "full" },
+              topology: { kind: "single" },
+              ondemand_modules: { active },
+            },
+          },
+        }),
+        "utf-8",
+      );
+      fs.writeFileSync(
+        path.join(taskDir, "task.json"),
+        JSON.stringify({
+          id: "define-ext",
+          status: "planning",
+          required_controls: { rigor: "full" },
+          topology: { kind: "single" },
+          ondemand_modules: { active },
+        }),
+        "utf-8",
+      );
+      fs.writeFileSync(path.join(taskDir, "prd.md"), "# Define\n\n- [ ] AC\n");
+    };
+    writeTask([]);
+    const off = runPackJson(tmpDir, ["--task", ".cstl/tasks/define-ext"]);
+    expect(off.status, off.stderr).toBe(0);
+    const offPack = JSON.parse(off.stdout) as SessionPack;
+    expect(offPack.layers[1]?.moduleIds ?? []).not.toContain("define-extended");
+    expect(offPack.layers[1]?.text ?? "").not.toContain("# `define-extended`");
+
+    writeTask(["define-extended"]);
+    const on = runPackJson(tmpDir, ["--task", ".cstl/tasks/define-ext"]);
+    expect(on.status, on.stderr).toBe(0);
+    const onPack = JSON.parse(on.stdout) as SessionPack;
+    expect(onPack.activationSource.kind).toBe("profile-runtime");
+    expect(onPack.layers[1]?.moduleIds ?? []).toContain("define-extended");
+    expect(onPack.layers[1]?.text ?? "").toContain("# `define-extended`");
   });
 });

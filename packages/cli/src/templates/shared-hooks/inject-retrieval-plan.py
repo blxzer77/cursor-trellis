@@ -100,6 +100,32 @@ def _load_capabilities(root: Path) -> dict[str, object] | None:
         return None
 
 
+def _retrieval_extended_active(root: Path, input_data: dict[str, Any]) -> bool:
+    """Unactivated retrieval-extended → no telemetry and no plan injection."""
+    scripts_dir = root / DIR_WORKFLOW / "scripts"
+    if str(scripts_dir) not in sys.path:
+        sys.path.insert(0, str(scripts_dir))
+    try:
+        from common.active_task import resolve_selected_task  # type: ignore[import-not-found]
+        from common.ondemand_topology import is_ondemand_module_active  # type: ignore[import-not-found]
+    except Exception:
+        return False
+    try:
+        selected = resolve_selected_task(
+            root,
+            input_data,
+            platform=_detect_platform(input_data),
+        )
+        task_path = selected.task_path if selected else None
+    except Exception:
+        task_path = None
+    if not task_path:
+        return False
+    candidate = Path(task_path)
+    task_dir = candidate if candidate.is_absolute() else root / task_path
+    return bool(is_ondemand_module_active(task_dir, "retrieval-extended"))
+
+
 def _write_telemetry_log(
     root: Path,
     query_preview: str,
@@ -159,6 +185,12 @@ def main() -> int:
     scripts_dir = root / DIR_WORKFLOW / "scripts"
     if str(scripts_dir) not in sys.path:
         sys.path.insert(0, str(scripts_dir))
+
+    try:
+        if not _retrieval_extended_active(root, data):
+            return 0
+    except Exception:
+        return 0
 
     try:
         from common.codebase_retrieval_router import (  # type: ignore[import-not-found]
