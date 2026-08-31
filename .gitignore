@@ -200,6 +200,7 @@ smoke_test/
 .claude/scheduled_tasks.lock
 
 tmp/
+.tmp/
 tmp1/
 .pack-verify-*/
 .playwright-mcp
