@@ -7,7 +7,10 @@ import {
   readTemplate,
   readScript,
   readMarkdown,
+  collectUserModuleTemplates,
+  isUserShippedModuleFile,
 } from "../../src/templates/extract.js";
+import { listModuleCatalog } from "../../src/templates/trellis/modules/catalog.js";
 
 // =============================================================================
 // getXxxTemplatePath — returns existing directory paths
@@ -81,5 +84,33 @@ describe("readMarkdown", () => {
     const content = readMarkdown("workflow.md");
     expect(typeof content).toBe("string");
     expect(content).toContain("#");
+  });
+});
+
+describe("user-shipped module templates", () => {
+  it("accepts only index.json and <id>/contract.md", () => {
+    expect(isUserShippedModuleFile("index.json")).toBe(true);
+    expect(isUserShippedModuleFile("intake-basic/contract.md")).toBe(true);
+    expect(isUserShippedModuleFile("catalog.ts")).toBe(false);
+    expect(isUserShippedModuleFile("intake-basic/catalog.ts")).toBe(false);
+    expect(isUserShippedModuleFile("README.md")).toBe(false);
+    expect(isUserShippedModuleFile("nested/id/contract.md")).toBe(false);
+  });
+
+  it("walks modules/ without catalog.ts or other .ts files", () => {
+    const files = collectUserModuleTemplates();
+    const keys = [...files.keys()].sort();
+
+    expect(keys).toContain("index.json");
+    expect(keys.some((key) => key.endsWith(".ts"))).toBe(false);
+    expect(keys).not.toContain("catalog.ts");
+
+    const catalog = listModuleCatalog();
+    expect(catalog).toHaveLength(20);
+    for (const entry of catalog) {
+      expect(keys).toContain(entry.contract);
+      expect(files.get(entry.contract)?.trim().length).toBeGreaterThan(0);
+    }
+    expect(keys).toHaveLength(1 + catalog.length);
   });
 });

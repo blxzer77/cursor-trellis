@@ -20,6 +20,7 @@ describe("DIR_NAMES", () => {
     expect(DIR_NAMES).toHaveProperty("ARCHIVE");
     expect(DIR_NAMES).toHaveProperty("SPEC");
     expect(DIR_NAMES).toHaveProperty("SCRIPTS");
+    expect(DIR_NAMES).toHaveProperty("MODULES");
   });
 
   it("WORKFLOW is .trellis", () => {
@@ -85,6 +86,10 @@ describe("PATHS", () => {
 
   it("SCRIPTS is WORKFLOW/scripts", () => {
     expect(PATHS.SCRIPTS).toBe(`${DIR_NAMES.WORKFLOW}/${DIR_NAMES.SCRIPTS}`);
+  });
+
+  it("MODULES is WORKFLOW/modules", () => {
+    expect(PATHS.MODULES).toBe(`${DIR_NAMES.WORKFLOW}/${DIR_NAMES.MODULES}`);
   });
 
   it("DEVELOPER_FILE is WORKFLOW/.developer", () => {

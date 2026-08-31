@@ -81,6 +81,7 @@ import {
   workflowMdTemplate,
   executionStrategyRulesJson,
 } from "../templates/trellis/index.js";
+import { collectUserModuleTemplates } from "../templates/extract.js";
 import { agentsMdContent, frameworkDocs } from "../templates/markdown/index.js";
 
 import {
@@ -895,10 +896,12 @@ export function applyConfigSectionsAdded(
 }
 
 /**
- * Collect all template files that should be managed by update
- * Only collects templates for platforms that are already configured (have directories)
+ * Collect all template files that should be managed by update.
+ * Only collects templates for platforms that are already configured (have directories).
+ * Exported so tests can assert the hash set includes `.cstl/modules/` and never
+ * `.cstl/middleware/`.
  */
-function collectTemplateFiles(
+export function collectTemplateFiles(
   cwd: string,
   /**
    * Bypass `update.skip` when collecting templates. Enable this for breaking
@@ -921,6 +924,11 @@ function collectTemplateFiles(
   // Review-pool skeleton (mechanism only — never overwrite user items/)
   for (const [poolPath, content] of getAllPoolSkeleton()) {
     files.set(`${PATHS.POOL}/${poolPath}`, content);
+  }
+
+  // P29 short contracts (index.json + <id>/contract.md). Not scripts.
+  for (const [modulePath, content] of collectUserModuleTemplates()) {
+    files.set(`${PATHS.MODULES}/${modulePath}`, content);
   }
 
   // Configuration
