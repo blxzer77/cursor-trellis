@@ -60,9 +60,11 @@ import { getConfigSectionsAddedBetween } from "../../src/migrations/index.js";
 import * as migrations from "../../src/migrations/index.js";
 import { getLegacyAllMigrations } from "../helpers/legacy-migrations.js";
 
-/** Breaking-change gate tests need CLI VERSION above bundled migration manifests (e.g. 0.5.0-beta.0). */
-const breakingMigrationGateApplies =
-  compareVersions(VERSION, "0.5.0-beta.0") >= 0;
+/** Breaking-change gate tests stage this legacy path. Skip unless a real rename exists in range. */
+const BREAKING_GATE_FROM = ".claude/commands/trellis/before-dev.md";
+const breakingMigrationGateApplies = migrations
+  .getMigrationsForVersion("0.0.4.0", VERSION)
+  .some((m) => m.from === BREAKING_GATE_FROM);
 
 /** #12b stages from 0.0.5.10; Session Auto-Commit append comes from 0.5.11+ manifests. */
 const sessionAutoCommitConfigMigrationApplies =
@@ -1188,8 +1190,9 @@ describe("update() integration", () => {
   function stageLegacy040Project(): void {
     const versionPath = path.join(tmpDir, DIR_NAMES.WORKFLOW, ".version");
     fs.writeFileSync(versionPath, "0.0.4.0");
-    // Create one legacy file that matches a `rename` entry in 0.5.0-beta.0 manifest.
-    // Without this, classifyMigrations finds no work → early-exit before gate.
+    // Create one legacy file that matches a `rename` in the upgrade path
+    // (currently none on this line — tests skip via breakingMigrationGateApplies).
+    // Without a matching rename, classifyMigrations finds no work → early-exit before gate.
     const legacyDir = path.join(tmpDir, ".claude", "commands", "trellis");
     fs.mkdirSync(legacyDir, { recursive: true });
     fs.writeFileSync(path.join(legacyDir, "before-dev.md"), "legacy content");
