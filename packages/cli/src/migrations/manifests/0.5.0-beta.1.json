@@ -1,0 +1,9 @@
+{
+  "version": "0.5.0-beta.1",
+  "description": "P38 parallel declaration Check + P39 Cursor Adapter host nouns out of core contracts",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**@blxzer/cursor-trellis 0.5.0-beta.1**\n\n- feat(runtime): Full/Parent must declare parallel_groups or serial_reason; Check helper fails when missing\n- feat(adapter): visible parallel on Execute; Integrate? stays serial integrate-child\n- fix(modules): worker-orchestration / intake-basic drop Cursor host nouns\n- chore: empty migrations list (template sync via `cstl update`)",
+  "migrations": [],
+  "notes": "Prerelease. Install `@blxzer/cursor-trellis@0.5.0-beta.1` or `@beta`. Run `cstl update`. No `--migrate` required."
+}

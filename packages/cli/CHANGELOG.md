@@ -9,6 +9,27 @@ SemVer: [semver.org](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.5.0-beta.1] - 2026-09-01
+
+P38 parallel-first runtime + P39 Cursor Adapter on the modular preview. **Not** `@latest` — install with `@beta` or the exact version.
+
+### Added
+
+- **feat(runtime)**: Full / Parent planning must declare isolatable groups (`parallel_groups` / `stages`) or a `serial_reason`. Check helper `evaluate_parallel_declaration` fails when the declaration is missing. Lite may skip. This is not a `start-execution --check` hard gate and not a scheduler.
+- **feat(adapter)**: Cursor Q5 slot map and Q11–Q25 bindings live in the Adapter guide and escape hatches. Visible parallel fans out on **Execute** (ask to open Multitask, else `Task()` plus one sentence). **Integrate?** stays serial Parent `integrate-child` (`merge_limit: 1`).
+
+### Changed
+
+- **fix(modules)**: `worker-orchestration` / `intake-basic` contracts drop Cursor host nouns (`Multitask`, `SwitchMode`, `CreateGoal`, Cursor Task type names). Prefer host-native parallel in host-agnostic wording. Worker-orchestration activates only when isolatable groups are declared **and** a dispatch window is open.
+- **fix(adapter)**: thin Bootstrap gains a Next native action pointer (no `SwitchMode`). `continue.md` / `finish-work.md` bind Plan / Goal / parallel without restoring `cstl-goal`. Build probe stays Adapter A′ (not a Kernel Event Bridge default).
+
+### Notes for consumers
+
+- Install **`npm i -g @blxzer/cursor-trellis@0.5.0-beta.1`** or **`@blxzer/cursor-trellis@beta`**. `@latest` stays **0.4.3**.
+- In the **project root** run `cstl update` (do not re-run `init`). Official `.cstl/modules/worker-orchestration/contract.md` and `.cstl/framework/cursor-native-modes-guide.md` refresh. `.cstl/middleware/` is never written.
+- Core and CLI versions stay paired: `@blxzer/cursor-trellis-core@0.5.0-beta.1`.
+- Maintainers: tag **`cstl-v0.5.0-beta.1`**. Do not promote this prerelease to `main` / `@latest` until an explicit official release.
+
 ## [0.5.0-beta.0] - 2026-08-31
 
 Modular runtime preview. Kernel stays thin; P29 short contracts ship under `.cstl/modules/`; SessionStart injects a compiled session pack instead of dumping `workflow.md` Phase Index. **Not** `@latest` — install with `@beta` or the exact version.
