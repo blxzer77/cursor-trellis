@@ -43,6 +43,25 @@ const SHIPPED_SLASH_FILES = [
   "cstl-handoff.md",
 ] as const;
 
+const continueRoutingLine = (body: string, phase: string): string => {
+  const escaped = phase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = body.match(new RegExp(`^\\s*-\\s+\\*\\*${escaped}\\*\\*[^\n]+`, "m"));
+  const line = match?.[0] ?? "";
+  expect(line, `${phase} routing line`).not.toEqual("");
+  return line;
+};
+
+const guideHumanPhaseRow = (guide: string, phase: string): string => {
+  const section = guide.split("## Human phases")[1]?.split("\n---")[0] ?? "";
+  const escaped = phase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = section.match(
+    new RegExp(`^\\| \\*\\*${escaped}\\*\\* \\|[^\\n]+`, "m"),
+  );
+  const line = match?.[0] ?? "";
+  expect(line, `Human phases ${phase} row`).not.toEqual("");
+  return line;
+};
+
 describe("Cursor adapter modes — shipped slash set", () => {
   it("resolveCommands on agent-capable Cursor omits start", () => {
     const names = resolveCommands(AI_TOOLS.cursor.templateContext).map(
@@ -114,9 +133,76 @@ describe("Cursor adapter modes — guide and escape hatches", () => {
     expect(guide).not.toContain("Phase 1");
     expect(guide).not.toContain("Micro-Grill");
     expect(guide).not.toContain("本版本不适配");
+    expect(guide).not.toContain("本版不支持");
     expect(guide).toContain("generalPurpose");
     expect(guide).toMatch(/\/goal/);
     expect(guide).toContain("Do **not** restore `cstl-goal`");
+  });
+
+  it("modes guide covers Q5 slot map and Q11–Q25 experience bindings", () => {
+    const guide = read(modesGuidePath);
+    expect(guide).toMatch(/## Q5 slot map/);
+    expect(guide).toMatch(/## Experience \(Q11–Q14\)/);
+    expect(guide).toContain("one sentence");
+    expect(guide).toContain("Do **not** ask the user to type `python`");
+    expect(guide).toContain("**No** opening “loaded” probe");
+    expect(guide).toContain("`SwitchMode(plan)` immediately");
+    expect(guide).toContain("Ask the user to open the visible parallel surface");
+    expect(guide).toContain("`Task()` plus one Q12 sentence");
+    expect(guide).toContain("**Do not block.**");
+    expect(guide).toContain("Unlanded Plan must not map to Execute");
+    expect(guide).toContain("No product-code edits until Execute is approved");
+    expect(guide).toContain("Current path = A′");
+    expect(guide).toContain("Forbidden:** Build-probe fields in Kernel extras");
+    expect(guide).toContain("CreateGoal may drive **this window**");
+    expect(guide).toContain("`UpdateGoal` complete or cancel");
+    expect(guide).toContain("Goal failure **does not block** Close");
+    expect(guide).toContain("appendix only");
+    expect(guide).toContain("analysis or inventory deliverables only");
+    expect(guide).toContain("Automations / Loop (Q9):** unbound");
+    expect(guide).toContain("when a visible Web UI changed");
+    expect(guide).toContain("Do not write them back into `worker-orchestration`");
+    expect(guide).not.toMatch(/quietly fall back/i);
+  });
+
+  it("packages/core does not gain Cursor host nouns", () => {
+    const coreSrc = path.join(repoRoot, "packages/core/src");
+    const banned = [
+      "SwitchMode",
+      "CreateGoal",
+      "Multitask",
+      "Bugbot",
+      "ExecutePlanAction",
+    ];
+    const hits: string[] = [];
+    const walk = (dir: string) => {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          walk(full);
+          continue;
+        }
+        if (!/\.(ts|js|json)$/.test(entry.name)) continue;
+        const body = fs.readFileSync(full, "utf-8");
+        for (const name of banned) {
+          if (body.includes(name)) hits.push(`${path.relative(coreSrc, full)}:${name}`);
+        }
+      }
+    };
+    walk(coreSrc);
+    expect(hits).toEqual([]);
+  });
+
+  it("Event Bridge defaults have no Build-probe subscription", () => {
+    const adapterTs = read(
+      path.join(repoRoot, "packages/core/src/task/adapter-middleware.ts"),
+    );
+    expect(adapterTs).toMatch(/STAGE6_HOOK_EVENTS/);
+    expect(adapterTs).not.toMatch(/planBuild|ExecutePlanAction|Build probe/i);
+    const defaultBridge = adapterTs.match(
+      /export function defaultEventBridge[\s\S]*?subscriptions:\s*\[\]/,
+    );
+    expect(defaultBridge).not.toBeNull();
   });
 
   it("continue.md does not treat Phase Index as runtime SSOT", () => {
@@ -152,9 +238,42 @@ describe("Cursor adapter modes — guide and escape hatches", () => {
     const body = read(bootstrapPath);
     expect(body).toMatch(/^alwaysApply:\s*true$/m);
     expect(body).toContain("single thin Bootstrap");
+    expect(body).toContain("Next native action");
+    expect(body).toContain("Do not ask the user to type `python`");
     expect(body).not.toContain("SwitchMode");
     expect(body).not.toContain("[Triage:]");
     expect(body).not.toContain("Phase Index");
     expect(body.split("\n").length).toBeLessThan(40);
+  });
+
+  it("continue.md and finish-work.md carry Q11/Q14/Q15/Q22 one-liners", () => {
+    const continueBody = read(continuePath);
+    expect(continueBody).toContain("do not ask the user to type `python`");
+    expect(continueBody).toContain("Do not open with a “loaded” probe");
+    expect(continueBody).toContain("`SwitchMode(plan)` immediately");
+    const finishBody = read(finishWorkPath);
+    expect(finishBody).toContain("`UpdateGoal` complete or cancel");
+    expect(finishBody).toContain("Goal failure does not block Close");
+  });
+
+  it("visible parallel fan-out is on Execute, Integrate? stays serial integrate-child", () => {
+    const continueBody = read(continuePath);
+    const executeLine = continueRoutingLine(continueBody, "Execute");
+    const integrateLine = continueRoutingLine(continueBody, "Integrate?");
+    expect(executeLine).toMatch(/ask the user to open Multitask/);
+    expect(executeLine).toMatch(/`Task\(\)` plus one sentence/);
+    expect(integrateLine).toMatch(/integrate-child/);
+    expect(integrateLine).not.toMatch(/Multitask/);
+    expect(integrateLine).not.toMatch(/`Task\(\)`/);
+
+    const guide = read(modesGuidePath);
+    const executeRow = guideHumanPhaseRow(guide, "Execute");
+    const integrateRow = guideHumanPhaseRow(guide, "Integrate?");
+    expect(executeRow).toMatch(/ask the user to open Multitask/);
+    expect(executeRow).toMatch(/`Task\(\)` \+ Q12/);
+    expect(integrateRow).toMatch(/integrate-child/);
+    expect(integrateRow).toMatch(/merge_limit:\s*1/);
+    expect(integrateRow).not.toMatch(/Visible Multitask first/);
+    expect(integrateRow).not.toMatch(/`Task\(\)`/);
   });
 });

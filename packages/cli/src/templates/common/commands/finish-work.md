@@ -4,7 +4,7 @@ Wrap up the current session: archive the selected task (and any other completed-
 
 Before archive, confirm `verify.md` includes a **Durable learning decision** (`update-spec` | `no-update` | `unsure`, or a grep-friendly `Durable learning decision:` / `no durable learning` line) and gate-compatible evidence per `.cstl/spec/guides/durable-learning-decision-guide.md`. Run `task.py archive <task> --check` when unsure.
 
-Human lifecycle names: Open / Define / Approve / Execute / Verify / Integrate? / Close. This command is the Close wrap-up hatch, not Execute.
+Human lifecycle names: Open / Define / Approve / Execute / Verify / Integrate? / Close. This command is the Close wrap-up hatch, not Execute. On Close, `UpdateGoal` complete or cancel plus one sentence; Goal failure does not block Close. Do not ask the user to type `python`.
 
 ## Evidence pack reference (optional — graceful skip)
 
