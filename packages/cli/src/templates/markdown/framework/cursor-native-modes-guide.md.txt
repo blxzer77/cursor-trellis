@@ -1,14 +1,10 @@
-# Cursor native modes — Prefer & orchestrate (don't replace)
+# Cursor native modes — bind when native, degrade honestly
 
-> **Purpose**: Task-drive Cursor **Plan / Ask / Debug / Agent / Multitask** into Trellis phases and artifacts. Prefer native when callable; **quietly** fall back to the cstl spine when not. Do **not** reimplement modes or publish an “unsupported mode” list.
+> **Purpose**: Cursor Adapter is **platform-only**. Bind Plan / Ask / Debug / Agent / Multitask when those surfaces are callable. Prefer native; **quietly** fall back to existing task artifacts when they are not. Do **not** reimplement modes. Do **not** publish a user-facing “this version doesn’t support mode X” list.
 >
-> **Product anchor**: `.cstl/workspace/cursor-trellis-product-positioning.md` (P1).
+> **Human lifecycle** (Kernel projection): Open → Define → Approve → Execute → Verify → Integrate? → Close.
 >
-> **Design lock**: Parent `research/task-driven-modes-design-lock-2026-08-06.md`.
->
-> **Evidence**: `{TASK}/research/cursor-modes-external.md`, `{TASK}/research/modes-callability-matrix.md`.
->
-> **Rollback**: [Rollback](#rollback).
+> **Not a Trellis Task**: official `/goal` / `CreateGoal`. Do **not** restore `cstl-goal`.
 
 ---
 
@@ -16,74 +12,109 @@
 
 | Layer | Duty |
 | --- | --- |
-| **Cursor native** | Plan / Ask / Debug / Agent / Multitask — **try task-driven use first** |
-| **cstl spine** | Triage / Phase / gates / artifacts / Parent integration — **quiet fallback** when native cannot be driven well |
+| **Cursor native** | Plan / Ask / Debug / Agent / Multitask — bind when callable |
+| **cstl artifacts** | `prd.md` / `design.md` / `implement.md` / `verify.md` / task `handoff.md` — quiet fallback when native cannot be driven well |
 
-**Prefer native. Invent less.** Failures drop to existing cstl paths with little commentary — never a user-facing “本版本不适配某 mode” section.
+**Prefer native. Invent less.** Failures drop to those artifact paths with little commentary.
+
+This guide is **on-demand**. It is not the always-on Bootstrap (`.cursor/rules/cstl-bootstrap.mdc`).
 
 ---
 
-## Prefer / Adapt table (mode × Trellis × artifacts)
+## Human phases ↔ Cursor modes
+
+| Human phase | Cursor binding | Quiet fallback |
+| --- | --- | --- |
+| **Open** | Stay in Agent (or Ask if the user is already there and the ask is read-only) | Dashboard + Intake exits; no product writes |
+| **Define** | **Plan** — try `SwitchMode(plan)` when useful | Write `prd.md` (and Full surfaces) in Agent |
+| **Approve** | Agent — request the Execute gate; `--check` is not approval | Same artifacts; do not start Execute |
+| **Execute** | **Agent** — `SwitchMode(agent)` when returning from Plan | Diff under the approved contract |
+| **Verify** | **Debug** when runtime evidence is needed; else Agent | Proof always lands in `verify.md` |
+| **Integrate?** | **Multitask** / Agent `Task` for Parent parallel workers | Explicit `.cstl/tasks/<dir>` prompts; Parent `integrate-child` |
+| **Close** | Agent | `verify.md` coverage + `/cstl-finish-work` |
+
+`Integrate?` is visible only when topology needs it (parent-child, or the task is already in Integrate). Lite single tasks skip it.
+
+---
+
+## Prefer / Adapt table (mode × lifecycle × artifacts)
 
 | Cursor mode | Prefer when | Task-driven Prefer | Quiet cstl fallback | Durable artifacts |
 | --- | --- | --- | --- | --- |
-| **Ask** | Explain / lookup; **no** durable change | Prefer Ask UI / side chat when the user is already there; Agent cannot `SwitchMode`→Ask | In-session **No Task** behavior (read-only, no `task.py create` without consent) | None |
-| **Plan** | Scope / design / tradeoffs before code | **Try `SwitchMode(plan)`**; after review, `SwitchMode(agent)` or Build; **Save to workspace** → map into task files | Keep writing `prd.md` / `design.md` / `implement.md` + `cstl-brainstorm` in Agent | Phase 1 files |
-| **Agent** | Approved build / verify | Default; `SwitchMode(agent)` when returning from Plan | — | Diff, `verify.md`, gates |
-| **Debug** | Repro / runtime / regressions | Prefer real Cursor Debug when the user/session can reach it | Evidence → `verify.md`; `cstl-break-loop` if looped | Notes / logs in `verify.md` |
-| **Multitask** | Independent Parent children post-approval (**default** when ≥2 units, empty `depends_on`) | Prefer `/multitask` / Build in Parallel / Agent `Task` / native worktree — **not** a Trellis scheduler | Explicit `.cstl/tasks/<dir>` prompts + Parent `integrate-child`; serial needs `serial_reason` | Child `verify`/`handoff`; Parent `task-map` |
-
-### Phase quick map
-
-```
-Triage (No Task / Micro-Grill)  → Ask surface if present; else No Task in Agent
-Phase 1                         → SwitchMode(plan) when useful; else write artifacts in Agent
-Phase 2–3                       → Agent (+ workers when contracted)
-Stuck / repeat failure          → Debug when reachable; else verify.md + break-loop
-Parent parallel children        → Multitask / Task parallel **by default**; serial needs serial_reason; Parent integrates
-```
+| **Ask** | Explain / lookup; **no** durable change | Prefer Ask UI / side chat when the user is already there. **Agent cannot `SwitchMode` → Ask** | In-session no-task read-only (no `task.py create` without consent) | None |
+| **Plan** | Scope / design / tradeoffs before code | **Try `SwitchMode(plan)`** in **Define**. After review, `SwitchMode(agent)` or Build. **Save to workspace**, then map into task files | Keep writing `prd.md` / `design.md` / `implement.md` in Agent | Definition surfaces |
+| **Agent** | Approved build / verify / close | Default for **Execute** (and Approve / Close). `SwitchMode(agent)` when returning from Plan | — | Diff, `verify.md`, gates |
+| **Debug** | Repro / runtime / regressions | Prefer real Cursor Debug when reachable. Adapter does **not** own Debug UI docs | Evidence → `verify.md` | Notes / logs in `verify.md` |
+| **Multitask** | Independent Parent children after Execute is approved (**default** when ≥2 units, empty `depends_on`) | Prefer `/multitask` / Build in Parallel / Agent `Task` / native worktree — **not** a Trellis scheduler | Explicit `.cstl/tasks/<dir>` prompts + Parent `integrate-child`; serial needs `serial_reason` | Child `verify` / `handoff`; Parent `task-map` |
 
 ---
 
 ## Mode-specific contracts
 
-### Ask ↔ No Task
+### Ask ↔ no-task read-only
 
-- Official Ask does not edit files. Agent tools cannot switch into Ask.
-- Classify **No Task** for pure Q&A; no task creation without consent.
-- Side chats (3.11) complement Ask during Agent runs — still not Trellis artifacts.
+- Official Ask does not edit files.
+- **Agent tools cannot `SwitchMode` into Ask.** If the user is not already on Ask, stay in Agent and keep the turn read-only.
+- Pure Q&A is no-task; no task creation without consent.
+- Side chats during Agent runs are still not Trellis artifacts.
 
-### Plan ↔ Phase 1
+### Plan ↔ Define
 
-- Prefer **`SwitchMode(plan)`** for design-heavy Phase 1; care about switch-back quality.
-- Default plan save = **home directory** — **Save to workspace**, then map to `{TASK}/prd.md`, `design.md`, `implement.md`.
-- Does **not** skip `start-execution --check` / execution approval.
+- Prefer **`SwitchMode(plan)`** for design-heavy **Define**; care about switch-back quality.
+- Default plan save = **home directory** — **Save to workspace**, then map to `{TASK}/prd.md`, `design.md`, `implement.md` as the contract requires.
+- Does **not** skip `start-execution --check` / Execute approval.
 - If Plan switch or save flow is poor: **quietly** author the same files in Agent.
 
-### Debug ↔ evidence
+### Agent ↔ Execute
+
+- Default binding for **Execute**.
+- Stay inside the approved Definition / AC (and Full execution/verification contract).
+- Contract change → Return-to-Define, then the Execute gate again.
+
+### Debug ↔ evidence in `verify.md`
 
 - Prefer Cursor Debug instrumentation when reachable.
-- Always land proof in **`verify.md`**. Contract change → Return-to-Planning.
+- Always land proof in **`verify.md`**. Adapter does not ship Debug UI instructions.
+- Contract change → Return-to-Define. Implementation defect → back to Execute.
 
-### Multitask ↔ Parent/Child
+### Multitask ↔ Parent parallel workers
 
 1. Trellis remains source of truth for status, gates, integration. This is **not** a Trellis-built parallel product — Prefer Cursor Multitask / Build in Parallel / Agent `Task` / native worktree.
 2. **Default parallel** when planning has ≥2 independent units (Parent children with empty `depends_on`, or Full Task fan-out). Lite / single-file work is not forced into parallel agents.
 3. **Serial needs a written reason** (`serial_reason`): shared write-set / HITL or reviewer gate / `depends_on` unmet / user asked serial / conflict surface cannot isolate. HITL, `start-execution --approved`, reviewer gates, and `integrate-child` stay serial even when workers run in parallel (`merge_limit: 1`).
 4. Every worker prompt includes **explicit `.cstl/tasks/<dir>`** — never rely on `selected_task`.
-5. Parent alone `integrate-child`; no collision guarantee without worktrees + review. Declare 可并行组 / 合并点 / 冲突面 on the task-map — see `.cstl/framework/parallel-first-execution.md`.
+5. Parent alone `integrate-child`. See `.cstl/framework/parallel-first-execution.md`.
+
+### Task API honest degrade (`generalPurpose`)
+
+This Cursor Task API may have **no** `cstl-implement` / `cstl-check` enum.
+
+- Dispatch workers as **`generalPurpose`**.
+- Do **not** label the run `true-independent`.
+- Do **not** nest further implement / check / research Task types from a child worker.
+- Parent retains `review-child` / `integrate-child`.
+
+---
+
+## Official `/goal` is not a Trellis Task
+
+- Cursor **`/goal`** / **CreateGoal** is a durable in-session objective on the Cursor product.
+- It is **not** a Trellis task type, not Parent/Child, not `selected_task`.
+- Do **not** restore `cstl-goal`. Continue / Finish-work / Handoff remain the `/cstl-*` escape hatches.
+
+User-visible `/` escape hatches on agent-capable Cursor: **`/cstl-continue`**, **`/cstl-finish-work`**, **`/cstl-handoff`**. Internal skills (brainstorm, check, skill-creator, …) are **not** slash commands. `start` is filtered out on agent-capable Cursor.
 
 ---
 
 ## Callability (Agent tool table)
 
-| Surface | Plan | Agent | Ask | Debug | Parallel Children |
+| Surface | Plan | Agent | Ask | Debug | Parallel children |
 | --- | --- | --- | --- | --- | --- |
-| Agent `SwitchMode` | Yes → `plan` | Yes → `agent` | — | — | — |
+| Agent `SwitchMode` | Yes → `plan` | Yes → `agent` | **No** | — | — |
 | Agent `Task` / Multitask | — | workers | — | — | Prefer **by default** (serial needs `serial_reason`) |
 | User / CLI modes | Plan UI / `/plan` | default | Ask UI / `/ask` | Debug UI | `/multitask`, Build in Parallel |
 
-Details: `research/modes-callability-matrix.md`.
+If a cell is not callable here: **fail quietly** to the artifact paths above. Do not narrate an unsupported-mode catalog to the user.
 
 ---
 
@@ -93,8 +124,10 @@ Details: `research/modes-callability-matrix.md`.
 - Multitask inherits `selected_task` or exposes a stable programmatic mode API.
 - Parallel agents cannot conflict without Trellis/worktree discipline.
 - `SwitchMode` can open Ask or Debug.
-- Shipping a parallel fake Plan/Ask/Debug product, or documenting gaps as “本版本不适配”.
+- Shipping a parallel fake Plan/Ask/Debug product, or documenting gaps as product blame.
 - Replacing Cursor Multitask with a Trellis scheduler, queue, or new parallel CLI.
+- That a `generalPurpose` stand-in is `true-independent`.
+- That `/goal` / CreateGoal is a Trellis Task.
 
 ---
 
@@ -103,9 +136,10 @@ Details: `research/modes-callability-matrix.md`.
 | Mode | Minimum probe | Pass when |
 | --- | --- | --- |
 | **Plan** | Schema or live `SwitchMode(plan)` note in verify | Prefer path documented; quiet Agent fallback if unused |
-| **Ask / Debug** | Callability matrix | Quiet spine behavior; no “不适配” section |
+| **Ask / Debug** | Callability above | Quiet artifact fallback; no unsupported-mode section |
 | **Multitask** | Task parallel or doc contract | Explicit child paths; default parallel; serial has `serial_reason`; Parent integrates |
 | **Agent** | Session implements under contract | Artifacts on disk |
+| **Task enum** | Missing `cstl-implement` / `cstl-check` | `generalPurpose` degrade; never `true-independent` |
 
 ---
 
@@ -113,16 +147,15 @@ Details: `research/modes-callability-matrix.md`.
 
 Docs + rules only:
 
-1. Delete `.cursor/rules/cstl-cursor-modes.mdc`, `.cstl/framework/cursor-native-modes-guide.md`, and `.cstl/framework/parallel-first-execution.md`.
-2. Drop related `guides/index.md` / `workflow.md` rows, or `cstl update` from pre-P1 templates.
+1. Delete `.cstl/framework/cursor-native-modes-guide.md` and `.cstl/framework/parallel-first-execution.md` if reverting the Prefer-native contract.
+2. Drop related `guides/index.md` / `workflow.md` rows, or `cstl update` from pre-rewrite templates.
 3. **cursor-trellis**: revert this Child’s tip or delete mirrored template paths.
+4. Do **not** thicken `.cursor/rules/cstl-bootstrap.mdc` to replace this guide.
 
 ---
 
 ## Related
 
-- `{TASK}/research/modes-callability-matrix.md`
-- `{TASK}/research/cursor-modes-external.md`
-- `.cursor/rules/cstl-cursor-modes.mdc`
 - `.cstl/framework/cursor-subagent-policy.md`
 - `.cstl/framework/parallel-first-execution.md`
+- `.cursor/rules/cstl-bootstrap.mdc` (thin always-on pointer only)

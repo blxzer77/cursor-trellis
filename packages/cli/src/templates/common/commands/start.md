@@ -2,10 +2,12 @@
 
 Enter or refresh the Trellis Framework Context. This is a dashboard entry surface; it must not select, resume, or start a task by itself.
 
+On **agent-capable Cursor** this command is **not** installed as a `/` slash (SessionStart + `/cstl-continue` cover entry). Keep this template for agent-less platforms only.
+
 ---
 
 ## Step 1: Framework state
-Identity, git status, selected task, Task Dashboard, journal location.
+Identity, git status, selected task, Kernel / Task Dashboard, journal location.
 
 ```bash
 {{PYTHON_CMD}} ./.cstl/scripts/get_context.py
@@ -13,16 +15,9 @@ Identity, git status, selected task, Task Dashboard, journal location.
 
 If this output includes a line beginning `Trellis update available:`, copy the full line verbatim when summarizing session context. Do not shorten operational command hints.
 
-## Step 2: Workflow overview
-Compact Phase Index, request triage rules, planning artifact contract, and the step-detail command.
+If a compiled session pack is already in context, use it. Do **not** implement the Session compiler. Do **not** treat `get_context.py --mode phase` Phase Index as runtime SSOT.
 
-```bash
-{{PYTHON_CMD}} ./.cstl/scripts/get_context.py --mode phase
-```
-
-Full guide in `.cstl/workflow.md` (read on demand).
-
-## Step 3: Guideline indexes
+## Step 2: Guideline indexes
 Discover packages + spec layers, then read each relevant index file.
 
 ```bash
@@ -31,39 +26,41 @@ cat .cstl/spec/guides/index.md
 cat .cstl/spec/<package>/<layer>/index.md   # for each relevant layer
 ```
 
-Index files list the specific guideline docs to read when you actually start coding.
+Index files list the specific guideline docs to read when you actually start coding. Human overview: `.cstl/workflow.md` (read on demand; not runtime SSOT).
 
-## Step 4: Decide next action
-From Step 1 you know whether a task is selected.
+## Step 3: Decide next action
+From Step 1 you know whether a task is selected. Route by Kernel human phase (Open / Define / Approve / Execute / Verify / Integrate? / Close), not by Phase Index step ids.
 
-- If `Selected task: none` → show the Task Dashboard; do **not** load `cstl-continue`. For a **small** request without a task, use `cstl-micro-grill` first.
-- If a task **is** selected and you need the next workflow step → use `cstl-continue` instead of repeating Steps 1–3 here.
+- If `Selected task: none` → show the Task Dashboard; do **not** load `cstl-continue`. For read-only Q&A, stay no-task (Ask if the user is already there).
+- If a task **is** selected and you need the next lifecycle step → use `cstl-continue` instead of repeating Steps 1–2 here.
 
 If `Selected task: none`, ask the user to choose: select a task, create a task, inspect details, or continue without a task.
 
-If a task is selected, check the task directory:
+If a task is selected, check Kernel / Dashboard:
 
-- **Selected task status `planning` + no `prd.md`** → Phase 1.1. Load the `cstl-brainstorm` skill.
-- **Selected task status `planning` + `prd.md` exists** → stay in Planning / Execution Gate. Lightweight tasks can be PRD-only; complex tasks need `design.md` + `implement.md`. Run `task.py start-execution <task> --check` and request explicit execution approval before execution.
-- **Selected task status `in_progress`** → Phase 2 step 2.1. Load the step detail:
-  ```bash
-  {{PYTHON_CMD}} ./.cstl/scripts/get_context.py --mode phase --step 2.1 --platform {{CLI_FLAG}}
-  ```
-- **No selected task** → use dashboard routing. Do not auto-select an existing task.
+- **Open / Define** → stay in definition until AC exists; prefer Plan for Define when useful
+- **Approve** → Execution gate (`task.py start-execution <task> --check`); `--check` is not approval
+- **Execute** → implement under contract
+- **Verify / Close** → evidence then wrap-up (`cstl-finish-work`)
+- **No selected task** → use dashboard routing. Do not auto-select an existing task
+
+Official `/goal` / CreateGoal is not a Trellis Task.
 
 ---
 
 ## Skill routing (quick reference)
 
-| User intent | Skill |
+Internal names below are **workflow routing**, not a `/` palette. On Cursor, user slash commands are only Continue / Finish-work / Handoff.
+
+| User intent | Route |
 |---|---|
 | Resume **selected** in-progress task | `cstl-continue` |
-| New feature / unclear requirements | `cstl-brainstorm` |
-| Small request, no task yet | `cstl-micro-grill` |
-| About to write code | `cstl-before-dev` |
-| Done coding / quality check | `cstl-check` |
-| Session wrap-up after Phase 3.4 commit | `cstl-finish-work` |
-| Stuck / fixed same bug multiple times | `cstl-break-loop` |
-| Learned something worth capturing | `cstl-update-spec` |
+| New feature / unclear requirements | Define / brainstorm discipline (on-demand) |
+| Small request, no task yet | no-task read-only or Open Proposal |
+| About to write code | Execute (after Execute gate) |
+| Done coding / quality check | Verify |
+| Session wrap-up after Close / Finalize commit | `cstl-finish-work` |
+| Stuck / fixed same bug multiple times | Debug → `verify.md`; break-loop when looped |
+| Learned something worth capturing | learning disposition in `verify.md` |
 
-Full rules + anti-rationalization table in `.cstl/workflow.md`.
+Full human overview in `.cstl/workflow.md`. Native mode bindings: `.cstl/framework/cursor-native-modes-guide.md`.
