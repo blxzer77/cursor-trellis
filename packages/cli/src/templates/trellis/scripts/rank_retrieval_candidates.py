@@ -1,5 +1,17 @@
 #!/usr/bin/env python3
-"""CLI: rank codebase path candidates for B/E/D intents (eval / dogfood)."""
+"""Quality-layer CLI: rank already-collected path candidates (eval / dogfood).
+
+Three-layer retrieval ABI (frozen; do not merge back into workflow.md):
+
+| Layer    | Owner                 | This script                                      |
+| -------- | --------------------- | ------------------------------------------------ |
+| Intent   | context-progressive   | consumes intent ids; does not invent a 5th one   |
+| Provider | Middleware            | does not take smart-search as a Kernel dependency |
+| Quality  | retrieval-extended    | owner: reorder collected-evidence candidates      |
+
+Does not search. Does not change scoring/ranking algorithms in this freeze.
+Input role: collected-evidence. Output is not AC Evidence.
+"""
 
 from __future__ import annotations
 
@@ -9,6 +21,12 @@ import sys
 from pathlib import Path
 
 from common.retrieval_result_ranking import rank_retrieval_result_candidates
+
+ABI_INTENT_OWNER = "context-progressive"
+ABI_PROVIDER_OWNER = "middleware"
+ABI_QUALITY_OWNER = "retrieval-extended"
+ABI_LAYER = "quality"
+INPUT_ROLE = "collected-evidence"
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
