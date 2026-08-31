@@ -2,9 +2,9 @@
 """
 Review-pool data access layer (`.cstl/pool/`).
 
-Pure read helpers plus the authoritative write path for item <-> task
-bidirectional links. Consumers: scripts/pool.py (CLI) and
-common/task_dependencies.py (pool: dependency resolution).
+Pure read helpers plus the authoritative write path for item ↔ task
+bidirectional links (human index). ``pool:`` satisfaction lives in
+``pool_refs`` (delivery field), not here.
 
 Frontmatter reading reuses artifact_search.split_frontmatter /
 parse_frontmatter (the single simple-frontmatter parser; no PyYAML).
@@ -12,7 +12,7 @@ Frontmatter writes splice a re-serialized header between the raw `---`
 fences so the body is preserved byte-for-byte (including the blank line
 after the closing fence and the final newline), and key order stays stable:
 known keys first (id, title, status, type, locale, created, approved,
-priority, linked_tasks), unknown keys keep their original relative order.
+priority, delivery, linked_tasks), unknown keys keep their original relative order.
 """
 
 from __future__ import annotations
@@ -25,6 +25,7 @@ from .artifact_search import parse_frontmatter, split_frontmatter
 from .io import read_json
 from .kernel_command import kernel_expected_revision, kernel_patch, kernel_projection_extras
 from .paths import get_repo_root, get_tasks_dir
+from .pool_refs import DELIVERIES
 
 POOL_STATUSES = frozenset({"inbox", "review", "accepted", "rejected", "rework"})
 
@@ -41,6 +42,7 @@ KNOWN_FRONTMATTER_KEY_ORDER = (
     "created",
     "approved",
     "priority",
+    "delivery",
     LINKED_TASKS_KEY,
 )
 
@@ -169,6 +171,26 @@ def normalize_id_list(raw: object) -> list[str]:
         seen.add(value)
         normalized.append(value)
     return normalized
+
+
+def get_item_delivery(item: PoolItem) -> str:
+    """delivery frontmatter value, or empty string."""
+    return _scalar_str(item.frontmatter.get("delivery"), "") or ""
+
+
+def delivery_groups(repo_root: Path | None = None) -> dict[str, list[PoolItem]]:
+    """Group accepted items by delivery. Keys are delivery values plus 'unset'."""
+    groups: dict[str, list[PoolItem]] = {key: [] for key in sorted(DELIVERIES)}
+    groups["unset"] = []
+    for item in list_items(repo_root):
+        if item.status != "accepted":
+            continue
+        delivery = get_item_delivery(item)
+        if delivery in groups:
+            groups[delivery].append(item)
+        else:
+            groups["unset"].append(item)
+    return groups
 
 
 def get_linked_tasks(item: PoolItem) -> list[str]:
@@ -546,6 +568,36 @@ def validate_pool(repo_root: Path | None = None) -> list[Issue]:
                     "error",
                     "invalid-status",
                     f"item {label}: status {item.status!r} not in {sorted(POOL_STATUSES)}",
+                    item.path,
+                )
+            )
+        delivery = _scalar_str(item.frontmatter.get("delivery"), "") or ""
+        if item.status == "accepted":
+            if not delivery:
+                issues.append(
+                    Issue(
+                        "error",
+                        "missing-delivery",
+                        f"item {label}: accepted items require delivery "
+                        f"({', '.join(sorted(DELIVERIES))})",
+                        item.path,
+                    )
+                )
+            elif delivery not in DELIVERIES:
+                issues.append(
+                    Issue(
+                        "error",
+                        "invalid-delivery",
+                        f"item {label}: delivery {delivery!r} not in {sorted(DELIVERIES)}",
+                        item.path,
+                    )
+                )
+        elif delivery and delivery not in DELIVERIES:
+            issues.append(
+                Issue(
+                    "error",
+                    "invalid-delivery",
+                    f"item {label}: delivery {delivery!r} not in {sorted(DELIVERIES)}",
                     item.path,
                 )
             )

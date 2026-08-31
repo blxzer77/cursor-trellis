@@ -59,6 +59,7 @@ export const commonTaskDependencies = readTemplate(
   "scripts/common/task_dependencies.py",
 );
 export const commonPoolStore = readTemplate("scripts/common/pool_store.py");
+export const commonPoolRefs = readTemplate("scripts/common/pool_refs.py");
 export const commonExecutionStrategy = readTemplate(
   "scripts/common/execution_strategy.py",
 );
@@ -329,6 +330,7 @@ export function getAllScripts(): Map<string, string> {
   scripts.set("common/task_gates.py", commonTaskGates);
   scripts.set("common/task_dependencies.py", commonTaskDependencies);
   scripts.set("common/pool_store.py", commonPoolStore);
+  scripts.set("common/pool_refs.py", commonPoolRefs);
   scripts.set("common/execution_strategy.py", commonExecutionStrategy);
   scripts.set("common/task_map.py", commonTaskMap);
   scripts.set("common/parent_orchestration.py", commonParentOrchestration);

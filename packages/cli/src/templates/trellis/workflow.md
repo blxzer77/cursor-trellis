@@ -254,7 +254,7 @@ Cursor Adapter stays thin: a generic Event Bridge, one Bootstrap rule, and a sho
 
 Selected-task continuity. When a `selected_task` already exists, do not rerun global classification on every follow-up; continue inside the selected task unless a strong conflict exists (explicit exit/switch/create language, out-of-scope request, different artifact/archive target, new independent deliverable, contract-changing request, or evidence pollution risk).
 
-Review-pool boundary. In-session requests that are clear and directly actionable go straight to Lite / Full / Parent task creation and do **not** enter the pool (`.cstl/pool/`). Ideas, directions, gaps, or unformed thoughts go into the pool. Only `accepted` pool entries may be turned into tasks via `task.py create`. The pool is a candidate queue; a Task is a commitment. See `.cstl/pool/README.md` for the full state machine and role split. Pool entry ↔ task links and pool/plan validation are maintained via the pool CLI: `python3 ./.cstl/scripts/pool.py --help` (link/unlink/validate/plan-check/show). Choosing the next item: treat `plan.md` closed/mainline sections as authoritative → item status → `task.py list` → ask the user; landed items/mechanisms must leave fog (discipline in `.cstl/pool/README.md` 「下一项怎么选 + fog 卫生」).
+Review-pool boundary. In-session requests that are clear and directly actionable go straight to Lite / Full / Parent task creation and do **not** enter the pool (`.cstl/pool/`). Ideas, directions, gaps, or unformed thoughts go into the pool. Only `accepted` pool entries may be turned into tasks via `task.py create`. The pool is a candidate queue; a Task is a commitment. `accepted` is adjudication, not completion — remaining obligation is `delivery` (`open` / `in-slice` / `landed` / `standing` / `deferred`). See `.cstl/pool/README.md`. Pool CLI: `python3 ./.cstl/scripts/pool.py --help` (link/unlink/validate/plan-check/show/status). Choosing the next item: `pool.py status` then rank only `open` / `in-slice`; standing is not a queue.
 
 ### Task Ladder And Routing
 
@@ -360,7 +360,7 @@ Write task-level dependencies only via `task.py set-deps <task> <dep...>` (it no
 - `--ignore-deps`：挂于 `--approved` 与 `set-child-state working`；成功路径把事件（`command`/`by`/`mode`/`blocking_summary` 等）append 到 `meta.depends_ignore_events`（cap 20），start-execution 与 `execution_approval` 同一次写盘。
 - archive / integrate-child / set-deps / dashboard 不挡；`parent_orchestration.py` 零改。
 
-`pool:Pxx` refs require the pool item to be linked (`pool.py link`); satisfaction is all-linked-tasks-done, otherwise UNRESOLVED — see `.cstl/pool/README.md`.
+`pool:Pxx` refs resolve through `pool_refs` (item `delivery`). standing / landed / deferred → SATISFIED; open / in-slice → NOT_SATISFIED; missing `.cstl/pool/` is ignored and does not block Close. See `.cstl/pool/README.md`.
 
 #### Vertical slice grain (Parent children)
 

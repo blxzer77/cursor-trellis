@@ -298,6 +298,8 @@ describe("getAllScripts", () => {
     expect(scripts.has("common/paths.py")).toBe(true);
     expect(scripts.has("common/active_task.py")).toBe(true);
     expect(scripts.has("common/kernel_command.py")).toBe(true);
+    expect(scripts.has("common/pool_store.py")).toBe(true);
+    expect(scripts.has("common/pool_refs.py")).toBe(true);
     expect(scripts.has("task.py")).toBe(true);
     expect(scripts.has("get_developer.py")).toBe(true);
     expect(scripts.has("common/lite_context.py")).toBe(true);
