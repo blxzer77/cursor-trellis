@@ -6,6 +6,7 @@ Usage:
     python3 get_context.py                              Output context in text format
     python3 get_context.py --json                       Output context in JSON format
     python3 get_context.py --mode lite --json           Personal Lite budgeted pack
+    python3 get_context.py --mode session --json        Five-layer Session pack (context-progressive)
     python3 get_context.py --mode retrieval-pack --json Output scored retrieval pack JSON
 """
 

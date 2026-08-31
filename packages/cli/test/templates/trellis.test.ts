@@ -301,6 +301,8 @@ describe("getAllScripts", () => {
     expect(scripts.has("task.py")).toBe(true);
     expect(scripts.has("get_developer.py")).toBe(true);
     expect(scripts.has("common/lite_context.py")).toBe(true);
+    expect(scripts.has("common/session_pack.py")).toBe(true);
+    expect(scripts.has("compile_session_pack.py")).toBe(true);
     expect(scripts.has("common/full_quality.py")).toBe(true);
     expect(scripts.has("common/ondemand_topology.py")).toBe(true);
     expect(scripts.has("common/adapter_middleware.py")).toBe(true);
