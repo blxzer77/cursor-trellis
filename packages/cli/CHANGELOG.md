@@ -29,6 +29,7 @@ Modular runtime preview. Kernel stays thin; P29 short contracts ship under `.cst
 - **fix(profile)**: inactive modules are dropped from the session pack and hooks.
 - **fix(cli)**: joiner onboarding uses `/cstl-continue` and Kernel/Dashboard; it no longer says continue loads Phase Index.
 - **fix(update)**: unchanged templates with no stored hash (canary-copied `.cstl/modules/`) are hashed on a no-op update so the next real template edit auto-updates.
+- **fix(retrieval)**: query-only `build_retrieval_pack` still stamps `evidenceEnvelope` intents when collected-evidence is missing. Empty `{}` input stays envelope-free and is not AC Evidence.
 - **chore(release)**: prerelease `pnpm publish` uses the `beta` / `rc` / `alpha` dist-tag from `computeNpmTag`. GitHub Release on `cstl-v*` no longer sets **Latest** for prerelease tags.
 
 ### Notes for consumers

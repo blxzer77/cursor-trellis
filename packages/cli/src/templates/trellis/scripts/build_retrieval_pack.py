@@ -266,6 +266,33 @@ def pack_from_collected_evidence(
         "codebaseCandidates": 0,
     }
     if not collected:
+        router_envelope = resolve_router_envelope(
+            resolve_repo_root(repo_root),
+            explicit_router=dict_value(data.get("routerEnvelope")) or None,
+            query=string_value(data.get("query")) or None,
+        )
+        if router_envelope:
+            inner = build_retrieval_pack(
+                None,
+                repo_root=repo_root,
+                max_items=max_items,
+                max_estimated_tokens=max_estimated_tokens,
+                include_diagnostics=include_diagnostics,
+                router_envelope=router_envelope,
+                adapter_hints=normalize_dict_list(
+                    list_value(data.get("adapterHints"))
+                ),
+            )
+            warnings = list(list_value(inner.get("warnings")))
+            if "missing-collected-evidence" not in warnings:
+                warnings.insert(0, "missing-collected-evidence")
+            inner = dict(inner)
+            inner["warnings"] = warnings
+            return stamp_retrieval_pack_abi(
+                inner,
+                collection_status="missing",
+                reason=MISSING_COLLECTION_REASON,
+            )
         return stamp_retrieval_pack_abi(
             {
                 "version": 1,
