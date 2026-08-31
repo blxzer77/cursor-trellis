@@ -12,6 +12,7 @@ import path from "node:path";
 
 import {
   cleanupEmptyDirs,
+  collectMissingTemplateHashes,
   collectStaleUpdateSkipPaths,
   collectTemplateFiles,
   loadUpdateSkipPaths,
@@ -19,7 +20,7 @@ import {
   shouldExcludeFromBackup,
   sortMigrationsForExecution,
 } from "../../src/commands/update.js";
-import { PATHS } from "../../src/constants/paths.js";
+import { FILE_NAMES, PATHS } from "../../src/constants/paths.js";
 
 // =============================================================================
 // cleanupEmptyDirs
@@ -387,5 +388,60 @@ describe("collectTemplateFiles — modules vs middleware", () => {
           key === PATHS.MIDDLEWARE || key.startsWith(`${PATHS.MIDDLEWARE}/`),
       ),
     ).toBe(false);
+  });
+});
+
+describe("collectMissingTemplateHashes", () => {
+  const modulePath = `${PATHS.MODULES}/intake-basic/contract.md`;
+
+  it("records unchanged canary-copied modules that have no stored hash", () => {
+    const missing = collectMissingTemplateHashes(
+      {
+        unchangedFiles: [
+          {
+            path: `/tmp/${modulePath}`,
+            relativePath: modulePath,
+            newContent: "# intake-basic\n",
+            status: "unchanged",
+          },
+        ],
+      },
+      {},
+    );
+    expect(missing.get(modulePath)).toBe("# intake-basic\n");
+  });
+
+  it("still records AGENTS.md when the file matches and the hash is missing", () => {
+    const missing = collectMissingTemplateHashes(
+      {
+        unchangedFiles: [
+          {
+            path: `/tmp/${FILE_NAMES.AGENTS}`,
+            relativePath: FILE_NAMES.AGENTS,
+            newContent: "block\n",
+            status: "unchanged",
+          },
+        ],
+      },
+      {},
+    );
+    expect(missing.get(FILE_NAMES.AGENTS)).toBe("block\n");
+  });
+
+  it("skips unchanged files that already have a hash", () => {
+    const missing = collectMissingTemplateHashes(
+      {
+        unchangedFiles: [
+          {
+            path: `/tmp/${modulePath}`,
+            relativePath: modulePath,
+            newContent: "# intake-basic\n",
+            status: "unchanged",
+          },
+        ],
+      },
+      { [modulePath]: "already-tracked" },
+    );
+    expect(missing.size).toBe(0);
   });
 });

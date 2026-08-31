@@ -1090,14 +1090,23 @@ function analyzeChanges(
   return result;
 }
 
-function collectMissingAgentsMdHash(
-  changes: ChangeAnalysis,
+/**
+ * Unchanged templates with no stored hash (canary hand-copy, first hash
+ * tracking, or a newly shipped path such as `.cstl/modules/`). Record the
+ * hash so the next real template edit auto-updates instead of prompting
+ * "Modified by you" or listing the path as new.
+ */
+export function collectMissingTemplateHashes(
+  changes: Pick<ChangeAnalysis, "unchangedFiles">,
   hashes: TemplateHashes,
 ): Map<string, string> {
   const files = new Map<string, string>();
 
   for (const file of changes.unchangedFiles) {
-    if (file.relativePath === FILE_NAMES.AGENTS && !hashes[file.relativePath]) {
+    if (isUserMiddlewareOverlayPath(file.relativePath)) {
+      continue;
+    }
+    if (!hashes[file.relativePath]) {
       files.set(file.relativePath, file.newContent);
     }
   }
@@ -2461,7 +2470,7 @@ export async function update(options: UpdateOptions): Promise<void> {
 
   // Analyze changes (pass hashes for modification detection)
   const changes = analyzeChanges(cwd, hashes, templates);
-  const missingAgentsMdHash = collectMissingAgentsMdHash(changes, hashes);
+  const missingTemplateHashes = collectMissingTemplateHashes(changes, hashes);
 
   const safeDeleteCandidateCount = safeFileDeletes.filter(
     (c) => c.action === "delete",
@@ -2606,8 +2615,8 @@ export async function update(options: UpdateOptions): Promise<void> {
     !hasMaintainerArtifactWrites &&
     !hasWaveCPending
   ) {
-    if (!options.dryRun && missingAgentsMdHash.size > 0) {
-      updateHashes(cwd, missingAgentsMdHash);
+    if (!options.dryRun && missingTemplateHashes.size > 0) {
+      updateHashes(cwd, missingTemplateHashes);
     }
 
     if (isSameVersion) {
@@ -2958,7 +2967,7 @@ export async function update(options: UpdateOptions): Promise<void> {
   updateVersionFile(cwd);
 
   // Update template hashes for new, auto-updated, and overwritten files
-  const filesToHash = new Map<string, string>(missingAgentsMdHash);
+  const filesToHash = new Map<string, string>(missingTemplateHashes);
   for (const file of changes.newFiles) {
     filesToHash.set(file.relativePath, file.newContent);
   }

@@ -740,32 +740,36 @@ Trellis is a workflow layer over Claude Code / Cursor / etc. that keeps AI
 agents consistent with project-specific conventions instead of writing generic
 code every session.
 
-- **Three phases**: Plan (brainstorm → \`prd.md\`) → Execute (code + check) →
-  Finish (capture + wrap). Full reference: \`.cstl/workflow.md\`.
-- **Task lifecycle**: planning → in_progress → done → archive, under
-  \`.cstl/tasks/\`.
-- **Core slash commands**:
-  - \`/cstl:continue\` — continue the current live session's selected task
-  - \`/cstl:finish-work\` — wrap up a finished task
-  - \`/cstl:start\` — framework/dashboard entry (not needed here; the
-    SessionStart hook does its job automatically)
+- **Human lifecycle**: Open → Define → Approve → Execute → Verify →
+  (Integrate? when parent-child) → Close. Kernel writes that state.
+  \`.cstl/workflow.md\` is a human overview, **not runtime SSOT**.
+- **Task files** live under \`.cstl/tasks/\`. \`status\` is a projection, not
+  the only truth.
+- **User slash (Native Cursor)**:
+  - \`/cstl-continue\` — resume only when this live session already has a
+    selected task
+  - \`/cstl-finish-work\` — wrap up a finished task
+  - \`/cstl-handoff\` — session handoff to a temp path (not the task's
+    \`handoff.md\`)
+  SessionStart covers entry. \`/cstl-start\` is not installed as a slash on
+  agent-capable Cursor. Official \`/goal\` is not a Trellis Task.
 
 ### 2. Runtime mechanics (explain when they ask "how does it know what to do")
 
-- **SessionStart hook** runs \`get_context.py\` and injects identity, git
-  status, selected task, active task list, and workflow phase into the AI
-  conversation at every session start.
-- **\`<workflow-state>\` tag** is auto-injected with every user message,
-  carrying the selected task + phase hint.
-- **\`/cstl:continue\`** loads the Phase Index, reads \`prd.md\` + recent
-  activity, and routes to the right skill (\`cstl-brainstorm\` for planning,
-  \`cstl-implement\` for coding, \`cstl-check\` for verification).
-- **\`cstl-implement\` sub-agent** is spawned when code needs to be written.
-  The platform hook reads \`{TASK_DIR}/implement.jsonl\` and auto-injects those
-  spec files + \`prd.md\` into the sub-agent's prompt so it codes per project
-  conventions.
-- **\`cstl-check\` sub-agent** follows the same pattern with \`check.jsonl\`
-  — reviews changes against specs, auto-fixes issues, runs lint/typecheck.
+- **SessionStart hook** injects identity, git status, selected task, Task
+  Dashboard, and a compiled session pack when Event Bridge subscribers
+  produce one. It must not dump \`workflow.md\` Phase Index as the runtime
+  program.
+- **\`/cstl-continue\`** loads Kernel / Dashboard (or the compiled pack if
+  already in context), reads \`prd.md\` + recent activity, and routes by
+  Kernel human phase. Do **not** treat \`get_context.py --mode phase\` (Phase
+  Index) as runtime SSOT. Internal skills (brainstorm, check, …) are not
+  user slash commands.
+- **Workers**: if this Cursor Task API has no \`cstl-implement\` /
+  \`cstl-check\` enum, dispatch as \`generalPurpose\`. Never label that run
+  \`true-independent\`. When a check worker is available, it follows
+  \`check.jsonl\` — reviews against specs, auto-fixes issues, runs
+  lint/typecheck.
 
 File layout (mention when they ask "where does what live"):
 - \`.cstl/.runtime/sessions/<session>.json\` — live-session selected-task state, gitignored
@@ -800,8 +804,8 @@ ${capabilitySection}
 ## Optional: walk through a small task end-to-end
 
 If they want to practice before touching real work, offer to pick a tiny
-P3 task or a typo fix and run the full cycle together: \`/cstl:continue\`
-→ you implement via sub-agents → \`/cstl:finish-work\`.
+P3 task or a typo fix and run the full cycle together: \`/cstl-continue\`
+→ implement in Agent → \`/cstl-finish-work\`.
 
 ---
 
