@@ -4,6 +4,11 @@
 
 Records one standard hook event. Unsubscribed modules must never fail the hook.
 Does not write Kernel store primitives; optional Kernel patch is best-effort.
+
+Context events (sessionStart / stop / beforeSubmitPrompt) must not emit
+preToolUse ``permission`` — Cursor only honors fields the event supports, and
+a leading ``{"permission":"allow"}`` on sessionStart can discard the following
+session-start additional_context payload.
 """
 from __future__ import annotations
 
@@ -14,6 +19,11 @@ import sys
 from pathlib import Path
 
 DIR_WORKFLOW = ".cstl"
+# Host context-injection events. ``permission`` belongs to preToolUse /
+# beforeShellExecution, not these.
+_CONTEXT_EVENTS = frozenset(
+    {"sessionstart", "stop", "beforesubmitprompt"},
+)
 
 
 def _event_name(argv: list[str], hook_input: dict) -> str:
@@ -76,8 +86,16 @@ def _load_extras(hook_input: dict) -> dict:
         return {}
 
 
+def _print_host_result(event: str) -> None:
+    if (event or "").strip().lower() in _CONTEXT_EVENTS:
+        print("{}", flush=True)
+        return
+    print(json.dumps({"permission": "allow"}), flush=True)
+
+
 def main() -> int:
     # Fail-closed for the Agent session: never break the hook.
+    event = "sessionStart"
     try:
         hook_input = _safe_payload()
         event = _event_name(sys.argv[1:], hook_input)
@@ -88,14 +106,14 @@ def main() -> int:
                 event_bridge_for_dispatch,
             )
         except Exception:
-            print(json.dumps({"permission": "allow"}))
+            _print_host_result(event)
             return 0
         extras = _load_extras(hook_input)
         bridge = event_bridge_for_dispatch(extras)
         _ = dispatch_hook_event(bridge, event, source="cursor-hooks")
     except Exception:
         pass
-    print(json.dumps({"permission": "allow"}))
+    _print_host_result(event)
     return 0
 
 

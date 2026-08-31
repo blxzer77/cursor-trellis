@@ -18,6 +18,7 @@ import os
 import re
 import shlex
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 
@@ -154,6 +155,24 @@ def _detect_platform(input_data: dict) -> str | None:
     return None
 
 
+def _append_hook_log(trellis_dir: Path, record: dict) -> None:
+    """Side-channel: prove this process ran even if additional_context is dropped."""
+    try:
+        log_dir = trellis_dir / ".runtime" / "hooks"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "ts": datetime.now(timezone.utc)
+            .replace(microsecond=0)
+            .isoformat()
+            .replace("+00:00", "Z"),
+            **record,
+        }
+        with (log_dir / "session-start.log").open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(payload, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
+
+
 def _resolve_trellis_dir(project_dir: Path) -> Path:
     """Resolve the cstl instance directory for this project.
 
@@ -268,7 +287,10 @@ def _emit(context_text: str) -> None:
 
 
 def main():
+    enter_root = Path(_normalize_windows_shell_path(os.getcwd())).resolve()
+    _append_hook_log(_resolve_trellis_dir(enter_root), {"phase": "enter"})
     if should_skip_injection():
+        _append_hook_log(_resolve_trellis_dir(enter_root), {"phase": "skip"})
         sys.exit(0)
 
     try:
@@ -309,7 +331,16 @@ def main():
     parts = [FIRST_REPLY_NOTICE]
     if compiled.strip():
         parts.append(compiled)
-    _emit("\n\n".join(parts))
+    text = "\n\n".join(parts)
+    _append_hook_log(
+        trellis_dir,
+        {
+            "phase": "emit",
+            "chars": len(text),
+            "has_session_pack": "<session-pack" in text,
+        },
+    )
+    _emit(text)
 
 
 if __name__ == "__main__":

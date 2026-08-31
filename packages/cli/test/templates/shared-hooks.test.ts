@@ -149,18 +149,23 @@ function runHook(
   hookName: string,
   tmpDir: string,
   extraEnv: Record<string, string> = {},
+  extraArgs: string[] = [],
 ): { status: number | null; stdout: string; stderr: string } {
-  const result = spawnSync(pythonExe(), [path.join(SHARED_HOOKS_DIR, hookName)], {
-    cwd: tmpDir,
-    encoding: "utf-8",
-    input: JSON.stringify({ cwd: tmpDir, cursor_version: "1.0" }),
-    env: {
-      ...process.env,
-      CURSOR_PROJECT_DIR: tmpDir,
-      ...extraEnv,
+  const result = spawnSync(
+    pythonExe(),
+    [path.join(SHARED_HOOKS_DIR, hookName), ...extraArgs],
+    {
+      cwd: tmpDir,
+      encoding: "utf-8",
+      input: JSON.stringify({ cwd: tmpDir, cursor_version: "1.0" }),
+      env: {
+        ...process.env,
+        CURSOR_PROJECT_DIR: tmpDir,
+        ...extraEnv,
+      },
+      timeout: 20_000,
     },
-    timeout: 20_000,
-  });
+  );
   return {
     status: result.status,
     stdout: result.stdout || "",
@@ -372,6 +377,54 @@ describe("shared-hooks capability table", () => {
     expect(content).toContain("extras_from_task_dir");
     expect(content).toContain("event_bridge_for_dispatch");
     expect(content).not.toContain('dispatch_hook_event({"subscriptions": []}');
+  });
+
+  it("event-bridge.py emits empty JSON on sessionStart, not permission", () => {
+    const tmpDir = makeFixtureProject();
+    try {
+      const ran = runHook("event-bridge.py", tmpDir, {}, [
+        "--event",
+        "sessionStart",
+      ]);
+      expect(ran.status, ran.stderr).toBe(0);
+      const payload = JSON.parse((ran.stdout || "").trim() || "{}") as {
+        permission?: string;
+      };
+      expect(payload).not.toHaveProperty("permission");
+      expect(payload).toEqual({});
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it("session-start.py writes a side-channel log under .cstl/.runtime/hooks", () => {
+    const tmpDir = makeFixtureProject();
+    try {
+      const ran = runHook("session-start.py", tmpDir);
+      expect(ran.status, ran.stderr).toBe(0);
+      const logPath = path.join(
+        tmpDir,
+        ".cstl",
+        ".runtime",
+        "hooks",
+        "session-start.log",
+      );
+      expect(fs.existsSync(logPath), "session-start.log missing").toBe(true);
+      const lines = fs
+        .readFileSync(logPath, "utf-8")
+        .trim()
+        .split("\n")
+        .filter(Boolean);
+      expect(lines.length).toBeGreaterThanOrEqual(1);
+      const first = JSON.parse(lines[0]) as { phase?: string };
+      expect(first.phase).toBe("enter");
+      const phases = lines.map(
+        (line) => (JSON.parse(line) as { phase?: string }).phase,
+      );
+      expect(phases).toContain("emit");
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
   });
 
   it("session-start.py resolves the trellis dir upward, not hardcoded to project_dir", () => {
