@@ -1,3 +1,8 @@
+import { spawnSync } from "node:child_process";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   SHARED_HOOKS_BY_PLATFORM,
@@ -5,6 +10,95 @@ import {
   getSharedHookScriptsForPlatform,
   type SharedHookPlatform,
 } from "../../src/templates/shared-hooks/index.js";
+
+const SHARED_HOOKS_DIR = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../../src/templates/shared-hooks",
+);
+
+function pythonExe(): string {
+  for (const exe of ["python", "py", "python3"]) {
+    if (spawnSync(exe, ["--version"], { encoding: "utf-8" }).status === 0) {
+      return exe;
+    }
+  }
+  return "python";
+}
+
+const WORKFLOW_FIXTURE = `# Fixture workflow — sentinels must not reach SessionStart
+
+## Phase Index
+UNIQUE_PHASE_INDEX_SENTINEL
+ASCII Task Ladder that SessionStart used to dump.
+
+[workflow-state:no_task]
+UNIQUE_WORKFLOW_STATE_METHODOLOGY
+[/workflow-state:no_task]
+
+[workflow-state:planning]
+MANDATORY TRIAGE (hard gate): emit [Triage: No Task|Micro-Grill|Lite|Full|Parent]
+[/workflow-state:planning]
+
+## Task Ladder
+UNIQUE_TASK_LADDER_SENTINEL
+
+## Phase 1: Plan
+UNIQUE_PHASE1_BODY_SENTINEL
+`;
+
+const ACTIVE_TASK_STUB = `from __future__ import annotations
+from dataclasses import dataclass
+
+@dataclass
+class SelectedTask:
+    task_path: str | None = None
+    source_type: str = "none"
+    context_key: str | None = None
+    stale: bool = False
+
+    @property
+    def source(self) -> str:
+        return self.source_type
+
+def resolve_context_key(input_data, platform=None):
+    return None
+
+def resolve_selected_task(repo_root, input_data, platform=None):
+    return SelectedTask()
+`;
+
+function makeFixtureProject(): string {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "cstl-except-old-"));
+  const commonDir = path.join(tmpDir, ".cstl", "scripts", "common");
+  fs.mkdirSync(commonDir, { recursive: true });
+  fs.writeFileSync(path.join(tmpDir, ".cstl", "workflow.md"), WORKFLOW_FIXTURE);
+  fs.writeFileSync(path.join(commonDir, "__init__.py"), "");
+  fs.writeFileSync(path.join(commonDir, "active_task.py"), ACTIVE_TASK_STUB);
+  return tmpDir;
+}
+
+function runHook(
+  hookName: string,
+  tmpDir: string,
+  extraEnv: Record<string, string> = {},
+): { status: number | null; stdout: string; stderr: string } {
+  const result = spawnSync(pythonExe(), [path.join(SHARED_HOOKS_DIR, hookName)], {
+    cwd: tmpDir,
+    encoding: "utf-8",
+    input: JSON.stringify({ cwd: tmpDir, cursor_version: "1.0" }),
+    env: {
+      ...process.env,
+      CURSOR_PROJECT_DIR: tmpDir,
+      ...extraEnv,
+    },
+    timeout: 20_000,
+  });
+  return {
+    status: result.status,
+    stdout: result.stdout || "",
+    stderr: result.stderr || "",
+  };
+}
 
 const ALL_HOOK_FILES = [
   "session-start.py",
@@ -190,6 +284,20 @@ describe("shared-hooks capability table", () => {
     expect(content).toContain("not a file under `.cursor/skills/`");
     expect(content).not.toContain("Trellis/packages/cli/bin/smart-search.js");
     expect(content).toContain("cursor-web-fallback");
+    expect(content).not.toContain("_extract_range");
+    expect(content).not.toContain('Phase 1: Plan');
+  });
+
+  it("session-start and inject-workflow-state do not require [Triage:] prints", () => {
+    for (const name of ["session-start.py", "inject-workflow-state.py"] as const) {
+      const hook = getSharedHookScripts().find((h) => h.name === name);
+      expect(hook, `${name} is missing from shared-hooks/`).toBeDefined();
+      const content = hook?.content ?? "";
+      expect(content).not.toMatch(/\[Triage: No Task\|Micro-Grill/);
+      expect(content).not.toContain(
+        "Emit the classification as the first line",
+      );
+    }
   });
 
   it("session-start.py resolves the trellis dir upward, not hardcoded to project_dir", () => {
@@ -208,5 +316,86 @@ describe("shared-hooks capability table", () => {
     expect(content).toContain('(current / ".cstl").is_dir()');
     expect(content).toContain("current.parent == current");
     expect(content).toContain('return project_dir / ".cstl"');
+  });
+
+  it("session-start does not dump fixture Phase Index / Task Ladder into trellis-workflow", () => {
+    const tmpDir = makeFixtureProject();
+    try {
+      const overview = spawnSync(
+        pythonExe(),
+        [
+          "-c",
+          "import importlib.util, os, sys\n"
+          + "from pathlib import Path\n"
+          + "hook = Path(os.environ['CSTL_HOOK'])\n"
+          + "wf = Path(os.environ['CSTL_WORKFLOW'])\n"
+          + "spec = importlib.util.spec_from_file_location('session_start', hook)\n"
+          + "mod = importlib.util.module_from_spec(spec)\n"
+          + "spec.loader.exec_module(mod)\n"
+          + "sys.stdout.write(mod._build_workflow_overview(wf))\n",
+        ],
+        {
+          encoding: "utf-8",
+          env: {
+            ...process.env,
+            CSTL_HOOK: path.join(SHARED_HOOKS_DIR, "session-start.py"),
+            CSTL_WORKFLOW: path.join(tmpDir, ".cstl", "workflow.md"),
+          },
+          timeout: 20_000,
+        },
+      );
+      expect(overview.status, overview.stderr).toBe(0);
+      expect(overview.stdout).not.toContain("UNIQUE_PHASE_INDEX_SENTINEL");
+      expect(overview.stdout).not.toContain("UNIQUE_TASK_LADDER_SENTINEL");
+      expect(overview.stdout).not.toContain("UNIQUE_PHASE1_BODY_SENTINEL");
+      expect(overview.stdout).not.toContain("UNIQUE_WORKFLOW_STATE_METHODOLOGY");
+      expect(overview.stdout).not.toContain("[Triage: No Task");
+
+      const ran = runHook("session-start.py", tmpDir);
+      expect(ran.status, ran.stderr).toBe(0);
+      const payload = JSON.parse(ran.stdout) as {
+        additional_context?: string;
+        hookSpecificOutput?: { additionalContext?: string };
+      };
+      const context =
+        payload.additional_context ||
+        payload.hookSpecificOutput?.additionalContext ||
+        "";
+      expect(context).not.toContain("UNIQUE_PHASE_INDEX_SENTINEL");
+      expect(context).not.toContain("UNIQUE_TASK_LADDER_SENTINEL");
+      expect(context).not.toContain("UNIQUE_PHASE1_BODY_SENTINEL");
+      expect(context).not.toContain("UNIQUE_WORKFLOW_STATE_METHODOLOGY");
+      expect(context).not.toContain("[Triage: No Task");
+      const block = context.match(
+        /<trellis-workflow>([\s\S]*?)<\/trellis-workflow>/,
+      );
+      expect(block).not.toBeNull();
+      expect(block?.[1].trim().length ?? 0).toBeLessThan(400);
+      expect(block?.[1]).not.toContain("UNIQUE_PHASE_INDEX_SENTINEL");
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it("inject-workflow-state.py no-ops with exit 0 and no methodology block", () => {
+    const tmpDir = makeFixtureProject();
+    try {
+      const ran = runHook("inject-workflow-state.py", tmpDir);
+      expect(ran.status, ran.stderr).toBe(0);
+      expect(ran.stdout).not.toContain("[workflow-state:");
+      expect(ran.stdout).not.toContain("UNIQUE_WORKFLOW_STATE_METHODOLOGY");
+      expect(ran.stdout).not.toContain("[Triage: No Task");
+
+      const missing = fs.mkdtempSync(path.join(os.tmpdir(), "cstl-except-old-none-"));
+      try {
+        const silent = runHook("inject-workflow-state.py", missing);
+        expect(silent.status, silent.stderr).toBe(0);
+        expect(silent.stdout).not.toContain("[workflow-state:");
+      } finally {
+        fs.rmSync(missing, { recursive: true, force: true });
+      }
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
   });
 });
