@@ -50,6 +50,7 @@ PROFILE_BASELINE_MODULES = (
 # Documented first-legal-trigger reasons. Tests may pass these; not a hard enum.
 ONDEMAND_TRIGGER_HINTS = {
     "worker-orchestration": (
+        "isolatable-group-dispatch-window",
         "execution-mode-worker",
         "user-dispatch",
         "independent-check-true-independent",

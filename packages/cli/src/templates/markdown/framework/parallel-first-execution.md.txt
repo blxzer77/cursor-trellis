@@ -1,28 +1,42 @@
 # Parallel-first execution contract
 
-> **Purpose**: Make “parallel by default, serial by written reason” a **product** principle and an executable planning contract. Prefer Cursor native parallel; Trellis owns declaration + integration only.
+> **Purpose**: Make “parallel by default, serial by written reason” a **product** principle and an executable planning contract. After a Task is Open, first judge isolatable units; if they exist, prefer **host-native** parallel. Trellis owns declaration + integration only.
 >
-> **Not a scheduler.** No queue, no new CLI, no Multitask replacement, no cross-platform parallel.
+> **Not a scheduler.** No queue, no new CLI, no host-parallel replacement, no cross-platform dispatch.
 >
-> **Scope:** review-pool accepted items, development-plan batches, Parent/Full fan-out, and independent middleware / protocol / release tracks. **Not:** Lite / single-file; unisolatable write-sets; HITL / `start-execution --approved` / reviewer / `integrate-child`.
+> **Scope:** review-pool accepted items, development-plan batches, Parent/Full fan-out, and independent middleware / protocol / release tracks. **Not:** Lite / single-file (spawn not required); unisolatable write-sets; HITL / `start-execution --approved` / reviewer / `integrate-child`.
 >
-> **Strength:** convention + review call-out. Not a CLI hard gate. Attention order (`priority`) is not a serial lock.
+> **Strength:** convention + Independent Check / planning review. Missing declaration on Full/Parent is **Check FAIL**. Not a `start-execution --check` hard gate. Attention order (`priority`) is not a serial lock.
 
-Full Prefer/Adapt/Own and serial-exception list: `.cstl/workflow.md` (Parallel-first). Native surface: `.cstl/framework/cursor-native-modes-guide.md` (Multitask). Who/where dispatch: `.cstl/framework/execution-strategy.md` (orthogonal).
+Full Prefer/Adapt/Own and serial-exception list: `.cstl/workflow.md` (Parallel-first). Host binding lives in the Adapter guide, not this contract. Who/where dispatch: `.cstl/framework/execution-strategy.md` (orthogonal).
 
 ---
 
-## Declaration fields (task-map / implement.md)
+## Open, then judge isolation
 
-Declare these in Parent `task-map.md` (frontmatter and/or Orchestration notes). For a Full task with explicit Task fan-out and no Parent, put the same block in `implement.md`. **Lite / single-file work omits this block.**
+1. After Open, name isolatable **write-sets / deliverables** (different `touches`, different Child, independent slices). Role chains stay serial: implement → Check. Independent research slices in Define may run in parallel; research must not share an Execute write-set.
+2. Point to **≥2** isolatable units → default parallel. Cannot point to more than one (true single write-set) → main session inline and write `serial_reason` (or one equivalent line). Full / Parent should normally be able to name units. Lite does not forbid fan-out; it usually has one write-set.
+3. The main session is dispatcher + HITL + integration, not the default sole implementer.
+4. Prefer a **host-visible parallel surface** when the Adapter can open one. If it cannot bind, record assurance and degrade to inline / sequential — do not claim work already ran in parallel. Same-session silent workers are a degrade and need one plain sentence.
+
+---
+
+## Declaration XOR (task-map / implement.md)
+
+Planning must pick **exactly one side** (aliases allowed):
+
+- `parallel_groups` (or existing alias `stages`) lists isolatable units, and unit `touches` do not overlap (or isolation such as `git-worktree` is declared); **or**
+- `serial_reason` is one of: shared write-set / HITL or reviewer gate / `depends_on` unmet / user asked serial / conflict surface cannot isolate.
+
+Declare these in Parent `task-map.md` (frontmatter and/or Orchestration notes). For a Full task with explicit worker fan-out and no Parent, put the same block in `implement.md`.
 
 | Need | Field | Where it already lives | Notes |
 | --- | --- | --- | --- |
 | Topology | `execution_topology` | task-map frontmatter | `parallel` (default when ≥2 independent units) or `serial` (requires `serial_reason`) |
-| 可并行组 | `parallel_groups` *or* `stages[].units` | `stages:` already groups units | List child ids that may run concurrently (empty `depends_on`) |
+| 可并行组 | `parallel_groups` *or* `stages[].units` | `stages:` already groups units | List child / slice ids that may run concurrently (empty `depends_on`) |
 | 合并点 | `merge_points` *or* `merge_limit` | `merge_limit: 1` + `integrate-child` | HITL, `start-execution --approved`, reviewer gates, and Parent integrate stay **serial** |
 | 冲突面 | `conflict_surface` *or* `children[].touches` | per-child `touches` | Write-sets that can collide; isolate with worktrees or serialize |
-| 串行理由 | `serial_reason` | **new** — required iff topology is `serial` | Exactly one of the exception list below |
+| 串行理由 | `serial_reason` | required when there are no isolatable groups | Exactly one of the exception list above |
 
 `serial_reason` (one of):
 
@@ -32,6 +46,8 @@ Declare these in Parent `task-map.md` (frontmatter and/or Orchestration notes). 
 - user asked serial
 - conflict surface cannot isolate
 
+Lite true single write-set: one line is enough (`serial_reason: single write-set`, or omit the parallel block and state inline in `implement.md`).
+
 Optional YAML (Parent frontmatter or Full `implement.md`):
 
 ```yaml
@@ -39,10 +55,32 @@ execution_topology: parallel
 parallel_groups: [child-a, child-b]
 merge_points: [integrate-child, reviewer-gates]
 conflict_surface: [path/that/collides]
-# serial_reason:  # omit when parallel
+# serial_reason:  # omit when parallel groups are declared
 ```
 
 These fields are **planning declarations**. CLI may round-trip them on `task-map.md` writes; nothing in Trellis auto-dispatches workers from them.
+
+---
+
+## Check FAIL (Full / Parent)
+
+Independent Check / typed Check worker (helper: `common.parallel_declaration.evaluate_parallel_declaration`) is **unqualified** when any of:
+
+1. Neither `parallel_groups` / `stages` nor `serial_reason` is declared.
+2. Isolatable groups are declared, all write-set work stayed inline, and there is no `serial_reason`.
+3. Two workers share a write-set and isolation was not declared (fake parallel).
+
+Lite missing the block is not FAIL. Archives are not backfilled.
+
+This is **not** a `task.py start-execution --check` hard fail.
+
+---
+
+## Worker binding window
+
+Activate `worker-orchestration` when — and only when — isolatable groups are already declared **and** a dispatch window is open (Execute-approved implement workers; independent research slices under Define). Parent may not silently finish children in sequence without a written `serial_reason`.
+
+HITL, `start-execution --approved`, reviewer, and `integrate-child` (`merge_limit: 1`) stay serial. Human attention: batch questions on one frontier; do not multiply confirms by N.
 
 ---
 
@@ -60,7 +98,7 @@ That campaign already behaved parallel-first; this table shows which **named** f
 | 合并点 | `merge_limit: 1`; Event Log integrates one Child at a time; Suggested integration order: 合入仍串行 | Met via `merge_limit` + notes. Missing the literal key `merge_points:` |
 | 冲突面 | Per-child `touches` (hooks/rules/templates overlap called out) | Met via `touches`. Missing top-level `conflict_surface:` |
 | `serial_reason` | Topology is not `serial`, so none required. HITL/gates stayed serial through `merge_limit` | No gap for this map. A **serial** topology would need one exception line |
-| Prefer native | Parent routing to Multitask / worktrees; workers not scheduled by Trellis | Met (capability). Contract now makes that the **default**, not “when useful” |
+| Prefer host-native | Parent routed workers to the host parallel surface / worktrees; Trellis did not schedule | Met (capability). Contract now makes that the **default**, not “when useful” |
 | Worker prompt path | Child prompts under `child-prompts/` with explicit task dirs | Met |
 
 **Would-write `serial_reason` only if** this Parent had set `execution_topology: serial` despite empty `depends_on` — e.g. shared write-set on `cursor-trellis/packages/cli/src/templates/`. It did not; it kept topology parallel and serialized **merge** only.
@@ -73,6 +111,6 @@ Contrast (not edited): `.cstl/tasks/archive/2026-08/08-20-08-20-byok-headless-ba
 
 - Auto parallel dispatch, queues, or new CLI
 - Forcing Lite tasks into parallel agents
-- Replacing Cursor Multitask
+- Replacing the host-native parallel surface
 - Relaxing HITL / `start-execution --approved` / reviewer-gate serial semantics
 - Cross-platform parallel (P16)
