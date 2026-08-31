@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from common.ondemand_topology import (
     ONDEMAND_OWNERS,
+    ONDEMAND_TRIGGER_HINTS,
     STAGE5_ONDEMAND_MODULES,
     TopologyError,
     activate_ondemand_module,
@@ -110,6 +111,10 @@ def test_task_map_is_kernel_graph_projection(tmp_path: Path) -> None:
     assert child["depends_on"] == ["upstream"]
     apply_kernel_graph_projection(data, extras)
     assert data["graph_authority"] == "kernel-extras"
+
+
+def test_worker_orchestration_hints_include_isolatable_window() -> None:
+    assert "isolatable-group-dispatch-window" in ONDEMAND_TRIGGER_HINTS["worker-orchestration"]
 
 
 def test_ondemand_defaults_and_retention_outcome() -> None:
