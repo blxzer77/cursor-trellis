@@ -420,6 +420,13 @@ export interface RetrievalPackPayload {
   };
   warnings: string[];
   evidenceEnvelope: EvidenceEnvelopePayload;
+  compilerAbi?: {
+    schema: string;
+    intentsOwner: string;
+    providerOwner: string;
+    qualityOwner: string;
+    intents: string[];
+  };
 }
 
 export interface EvidenceEnvelopePayload {
