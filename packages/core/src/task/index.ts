@@ -65,6 +65,20 @@ export {
 } from "./kernel-contract.js";
 
 export type {
+  KernelSurfaceLocale,
+  KernelSurfaceInput,
+  KernelSurfaceProjection,
+} from "./kernel-surface.js";
+
+export {
+  KERNEL_PHASE_HUMAN_EN,
+  KERNEL_PHASE_HUMAN_ZH,
+  kernelPhaseHumanTitle,
+  topologyNeedsIntegrate,
+  projectKernelSurface,
+} from "./kernel-surface.js";
+
+export type {
   LitePackErrorCode,
   LitePackArtifact,
   LitePackItem,
