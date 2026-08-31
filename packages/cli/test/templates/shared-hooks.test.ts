@@ -452,7 +452,7 @@ describe("shared-hooks capability table", () => {
       expect(ran.status, ran.stderr).toBe(0);
       const context = hookContext(ran.stdout);
       const meta = packMeta(context);
-      expect(meta.activationSource?.kind).toBe("wave2-stub");
+      expect(meta.activationSource?.kind).toBe("profile-runtime");
       expect(meta.layers).toEqual([1, 2, 3, 4, 5]);
       expect(meta.layer2ModuleIds?.length ?? 0).toBeLessThan(20);
       expect(context).toContain('name="resident-min"');

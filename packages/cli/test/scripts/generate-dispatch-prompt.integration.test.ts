@@ -161,7 +161,14 @@ describe("generate-dispatch-prompt integration", () => {
     fs.mkdirSync(taskDir, { recursive: true });
     fs.writeFileSync(
       path.join(taskDir, "task.json"),
-      JSON.stringify({ status: "in_progress" }, null, 2),
+      JSON.stringify(
+        {
+          status: "in_progress",
+          ondemand_modules: { active: ["worker-orchestration"] },
+        },
+        null,
+        2,
+      ),
     );
     fs.writeFileSync(path.join(taskDir, "prd.md"), "# Shared Builder\n");
     fs.writeFileSync(path.join(taskDir, "implement.jsonl"), '{"_example": "seed"}\n');
@@ -198,5 +205,41 @@ describe("generate-dispatch-prompt integration", () => {
     expect(hookPrompt).toContain("Shared Builder");
     expect(hookPrompt).toContain("# Implement Agent Task");
     expect(cli.stdout).toContain("# Implement Agent Task");
+  });
+
+  it("hook exits 0 without mutating prompt when worker-orchestration is unactivated", () => {
+    if (!hasPython()) return;
+
+    const taskDir = path.join(tmp, ".cstl", "tasks", "06-22-no-worker");
+    fs.mkdirSync(taskDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(taskDir, "task.json"),
+      JSON.stringify({ status: "in_progress", ondemand_modules: { active: [] } }, null, 2),
+    );
+    fs.writeFileSync(path.join(taskDir, "prd.md"), "# No Worker\n");
+    fs.writeFileSync(path.join(taskDir, "implement.jsonl"), '{"_example": "seed"}\n');
+
+    const relTask = ".cstl/tasks/06-22-no-worker";
+    const hookInput = {
+      tool_name: "Task",
+      cwd: tmp,
+      tool_input: {
+        subagent_type: "cstl-implement",
+        prompt: `Selected task: ${relTask}\n\nDo the work.`,
+      },
+    };
+    const hook = spawnSync(
+      pythonBin(),
+      [".cursor/hooks/inject-subagent-context.py"],
+      {
+        cwd: tmp,
+        input: JSON.stringify(hookInput),
+        encoding: "utf-8",
+      },
+    );
+    expect(hook.status).toBe(0);
+    expect((hook.stdout ?? "").trim()).toBe("");
+    expect(hook.stdout ?? "").not.toContain("updated_input");
+    expect(hook.stdout ?? "").not.toContain("# Implement Agent Task");
   });
 });

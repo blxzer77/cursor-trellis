@@ -125,6 +125,24 @@ PRD_PLACEHOLDER_RE = re.compile(r"(?i)^\s*(TBD|TODO|待定|待补充)(?:\s*[.:�
 AUTO_PLANNING_REVIEWER = "cstl-cli"
 START_EXECUTION_AUTO_GATES = frozenset({"requirements-review", "architecture-review"})
 
+PROFILE_BASELINE_EIGHT = (
+    "intake-basic",
+    "define-basic",
+    "approval-personal",
+    "execute-agent",
+    "verify-basic",
+    "close-basic",
+    "context-progressive",
+    "observability-local",
+)
+REQUIRED_LIFECYCLE_SLOTS = (
+    "define-basic",
+    "approval-personal",
+    "execute-agent",
+    "verify-basic",
+    "close-basic",
+)
+
 STABLE_TASK_KEYS = (
     "id",
     "name",
@@ -539,6 +557,7 @@ KERNEL_PROJECTION_EXTRA_KEYS = (
     "topology",
     "dependency_graph",
     "ondemand_modules",
+    "baseline_modules",
     "depends_on",
     "dependency_satisfied",
     "decompose_proposal",
@@ -693,6 +712,8 @@ def validate_start_execution(
     errors: list[str] = []
     if task_data is None:
         return GateGuardResult(ok=False, errors=["task.json"])
+
+    errors.extend(_required_lifecycle_slot_errors(task_dir, task_data))
 
     status = task_data.get("status")
     if status not in ("planning", "in_progress"):
@@ -1056,6 +1077,7 @@ def validate_archive(
     if task_data is None:
         return GateGuardResult(ok=False, errors=["task.json"])
 
+    errors.extend(_required_lifecycle_slot_errors(task_dir, task_data))
     errors.extend(_required_file_errors(task_dir, ["verify.md"]))
     errors.extend(_verify_evidence_errors(task_dir, task_data))
     errors.extend(full_quality_archive_errors(task_dir, task_data))
@@ -2038,6 +2060,13 @@ def start_execution_repair_hints(
                 "(non-TBD checkboxes), then re-run start-execution --check."
             )
             continue
+        if error.startswith("missing required lifecycle slot:"):
+            hints.append(
+                "Restore the required Baseline slot in baseline_modules.active "
+                "(define-basic, approval-personal, execute-agent, verify-basic, "
+                "close-basic). Missing required slots cannot fake-green."
+            )
+            continue
         if "Development Strategy Contract" in error or error.startswith("invalid "):
             hints.append(
                 "Fix the Development Strategy Contract block in implement.md "
@@ -2089,6 +2118,53 @@ def _required_file_errors(task_dir: Path, names: list[str]) -> list[str]:
         except OSError:
             errors.append(f"{name} could not be read")
     return errors
+
+
+def baseline_active_ids(task_dir: Path, task_data: dict | None) -> list[str]:
+    """Installed-and-active Baseline ids. Missing extras default to all eight."""
+    block = None
+    data = task_data if isinstance(task_data, dict) else {}
+    if isinstance(data.get("baseline_modules"), dict):
+        block = data["baseline_modules"]
+    else:
+        kernel_path = task_dir / "kernel.json"
+        kernel: dict = {}
+        if kernel_path.is_file():
+            try:
+                parsed = json.loads(kernel_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                parsed = {}
+            if isinstance(parsed, dict):
+                kernel = parsed
+        projection = (
+            kernel.get("projection") if isinstance(kernel.get("projection"), dict) else {}
+        )
+        extras = projection.get("extras") if isinstance(projection.get("extras"), dict) else {}
+        if isinstance(extras.get("baseline_modules"), dict):
+            block = extras["baseline_modules"]
+    if not isinstance(block, dict) or "active" not in block:
+        return list(PROFILE_BASELINE_EIGHT)
+    raw = block.get("active")
+    if not isinstance(raw, list):
+        return []
+    allowed = set(PROFILE_BASELINE_EIGHT)
+    out: list[str] = []
+    for item in raw:
+        if not isinstance(item, str):
+            continue
+        name = item.strip()
+        if name in allowed and name not in out:
+            out.append(name)
+    return out
+
+
+def _required_lifecycle_slot_errors(task_dir: Path, task_data: dict | None) -> list[str]:
+    active = set(baseline_active_ids(task_dir, task_data))
+    return [
+        f"missing required lifecycle slot: {slot}"
+        for slot in REQUIRED_LIFECYCLE_SLOTS
+        if slot not in active
+    ]
 
 
 def _get_gate_record(task_data: dict, transition: str, gate: str) -> dict | None:

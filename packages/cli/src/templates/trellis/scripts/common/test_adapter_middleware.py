@@ -18,12 +18,14 @@ from common.adapter_middleware import (
     AdapterMiddlewareError,
     apply_middleware_probes,
     assert_external_knowledge,
+    default_event_bridge,
     default_middleware_providers,
     dispatch_hook_event,
     mcp_server_ids_from_config,
     normalize_capability_router,
     probe_smart_search_readiness,
     select_registered_mcp_servers,
+    sync_event_bridge_subscriptions,
 )
 
 
@@ -40,6 +42,26 @@ def test_dispatch_skips_unsubscribed_modules() -> None:
     )
     assert last["delivered"] == ["observability-local"]
     assert last["skipped"] == ["retrieval-extended"]
+
+
+def test_empty_subscriptions_do_not_crash_dispatch() -> None:
+    last = dispatch_hook_event(default_event_bridge(), "sessionStart")
+    assert last["delivered"] == []
+    assert last["skipped"] == []
+    extras: dict = {
+        "ondemand_modules": {"active": ["worker-orchestration"]},
+        "baseline_modules": {"active": ["context-progressive"]},
+    }
+    sync_event_bridge_subscriptions(extras)
+    hooks = {item.get("hook") for item in extras["event_bridge"]["subscriptions"]}
+    assert "inject-subagent-context.py" in hooks
+    assert "session-start.py" in hooks
+    extras["ondemand_modules"]["active"] = []
+    extras["baseline_modules"]["active"] = []
+    sync_event_bridge_subscriptions(extras)
+    assert extras["event_bridge"]["subscriptions"] == []
+    last = dispatch_hook_event(extras["event_bridge"], "preToolUse")
+    assert last["delivered"] == []
 
 
 def test_missing_smart_search_is_not_ready() -> None:
