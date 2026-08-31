@@ -32,15 +32,27 @@ export const LIFECYCLE_SLOTS = [
 export const STAGE5_ONDEMAND_MODULES = [
   "candidate-pool",
   "define-extended",
+  "independent-check",
   "worker-orchestration",
   "parent-child",
   "debug-recovery",
-  "integration-handoff",
   "session-transfer",
   "spec-learning",
   "vcs-integration",
   "personal-memory",
   "retention-storage",
+  "retrieval-extended",
+] as const;
+
+export const PROFILE_BASELINE_MODULES = [
+  "intake-basic",
+  "define-basic",
+  "approval-personal",
+  "execute-agent",
+  "verify-basic",
+  "close-basic",
+  "context-progressive",
+  "observability-local",
 ] as const;
 
 export type Stage5OndemandModule = (typeof STAGE5_ONDEMAND_MODULES)[number];
@@ -89,6 +101,12 @@ export interface OndemandModules {
   triggers: OndemandTrigger[];
   owners: Record<string, string>;
   degraded: string[];
+}
+
+export interface BaselineModules {
+  schema_version: typeof STAGE5_SCHEMA_VERSION;
+  source: "profile-runtime";
+  active: string[];
 }
 
 export interface DecomposeProposal {
@@ -146,6 +164,14 @@ export function defaultOndemandModules(): OndemandModules {
     triggers: [],
     owners: { ...ONDEMAND_OWNERS },
     degraded: [],
+  };
+}
+
+export function defaultBaselineModules(): BaselineModules {
+  return {
+    schema_version: STAGE5_SCHEMA_VERSION,
+    source: "profile-runtime",
+    active: [...PROFILE_BASELINE_MODULES],
   };
 }
 
@@ -380,6 +406,21 @@ export function normalizeDependencyGraph(raw: unknown): DependencyGraph {
   return { schema_version: STAGE5_SCHEMA_VERSION, edges };
 }
 
+export function normalizeBaselineModules(raw: unknown): BaselineModules {
+  const defaults = defaultBaselineModules();
+  if (raw === undefined || raw === null) return defaults;
+  if (!isPlainObject(raw)) {
+    throw new KernelError("INVALID_REQUEST", "baseline_modules must be a JSON object");
+  }
+  if (!("active" in raw)) return defaults;
+  const allowed = new Set<string>(PROFILE_BASELINE_MODULES);
+  return {
+    schema_version: STAGE5_SCHEMA_VERSION,
+    source: "profile-runtime",
+    active: uniqueStrings(asStringArray(raw.active)).filter((name) => allowed.has(name)),
+  };
+}
+
 export function normalizeOndemandModules(raw: unknown): OndemandModules {
   if (raw === undefined || raw === null) return defaultOndemandModules();
   if (!isPlainObject(raw)) {
@@ -448,6 +489,7 @@ export function normalizeStage5InExtras(
   }
   extras.dependency_graph = graph;
   extras.ondemand_modules = normalizeOndemandModules(extras.ondemand_modules);
+  extras.baseline_modules = normalizeBaselineModules(extras.baseline_modules);
 
   const missing = uniqueStrings(asStringArray(extras.ondemand_required_missing));
   if (missing.length > 0) {

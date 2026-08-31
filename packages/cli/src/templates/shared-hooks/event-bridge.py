@@ -9,8 +9,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
+
+DIR_WORKFLOW = ".cstl"
 
 
 def _event_name(argv: list[str], hook_input: dict) -> str:
@@ -37,6 +40,42 @@ def _safe_payload() -> dict:
     return parsed if isinstance(parsed, dict) else {}
 
 
+def find_repo_root(start_path: str) -> str | None:
+    current = Path(start_path).resolve()
+    while current != current.parent:
+        if (current / DIR_WORKFLOW).is_dir():
+            return str(current)
+        if (current / ".git").exists():
+            return str(current)
+        current = current.parent
+    return None
+
+
+def _load_extras(hook_input: dict) -> dict:
+    try:
+        repo = find_repo_root(os.getcwd())
+        if not repo:
+            repo = find_repo_root(str(Path(__file__).resolve().parents[2]))
+        if not repo:
+            return {}
+        scripts_dir = Path(repo) / DIR_WORKFLOW / "scripts"
+        if str(scripts_dir) not in sys.path:
+            sys.path.insert(0, str(scripts_dir))
+        from common.active_task import resolve_selected_task  # type: ignore[import-not-found]
+        from common.ondemand_topology import extras_from_task_dir  # type: ignore[import-not-found]
+
+        selected = resolve_selected_task(Path(repo), hook_input, platform="cursor")
+        path = getattr(selected, "task_path", None)
+        if not path:
+            return {}
+        candidate = Path(path)
+        task_dir = candidate if candidate.is_absolute() else Path(repo) / candidate
+        extras = extras_from_task_dir(task_dir)
+        return extras if isinstance(extras, dict) else {}
+    except Exception:
+        return {}
+
+
 def main() -> int:
     # Fail-closed for the Agent session: never break the hook.
     try:
@@ -44,12 +83,16 @@ def main() -> int:
         event = _event_name(sys.argv[1:], hook_input)
         sys.path.insert(0, str(Path(__file__).resolve().parents[2] / ".cstl" / "scripts"))
         try:
-            from common.adapter_middleware import dispatch_hook_event
+            from common.adapter_middleware import (  # type: ignore[import-not-found]
+                dispatch_hook_event,
+                event_bridge_for_dispatch,
+            )
         except Exception:
             print(json.dumps({"permission": "allow"}))
             return 0
-        result = dispatch_hook_event({"subscriptions": []}, event, source="cursor-hooks")
-        _ = result
+        extras = _load_extras(hook_input)
+        bridge = event_bridge_for_dispatch(extras)
+        _ = dispatch_hook_event(bridge, event, source="cursor-hooks")
     except Exception:
         pass
     print(json.dumps({"permission": "allow"}))

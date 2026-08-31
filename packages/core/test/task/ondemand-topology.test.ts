@@ -419,11 +419,20 @@ describe("Stage 5 On-demand and Topology", () => {
       owners: Record<string, string>;
     };
     expect(modules.registered).toEqual(expect.arrayContaining([...STAGE5_ONDEMAND_MODULES]));
+    expect(modules.registered).toContain("independent-check");
+    expect(modules.registered).toContain("retrieval-extended");
+    expect(modules.registered).not.toContain("integration-handoff");
     expect(modules.active).toEqual([]);
     expect(modules.owners["integration-handoff"]).toBe("parent-child");
     expect(modules.owners["session-transfer"]).toBe("session-transfer");
     expect(ONDEMAND_OWNERS["integration-handoff"]).not.toBe(
       ONDEMAND_OWNERS["session-transfer"],
+    );
+    const baseline = extras.baseline_modules as { active: string[]; source: string };
+    expect(baseline.source).toBe("profile-runtime");
+    expect(baseline.active).toHaveLength(8);
+    expect(baseline.active).toEqual(
+      expect.arrayContaining(["execute-agent", "context-progressive"]),
     );
 
     const patched = applyKernelPatch({
@@ -449,6 +458,24 @@ describe("Stage 5 On-demand and Topology", () => {
       after.ondemand_modules as { triggers: { module: string; reason: string }[] }
     ).triggers;
     expect(triggers.some((item) => item.module === "vcs-integration")).toBe(true);
+
+    const withRetrieval = { ...after };
+    activateOnDemand(withRetrieval, "retrieval-extended", "collected-evidence-ranking");
+    expect(residentOnDemandModules(withRetrieval)).toContain("retrieval-extended");
+  });
+
+  it("keeps an explicit empty baseline_modules.active list", () => {
+    const created = applyKernelCreate({
+      taskDir,
+      actor: "a",
+      idempotencyKey: "create:baseline-empty",
+      record: stage5Record(),
+      extras: { baseline_modules: { active: [] } },
+    });
+    const baseline = created.kernel.projection?.extras.baseline_modules as {
+      active: string[];
+    };
+    expect(baseline.active).toEqual([]);
   });
 
   it("does not put untriggered parent-child or vcs into the Lite resident pack", () => {

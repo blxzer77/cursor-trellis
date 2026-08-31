@@ -365,6 +365,15 @@ describe("shared-hooks capability table", () => {
     }
   });
 
+  it("event-bridge.py loads subscriptions from selected-task extras", () => {
+    const hook = getSharedHookScripts().find((h) => h.name === "event-bridge.py");
+    expect(hook, "event-bridge.py is missing from shared-hooks/").toBeDefined();
+    const content = hook?.content ?? "";
+    expect(content).toContain("extras_from_task_dir");
+    expect(content).toContain("event_bridge_for_dispatch");
+    expect(content).not.toContain('dispatch_hook_event({"subscriptions": []}');
+  });
+
   it("session-start.py resolves the trellis dir upward, not hardcoded to project_dir", () => {
     // Regression: the template previously hardcoded `trellis_dir = project_dir / ".cstl"`,
     // which crashes in thin-connect sub-repos that resolve to a root cstl instance
