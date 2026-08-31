@@ -91,12 +91,18 @@ jobs:
           NOTES_FILE="${RUNNER_TEMP}/release-notes.md"
           TAG="${GITHUB_REF_NAME}"
           TITLE="$(node -p "require('./packages/cli/package.json').version")"
+          # Prerelease (semver contains '-') must be --prerelease so GitHub
+          # does not steal Latest from the last stable tag. Stable uses --latest.
+          RELEASE_FLAGS="--latest"
+          if [ "$(node -p "/-/.test(require('./packages/cli/package.json').version)")" = "true" ]; then
+            RELEASE_FLAGS="--prerelease"
+          fi
           if gh release view "${TAG}" >/dev/null 2>&1; then
-            gh release edit "${TAG}" --notes-file "${NOTES_FILE}" --title "${TITLE}" --latest
+            gh release edit "${TAG}" --notes-file "${NOTES_FILE}" --title "${TITLE}" ${RELEASE_FLAGS}
           else
             gh release create "${TAG}" \
               --verify-tag \
               --notes-file "${NOTES_FILE}" \
               --title "${TITLE}" \
-              --latest
+              ${RELEASE_FLAGS}
           fi

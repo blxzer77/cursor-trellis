@@ -1,0 +1,9 @@
+{
+  "version": "0.5.0-beta.0",
+  "description": "Modular runtime preview: P29 modules, session pack, pool delivery axis",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**@blxzer/cursor-trellis 0.5.0-beta.0**\n\n- feat(modules): ship P29 short contracts into `.cstl/modules/`\n- feat(context): compiled Session pack; SessionStart no longer dumps Phase Index\n- feat(pool): delivery axis + `pool_refs`\n- chore: empty migrations list (template sync via `cstl update`)",
+  "migrations": [],
+  "notes": "Prerelease. Install `@blxzer/cursor-trellis@0.5.0-beta.0` or `@beta`. Run `cstl update`. No `--migrate` required."
+}

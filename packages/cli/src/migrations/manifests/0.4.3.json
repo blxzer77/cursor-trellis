@@ -1,0 +1,9 @@
+{
+  "version": "0.4.3",
+  "description": "Stage 0–7 Kernel writer, Wave C stop-read after confirm, Native Cursor docs",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**@blxzer/cursor-trellis 0.4.3**\n\n- feat(kernel): Stage 0–7 Kernel writer, Lite/Full, Topology, Event Bridge\n- feat(p36): Wave C stop-read only after interactive Proceed\n- chore: empty migrations list (template sync via `cstl update`)",
+  "migrations": [],
+  "notes": "Backfilled so npm 0.4.3 has a local manifest. Run `cstl update`. No `--migrate` required."
+}

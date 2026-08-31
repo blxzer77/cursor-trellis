@@ -43,7 +43,7 @@
 import { execFileSync, execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "../../..");
@@ -353,4 +353,10 @@ async function main() {
   fail(`unknown command: ${cmd}`);
 }
 
-main();
+const invokedAs = process.argv[1];
+if (
+  invokedAs &&
+  import.meta.url === pathToFileURL(path.resolve(invokedAs)).href
+) {
+  main();
+}

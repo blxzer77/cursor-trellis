@@ -75,8 +75,11 @@ function pushTarget(_type) {
 
 function main() {
   const [type = "patch"] = process.argv.slice(2);
-  if (!RELEASE_TYPES.has(type)) {
-    fail(`usage: release.js <patch|minor|major|beta|rc|promote>`);
+  const explicitVersion = /^\d+\.\d+\.\d+(?:-[A-Za-z0-9.+-]+)?$/.test(type);
+  if (!RELEASE_TYPES.has(type) && !explicitVersion) {
+    fail(
+      `usage: release.js <patch|minor|major|beta|rc|promote|x.y.z[-pre]>`,
+    );
   }
 
   run("node scripts/check-manifest-continuity.js");

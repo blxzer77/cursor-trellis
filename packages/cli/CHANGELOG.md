@@ -9,6 +9,35 @@ SemVer: [semver.org](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.5.0-beta.0] - 2026-08-31
+
+Modular runtime preview. Kernel stays thin; P29 short contracts ship under `.cstl/modules/`; SessionStart injects a compiled session pack instead of dumping `workflow.md` Phase Index. **Not** `@latest` — install with `@beta` or the exact version.
+
+### Added
+
+- **feat(modules)**: ship P29 short contracts (`index.json` + `<id>/contract.md`) on `cstl init` / `cstl update`. CLI source (`catalog.ts`) is not copied into the user tree.
+- **feat(context)**: compile a five-layer Session pack (`compile_session_pack.py`); SessionStart injects that pack via Event Bridge.
+- **feat(kernel)**: persist `baseline_modules` and the P29 on-demand list; Dashboard projects Open / Define / Close names.
+- **feat(retrieval)**: freeze three-layer retrieval ABI ownership (exact / semantic / structural / external stay Baseline intents).
+- **feat(adapter)**: bind Cursor Plan / Ask / Debug / Agent / Multitask honestly; user slash stays Continue / Finish-work / Handoff.
+- **feat(pool)**: delivery axis on pool items (`open` / `in-slice` / `landed` / `standing` / `deferred`). `accepted` is adjudication, not completion. `pool:Pxx` refs resolve through `pool_refs`. Missing `.cstl/pool/` does not block Close.
+- **feat(middleware)**: register seven shipped providers; `.cstl/middleware/` overlay is never written or hashed by `cstl update`.
+
+### Changed
+
+- **fix(hooks)**: SessionStart does not dump `workflow.md` Phase Index / Task Ladder; Event Bridge does not emit `permission` on `sessionStart`.
+- **fix(profile)**: inactive modules are dropped from the session pack and hooks.
+- **fix(cli)**: joiner onboarding uses `/cstl-continue` and Kernel/Dashboard; it no longer says continue loads Phase Index.
+- **fix(update)**: unchanged templates with no stored hash (canary-copied `.cstl/modules/`) are hashed on a no-op update so the next real template edit auto-updates.
+- **chore(release)**: prerelease `pnpm publish` uses the `beta` / `rc` / `alpha` dist-tag from `computeNpmTag`. GitHub Release on `cstl-v*` no longer sets **Latest** for prerelease tags.
+
+### Notes for consumers
+
+- Install **`npm i -g @blxzer/cursor-trellis@0.5.0-beta.0`** or **`@blxzer/cursor-trellis@beta`**. `@latest` stays **0.4.3**.
+- In the **project root** run `cstl update` (do not re-run `init`). New files include `.cstl/modules/` and `compile_session_pack.py`. Unmodified official hooks auto-update.
+- Core and CLI versions stay paired: `@blxzer/cursor-trellis-core@0.5.0-beta.0`.
+- Maintainers: tag **`cstl-v0.5.0-beta.0`**. Do not promote this prerelease to `main` / `@latest` until an explicit official release.
+
 ## [0.4.3] - 2026-08-29
 
 Cursor-native 0.4.3. Lands **Stage 0–7** (Kernel writer, Lite / Full Quality, Topology, Adapter / Middleware) and **Wave C** (stop-read only after you confirm). GitHub user docs and `cstl update` match Native Cursor. Pushing a `cstl-v*` tag now opens a GitHub Release so Latest is not stuck on 0.3.4.
