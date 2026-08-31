@@ -26,6 +26,8 @@ At stage boundaries first ask: **does the work still continue in this session?**
 
 A task directory's `handoff.md` is the evidence file for `integrate-child` / `review-child`, **not** a session handoff document; the temp file this command produces is **not** task evidence.
 
+Official `/goal` / CreateGoal is not a Trellis Task and is not this command. Do not write the temp file into `.cstl/tasks/<task>/handoff.md`.
+
 ## Steps
 
 1. **Read the user argument**: the "next-session purpose" passed on invocation decides which whys to keep (trim key decision rationale by purpose — do not take everything verbatim).
