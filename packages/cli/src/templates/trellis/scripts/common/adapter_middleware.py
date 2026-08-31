@@ -167,6 +167,14 @@ def sync_event_bridge_subscriptions(extras: dict[str, Any]) -> dict[str, Any]:
     return extras
 
 
+def event_bridge_for_dispatch(extras: dict[str, Any] | None) -> dict[str, Any]:
+    """Hook-safe view: missing extras still default Baseline eight on."""
+    payload: dict[str, Any] = dict(extras or {})
+    sync_event_bridge_subscriptions(payload)
+    bridge = payload.get("event_bridge")
+    return bridge if isinstance(bridge, dict) else default_event_bridge()
+
+
 def _default_readiness() -> dict[str, Any]:
     return {
         provider_id: {

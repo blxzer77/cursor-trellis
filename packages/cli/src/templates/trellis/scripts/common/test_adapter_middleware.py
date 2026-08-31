@@ -21,6 +21,7 @@ from common.adapter_middleware import (
     default_event_bridge,
     default_middleware_providers,
     dispatch_hook_event,
+    event_bridge_for_dispatch,
     mcp_server_ids_from_config,
     normalize_capability_router,
     probe_smart_search_readiness,
@@ -62,6 +63,16 @@ def test_empty_subscriptions_do_not_crash_dispatch() -> None:
     assert extras["event_bridge"]["subscriptions"] == []
     last = dispatch_hook_event(extras["event_bridge"], "preToolUse")
     assert last["delivered"] == []
+
+
+def test_event_bridge_for_dispatch_defaults_baseline_then_honors_empty() -> None:
+    bridge = event_bridge_for_dispatch({})
+    modules = {item.get("module") for item in bridge["subscriptions"]}
+    assert "context-progressive" in modules
+    last = dispatch_hook_event(bridge, "sessionStart", source="cursor-hooks")
+    assert "context-progressive" in last["delivered"]
+    empty = event_bridge_for_dispatch({"baseline_modules": {"active": []}})
+    assert empty["subscriptions"] == []
 
 
 def test_missing_smart_search_is_not_ready() -> None:
