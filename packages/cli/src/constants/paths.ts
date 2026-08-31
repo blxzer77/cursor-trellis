@@ -23,6 +23,8 @@ export const DIR_NAMES = {
   SCRIPTS: "scripts",
   /** Review-pool directory (under .cstl/) */
   POOL: "pool",
+  /** P29 short-contract modules (under .cstl/) — index.json + <id>/contract.md */
+  MODULES: "modules",
   /** User middleware overlay (under .cstl/) — never written/hashed by init/update */
   MIDDLEWARE: "middleware",
 } as const;
@@ -61,6 +63,8 @@ export const PATHS = {
   SCRIPTS: `${DIR_NAMES.WORKFLOW}/${DIR_NAMES.SCRIPTS}`,
   /** .cstl/pool/ */
   POOL: `${DIR_NAMES.WORKFLOW}/${DIR_NAMES.POOL}`,
+  /** .cstl/modules/ — user-shipped short contracts (not catalog.ts) */
+  MODULES: `${DIR_NAMES.WORKFLOW}/${DIR_NAMES.MODULES}`,
   /** .cstl/middleware/ — user overlay; update never writes, deletes, or hashes */
   MIDDLEWARE: `${DIR_NAMES.WORKFLOW}/${DIR_NAMES.MIDDLEWARE}`,
   /** .cstl/.developer */
