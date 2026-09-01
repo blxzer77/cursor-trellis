@@ -1,3 +1,8 @@
+import { spawnSync } from "node:child_process";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   SHARED_HOOKS_BY_PLATFORM,
@@ -5,6 +10,168 @@ import {
   getSharedHookScriptsForPlatform,
   type SharedHookPlatform,
 } from "../../src/templates/shared-hooks/index.js";
+
+const SHARED_HOOKS_DIR = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../../src/templates/shared-hooks",
+);
+
+function pythonExe(): string {
+  for (const exe of ["python", "py", "python3"]) {
+    if (spawnSync(exe, ["--version"], { encoding: "utf-8" }).status === 0) {
+      return exe;
+    }
+  }
+  return "python";
+}
+
+const WORKFLOW_FIXTURE = `# Fixture workflow — sentinels must not reach SessionStart
+
+## Phase Index
+UNIQUE_PHASE_INDEX_SENTINEL
+ASCII Task Ladder that SessionStart used to dump.
+
+[workflow-state:no_task]
+UNIQUE_WORKFLOW_STATE_METHODOLOGY
+[/workflow-state:no_task]
+
+[workflow-state:planning]
+MANDATORY TRIAGE (hard gate): emit [Triage: No Task|Micro-Grill|Lite|Full|Parent]
+[/workflow-state:planning]
+
+## Task Ladder
+UNIQUE_TASK_LADDER_SENTINEL
+
+## Phase 1: Plan
+UNIQUE_PHASE1_BODY_SENTINEL
+`;
+
+const ACTIVE_TASK_STUB = `from __future__ import annotations
+import os
+from dataclasses import dataclass
+
+@dataclass
+class SelectedTask:
+    task_path: str | None = None
+    source_type: str = "none"
+    context_key: str | None = None
+    stale: bool = False
+
+    @property
+    def source(self) -> str:
+        return self.source_type
+
+def resolve_context_key(input_data, platform=None):
+    return None
+
+def resolve_selected_task(repo_root, input_data, platform=None):
+    path = os.environ.get("CSTL_TEST_SELECTED_TASK") or None
+    stale = os.environ.get("CSTL_TEST_SELECTED_STALE") == "1"
+    return SelectedTask(task_path=path, source_type="test" if path else "none", stale=stale)
+`;
+
+const MODULES_SRC = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../../src/templates/trellis/modules",
+);
+const SESSION_PACK_SRC = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../../src/templates/trellis/scripts/common/session_pack.py",
+);
+
+function seedCompiler(tmpDir: string, opts: { sessionPack?: boolean } = {}): void {
+  const includePack = opts.sessionPack !== false;
+  const modulesDest = path.join(tmpDir, ".cstl", "modules");
+  fs.cpSync(MODULES_SRC, modulesDest, { recursive: true });
+  fs.mkdirSync(path.join(modulesDest, "ghost-unactivated"), { recursive: true });
+  fs.writeFileSync(
+    path.join(modulesDest, "ghost-unactivated", "contract.md"),
+    "# `ghost-unactivated`\nUNIQUE_UNACTIVATED_MODULE_SENTINEL\n",
+    "utf-8",
+  );
+  if (includePack) {
+    const commonDir = path.join(tmpDir, ".cstl", "scripts", "common");
+    fs.mkdirSync(commonDir, { recursive: true });
+    fs.copyFileSync(SESSION_PACK_SRC, path.join(commonDir, "session_pack.py"));
+  }
+}
+
+function makeFixtureProject(opts: { sessionPack?: boolean } = {}): string {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "cstl-mod-compiler-"));
+  const commonDir = path.join(tmpDir, ".cstl", "scripts", "common");
+  fs.mkdirSync(commonDir, { recursive: true });
+  fs.writeFileSync(path.join(tmpDir, ".cstl", "workflow.md"), WORKFLOW_FIXTURE);
+  fs.writeFileSync(
+    path.join(tmpDir, "AGENTS.md"),
+    "UNIQUE_AGENTS_LONGFORM_SENTINEL\n[workflow-state:no_task]\n",
+  );
+  fs.writeFileSync(path.join(commonDir, "__init__.py"), "");
+  fs.writeFileSync(path.join(commonDir, "active_task.py"), ACTIVE_TASK_STUB);
+  const otherTask = path.join(tmpDir, ".cstl", "tasks", "other-task");
+  fs.mkdirSync(otherTask, { recursive: true });
+  fs.writeFileSync(
+    path.join(otherTask, "prd.md"),
+    "# Other task\nUNIQUE_TASK_DIR_DUMP_SENTINEL\n",
+  );
+  seedCompiler(tmpDir, opts);
+  return tmpDir;
+}
+
+function hookContext(stdout: string): string {
+  const payload = JSON.parse(stdout) as {
+    additional_context?: string;
+    hookSpecificOutput?: { additionalContext?: string };
+  };
+  return (
+    payload.additional_context ||
+    payload.hookSpecificOutput?.additionalContext ||
+    ""
+  );
+}
+
+function packMeta(context: string): {
+  activationSource?: { kind?: string };
+  layer2ModuleIds?: string[];
+  layers?: number[];
+} {
+  const block = context.match(
+    /<session-pack-meta>([\s\S]*?)<\/session-pack-meta>/,
+  );
+  if (!block) return {};
+  return JSON.parse(block[1]) as {
+    activationSource?: { kind?: string };
+    layer2ModuleIds?: string[];
+    layers?: number[];
+  };
+}
+
+function runHook(
+  hookName: string,
+  tmpDir: string,
+  extraEnv: Record<string, string> = {},
+  extraArgs: string[] = [],
+): { status: number | null; stdout: string; stderr: string } {
+  const result = spawnSync(
+    pythonExe(),
+    [path.join(SHARED_HOOKS_DIR, hookName), ...extraArgs],
+    {
+      cwd: tmpDir,
+      encoding: "utf-8",
+      input: JSON.stringify({ cwd: tmpDir, cursor_version: "1.0" }),
+      env: {
+        ...process.env,
+        CURSOR_PROJECT_DIR: tmpDir,
+        ...extraEnv,
+      },
+      timeout: 20_000,
+    },
+  );
+  return {
+    status: result.status,
+    stdout: result.stdout || "",
+    stderr: result.stderr || "",
+  };
+}
 
 const ALL_HOOK_FILES = [
   "session-start.py",
@@ -170,26 +337,94 @@ describe("shared-hooks capability table", () => {
     }
   });
 
-  it("shared session-start.py injects compact task artifact guidance", () => {
+  it("shared session-start.py injects the compiler, not hand-assembled guidelines", () => {
     const sessionStart = getSharedHookScripts().find(
       (h) => h.name === "session-start.py",
     );
     expect(sessionStart, "session-start.py is missing from shared-hooks/").toBeDefined();
     const content = sessionStart ? sessionStart.content : "";
-    expect(content).toContain("<trellis-workflow>");
-    expect(content).toContain("Task context order");
-    expect(content).toContain("jsonl entries -> `prd.md`");
-    expect(content).toContain("Lightweight task can request start review with PRD-only");
-    expect(content).toContain("complex task must add");
+    expect(content).toContain("_compile_session_pack_text");
+    expect(content).toContain("cstl_session_pack");
+    expect(content).not.toContain("<trellis-workflow>");
+    expect(content).not.toContain("<guidelines>");
+    expect(content).not.toContain("Task context order");
+    expect(content).not.toContain("jsonl entries -> `prd.md`");
+    expect(content).not.toContain("External web research (Cursor)");
+    expect(content).not.toContain("./.cstl/scripts/run_smart_search.py");
     expect(content).not.toContain("Status: READY");
     expect(content).not.toContain("<workflow>");
-    expect(content).toContain('if _detect_platform(hook_input) == "cursor"');
-    expect(content).toContain("External web research (Cursor)");
-    expect(content).toContain("./.cstl/scripts/run_smart_search.py");
-    expect(content).toContain("retrieval-daily-guide.md");
-    expect(content).toContain("not a file under `.cursor/skills/`");
-    expect(content).not.toContain("Trellis/packages/cli/bin/smart-search.js");
-    expect(content).toContain("cursor-web-fallback");
+    expect(content).not.toContain("_extract_range");
+    expect(content).not.toContain("Phase 1: Plan");
+    expect(content).not.toContain("_build_workflow_overview");
+  });
+
+  it("session-start and inject-workflow-state do not require [Triage:] prints", () => {
+    for (const name of ["session-start.py", "inject-workflow-state.py"] as const) {
+      const hook = getSharedHookScripts().find((h) => h.name === name);
+      expect(hook, `${name} is missing from shared-hooks/`).toBeDefined();
+      const content = hook?.content ?? "";
+      expect(content).not.toMatch(/\[Triage: No Task\|Micro-Grill/);
+      expect(content).not.toContain(
+        "Emit the classification as the first line",
+      );
+    }
+  });
+
+  it("event-bridge.py loads subscriptions from selected-task extras", () => {
+    const hook = getSharedHookScripts().find((h) => h.name === "event-bridge.py");
+    expect(hook, "event-bridge.py is missing from shared-hooks/").toBeDefined();
+    const content = hook?.content ?? "";
+    expect(content).toContain("extras_from_task_dir");
+    expect(content).toContain("event_bridge_for_dispatch");
+    expect(content).not.toContain('dispatch_hook_event({"subscriptions": []}');
+  });
+
+  it("event-bridge.py emits empty JSON on sessionStart, not permission", () => {
+    const tmpDir = makeFixtureProject();
+    try {
+      const ran = runHook("event-bridge.py", tmpDir, {}, [
+        "--event",
+        "sessionStart",
+      ]);
+      expect(ran.status, ran.stderr).toBe(0);
+      const payload = JSON.parse((ran.stdout || "").trim() || "{}") as {
+        permission?: string;
+      };
+      expect(payload).not.toHaveProperty("permission");
+      expect(payload).toEqual({});
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it("session-start.py writes a side-channel log under .cstl/.runtime/hooks", () => {
+    const tmpDir = makeFixtureProject();
+    try {
+      const ran = runHook("session-start.py", tmpDir);
+      expect(ran.status, ran.stderr).toBe(0);
+      const logPath = path.join(
+        tmpDir,
+        ".cstl",
+        ".runtime",
+        "hooks",
+        "session-start.log",
+      );
+      expect(fs.existsSync(logPath), "session-start.log missing").toBe(true);
+      const lines = fs
+        .readFileSync(logPath, "utf-8")
+        .trim()
+        .split("\n")
+        .filter(Boolean);
+      expect(lines.length).toBeGreaterThanOrEqual(1);
+      const first = JSON.parse(lines[0]) as { phase?: string };
+      expect(first.phase).toBe("enter");
+      const phases = lines.map(
+        (line) => (JSON.parse(line) as { phase?: string }).phase,
+      );
+      expect(phases).toContain("emit");
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
   });
 
   it("session-start.py resolves the trellis dir upward, not hardcoded to project_dir", () => {
@@ -208,5 +443,181 @@ describe("shared-hooks capability table", () => {
     expect(content).toContain('(current / ".cstl").is_dir()');
     expect(content).toContain("current.parent == current");
     expect(content).toContain('return project_dir / ".cstl"');
+  });
+
+  it("session-start does not dump fixture Phase Index / Task Ladder / AGENTS", () => {
+    const tmpDir = makeFixtureProject();
+    try {
+      const ran = runHook("session-start.py", tmpDir);
+      expect(ran.status, ran.stderr).toBe(0);
+      const context = hookContext(ran.stdout);
+      expect(context).not.toContain("UNIQUE_PHASE_INDEX_SENTINEL");
+      expect(context).not.toContain("UNIQUE_TASK_LADDER_SENTINEL");
+      expect(context).not.toContain("UNIQUE_PHASE1_BODY_SENTINEL");
+      expect(context).not.toContain("UNIQUE_WORKFLOW_STATE_METHODOLOGY");
+      expect(context).not.toContain("UNIQUE_AGENTS_LONGFORM_SENTINEL");
+      expect(context).not.toContain("[Triage: No Task");
+      expect(context).not.toContain("<trellis-workflow>");
+      expect(context).not.toContain("<guidelines>");
+      expect(context).toContain("<session-pack");
+      expect(context).toContain('<layer n="1"');
+      expect(context).toContain('<layer n="5"');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it("session-start layer 2 omits unactivated module contracts on disk", () => {
+    const tmpDir = makeFixtureProject();
+    try {
+      const ran = runHook("session-start.py", tmpDir);
+      expect(ran.status, ran.stderr).toBe(0);
+      const context = hookContext(ran.stdout);
+      const meta = packMeta(context);
+      const ids = meta.layer2ModuleIds ?? [];
+      expect(ids).not.toContain("ghost-unactivated");
+      expect(ids).not.toContain("parent-child");
+      expect(ids).not.toContain("worker-orchestration");
+      expect(ids).not.toContain("vcs-integration");
+      expect(context).not.toContain("UNIQUE_UNACTIVATED_MODULE_SENTINEL");
+      expect(ids.length).toBeLessThan(20);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it("session-start without selected_task skips Parent/Worker/VCS teaching and task dumps", () => {
+    const tmpDir = makeFixtureProject();
+    try {
+      const ran = runHook("session-start.py", tmpDir);
+      expect(ran.status, ran.stderr).toBe(0);
+      const context = hookContext(ran.stdout);
+      const meta = packMeta(context);
+      const ids = meta.layer2ModuleIds ?? [];
+      expect(ids).not.toContain("parent-child");
+      expect(ids).not.toContain("worker-orchestration");
+      expect(ids).not.toContain("vcs-integration");
+      expect(context).not.toContain("UNIQUE_TASK_DIR_DUMP_SENTINEL");
+      expect(context).not.toContain("# `parent-child`");
+      expect(context).not.toContain("# `worker-orchestration`");
+      expect(context).not.toContain("# `vcs-integration`");
+      expect(ids).toEqual(["intake-basic"]);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it("session-start pack has layers 1-5 and activationSource, not all 20 contracts", () => {
+    const tmpDir = makeFixtureProject();
+    try {
+      const ran = runHook("session-start.py", tmpDir);
+      expect(ran.status, ran.stderr).toBe(0);
+      const context = hookContext(ran.stdout);
+      const meta = packMeta(context);
+      expect(meta.activationSource?.kind).toBe("profile-runtime");
+      expect(meta.layers).toEqual([1, 2, 3, 4, 5]);
+      expect(meta.layer2ModuleIds?.length ?? 0).toBeLessThan(20);
+      expect(context).toContain('name="resident-min"');
+      expect(context).toContain('name="activated-contracts"');
+      expect(context).toContain('name="artifact-snippets"');
+      expect(context).toContain('name="retrieval-pointer"');
+      expect(context).toContain('name="deep-diagnosis"');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it("Lite Single selected task keeps blocked on-demand modules out of layer 2", () => {
+    const tmpDir = makeFixtureProject();
+    try {
+      const taskDir = path.join(tmpDir, ".cstl", "tasks", "lite-exec");
+      fs.mkdirSync(taskDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(taskDir, "task.json"),
+        JSON.stringify({
+          id: "lite-exec",
+          name: "lite-exec",
+          title: "Lite exec",
+          status: "in_progress",
+          required_controls: { rigor: "lite" },
+          topology: { kind: "single" },
+          ondemand_modules: { active: [] },
+        }),
+        "utf-8",
+      );
+      fs.writeFileSync(
+        path.join(taskDir, "kernel.json"),
+        JSON.stringify({
+          phase: "execute",
+          condition: "active",
+          outcome: null,
+          projection: {
+            extras: {
+              required_controls: { rigor: "lite" },
+              topology: { kind: "single" },
+              ondemand_modules: { active: [] },
+            },
+          },
+        }),
+        "utf-8",
+      );
+      fs.writeFileSync(path.join(taskDir, "prd.md"), "# Lite\n\n- [ ] AC one\n");
+      const ran = runHook("session-start.py", tmpDir, {
+        CSTL_TEST_SELECTED_TASK: ".cstl/tasks/lite-exec",
+      });
+      expect(ran.status, ran.stderr).toBe(0);
+      const context = hookContext(ran.stdout);
+      const meta = packMeta(context);
+      const ids = meta.layer2ModuleIds ?? [];
+      expect(ids).toContain("execute-agent");
+      expect(ids).not.toContain("parent-child");
+      expect(ids).not.toContain("vcs-integration");
+      expect(ids).not.toContain("personal-memory");
+      expect(ids).not.toContain("retention-storage");
+      expect(ids).not.toContain("retrieval-extended");
+      expect(ids).not.toContain("intake-basic");
+      expect(ids.length).toBeLessThan(20);
+      expect(context).toContain("# Lite");
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it("session-start compiler failure no-ops with exit 0", () => {
+    const tmpDir = makeFixtureProject({ sessionPack: false });
+    try {
+      fs.rmSync(path.join(tmpDir, ".cstl", "scripts", "common", "session_pack.py"), {
+        force: true,
+      });
+      const ran = runHook("session-start.py", tmpDir);
+      expect(ran.status, ran.stderr).toBe(0);
+      const context = hookContext(ran.stdout);
+      expect(context).toContain("<first-reply-notice>");
+      expect(context).not.toContain("UNIQUE_PHASE_INDEX_SENTINEL");
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it("inject-workflow-state.py no-ops with exit 0 and no methodology block", () => {
+    const tmpDir = makeFixtureProject();
+    try {
+      const ran = runHook("inject-workflow-state.py", tmpDir);
+      expect(ran.status, ran.stderr).toBe(0);
+      expect(ran.stdout).not.toContain("[workflow-state:");
+      expect(ran.stdout).not.toContain("UNIQUE_WORKFLOW_STATE_METHODOLOGY");
+      expect(ran.stdout).not.toContain("[Triage: No Task");
+
+      const missing = fs.mkdtempSync(path.join(os.tmpdir(), "cstl-except-old-none-"));
+      try {
+        const silent = runHook("inject-workflow-state.py", missing);
+        expect(silent.status, silent.stderr).toBe(0);
+        expect(silent.stdout).not.toContain("[workflow-state:");
+      } finally {
+        fs.rmSync(missing, { recursive: true, force: true });
+      }
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
   });
 });

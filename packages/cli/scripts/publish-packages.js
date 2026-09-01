@@ -34,6 +34,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { computeNpmTag, npmVersionExists } from "./release-preflight.js";
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CLI_DIR = path.resolve(__dirname, "..");
 const CORE_DIR = path.resolve(CLI_DIR, "../core");
@@ -68,11 +70,27 @@ function ensureKernelCliEnv() {
   process.env.TRELLIS_KERNEL_CLI = `node ${quoted} kernel --json`;
 }
 
+function publishOne(pkgDir, version, tag, dryRun) {
+  if (dryRun) {
+    run("npm pack --dry-run", { cwd: pkgDir });
+    return;
+  }
+  const pkg = JSON.parse(
+    fs.readFileSync(path.join(pkgDir, "package.json"), "utf-8"),
+  );
+  if (npmVersionExists(pkg.name, version)) {
+    console.log(
+      `\x1b[33m○\x1b[0m ${pkg.name}@${version} already on npm — skip`,
+    );
+    return;
+  }
+  run(`pnpm publish --access public --no-git-checks --tag ${tag}`, {
+    cwd: pkgDir,
+  });
+}
+
 function main() {
   const dryRun = process.argv.includes("--dry-run");
-  const publishArgs = dryRun
-    ? "npm pack --dry-run"
-    : "pnpm publish --access public --no-git-checks";
 
   // Step 1: version parity guard — both packages must be at the same version
   // before anything ships. release.js bumps them together via bump-versions.js,
@@ -85,7 +103,10 @@ function main() {
         `Reconcile both package.json files before publishing.`,
     );
   }
-  console.log(`\x1b[32m✓\x1b[0m versions match: ${cliVersion}`);
+  const tag = computeNpmTag(cliVersion);
+  console.log(
+    `\x1b[32m✓\x1b[0m versions match: ${cliVersion} (npm dist-tag "${tag}")`,
+  );
 
   // Step 2: npm auth guard — fail fast with a clear message instead of a
   // cryptic 403 mid-publish.
@@ -101,7 +122,7 @@ function main() {
   // dist/ is gitignored and may be stale or absent after a clean checkout.
   console.log("\n— @blxzer/cursor-trellis-core —");
   run("pnpm run build", { cwd: CORE_DIR });
-  run(publishArgs, { cwd: CORE_DIR });
+  publishOne(CORE_DIR, coreVersion, tag, dryRun);
 
   // Step 4: publish cli. Build first so Kernel tests in prepublishOnly can
   // load `bin/cstl.js` → `dist/`. Then `pnpm publish` runs prepublishOnly
@@ -112,10 +133,10 @@ function main() {
   if (dryRun) {
     run("pnpm run copy:release-assets", { cwd: CLI_DIR });
   }
-  run(publishArgs, { cwd: CLI_DIR });
+  publishOne(CLI_DIR, cliVersion, tag, dryRun);
 
   console.log(
-    `\n\x1b[32m✓ Published @blxzer/cursor-trellis-core@${coreVersion} and @blxzer/cursor-trellis@${cliVersion}\x1b[0m`,
+    `\n\x1b[32m✓ Published @blxzer/cursor-trellis-core@${coreVersion} and @blxzer/cursor-trellis@${cliVersion} with tag "${tag}"\x1b[0m`,
   );
 }
 

@@ -9,6 +9,76 @@ SemVer: [semver.org](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.5.0-beta.2] - 2026-09-01
+
+P40 pool split at Open + default-script init hole. **Not** `@latest` — install with `@beta` or the exact version.
+
+### Added
+
+- **feat(pool)**: when the user starts implementing an accepted pool item, write `## 切片` on that item and Open isolatable Fulls (or a Parent only if integration authority is required). Check helper `evaluate_pool_slice` fails Full/Parent missing `touches`, unrelated module pairs without `serial_reason` / `oversized_accepted`, and multi-link tasks whose PRD lacks per-item `## 池义务`. `pool.py validate` does **not** fail when `## 切片` is missing.
+
+### Fixed
+
+- **fix(init)**: ship `common/artifact_search.py` and `common/injection_budget.py` in the default `getAllScripts()` set. 0.5.0-beta.1 omitted them even though `pool_store` / `pool_refs` / `subagent_dispatch` / `task_context` import them at top level, so a clean `cstl init` could not import pool or dispatch.
+
+### Notes for consumers
+
+- Install **`npm i -g @blxzer/cursor-trellis@0.5.0-beta.2`** or **`@blxzer/cursor-trellis@beta`**. `@latest` stays **0.4.3**.
+- In the **project root** run `cstl update` (do not re-run `init`). Official `.cstl/pool/README.md`, `pool_slice.py`, and the two common modules refresh. `.cstl/middleware/` is never written.
+- Core and CLI versions stay paired: `@blxzer/cursor-trellis-core@0.5.0-beta.2`.
+- Maintainers: tag **`cstl-v0.5.0-beta.2`**. Do not promote this prerelease to `main` / `@latest` until an explicit official release.
+
+## [0.5.0-beta.1] - 2026-09-01
+
+P38 parallel-first runtime + P39 Cursor Adapter on the modular preview. **Not** `@latest` — install with `@beta` or the exact version.
+
+### Added
+
+- **feat(runtime)**: Full / Parent planning must declare isolatable groups (`parallel_groups` / `stages`) or a `serial_reason`. Check helper `evaluate_parallel_declaration` fails when the declaration is missing. Lite may skip. This is not a `start-execution --check` hard gate and not a scheduler.
+- **feat(adapter)**: Cursor Q5 slot map and Q11–Q25 bindings live in the Adapter guide and escape hatches. Visible parallel fans out on **Execute** (ask to open Multitask, else `Task()` plus one sentence). **Integrate?** stays serial Parent `integrate-child` (`merge_limit: 1`).
+
+### Changed
+
+- **fix(modules)**: `worker-orchestration` / `intake-basic` contracts drop Cursor host nouns (`Multitask`, `SwitchMode`, `CreateGoal`, Cursor Task type names). Prefer host-native parallel in host-agnostic wording. Worker-orchestration activates only when isolatable groups are declared **and** a dispatch window is open.
+- **fix(adapter)**: thin Bootstrap gains a Next native action pointer (no `SwitchMode`). `continue.md` / `finish-work.md` bind Plan / Goal / parallel without restoring `cstl-goal`. Build probe stays Adapter A′ (not a Kernel Event Bridge default).
+
+### Notes for consumers
+
+- Install **`npm i -g @blxzer/cursor-trellis@0.5.0-beta.1`** or **`@blxzer/cursor-trellis@beta`**. `@latest` stays **0.4.3**.
+- In the **project root** run `cstl update` (do not re-run `init`). Official `.cstl/modules/worker-orchestration/contract.md` and `.cstl/framework/cursor-native-modes-guide.md` refresh. `.cstl/middleware/` is never written.
+- Core and CLI versions stay paired: `@blxzer/cursor-trellis-core@0.5.0-beta.1`.
+- Maintainers: tag **`cstl-v0.5.0-beta.1`**. Do not promote this prerelease to `main` / `@latest` until an explicit official release.
+
+## [0.5.0-beta.0] - 2026-08-31
+
+Modular runtime preview. Kernel stays thin; P29 short contracts ship under `.cstl/modules/`; SessionStart injects a compiled session pack instead of dumping `workflow.md` Phase Index. **Not** `@latest` — install with `@beta` or the exact version.
+
+### Added
+
+- **feat(modules)**: ship P29 short contracts (`index.json` + `<id>/contract.md`) on `cstl init` / `cstl update`. CLI source (`catalog.ts`) is not copied into the user tree.
+- **feat(context)**: compile a five-layer Session pack (`compile_session_pack.py`); SessionStart injects that pack via Event Bridge.
+- **feat(kernel)**: persist `baseline_modules` and the P29 on-demand list; Dashboard projects Open / Define / Close names.
+- **feat(retrieval)**: freeze three-layer retrieval ABI ownership (exact / semantic / structural / external stay Baseline intents).
+- **feat(adapter)**: bind Cursor Plan / Ask / Debug / Agent / Multitask honestly; user slash stays Continue / Finish-work / Handoff.
+- **feat(pool)**: delivery axis on pool items (`open` / `in-slice` / `landed` / `standing` / `deferred`). `accepted` is adjudication, not completion. `pool:Pxx` refs resolve through `pool_refs`. Missing `.cstl/pool/` does not block Close.
+- **feat(middleware)**: register seven shipped providers; `.cstl/middleware/` overlay is never written or hashed by `cstl update`.
+
+### Changed
+
+- **fix(hooks)**: SessionStart does not dump `workflow.md` Phase Index / Task Ladder; Event Bridge does not emit `permission` on `sessionStart`.
+- **fix(profile)**: inactive modules are dropped from the session pack and hooks.
+- **fix(cli)**: joiner onboarding uses `/cstl-continue` and Kernel/Dashboard; it no longer says continue loads Phase Index.
+- **fix(update)**: unchanged templates with no stored hash (canary-copied `.cstl/modules/`) are hashed on a no-op update so the next real template edit auto-updates.
+- **fix(retrieval)**: query-only `build_retrieval_pack` still stamps `evidenceEnvelope` intents when collected-evidence is missing. Empty `{}` input stays envelope-free and is not AC Evidence.
+- **chore(release)**: prerelease `pnpm publish` uses the `beta` / `rc` / `alpha` dist-tag from `computeNpmTag`. GitHub Release on `cstl-v*` no longer sets **Latest** for prerelease tags.
+
+### Notes for consumers
+
+- Install **`npm i -g @blxzer/cursor-trellis@0.5.0-beta.0`** or **`@blxzer/cursor-trellis@beta`**. `@latest` stays **0.4.3**.
+- In the **project root** run `cstl update` (do not re-run `init`). New files include `.cstl/modules/` and `compile_session_pack.py`. Unmodified official hooks auto-update.
+- Core and CLI versions stay paired: `@blxzer/cursor-trellis-core@0.5.0-beta.0`.
+- Maintainers: tag **`cstl-v0.5.0-beta.0`**. Do not promote this prerelease to `main` / `@latest` until an explicit official release.
+
 ## [0.4.3] - 2026-08-29
 
 Cursor-native 0.4.3. Lands **Stage 0–7** (Kernel writer, Lite / Full Quality, Topology, Adapter / Middleware) and **Wave C** (stop-read only after you confirm). GitHub user docs and `cstl update` match Native Cursor. Pushing a `cstl-v*` tag now opens a GitHub Release so Latest is not stuck on 0.3.4.

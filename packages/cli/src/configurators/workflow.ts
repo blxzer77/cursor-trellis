@@ -42,6 +42,7 @@ import {
   frameworkDocs,
 } from "../templates/markdown/index.js";
 
+import { collectUserModuleTemplates } from "../templates/extract.js";
 import { writeFile, ensureDir } from "../utils/file-writer.js";
 import { replacePythonCommandLiterals } from "./shared.js";
 import {
@@ -96,9 +97,10 @@ export interface WorkflowOptions {
  * This function creates the .cstl/ directory structure by:
  * 1. Writing scripts/ from getAllScripts() (user-shipped subset only)
  * 2. Copying workflow.md and .gitignore (dogfooding)
- * 3. Creating workspace/ with index.md
- * 4. Creating tasks/ directory
- * 5. Creating spec/ with templates (not dogfooded - generic templates)
+ * 3. Writing modules/ (index.json + <id>/contract.md; never catalog.ts)
+ * 4. Creating workspace/ with index.md
+ * 5. Creating tasks/ directory
+ * 6. Creating spec/ with templates (not dogfooded - generic templates)
  *
  * @param cwd - Current working directory
  * @param options - Workflow options including project type
@@ -121,6 +123,10 @@ export async function createWorkflowStructure(
 
   // Review-pool skeleton (mechanism docs only; no sample items)
   await writePoolSkeleton(path.join(cwd, PATHS.POOL));
+
+  // P29 short contracts — Session compiler reads these from the user tree.
+  // Walk skips catalog.ts / any .ts; not registered in getAllScripts().
+  await writeUserModuleContracts(path.join(cwd, PATHS.MODULES));
 
   // Do not create or write `.cstl/middleware/`. Users drop Manifests there;
   // init/update never write, delete, or hash that overlay.
@@ -200,6 +206,15 @@ async function writePoolSkeleton(poolRoot: string): Promise<void> {
     // Apply the same platform command rewrite as update.ts collectTemplateFiles
     // so init-written content matches the hash update expects (no-op on
     // same-version update instead of a spurious pool README rewrite).
+    await writeFile(destPath, replacePythonCommandLiterals(content));
+  }
+}
+
+async function writeUserModuleContracts(modulesRoot: string): Promise<void> {
+  ensureDir(modulesRoot);
+  for (const [relativePath, content] of collectUserModuleTemplates()) {
+    const destPath = path.join(modulesRoot, relativePath);
+    ensureDir(path.dirname(destPath));
     await writeFile(destPath, replacePythonCommandLiterals(content));
   }
 }

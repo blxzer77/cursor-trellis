@@ -12,10 +12,15 @@ import path from "node:path";
 
 import {
   cleanupEmptyDirs,
+  collectMissingTemplateHashes,
+  collectStaleUpdateSkipPaths,
+  collectTemplateFiles,
   loadUpdateSkipPaths,
+  removeUpdateSkipPathsFromConfig,
   shouldExcludeFromBackup,
   sortMigrationsForExecution,
 } from "../../src/commands/update.js";
+import { FILE_NAMES, PATHS } from "../../src/constants/paths.js";
 
 // =============================================================================
 // cleanupEmptyDirs
@@ -141,6 +146,79 @@ describe("loadUpdateSkipPaths", () => {
   it("returns empty array when no config exists", () => {
     const paths = loadUpdateSkipPaths(tmpDir);
     expect(paths).toEqual([]);
+  });
+});
+
+describe("stale update.skip prune", () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-stale-skip-"));
+    fs.mkdirSync(path.join(tmpDir, ".cstl", "scripts", "common"), {
+      recursive: true,
+    });
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it("treats a file skip as stale only when disk matches official template", () => {
+    const rel = ".cstl/scripts/common/adapter_middleware.py";
+    const official = "id: seven-providers\n";
+    fs.writeFileSync(path.join(tmpDir, rel), official);
+    const templates = new Map([[rel, official]]);
+    expect(
+      collectStaleUpdateSkipPaths(tmpDir, [rel, ".cursor/commands/"], templates),
+    ).toEqual([rel]);
+
+    fs.writeFileSync(path.join(tmpDir, rel), "id: local-fork\n");
+    expect(collectStaleUpdateSkipPaths(tmpDir, [rel], templates)).toEqual([]);
+  });
+
+  it("removes the skip item and an empty update: section from config.yaml", () => {
+    fs.writeFileSync(
+      path.join(tmpDir, ".cstl", "config.yaml"),
+      [
+        "# keep this comment",
+        "max_journal_lines: 2000",
+        "",
+        "update:",
+        "  skip:",
+        "    - .cstl/scripts/common/adapter_middleware.py",
+        "    - .cursor/commands/",
+        "",
+      ].join("\n"),
+    );
+    const removed = removeUpdateSkipPathsFromConfig(tmpDir, [
+      ".cstl/scripts/common/adapter_middleware.py",
+    ]);
+    expect(removed).toEqual([".cstl/scripts/common/adapter_middleware.py"]);
+    const next = fs.readFileSync(
+      path.join(tmpDir, ".cstl", "config.yaml"),
+      "utf-8",
+    );
+    expect(next).toContain("# keep this comment");
+    expect(next).toContain("- .cursor/commands/");
+    expect(next).not.toContain("adapter_middleware.py");
+    expect(loadUpdateSkipPaths(tmpDir)).toEqual([".cursor/commands/"]);
+  });
+
+  it("drops update: when the last skip item is removed", () => {
+    fs.writeFileSync(
+      path.join(tmpDir, ".cstl", "config.yaml"),
+      "update:\n  skip:\n    - .cstl/scripts/common/adapter_middleware.py\n",
+    );
+    removeUpdateSkipPathsFromConfig(tmpDir, [
+      ".cstl/scripts/common/adapter_middleware.py",
+    ]);
+    const next = fs.readFileSync(
+      path.join(tmpDir, ".cstl", "config.yaml"),
+      "utf-8",
+    );
+    expect(next).not.toMatch(/^update:/m);
+    expect(next).not.toMatch(/skip:/);
+    expect(loadUpdateSkipPaths(tmpDir)).toEqual([]);
   });
 });
 
@@ -279,5 +357,91 @@ describe("shouldExcludeFromBackup", () => {
     ".opencode\\node_modules\\zod\\index.js",
   ])("excludes Windows-style backslash path %s", (p) => {
     expect(shouldExcludeFromBackup(p)).toBe(true);
+  });
+});
+
+describe("collectTemplateFiles — modules vs middleware", () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-collect-"));
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it("includes .cstl/modules index and contracts, never middleware or catalog.ts", () => {
+    const files = collectTemplateFiles(tmpDir);
+    const keys = [...files.keys()];
+
+    expect(files.has(`${PATHS.MODULES}/index.json`)).toBe(true);
+    expect(files.has(`${PATHS.MODULES}/intake-basic/contract.md`)).toBe(true);
+    expect(files.has(`${PATHS.MODULES}/catalog.ts`)).toBe(false);
+    expect(keys.some((key) => key.endsWith("catalog.ts"))).toBe(false);
+    expect(keys.some((key) => key.endsWith(".ts") && key.includes("/modules/"))).toBe(
+      false,
+    );
+    expect(
+      keys.some(
+        (key) =>
+          key === PATHS.MIDDLEWARE || key.startsWith(`${PATHS.MIDDLEWARE}/`),
+      ),
+    ).toBe(false);
+  });
+});
+
+describe("collectMissingTemplateHashes", () => {
+  const modulePath = `${PATHS.MODULES}/intake-basic/contract.md`;
+
+  it("records unchanged canary-copied modules that have no stored hash", () => {
+    const missing = collectMissingTemplateHashes(
+      {
+        unchangedFiles: [
+          {
+            path: `/tmp/${modulePath}`,
+            relativePath: modulePath,
+            newContent: "# intake-basic\n",
+            status: "unchanged",
+          },
+        ],
+      },
+      {},
+    );
+    expect(missing.get(modulePath)).toBe("# intake-basic\n");
+  });
+
+  it("still records AGENTS.md when the file matches and the hash is missing", () => {
+    const missing = collectMissingTemplateHashes(
+      {
+        unchangedFiles: [
+          {
+            path: `/tmp/${FILE_NAMES.AGENTS}`,
+            relativePath: FILE_NAMES.AGENTS,
+            newContent: "block\n",
+            status: "unchanged",
+          },
+        ],
+      },
+      {},
+    );
+    expect(missing.get(FILE_NAMES.AGENTS)).toBe("block\n");
+  });
+
+  it("skips unchanged files that already have a hash", () => {
+    const missing = collectMissingTemplateHashes(
+      {
+        unchangedFiles: [
+          {
+            path: `/tmp/${modulePath}`,
+            relativePath: modulePath,
+            newContent: "# intake-basic\n",
+            status: "unchanged",
+          },
+        ],
+      },
+      { [modulePath]: "already-tracked" },
+    );
+    expect(missing.size).toBe(0);
   });
 });

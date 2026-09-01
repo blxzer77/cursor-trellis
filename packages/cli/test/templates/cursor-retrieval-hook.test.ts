@@ -25,13 +25,21 @@ describe("cursor retrieval plan hook", () => {
     expect(entry?.timeout).toBeGreaterThanOrEqual(15);
   });
 
-  it("inject-retrieval-plan.py emits dual-schema additional_context", () => {
+  it("inject-retrieval-plan.py is telemetry-only and does not claim prompt injection", () => {
     const hook = getSharedHookScripts().find(
       (h) => h.name === "inject-retrieval-plan.py",
     );
-    expect(hook?.content).toContain("additional_context");
-    expect(hook?.content).toContain("beforeSubmitPrompt");
-    expect(hook?.content).toContain("## 代码库检索计划");
+    const content = hook?.content ?? "";
+    expect(content).toContain("telemetry-only");
+    expect(content).toContain("beforeSubmitPrompt");
+    expect(content).toContain("promptInjected");
+    expect(content).toContain("additionalContextDelivered");
+    expect(content).toContain("retrieval-extended");
+    expect(content).toContain("context-progressive");
+    expect(content).toContain("## 代码库检索计划");
+    expect(content).not.toContain("已注入 Prompt");
+    expect(content).not.toMatch(/"additional_context"\s*:/);
+    expect(content).not.toMatch(/^\s*(?:from|import)\s+smart[_-]?search\b/m);
   });
 
   it("default Cursor rules are bootstrap-only", () => {

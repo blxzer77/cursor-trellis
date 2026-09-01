@@ -1,13 +1,22 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Research-end / stop hook: optional retrieval-pack scoring for the selected task.
+Research-end / stop hook: quality-layer retrieval-pack for collected evidence.
 
-Runs after an agent turn (Cursor `stop`, Claude `Stop`). When the selected task
-has research artifacts or smart-search manifests, builds a retrieval-pack JSON
-file under `{TASK}/research/` and returns a short operator hint.
+Three-layer retrieval ABI (frozen; do not merge back into workflow.md):
 
-Does not change default `get_context --json` behavior.
+| Layer    | Owner                 | This hook                                         |
+| -------- | --------------------- | ------------------------------------------------- |
+| Intent   | context-progressive   | does not own intents                              |
+| Provider | Middleware            | does not take smart-search as a Kernel dependency |
+| Quality  | retrieval-extended    | owner: pack only when collected-evidence exists   |
+
+Runs after an agent turn (Cursor ``stop``, Claude ``Stop``). No research
+artifacts → no-op exit 0 (do not fail, do not write a pack, do not inject
+教战). Collected evidence present → pack via ``build_retrieval_pack.py``
+(input role ``collected-evidence``). The written JSON is not AC Evidence.
+
+Does not change default ``get_context --json`` behavior.
 """
 from __future__ import annotations
 
@@ -16,6 +25,7 @@ import os
 import subprocess
 import sys
 import warnings
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -34,6 +44,12 @@ if sys.platform.startswith("win"):
 DIR_WORKFLOW = ".cstl"
 OUTPUT_BASENAME = "retrieval-pack-latest.json"
 MARKER = "<!-- cstl-research-end-pack -->"
+
+ABI_INTENT_OWNER = "context-progressive"
+ABI_PROVIDER_OWNER = "middleware"
+ABI_QUALITY_OWNER = "retrieval-extended"
+ABI_LAYER = "quality"
+INPUT_ROLE = "collected-evidence"
 
 
 def _repo_root(cwd: str) -> Path | None:
@@ -81,21 +97,104 @@ def _selected_task(repo_root: Path, input_data: dict) -> str | None:
     return selected.task_path if selected else None
 
 
-def _has_research_signals(task_dir: Path) -> bool:
+def _retrieval_extended_active(repo_root: Path, task_dir: Path) -> bool:
+    """Unactivated retrieval-extended → no pack write, no delivery claim."""
+    scripts_dir = repo_root / DIR_WORKFLOW / "scripts"
+    if str(scripts_dir) not in sys.path:
+        sys.path.insert(0, str(scripts_dir))
+    try:
+        from common.ondemand_topology import is_ondemand_module_active  # type: ignore[import-not-found]
+    except Exception:
+        return False
+    return bool(is_ondemand_module_active(task_dir, "retrieval-extended"))
+
+
+def _relpath(path: Path, repo_root: Path) -> str:
+    try:
+        return path.resolve().relative_to(repo_root.resolve()).as_posix()
+    except ValueError:
+        return str(path)
+
+
+def _freshness(path: Path) -> str | None:
+    try:
+        return datetime.fromtimestamp(path.stat().st_mtime, timezone.utc).isoformat()
+    except OSError:
+        return None
+
+
+def collect_evidence_items(task_dir: Path, repo_root: Path) -> list[dict[str, Any]]:
+    """Build collected-evidence items (path + provider + optional freshness)."""
+    items: list[dict[str, Any]] = []
     research = task_dir / "research"
     if not research.is_dir():
-        return False
-    for child in research.iterdir():
+        return items
+
+    for child in sorted(research.iterdir(), key=lambda path: path.name):
+        if child.name == OUTPUT_BASENAME:
+            continue
         if child.is_file() and child.suffix.lower() in {".md", ".json"}:
-            if child.name != OUTPUT_BASENAME:
-                return True
+            record: dict[str, Any] = {
+                "path": _relpath(child, repo_root),
+                "provider": "task-research",
+            }
+            stamp = _freshness(child)
+            if stamp:
+                record["freshness"] = stamp
+            items.append(record)
+            continue
         if child.is_dir() and child.name == "smart-search":
-            if any(child.iterdir()):
-                return True
-    return False
+            for run_dir in sorted(child.iterdir(), key=lambda path: path.name):
+                manifest = run_dir / "manifest.json"
+                if not manifest.is_file():
+                    continue
+                record = {
+                    "path": _relpath(manifest, repo_root),
+                    "provider": "smart-search",
+                }
+                stamp = _freshness(manifest)
+                if stamp:
+                    record["freshness"] = stamp
+                items.append(record)
+    return items
 
 
-def _run_retrieval_pack(repo_root: Path) -> dict[str, Any] | None:
+def _stamp_pack(pack: dict[str, Any], collection_status: str, reason: str) -> dict[str, Any]:
+    stamped = dict(pack)
+    stamped["inputRole"] = INPUT_ROLE
+    stamped["outputRole"] = "retrieval-pack"
+    stamped["abiLayer"] = ABI_LAYER
+    stamped["abiOwner"] = ABI_QUALITY_OWNER
+    stamped["abiIntentOwner"] = ABI_INTENT_OWNER
+    stamped["abiProviderOwner"] = ABI_PROVIDER_OWNER
+    stamped["collectionStatus"] = collection_status
+    stamped["closeEvidenceEligible"] = False
+    stamped["notAcEvidence"] = True
+    stamped["reason"] = reason
+    return stamped
+
+
+def _pack_via_quality_cli(
+    repo_root: Path, items: list[dict[str, Any]]
+) -> dict[str, Any] | None:
+    scripts_dir = repo_root / DIR_WORKFLOW / "scripts"
+    if str(scripts_dir) not in sys.path:
+        sys.path.insert(0, str(scripts_dir))
+    try:
+        from build_retrieval_pack import pack_from_collected_evidence
+    except Exception:
+        return None
+    try:
+        return pack_from_collected_evidence(
+            items,
+            payload={"inputRole": INPUT_ROLE, "items": items},
+            repo_root=repo_root,
+        )
+    except Exception:
+        return None
+
+
+def _pack_via_get_context(repo_root: Path) -> dict[str, Any] | None:
     script = repo_root / DIR_WORKFLOW / "scripts" / "get_context.py"
     if not script.is_file():
         return None
@@ -128,9 +227,36 @@ def _run_retrieval_pack(repo_root: Path) -> dict[str, Any] | None:
         )
         return None
     try:
-        return json.loads(proc.stdout)
+        parsed = json.loads(proc.stdout)
     except json.JSONDecodeError:
         return None
+    if not isinstance(parsed, dict):
+        return None
+    collection = parsed.get("collection") if isinstance(parsed.get("collection"), dict) else {}
+    total = 0
+    for value in collection.values():
+        if isinstance(value, int):
+            total += value
+    status = "collected" if total > 0 else "empty"
+    reason = (
+        "quality-layer retrieval-pack of collected-evidence; "
+        "not AC Evidence and not Close Evidence"
+        if status == "collected"
+        else (
+            "collected-evidence items were present but pack collection is empty; "
+            "not AC Evidence"
+        )
+    )
+    return _stamp_pack(parsed, status, reason)
+
+
+def _is_collected_pack(pack: dict[str, Any]) -> bool:
+    if pack.get("collectionStatus") == "collected":
+        return True
+    collection = pack.get("collection")
+    if not isinstance(collection, dict):
+        return False
+    return any(isinstance(value, int) and value > 0 for value in collection.values())
 
 
 def _emit(platform: str | None, message: str) -> None:
@@ -143,17 +269,16 @@ def _emit(platform: str | None, message: str) -> None:
                 "hookEventName": "Stop",
                 "additionalContext": message,
             },
-            "additional_context": message,
         }
     print(json.dumps(payload, ensure_ascii=False), flush=True)
 
 
-def main() -> None:
+def main() -> int:
     try:
         raw = sys.stdin.read()
         input_data = json.loads(raw) if raw.strip() else {}
     except json.JSONDecodeError:
-        return
+        return 0
 
     cwd = (
         input_data.get("cwd")
@@ -161,33 +286,43 @@ def main() -> None:
         or os.getcwd()
     )
     if not isinstance(cwd, str):
-        return
+        return 0
 
     repo_root = _repo_root(cwd)
     if repo_root is None:
-        return
+        return 0
 
     task_ref = _selected_task(repo_root, input_data)
     if not task_ref:
-        return
+        return 0
 
     task_dir = (repo_root / task_ref).resolve()
     if not task_dir.is_dir():
-        return
+        return 0
 
-    if not _has_research_signals(task_dir):
-        return
+    try:
+        if not _retrieval_extended_active(repo_root, task_dir):
+            return 0
+    except Exception:
+        return 0
 
-    pack = _run_retrieval_pack(repo_root)
+    items = collect_evidence_items(task_dir, repo_root)
+    if not items:
+        return 0
+
+    pack = _pack_via_quality_cli(repo_root, items)
     if not pack:
-        return
+        pack = _pack_via_get_context(repo_root)
+    if not pack or not _is_collected_pack(pack):
+        return 0
 
     research_dir = task_dir / "research"
     research_dir.mkdir(parents=True, exist_ok=True)
     out_path = research_dir / OUTPUT_BASENAME
-    out_path.write_text(json.dumps(pack, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    out_path.write_text(
+        json.dumps(pack, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
 
-    collection = pack.get("collection") or {}
     selected_n = 0
     context_pack = pack.get("contextPack")
     if isinstance(context_pack, dict):
@@ -198,14 +333,13 @@ def main() -> None:
     rel = out_path.relative_to(repo_root).as_posix()
     message = (
         f"{MARKER}\n"
-        f"Trellis research-end hook wrote scored evidence to `{rel}` "
-        f"(contextPack.selected={selected_n}, "
-        f"artifacts={collection.get('artifactSearchResults', 0)}, "
-        f"smart-search={collection.get('smartSearchManifests', 0)}). "
-        f"Cite ranked sources or gaps in `verify.md` when finishing the task."
+        f"retrieval-extended quality layer wrote `{rel}` from collected-evidence "
+        f"(contextPack.selected={selected_n}). "
+        f"This retrieval-pack is not AC Evidence and must not be used as Close Evidence."
     )
     _emit(_detect_platform(input_data), message)
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

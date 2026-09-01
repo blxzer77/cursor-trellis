@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "source": "p29-module-table",
+  "baseline_intents": ["exact", "semantic", "structural", "external"],
+  "layers": {
+    "baseline": [
+      "intake-basic",
+      "define-basic",
+      "approval-personal",
+      "execute-agent",
+      "verify-basic",
+      "close-basic",
+      "context-progressive",
+      "observability-local"
+    ],
+    "on-demand": [
+      "candidate-pool",
+      "define-extended",
+      "independent-check",
+      "worker-orchestration",
+      "parent-child",
+      "debug-recovery",
+      "session-transfer",
+      "spec-learning",
+      "vcs-integration",
+      "personal-memory",
+      "retention-storage",
+      "retrieval-extended"
+    ]
+  },
+  "modules": [
+    {
+      "id": "intake-basic",
+      "layer": "baseline",
+      "contract": "intake-basic/contract.md"
+    },
+    {
+      "id": "define-basic",
+      "layer": "baseline",
+      "contract": "define-basic/contract.md"
+    },
+    {
+      "id": "approval-personal",
+      "layer": "baseline",
+      "contract": "approval-personal/contract.md"
+    },
+    {
+      "id": "execute-agent",
+      "layer": "baseline",
+      "contract": "execute-agent/contract.md"
+    },
+    {
+      "id": "verify-basic",
+      "layer": "baseline",
+      "contract": "verify-basic/contract.md"
+    },
+    {
+      "id": "close-basic",
+      "layer": "baseline",
+      "contract": "close-basic/contract.md"
+    },
+    {
+      "id": "context-progressive",
+      "layer": "baseline",
+      "contract": "context-progressive/contract.md"
+    },
+    {
+      "id": "observability-local",
+      "layer": "baseline",
+      "contract": "observability-local/contract.md"
+    },
+    {
+      "id": "candidate-pool",
+      "layer": "on-demand",
+      "contract": "candidate-pool/contract.md"
+    },
+    {
+      "id": "define-extended",
+      "layer": "on-demand",
+      "contract": "define-extended/contract.md"
+    },
+    {
+      "id": "independent-check",
+      "layer": "on-demand",
+      "contract": "independent-check/contract.md"
+    },
+    {
+      "id": "worker-orchestration",
+      "layer": "on-demand",
+      "contract": "worker-orchestration/contract.md"
+    },
+    {
+      "id": "parent-child",
+      "layer": "on-demand",
+      "contract": "parent-child/contract.md"
+    },
+    {
+      "id": "debug-recovery",
+      "layer": "on-demand",
+      "contract": "debug-recovery/contract.md"
+    },
+    {
+      "id": "session-transfer",
+      "layer": "on-demand",
+      "contract": "session-transfer/contract.md"
+    },
+    {
+      "id": "spec-learning",
+      "layer": "on-demand",
+      "contract": "spec-learning/contract.md"
+    },
+    {
+      "id": "vcs-integration",
+      "layer": "on-demand",
+      "contract": "vcs-integration/contract.md"
+    },
+    {
+      "id": "personal-memory",
+      "layer": "on-demand",
+      "contract": "personal-memory/contract.md"
+    },
+    {
+      "id": "retention-storage",
+      "layer": "on-demand",
+      "contract": "retention-storage/contract.md"
+    },
+    {
+      "id": "retrieval-extended",
+      "layer": "on-demand",
+      "contract": "retrieval-extended/contract.md"
+    }
+  ]
+}

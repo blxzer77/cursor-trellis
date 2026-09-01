@@ -22,6 +22,7 @@ export const expectedRules: ExpectedRule[] = [
       "Optional",
       "Native SSOT",
       ".cstl/middleware",
+      "Next native action",
     ],
     minBytes: 400,
   },

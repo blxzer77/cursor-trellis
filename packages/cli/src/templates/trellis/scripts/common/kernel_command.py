@@ -282,6 +282,7 @@ KERNEL_PROJECTION_EXTRA_KEYS = (
     "topology",
     "dependency_graph",
     "ondemand_modules",
+    "baseline_modules",
     "depends_on",
     "dependency_satisfied",
     "decompose_proposal",

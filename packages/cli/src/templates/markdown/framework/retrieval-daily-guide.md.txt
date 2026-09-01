@@ -2,6 +2,18 @@
 
 > **Purpose:** Choose the right tool; do not confuse **search** with **retrieval-pack scoring**.
 
+## Three-layer ABI (frozen)
+
+Subsequent retrieval optimization may change ranking features, pack schema, or Optional Providers. It must **not** merge these layers back into `workflow.md` or SessionStart.
+
+| Layer | Owner | Recognizes | Does not |
+| --- | --- | --- | --- |
+| Intent | `context-progressive` | `exact` / `semantic` / `structural` / `external` | tool names, scores, pack, per-turn plan injection |
+| Provider | Middleware | capability ready/degrade; default `external-knowledge` → smart-search | Kernel release lockstep; platform Web as equivalent |
+| Quality | `retrieval-extended` | score/pack **collected-evidence** (path + provider + optional freshness) | searching; standing in as Close / AC Evidence |
+
+`inject-retrieval-plan.py` is **telemetry-only**. Cursor `additional_context` often never reaches the model — a local log is not Prompt injection success. `research-end-retrieval-pack.py` no-ops (exit 0) when there are no research artifacts. `build_retrieval_pack.py` input role is `collected-evidence`; missing collection is empty + reason, never AC Evidence.
+
 ## Web research rule (smart-search is mandatory first)
 
 For **external / current / web facts**, **smart-search** (`run_smart_search.py`) is the **mandatory first choice**. Platform built-in web tools (Cursor `WebSearch` / `WebFetch`) are **downgrade-only**: use them solely when smart-search is unavailable (`doctor` not ok, `not_configured` / `failed`, or timeout). Never reach for built-in web search while smart-search is healthy. This rule overrides any general "use available tools" instinct — web retrieval strength is routed inside Trellis, not left to the platform default.

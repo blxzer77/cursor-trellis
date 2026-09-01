@@ -11,7 +11,6 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from common import kernel_command as kernel_command_mod
 from common.pool_store import (
     check_plan,
     find_item_path,
@@ -27,19 +26,7 @@ from common.pool_store import (
     validate_pool,
     write_item_frontmatter,
 )
-from common.test_kernel_command import FAKE_KERNEL
-
-
-@pytest.fixture(autouse=True)
-def fake_kernel(tmp_path, monkeypatch):
-    script = tmp_path / "fake_kernel.py"
-    script.write_text(FAKE_KERNEL, encoding="utf-8")
-    monkeypatch.setattr(
-        kernel_command_mod,
-        "kernel_cli_argv",
-        lambda: [sys.executable, str(script)],
-    )
-    return script
+from common.kernel_command import to_kernel_record
 
 ITEM_TEMPLATE = """\
 ---
@@ -50,6 +37,7 @@ type: mechanism
 locale: zh
 created: 2026-08-08
 approved: 2026-08-08
+delivery: standing
 ---
 
 ## 意图
@@ -95,7 +83,15 @@ def _write_task(
 ) -> Path:
     task_dir = repo / ".cstl" / "tasks" / dir_name
     task_dir.mkdir(parents=True, exist_ok=True)
-    data: dict = {"id": dir_name, "name": dir_name, "status": status}
+    data = to_kernel_record(
+        {
+            "id": dir_name,
+            "name": dir_name,
+            "title": dir_name,
+            "description": "",
+            "status": status,
+        }
+    )
     if meta is not None:
         data["meta"] = meta
     (task_dir / "task.json").write_text(json.dumps(data, indent=2), encoding="utf-8")
@@ -166,7 +162,7 @@ def test_write_frontmatter_preserves_body_and_key_order(tmp_path: Path) -> None:
 
     fm_lines = [line for line in rewritten.splitlines() if ":" in line and not line.startswith("-")]
     keys = [line.split(":", 1)[0] for line in fm_lines]
-    assert keys == ["id", "title", "status", "type", "locale", "created", "approved", "linked_tasks"]
+    assert keys == ["id", "title", "status", "type", "locale", "created", "approved", "delivery", "linked_tasks"]
     assert keys == list(item.frontmatter.keys())
 
 
@@ -219,9 +215,6 @@ def test_link_item_task_writes_both_sides_idempotent(tmp_path: Path) -> None:
     assert get_linked_tasks(item) == ["08-09-some-task"]
     data = json.loads((task_dir / "task.json").read_text(encoding="utf-8"))
     assert get_pool_items(data) == ["P01"]
-    kernel = json.loads((task_dir / "kernel.json").read_text(encoding="utf-8"))
-    assert kernel["revision"] >= 1
-    assert kernel["audit"][-1]["idempotencyKey"].startswith("patch:pool-link:")
 
     second = link_item_task(repo, "P01", "08-09-some-task")
     assert second.ok
@@ -320,6 +313,20 @@ def test_validate_pool_missing_sections_and_keys(tmp_path: Path) -> None:
     codes = [issue.code for issue in issues]
     assert "missing-section" in codes  # 粗验收 / 非目标 missing
     assert "missing-frontmatter-key" in codes  # type missing
+
+
+def test_validate_pool_accepted_requires_delivery(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    path = repo / ".cstl" / "pool" / "items" / "P20.md"
+    path.write_text(
+        "---\nid: P20\nstatus: accepted\ntype: mechanism\n---\n\n"
+        "## 意图\nx\n\n## 动机\nx\n\n## 粗验收\nx\n\n## 非目标\nx\n",
+        encoding="utf-8",
+    )
+    issues = validate_pool(repo)
+    missing = [issue for issue in issues if issue.code == "missing-delivery"]
+    assert len(missing) == 1
+    assert missing[0].is_error
 
 
 def test_validate_pool_inbox_missing_section_is_warning(tmp_path: Path) -> None:

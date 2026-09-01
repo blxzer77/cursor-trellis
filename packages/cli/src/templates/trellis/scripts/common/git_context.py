@@ -29,6 +29,15 @@ from .packages_context import (
 )
 from .paths import get_repo_root
 from .lite_context import LiteContextPackError, get_lite_context_json
+from .session_pack import compile_session_pack_for_repo
+
+RETRIEVAL_PACK_COMPILER_ABI = {
+    "schema": "cstl-retrieval-abi-v1",
+    "intentsOwner": "context-progressive",
+    "providerOwner": "middleware",
+    "qualityOwner": "retrieval-extended",
+    "intents": ["exact", "semantic", "structural", "external"],
+}
 from .trellis_config import read_trellis_config
 from .workflow_phase import (
     filter_platform,
@@ -59,14 +68,15 @@ def main() -> None:
     parser.add_argument(
         "--mode",
         "-m",
-        choices=["default", "record", "packages", "phase", "retrieval-pack", "lite"],
+        choices=["default", "record", "packages", "phase", "retrieval-pack", "lite", "session"],
         default="default",
         help=(
             "Output mode: default (full context), record (for record-session), "
             "packages (package info only), phase (workflow step extraction), "
             "retrieval-pack (score and pack already-collected retrieval evidence; "
             "use after research collection, not on every SessionStart), "
-            "lite (Personal Lite phase pack with budget; no Parent/VCS/retrieval-extended)"
+            "lite (Personal Lite phase pack with budget; no Parent/VCS/retrieval-extended), "
+            "session (five-layer context-progressive Session pack)"
         ),
     )
     parser.add_argument(
@@ -140,7 +150,7 @@ def main() -> None:
         try:
             from .project_file_stats import resolve_project_file_count_arg
             from .retrieval_pack_context import (
-                output_retrieval_pack_json,
+                get_context_retrieval_pack_json,
                 read_evidence_input,
             )
 
@@ -151,20 +161,32 @@ def main() -> None:
             )
         except (OSError, json.JSONDecodeError, ValueError, ImportError) as error:
             parser.exit(1, f"retrieval pack error: {error}\n")
-        output_retrieval_pack_json(
+        pack = get_context_retrieval_pack_json(
             evidence_input=evidence,
             max_items=args.max_items,
             max_estimated_tokens=args.max_estimated_tokens,
             include_diagnostics=args.include_diagnostics,
-            pretty=args.json,
             project_file_count=project_file_count,
         )
+        # Metadata only: do not change ranking / collected-evidence semantics.
+        if isinstance(pack, dict):
+            pack["compilerAbi"] = dict(RETRIEVAL_PACK_COMPILER_ABI)
+        if args.json:
+            print(json.dumps(pack, indent=2, ensure_ascii=False))
+        else:
+            print(json.dumps(pack, ensure_ascii=False))
     elif args.mode == "lite":
         try:
             pack = get_lite_context_json()
         except LiteContextPackError as error:
             parser.exit(1, f"lite context pack error: {error}\n")
         print(json.dumps(pack, indent=2 if args.json else None, ensure_ascii=False))
+    elif args.mode == "session":
+        pack = compile_session_pack_for_repo()
+        if args.json:
+            print(json.dumps(pack, indent=2, ensure_ascii=False))
+        else:
+            print(json.dumps(pack, ensure_ascii=False))
     else:
         if args.json:
             output_json()

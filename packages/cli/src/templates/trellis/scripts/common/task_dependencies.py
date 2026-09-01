@@ -9,11 +9,10 @@ Consumers: start-execution --check warnings (task_gates), dashboard summary
 Semantics per adjudication 08-09-depends-on-generalize-research (Plan A):
 - Bare ids resolve in scope order: same-Parent task-map children first, then
   global task dirs (.cstl/tasks/<id>, then archive/<month>/<id>).
-- "pool:XXX" refs resolve against the review pool (.cstl/pool): the item's
-  linked_tasks decide satisfaction. Missing item or no linked tasks stays
-  UNRESOLVED; linked tasks use the same task-level satisfaction semantics
-  (all satisfied -> SATISFIED, any not satisfied -> NOT_SATISFIED, all
-  dangling -> UNRESOLVED).
+- "pool:XXX" refs resolve through ``pool_refs`` (item ``delivery``).
+  standing / landed / deferred → SATISFIED; open / in-slice → NOT_SATISFIED.
+  Missing ``.cstl/pool/`` (no Capture) is ignored (SATISFIED). Missing item →
+  UNRESOLVED. linked_tasks do not decide satisfaction.
 - Task-level satisfaction: status `completed` (archive counts as completed)
   or `cancelled`. Child-level satisfaction: task-map state in
   PARENT_TERMINAL_STATES (integrated | cancelled). Everything else is
@@ -205,7 +204,7 @@ def normalize_dep_list(raw: object) -> list[str]:
 def satisfaction_status(dep: ResolvedDep) -> tuple[str, str | None]:
     """Return (SATISFIED | NOT_SATISFIED | UNRESOLVED, note_or_None).
 
-    - pool: -> status decided by the linked tasks (resolved at dep resolution).
+    - pool: -> status decided by item delivery (resolved at dep resolution).
     - missing -> UNRESOLVED (dangling; Plan A warns, never errors).
     - task: completed (archive counts as completed) or cancelled -> SATISFIED.
     - child: integrated or cancelled (PARENT_TERMINAL_STATES) -> SATISFIED.
@@ -245,17 +244,22 @@ def _pool_satisfaction_status(dep: ResolvedDep) -> tuple[str, str | None]:
         note = (
             "pool entry satisfied via cancelled linked task(s)"
             if dep.status == "cancelled"
-            else None
+            else (dep.note if dep.status == "satisfied" else None)
         )
         return SATISFIED, note
     if dep.status == "not_satisfied":
         return NOT_SATISFIED, _pool_note(
-            dep, "pool item has linked tasks not yet completed"
+            dep, "pool item has remaining obligation"
+        )
+    if dep.status == "missing_module":
+        return SATISFIED, _pool_note(
+            dep, "candidate-pool not materialized; pool: ignored"
         )
     message = {
         "missing_item": "pool item not found",
+        "not_ready": "pool item not accepted",
         "unlinked": "pool item has no linked tasks",
-    }.get(dep.status, "pool item linked task(s) unresolved")
+    }.get(dep.status, "pool item unresolved")
     return UNRESOLVED, _pool_note(dep, message)
 
 
@@ -373,50 +377,21 @@ def _resolve_pool_dep(
     repo_root: Path | None = None,
     tasks_dir: Path | None = None,
 ) -> ResolvedDep:
-    """Resolve a `pool:XXX` reference against the review pool.
+    """Resolve a ``pool:XXX`` reference via the pool_refs contract."""
+    from .pool_refs import resolve_pool_ref
 
-    The item's linked_tasks are resolved with the same task-level
-    satisfaction semantics; the aggregate is stored on dep.status:
-      missing_item / unlinked -> UNRESOLVED
-      satisfied / cancelled (all linked tasks done, one cancelled) -> SATISFIED
-      not_satisfied (any linked task incomplete) -> NOT_SATISFIED
-      unresolved (linked tasks all dangling) -> UNRESOLVED
-    """
-    from .pool_store import get_linked_tasks, load_item
-
-    if tasks_dir is None:
-        if repo_root is None:
-            repo_root = get_repo_root()
-        tasks_dir = get_tasks_dir(repo_root)
     if repo_root is None:
-        repo_root = tasks_dir.parent.parent
+        if tasks_dir is not None:
+            repo_root = tasks_dir.parent.parent
+        else:
+            repo_root = get_repo_root()
 
-    item = load_item(repo_root, ref[len(POOL_PREFIX) :].strip())
-    if item is None:
-        return ResolvedDep(ref=ref, kind=KIND_POOL, status="missing_item")
-    linked = get_linked_tasks(item)
-    if not linked:
-        return ResolvedDep(ref=ref, kind=KIND_POOL, status="unlinked")
-
-    leg_statuses: list[str] = []
-    any_cancelled = False
-    for task_ref in linked:
-        leg = resolve_dep_ref(task_ref, repo_root=repo_root, tasks_dir=tasks_dir)
-        leg_status, _ = satisfaction_status(leg)
-        leg_statuses.append(leg_status)
-        any_cancelled = any_cancelled or leg.is_cancelled
-
-    if any(status == NOT_SATISFIED for status in leg_statuses):
-        aggregate = "not_satisfied"
-    elif all(status == SATISFIED for status in leg_statuses):
-        aggregate = "cancelled" if any_cancelled else "satisfied"
-    else:
-        aggregate = "unresolved"
+    result = resolve_pool_ref(ref, repo_root=repo_root)
     return ResolvedDep(
         ref=ref,
         kind=KIND_POOL,
-        status=aggregate,
-        note=f"linked: {', '.join(linked)}",
+        status=result.code,
+        note=result.note,
     )
 
 

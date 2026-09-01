@@ -11,6 +11,7 @@
  *   patch | minor | major
  *   beta | rc                  -- prerelease bump using the given preid
  *   promote                    -- strip prerelease suffix (X.Y.Z-rc.N -> X.Y.Z)
+ *   x.y.z[-pre]                -- explicit target (e.g. 0.5.0-beta.0)
  *
  * Reads current version from packages/cli/package.json; refuses to run if
  * core and cli already disagree (call `release-preflight check-versions`
@@ -76,7 +77,16 @@ function bumpPrerelease(current, preid) {
   return `${parsed.major}.${parsed.minor}.${parsed.patch + 1}-${preid}.0`;
 }
 
+const EXPLICIT_VERSION = /^\d+\.\d+\.\d+(?:-[A-Za-z0-9.+-]+)?$/;
+
 export function computeNext(current, type) {
+  if (EXPLICIT_VERSION.test(type)) {
+    parseVersion(type);
+    if (type === current) {
+      fail(`already at ${current}`);
+    }
+    return type;
+  }
   const v = parseVersion(current);
   switch (type) {
     case "patch":
@@ -103,7 +113,11 @@ export function computeNext(current, type) {
 
 function main() {
   const [type] = process.argv.slice(2);
-  if (!type) fail(`usage: bump-versions.js <patch|minor|major|beta|rc|promote>`);
+  if (!type) {
+    fail(
+      `usage: bump-versions.js <patch|minor|major|beta|rc|promote|x.y.z[-pre]>`,
+    );
+  }
 
   const core = readJSON(CORE_PKG);
   const cli = readJSON(CLI_PKG);
@@ -127,6 +141,10 @@ function main() {
   process.stdout.write(next + "\n");
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+const invokedAs = process.argv[1];
+if (
+  invokedAs &&
+  import.meta.url === pathToFileURL(path.resolve(invokedAs)).href
+) {
   main();
 }

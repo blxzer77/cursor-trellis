@@ -1,23 +1,29 @@
 # Continue Selected Task
 
-Resume work only when this live session already has a `selected_task`. If no task is selected, show the Task Dashboard and ask for an explicit route.
+Resume work **only** when this live session already has a `selected_task`. If no task is selected, show the Task Dashboard and ask for an explicit route. Do not auto-resume a previous or unique task.
+
+This command is a Cursor `/` escape hatch. It does not implement the Session compiler and does not treat `workflow.md` or `get_context.py --mode phase` as runtime SSOT. Run CLI yourself; do not ask the user to type `python`. Do not open with a “loaded” probe. No selected task → answer directly.
 
 ---
 
-## Step 1: Load Framework Context
+## Step 1: Load Kernel / Dashboard
 
 ```bash
 {{PYTHON_CMD}} ./.cstl/scripts/get_context.py
 ```
 
-Confirms: selected task, Task Dashboard, git state, recent commits.
+Confirms: selected task, Kernel projection (Open / Define / Approve / Execute / Verify / Integrate? / Close), Task Dashboard, git state, recent commits.
 
-If the output says `Selected task: none`, do not auto-resume a previous or unique task. Show the dashboard and ask the user to choose one route:
+If a **compiled session pack** is already in context (SessionStart injected it), use that pack. If `./.cstl/scripts/compile_session_pack.py` exists, you MAY call it to refresh the pack. Do **not** implement or patch the compiler.
+
+Do **not** treat `{{PYTHON_CMD}} ./.cstl/scripts/get_context.py --mode phase` (Phase Index) as runtime SSOT. That extractor is a human overview of `workflow.md`, not Kernel truth.
+
+If the output says `Selected task: none`, stop. Show the dashboard and ask the user to choose one route:
 
 - select a task with `{{PYTHON_CMD}} ./.cstl/scripts/task.py select <task>`
-- create a task
+- create a task (Open Proposal first; no create without consent)
 - inspect details
-- continue without a task for No Task / Micro-Grill work
+- continue without a task for read-only Q&A (Ask if the user is already there; otherwise Agent read-only)
 
 ## Step 2: Search Session Memory
 
@@ -31,46 +37,26 @@ When a task is selected, search past session memory so resume work can reuse jou
 
 Use the selected task's title or topic as the query. From the JSON results, summarize **1–3** most relevant hits for the user (title, summary, and next steps when present). Carry that context into the rest of the continue flow.
 
-## Step 3: Load the Phase Index
+## Step 3: Route by Kernel phase
 
-```bash
-{{PYTHON_CMD}} ./.cstl/scripts/get_context.py --mode phase
-```
+When a task is selected, route by Kernel / Dashboard human phase and persisted `required_controls.rigor` / `topology.kind`. `status` is a projection, not the sole truth. This command does not itself approve Execute.
 
-Shows the Phase Index (Plan / Execute / Finish) with routing + skill mapping.
+- **Open** → Intake / Open Proposal only; no product code
+- **Define** → Full: `SwitchMode(plan)` immediately; if the switch fails, one sentence (what happened, where `prd.md` landed) and keep writing artifacts. Lite may stay in Agent. Full follows `required_controls`, not mere file presence. Unlanded Plan is not Execute.
+- **Approve** → run `task.py start-execution <task> --check`, report PASS, ask for explicit Execute approval, then `task.py start-execution <task> --approved`. `--check` is not approval
+- **Execute** → implement under the approved contract in Agent. No product-code edits until this gate. Isolatable units: ask the user to open Multitask and hand worker packs; if they do not, `Task()` plus one sentence — do not block
+- **Verify** → map every AC to evidence in `verify.md`; Debug when runtime-stuck
+- **Integrate?** (parent-child / already integrating) → Parent `integrate-child` path (`merge_limit: 1`), serial, not ordinary Child closeout. `parent_id` alone does **not** make a Child a Parent
+- **Close** → wrap-up via `{{CMD_REF:finish-work}}` when the user is ready; `UpdateGoal` complete or cancel (failure does not block)
 
-## Step 4: Decide Where You Are
+Return-to-Define when scope, AC, execution contract, verification strategy, or capability assumptions change.
 
-When a task is selected, `get_context.py` shows the selected task. Route by Kernel / persisted `required_controls.rigor` and `topology.kind`, not by whether `design.md` or `implement.md` exist. `status` is a projection, not the sole truth. This command replaces the user needing to remember the Trellis flow; it does not itself approve implementation.
+If this Cursor Task API has no `cstl-implement` / `cstl-check` enum, dispatch workers as `generalPurpose`. Never label that run `true-independent`.
 
-- `status=planning` + no `prd.md` → **1.1** (Read `.cstl/framework/prd-grill-frontier.md` for PRD Grill discipline)
-- `status=planning` + `prd.md` + rigor is lite (or missing contract = explicit Lite) → **1.4** review / execution gate
-- `status=planning` + rigor is full + required planning artifacts not complete → stay in planning (`design.md` / `implement.md` only when `required_controls` says so)
-- `status=planning` + required artifacts complete + required jsonl curated or inline mode → execution gate (run `task.py start-execution <task> --check`, report PASS, ask for explicit execution approval, then run `task.py start-execution <task> --approved`)
-- `status=in_progress` + implementation not started → **2.1**
-- `status=in_progress` + implementation done, not yet checked → **2.2**
-- `status=in_progress` + check passed → **3.1**
-- `status=completed` (rare; usually archived immediately) → archive flow
-- `topology.kind=parent-child` → Parent integration path, not ordinary Child closeout. `parent_id` alone does **not** make a Child a Parent.
-
-Phase rules (full detail in `.cstl/workflow.md`):
-
-1. Run steps **in order** within a phase — `[required]` steps must not be skipped
-2. `[once]` steps are already done if the required output exists. `prd.md` alone can be enough when rigor is Lite; Full follows `required_controls`, not file presence.
-3. You may go back to an earlier phase if discoveries require it
-
-## Step 5: Load the Specific Step
-
-Once you know which step to resume at:
-
-```bash
-{{PYTHON_CMD}} ./.cstl/scripts/get_context.py --mode phase --step <X.X> --platform {{CLI_FLAG}}
-```
-
-Follow the loaded instructions. After each `[required]` step completes, move to the next.
+Official `/goal` / CreateGoal is **not** a Trellis Task. Do not restore `cstl-goal`.
 
 ---
 
 ## Reference
 
-Full workflow and detailed phase steps live in `.cstl/workflow.md`. This command is only an entry point — the canonical guidance is there.
+Human overview: `.cstl/workflow.md` (not runtime SSOT). Native mode bindings: `.cstl/framework/cursor-native-modes-guide.md` (on-demand).

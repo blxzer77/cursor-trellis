@@ -40,6 +40,22 @@ describe("loadTaskRecord / writeTaskRecord", () => {
     expect(raw.endsWith("\n")).toBe(true);
   });
 
+  it("still reads legacy archive records with status=planning", () => {
+    const dir = path.join(tmp, "archive", "2026-08", "old-planning");
+    writeTaskRecord({
+      taskDir: dir,
+      record: emptyTaskRecord({
+        id: "old-planning",
+        name: "old-planning",
+        title: "Legacy planning archive",
+        status: "planning",
+      }),
+    });
+    const loaded = loadTaskRecord({ taskDir: dir });
+    expect(loaded.status).toBe("planning");
+    expect(TASK_RECORD_FIELD_ORDER).toContain("status");
+  });
+
   it("loadTaskRecord round-trips a written record", () => {
     const dir = path.join(tmp, "05-13-round-trip");
     const record = emptyTaskRecord({

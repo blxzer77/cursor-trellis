@@ -75,8 +75,11 @@ function pushTarget(_type) {
 
 function main() {
   const [type = "patch"] = process.argv.slice(2);
-  if (!RELEASE_TYPES.has(type)) {
-    fail(`usage: release.js <patch|minor|major|beta|rc|promote>`);
+  const explicitVersion = /^\d+\.\d+\.\d+(?:-[A-Za-z0-9.+-]+)?$/.test(type);
+  if (!RELEASE_TYPES.has(type) && !explicitVersion) {
+    fail(
+      `usage: release.js <patch|minor|major|beta|rc|promote|x.y.z[-pre]>`,
+    );
   }
 
   run("node scripts/check-manifest-continuity.js");
@@ -98,7 +101,11 @@ function main() {
   // release-preflight tagVersionFromEnv still extracts the version from the
   // prefixed tag (its regex is end-anchored, not start-anchored).
   run(`git tag "cstl-v${version}"`);
-  run(`git push private ${pushTarget(type)} --tags`);
+  // Push HEAD and only this release tag. `git push --tags` also tries to
+  // update every local tag and fails when historical tags already exist
+  // on the remote with different SHAs.
+  run(`git push private ${pushTarget(type)}`);
+  run(`git push private "cstl-v${version}"`);
 }
 
 main();

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from .active_task import resolve_selected_task
@@ -18,7 +19,46 @@ from .tasks import (
 )
 
 
-_STATUS_ORDER = ("planning", "in_progress", "review", "blocked")
+_KERNEL_PHASE_ORDER = (
+    "open",
+    "define",
+    "approve",
+    "execute",
+    "verify",
+    "integrate",
+    "close",
+)
+
+_KERNEL_PHASE_HUMAN = {
+    "open": "Open",
+    "define": "Define",
+    "approve": "Approve",
+    "execute": "Execute",
+    "verify": "Verify",
+    "integrate": "Integrate",
+    "close": "Close",
+}
+
+_STATUS_TO_KERNEL_PHASE = {
+    "planning": "define",
+    "in_progress": "execute",
+    "review": "verify",
+    "completed": "close",
+    "done": "close",
+}
+
+_PHASE_DEFAULT_CONDITION = {
+    "open": "ready",
+    "define": "ready",
+    "approve": "waiting",
+    "execute": "active",
+    "verify": "waiting",
+    "integrate": "waiting",
+    "close": "ready",
+}
+
+_VALID_CONDITIONS = frozenset({"ready", "active", "waiting", "blocked"})
+_VALID_OUTCOMES = frozenset({"completed", "cancelled", "failed"})
 
 
 def _task_path(dir_name: str) -> str:
@@ -36,6 +76,69 @@ def format_verify_summary(task_dir: Path, task_data: dict) -> str:
     if any(status.values()):
         return "[verify: partial]"
     return "[verify: missing]"
+
+
+def project_kernel_surface(task_dir: Path, task_data: dict | None = None) -> dict:
+    """Read-only Kernel projection: phase, condition, outcome, human title.
+
+    Prefers `kernel.json` when present. Does not mutate `task.json.status`.
+    Integrate is a visible slot only when topology is parent-child or the
+    task is already in that phase.
+    """
+    data = task_data if isinstance(task_data, dict) else {}
+    kernel = _load_kernel_json(task_dir)
+    phase: str | None = None
+    condition: str | None = None
+    outcome = None
+    if isinstance(kernel, dict):
+        raw_phase = kernel.get("phase")
+        if raw_phase in _KERNEL_PHASE_HUMAN:
+            phase = raw_phase
+            condition = kernel.get("condition")
+            outcome = kernel.get("outcome")
+    status = data.get("status") if isinstance(data.get("status"), str) else ""
+    if phase is None:
+        phase = _STATUS_TO_KERNEL_PHASE.get(status, "open")
+        condition = _PHASE_DEFAULT_CONDITION.get(phase, "ready")
+        outcome = "completed" if phase == "close" else None
+    if condition not in _VALID_CONDITIONS:
+        condition = _PHASE_DEFAULT_CONDITION.get(phase, "ready")
+    if outcome not in _VALID_OUTCOMES and outcome is not None:
+        outcome = None
+    topology_kind = _topology_kind(data, kernel)
+    return {
+        "phase": phase,
+        "condition": condition,
+        "outcome": outcome,
+        "status": status,
+        "humanPhase": _KERNEL_PHASE_HUMAN[phase],
+        "showIntegrate": phase == "integrate" or topology_kind == "parent-child",
+    }
+
+
+def _load_kernel_json(task_dir: Path) -> dict | None:
+    path = task_dir / "kernel.json"
+    if not path.is_file():
+        return None
+    try:
+        parsed = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    return parsed if isinstance(parsed, dict) else None
+
+
+def _topology_kind(task_data: dict, kernel: dict | None) -> str | None:
+    topo = task_data.get("topology")
+    if isinstance(topo, dict) and isinstance(topo.get("kind"), str):
+        return topo["kind"]
+    if not isinstance(kernel, dict):
+        return None
+    projection = kernel.get("projection")
+    extras = projection.get("extras") if isinstance(projection, dict) else None
+    extra_topo = extras.get("topology") if isinstance(extras, dict) else None
+    if isinstance(extra_topo, dict) and isinstance(extra_topo.get("kind"), str):
+        return extra_topo["kind"]
+    return None
 
 
 def _selected_line(
@@ -66,6 +169,11 @@ def render_task_dashboard(
     developer = get_developer(repo_root)
     all_tasks = {task.dir_name: task for task in iter_active_tasks(tasks_dir)}
     all_statuses = {name: task.status for name, task in all_tasks.items()}
+    surfaces = {
+        name: project_kernel_surface(task.directory, task.raw or {})
+        for name, task in all_tasks.items()
+    }
+    selected = resolve_selected_task(repo_root, platform_input, platform)
 
     lines: list[str] = [
         "Task Dashboard",
@@ -78,18 +186,25 @@ def render_task_dashboard(
         lines.append("Tasks: none")
     else:
         printed: set[str] = set()
-        for status in _STATUS_ORDER:
+        show_integrate = any(item["showIntegrate"] for item in surfaces.values())
+        phase_order = (
+            _KERNEL_PHASE_ORDER
+            if show_integrate
+            else tuple(phase for phase in _KERNEL_PHASE_ORDER if phase != "integrate")
+        )
+        for phase in phase_order:
             names = [
                 name
                 for name, task in sorted(all_tasks.items())
-                if task.status == status and not task.parent
+                if surfaces[name]["phase"] == phase and not task.parent
             ]
             if not names:
                 continue
-            title = status.replace("_", " ").title()
-            lines.append(f"{title}:")
+            lines.append(f"{_KERNEL_PHASE_HUMAN[phase]}:")
             for name in names:
-                _append_task(lines, name, all_tasks, all_statuses, printed)
+                _append_task(
+                    lines, name, all_tasks, all_statuses, printed, surfaces
+                )
             lines.append("")
 
         other_names = [
@@ -100,14 +215,19 @@ def render_task_dashboard(
         if other_names:
             lines.append("Other:")
             for name in other_names:
-                _append_task(lines, name, all_tasks, all_statuses, printed)
+                _append_task(
+                    lines, name, all_tasks, all_statuses, printed, surfaces
+                )
             lines.append("")
 
     lines.append("Suggested actions:")
     lines.append("  - Select a task: python ./.cstl/scripts/task.py select <task>")
     lines.append("  - Create a task: python ./.cstl/scripts/task.py create \"<title>\" --slug <slug>")
     lines.append("  - Inspect raw list: python ./.cstl/scripts/task.py list")
-    lines.append("  - Continue without a task only for No Task or Micro-Grill work")
+    if not selected.task_path:
+        lines.append(
+            "  - No selected task: Intake — direct answer, clarify, pool intent, or Open Proposal"
+        )
     if developer:
         lines.append(f"Developer: {developer}")
 
@@ -120,6 +240,7 @@ def _append_task(
     all_tasks: dict,
     all_statuses: dict[str, str],
     printed: set[str],
+    surfaces: dict[str, dict],
     indent: int = 0,
     parent_dir: Path | None = None,
 ) -> None:
@@ -136,7 +257,8 @@ def _append_task(
     integration_state = None
     if parent_dir is not None:
         integration_state = get_child_state(parent_dir, name)
-    status_display = format_child_task_display(task.status, integration_state)
+    human_phase = surfaces.get(name, {}).get("humanPhase") or "Open"
+    status_display = format_child_task_display(human_phase, integration_state)
     assignee = task.assignee or "-"
     verify_summary = format_verify_summary(task.directory, task.raw or {})
     prefix = "  " * indent + "  - "
@@ -158,6 +280,7 @@ def _append_task(
                 all_tasks,
                 all_statuses,
                 printed,
+                surfaces,
                 indent + 1,
                 parent_dir=task.directory,
             )

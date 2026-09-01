@@ -38,6 +38,7 @@ import {
   gitignoreTemplate,
   getAllScripts,
   getAllTaskTemplates,
+  MAINTAINER_ONLY_SCRIPT_PATHS,
 } from "../../src/templates/trellis/index.js";
 
 // =============================================================================
@@ -281,6 +282,72 @@ describe("trellis template constants", () => {
   });
 });
 
+function importNames(raw: string): string[] {
+  return raw
+    .replace(/[()]/g, " ")
+    .split(",")
+    .map((part) => part.trim().split(/\s+as\s+/)[0]?.trim())
+    .filter((name): name is string => Boolean(name) && name !== "*");
+}
+
+/** Resolve in-package imports to getAllScripts keys (posix .py paths). */
+function localPythonImportTargets(scriptKey: string, source: string): string[] {
+  const stripped = source
+    .replace(/'''[\s\S]*?'''/g, "\n")
+    .replace(/"""[\s\S]*?"""/g, "\n")
+    .replace(/#.*$/gm, "");
+  const packageDir = path.posix.dirname(scriptKey);
+  const targets: string[] = [];
+
+  const joinModule = (baseDir: string, dotted: string): string => {
+    const rel = dotted.replaceAll(".", "/");
+    if (!baseDir || baseDir === ".") {
+      return `${rel}.py`;
+    }
+    return `${baseDir}/${rel}.py`;
+  };
+
+  for (const line of stripped.split("\n")) {
+    // Top-level only: nested retrieval/session-memory imports stay maintainer-only.
+    if (line.startsWith(" ") || line.startsWith("\t")) continue;
+    const trimmed = line.trim();
+    const relative = trimmed.match(/^from\s+(\.+)([\w.]*)\s+import\s+(.+)$/);
+    if (relative) {
+      let base = packageDir === "." ? "" : packageDir;
+      for (let i = 1; i < relative[1].length; i += 1) {
+        base = path.posix.dirname(base);
+        if (base === ".") base = "";
+      }
+      if (relative[2]) {
+        targets.push(joinModule(base, relative[2]));
+      } else {
+        for (const name of importNames(relative[3])) {
+          targets.push(joinModule(base, name));
+        }
+      }
+      continue;
+    }
+    const fromCommon = trimmed.match(
+      /^from\s+(common(?:\.[\w]+)*)\s+import\s+(.+)$/,
+    );
+    if (fromCommon) {
+      if (fromCommon[1] === "common") {
+        for (const name of importNames(fromCommon[2])) {
+          targets.push(`common/${name}.py`);
+        }
+      } else {
+        targets.push(`${fromCommon[1].replaceAll(".", "/")}.py`);
+      }
+      continue;
+    }
+    const importCommon = trimmed.match(/^import\s+(common(?:\.[\w]+)+)/);
+    if (importCommon) {
+      targets.push(`${importCommon[1].replaceAll(".", "/")}.py`);
+    }
+  }
+  return [...new Set(targets)];
+}
+
 // =============================================================================
 // getAllScripts — pure function assembling pre-loaded strings
 // =============================================================================
@@ -298,16 +365,29 @@ describe("getAllScripts", () => {
     expect(scripts.has("common/paths.py")).toBe(true);
     expect(scripts.has("common/active_task.py")).toBe(true);
     expect(scripts.has("common/kernel_command.py")).toBe(true);
+    expect(scripts.has("common/pool_store.py")).toBe(true);
+    expect(scripts.has("common/pool_refs.py")).toBe(true);
     expect(scripts.has("task.py")).toBe(true);
     expect(scripts.has("get_developer.py")).toBe(true);
     expect(scripts.has("common/lite_context.py")).toBe(true);
+    expect(scripts.has("common/session_pack.py")).toBe(true);
+    expect(scripts.has("compile_session_pack.py")).toBe(true);
     expect(scripts.has("common/full_quality.py")).toBe(true);
     expect(scripts.has("common/ondemand_topology.py")).toBe(true);
+    expect(scripts.has("common/parallel_declaration.py")).toBe(true);
+    expect(scripts.has("common/pool_slice.py")).toBe(true);
     expect(scripts.has("common/adapter_middleware.py")).toBe(true);
-    expect(scripts.has("common/artifact_search.py")).toBe(false);
+    expect(scripts.has("common/artifact_search.py")).toBe(true);
+    expect(scripts.has("common/injection_budget.py")).toBe(true);
     expect(scripts.has("search_artifacts.py")).toBe(false);
     expect(scripts.has("run_smart_search.py")).toBe(false);
     expect(scripts.has("build_retrieval_pack.py")).toBe(false);
+    expect(MAINTAINER_ONLY_SCRIPT_PATHS.has("common/artifact_search.py")).toBe(
+      false,
+    );
+    expect(MAINTAINER_ONLY_SCRIPT_PATHS.has("common/injection_budget.py")).toBe(
+      false,
+    );
   });
 
   it("has at least one entry", () => {
@@ -342,6 +422,20 @@ describe("getAllScripts", () => {
     expect(scripts.has("common/test_retrieval_arbitration.py")).toBe(false);
     expect(scripts.has("aggregate_retrieval_telemetry.py")).toBe(false);
     expect(scripts.has("batch_plan_envelope.py")).toBe(false);
+  });
+
+  it("shipped Python files form a closed import graph", () => {
+    const scripts = getAllScripts();
+    const missing: string[] = [];
+    for (const [key, source] of scripts) {
+      if (!key.endsWith(".py")) continue;
+      for (const target of localPythonImportTargets(key, source)) {
+        if (!scripts.has(target)) {
+          missing.push(`${key} -> ${target}`);
+        }
+      }
+    }
+    expect(missing, missing.join("\n")).toEqual([]);
   });
 });
 

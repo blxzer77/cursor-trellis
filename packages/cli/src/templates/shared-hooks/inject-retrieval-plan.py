@@ -1,19 +1,26 @@
 #!/usr/bin/env python3
-"""Cursor beforeSubmitPrompt: telemetry-only for retrieval plan routing.
+"""Cursor beforeSubmitPrompt: quality-layer telemetry-only retrieval routing.
 
-DEGRADED MODE (2026-06-24): beforeSubmitPrompt hook's additional_context does
+Three-layer retrieval ABI (frozen; do not merge back into workflow.md):
+
+| Layer    | Owner                 | This hook                                      |
+| -------- | --------------------- | ---------------------------------------------- |
+| Intent   | context-progressive   | logs intent ids; does not own the four intents |
+| Provider | Middleware            | does not take smart-search as Kernel         |
+| Quality  | retrieval-extended    | subscriber: local telemetry only               |
+
+DEGRADED MODE (2026-06-24): beforeSubmitPrompt ``additional_context`` does
 not reach the model in current Cursor versions (L1: event often not fired;
-L2: additional_context not delivered). This hook now runs in telemetry-only
-mode: logs routing decisions to .cstl/.runtime/retrieval-plan-events.log
-for post-session analysis but does NOT inject plan blocks.
-
-See .cstl/tasks/06-24-handle-beforesubmitprompt-unreliability/prd.md for
-probe results and mitigation strategy.
+L2: additional_context not delivered). This hook is telemetry-only: it logs
+routing decisions to ``.cstl/.runtime/retrieval-plan-events.log`` and MUST
+NOT inject plan blocks, MUST NOT print ``additional_context`` to stdout, and
+MUST NOT claim the plan was delivered into the Prompt.
 
 Silent exit 0 (no stdout) when:
   - TRELLIS_HOOKS=0 / not a Trellis repo
   - prompt is meta-only (continue, slash commands, etc.)
   - gate says retrieval plan is not needed
+  - quality layer has nothing to score (still must not fail)
 """
 from __future__ import annotations
 
@@ -49,9 +56,15 @@ if sys.platform.startswith("win"):
                 pass
 
 DIR_WORKFLOW = ".cstl"
+# Markers of the plan block this hook deliberately does NOT emit.
 PLAN_MARKER_ZH = "## 代码库检索计划"
 PLAN_MARKER_EN = "## Codebase retrieval plan"
 TELEMETRY_LOG = ".runtime/retrieval-plan-events.log"
+
+ABI_INTENT_OWNER = "context-progressive"
+ABI_PROVIDER_OWNER = "middleware"
+ABI_QUALITY_OWNER = "retrieval-extended"
+ABI_LAYER = "quality"
 
 
 def _find_trellis_root(start: Path) -> Path | None:
@@ -87,16 +100,42 @@ def _load_capabilities(root: Path) -> dict[str, object] | None:
         return None
 
 
+def _retrieval_extended_active(root: Path, input_data: dict[str, Any]) -> bool:
+    """Unactivated retrieval-extended → no telemetry and no plan injection."""
+    scripts_dir = root / DIR_WORKFLOW / "scripts"
+    if str(scripts_dir) not in sys.path:
+        sys.path.insert(0, str(scripts_dir))
+    try:
+        from common.active_task import resolve_selected_task  # type: ignore[import-not-found]
+        from common.ondemand_topology import is_ondemand_module_active  # type: ignore[import-not-found]
+    except Exception:
+        return False
+    try:
+        selected = resolve_selected_task(
+            root,
+            input_data,
+            platform=_detect_platform(input_data),
+        )
+        task_path = selected.task_path if selected else None
+    except Exception:
+        task_path = None
+    if not task_path:
+        return False
+    candidate = Path(task_path)
+    task_dir = candidate if candidate.is_absolute() else root / task_path
+    return bool(is_ondemand_module_active(task_dir, "retrieval-extended"))
+
+
 def _write_telemetry_log(
     root: Path,
     query_preview: str,
     cursor_env: str,
     intents: list[str],
 ) -> None:
-    """Write telemetry event to side-channel log (no injection to model)."""
+    """Write local telemetry / assurance. Never claims model delivery."""
     log_path = root / DIR_WORKFLOW / TELEMETRY_LOG
     log_path.parent.mkdir(parents=True, exist_ok=True)
-    
+
     event = {
         "ts": datetime.now(timezone.utc).isoformat(),
         "event": "beforeSubmitPrompt",
@@ -104,9 +143,19 @@ def _write_telemetry_log(
         "cursorEnv": cursor_env,
         "intents": intents,
         "action": "telemetry-only",
-        "note": "additional_context channel unreliable, no injection",
+        "assurance": "local-telemetry-only",
+        "promptInjected": False,
+        "additionalContextDelivered": False,
+        "abiLayer": ABI_LAYER,
+        "abiOwner": ABI_QUALITY_OWNER,
+        "abiIntentOwner": ABI_INTENT_OWNER,
+        "abiProviderOwner": ABI_PROVIDER_OWNER,
+        "note": (
+            "additional_context channel unreliable; promptInjected=false; "
+            "do not treat local telemetry as model delivery"
+        ),
     }
-    
+
     try:
         with log_path.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(event, ensure_ascii=False) + "\n")
@@ -136,6 +185,12 @@ def main() -> int:
     scripts_dir = root / DIR_WORKFLOW / "scripts"
     if str(scripts_dir) not in sys.path:
         sys.path.insert(0, str(scripts_dir))
+
+    try:
+        if not _retrieval_extended_active(root, data):
+            return 0
+    except Exception:
+        return 0
 
     try:
         from common.codebase_retrieval_router import (  # type: ignore[import-not-found]
@@ -168,13 +223,14 @@ def main() -> int:
         codebase_retrieval_selected=selected,
         project_file_count=project_file_count,
     )
-    
-    # TELEMETRY-ONLY: log routing decision but do not inject
+
     cursor_env = plan.get("cursorEnv", "unknown")
     intent_ids = [i.get("id", "unknown") for i in plan.get("intents", [])]
     _write_telemetry_log(root, query, cursor_env, intent_ids)
-    
-    # Exit 0 with no stdout (no injection to model context)
+
+    # Channel unavailable: local telemetry only. No stdout. Never claim
+    # additional_context reached the model. Do not emit PLAN_MARKER_*.
+    _ = _detect_platform(data)
     return 0
 
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Review-pool CLI: validate / plan-check / link / unlink / show.
+Review-pool CLI: validate / plan-check / link / unlink / show / status.
 
 Usage:
     python pool.py validate [--root <repo>]
@@ -9,6 +9,7 @@ Usage:
     python pool.py link <item-id> <task-ref> [--root <repo>]
     python pool.py unlink <item-id> <task-ref> [--root <repo>]
     python pool.py show <item-id> [--root <repo>]
+    python pool.py status [--root <repo>]
 
 Exit codes: any error-level finding (or a failed link/unlink/show) -> 1;
 warnings only -> 0.
@@ -101,6 +102,11 @@ def cmd_show(args: argparse.Namespace) -> int:
     print(f"title: {item.title or '<missing>'}")
     print(f"status: {item.status or '<missing>'}")
     print(f"type: {item.type or '<missing>'}")
+    delivery = item.frontmatter.get("delivery")
+    if isinstance(delivery, str) and delivery.strip():
+        print(f"delivery: {delivery.strip()}")
+    else:
+        print("delivery: <unset>")
     priority = item.frontmatter.get("priority")
     if isinstance(priority, str) and priority.strip():
         print(f"priority: {priority.strip()}")
@@ -122,10 +128,38 @@ def cmd_show(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_status(args: argparse.Namespace) -> int:
+    groups = pool_store.delivery_groups(args.root)
+    inbox = [
+        item
+        for item in pool_store.list_items(args.root)
+        if item.status == "inbox"
+    ]
+    print("queue (open / in-slice) — attention board")
+    for key in ("open", "in-slice"):
+        items = groups.get(key) or []
+        print(f"  {key}: {', '.join(item.id for item in items) or '(empty)'}")
+    print("standing — live rules, not a queue")
+    standing = groups.get("standing") or []
+    print(f"  {', '.join(item.id for item in standing) or '(empty)'}")
+    print("closed")
+    for key in ("landed", "deferred"):
+        items = groups.get(key) or []
+        print(f"  {key}: {', '.join(item.id for item in items) or '(empty)'}")
+    unset = groups.get("unset") or []
+    if unset:
+        print("accepted missing delivery")
+        print(f"  {', '.join(item.id for item in unset)}")
+    if inbox:
+        print("inbox hold")
+        print(f"  {', '.join(item.id for item in inbox)}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="pool.py",
-        description="Review-pool maintenance CLI: validate, plan-check, link, unlink, show.",
+        description="Review-pool maintenance CLI: validate, plan-check, link, unlink, show, status.",
     )
     parser.add_argument(
         "--root",
@@ -175,6 +209,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     add_root(show_parser)
     show_parser.add_argument("item_id", help="Pool item id, e.g. P01")
+    status_parser = subparsers.add_parser(
+        "status",
+        help="Print delivery groups: queue / standing / closed.",
+    )
+    add_root(status_parser)
     return parser
 
 
@@ -189,6 +228,7 @@ def main(argv: list[str] | None = None) -> int:
         "link": cmd_link,
         "unlink": cmd_unlink,
         "show": cmd_show,
+        "status": cmd_status,
     }
     return handlers[args.command](args)
 

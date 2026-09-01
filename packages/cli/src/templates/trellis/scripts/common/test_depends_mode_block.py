@@ -25,8 +25,7 @@ from common.task_dependencies import (
     read_depends_mode,
 )
 from common.task_gates import validate_start_execution, validate_start_execution_check
-from common import kernel_command as kernel_command_mod
-from common.test_kernel_command import FAKE_KERNEL
+from common.kernel_command import to_kernel_record
 
 
 # =============================================================================
@@ -37,13 +36,16 @@ def _write_task(tasks_dir: Path, dir_name: str, status: str, depends_on=None,
                 meta=None, **extra) -> Path:
     task_dir = tasks_dir / dir_name
     task_dir.mkdir(parents=True, exist_ok=True)
-    data = {
-        "id": dir_name,
-        "name": dir_name,
-        "title": dir_name,
-        "status": status,
-        **extra,
-    }
+    data = to_kernel_record(
+        {
+            "id": dir_name,
+            "name": dir_name,
+            "title": dir_name,
+            "description": "",
+            "status": status,
+            **extra,
+        }
+    )
     if depends_on is not None:
         data["depends_on"] = depends_on
     if meta is not None:
@@ -71,13 +73,6 @@ def sandbox(tmp_path, monkeypatch):
     tasks_dir.mkdir(parents=True)
     monkeypatch.setattr("common.task_dependencies.get_repo_root", lambda: repo)
     monkeypatch.setattr("common.task_store.get_repo_root", lambda: repo)
-    script = tmp_path / "fake_kernel.py"
-    script.write_text(FAKE_KERNEL, encoding="utf-8")
-    monkeypatch.setattr(
-        kernel_command_mod,
-        "kernel_cli_argv",
-        lambda: [sys.executable, str(script)],
-    )
     return repo, tasks_dir
 
 
@@ -116,7 +111,7 @@ def test_blocking_errors_for_statuses(sandbox) -> None:
         tasks_dir,
         "task-x",
         "planning",
-        ["dep-wait", "dep-done", "dep-gone", "ghost-task", "pool:P09"],
+        ["dep-wait", "dep-done", "dep-gone", "ghost-task"],
     )
     report = describe_dependencies(task_dir, _read_json(task_dir / "task.json"))
     errors = report.blocking_errors()
@@ -124,7 +119,7 @@ def test_blocking_errors_for_statuses(sandbox) -> None:
     assert not any("dep-done" in e for e in errors)
     assert not any("dep-gone" in e for e in errors)
     assert any("dangling dependency: ghost-task" in e for e in errors)
-    assert any("unresolved: pool:P09" in e for e in errors)
+    assert not any("pool:P09" in e for e in errors)
 
 
 def test_blocking_errors_cycle(sandbox) -> None:
@@ -153,7 +148,7 @@ def test_blocking_errors_subset_of_warnings(sandbox) -> None:
         tasks_dir,
         "task-x",
         "planning",
-        ["dep-wait", "dep-gone", "ghost-task", "pool:P09"],
+        ["dep-wait", "dep-gone", "ghost-task"],
     )
     report = describe_dependencies(task_dir, _read_json(task_dir / "task.json"))
     warning_set = set(report.warnings())
@@ -283,14 +278,30 @@ def test_t8_block_dangling_fails(sandbox) -> None:
     assert any("dangling dependency: ghost-task" in e for e in guard.errors)
 
 
-def test_t9_block_pool_unresolved_fails(sandbox) -> None:
+def test_t9_block_pool_open_fails(sandbox) -> None:
     repo, tasks_dir = sandbox
+    items = repo / ".cstl" / "pool" / "items"
+    items.mkdir(parents=True)
+    (items / "P09.md").write_text(
+        "---\nid: P09\nstatus: accepted\ntype: mechanism\n"
+        "delivery: open\n---\n\n## 意图\nx\n",
+        encoding="utf-8",
+    )
     task_dir = _ready_task(tasks_dir, "task-x", ["pool:P09"], mode="block")
 
     guard = validate_start_execution(task_dir, _read_json(task_dir / "task.json"),
                                      approved=True, enforce_deps_block=True)
     assert not guard.ok
-    assert any("dependency unresolved: pool:P09" in e for e in guard.errors)
+    assert any("not satisfied: pool:P09" in e for e in guard.errors)
+
+
+def test_t9b_block_pool_missing_module_does_not_fail(sandbox) -> None:
+    repo, tasks_dir = sandbox
+    task_dir = _ready_task(tasks_dir, "task-x", ["pool:P09"], mode="block")
+
+    guard = validate_start_execution(task_dir, _read_json(task_dir / "task.json"),
+                                     approved=True, enforce_deps_block=True)
+    assert not any("pool:P09" in e for e in guard.errors)
 
 
 def test_t13_block_cancelled_dependency_not_blocked(sandbox) -> None:

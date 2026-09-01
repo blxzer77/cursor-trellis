@@ -16,9 +16,15 @@ import {
 import {
   EXTERNAL_KNOWLEDGE_CAPABILITY,
   RETRIEVAL_INTENTS,
+  SHIPPED_MIDDLEWARE_PROVIDERS,
+  SHIPPED_PROVIDER_CAPABILITY,
+  SHIPPED_PROVIDER_PROBE,
   SMART_SEARCH_PROVIDER,
   recordHookEvent,
+  selectRegisteredMcpServers,
+  mcpServerIdsFromConfig,
   subscribeEvent,
+  normalizeStage6InExtras,
 } from "../../src/task/adapter-middleware.js";
 import { resolveRequiredControls } from "../../src/task/full-quality.js";
 
@@ -331,5 +337,109 @@ describe("Stage 6 Adapter and Middleware", () => {
     expect(workflow).not.toMatch(/compatible v0\.0\.11\+/);
     expect(workflow).not.toMatch(/\.cstl\/local\/cursor2plus\//);
     expect(workflow).toContain("Adapter and Middleware");
+  });
+
+  it("registers seven shipped providers and keeps only smart-search required", () => {
+    const extras: Record<string, unknown> = {};
+    normalizeStage6InExtras(extras);
+    const providers = extras.middleware_providers as {
+      registered: string[];
+      required: string[];
+      readiness: Record<string, { capability: string; status: string }>;
+    };
+    expect(providers.registered).toEqual([...SHIPPED_MIDDLEWARE_PROVIDERS]);
+    expect(providers.required).toEqual(["smart-search"]);
+    expect(providers.registered).toHaveLength(7);
+    for (const id of SHIPPED_MIDDLEWARE_PROVIDERS) {
+      expect(SHIPPED_PROVIDER_PROBE[id]).toMatch(/^(cli|mcp|host)$/);
+      expect(providers.readiness[id]?.capability).toBe(
+        SHIPPED_PROVIDER_CAPABILITY[id],
+      );
+    }
+    expect(SHIPPED_PROVIDER_PROBE["smart-search"]).toBe("cli");
+    expect(SHIPPED_PROVIDER_PROBE["chrome-cdp"]).toBe("cli");
+    expect(SHIPPED_PROVIDER_PROBE["cursor-ide-browser"]).toBe("host");
+    expect(SHIPPED_PROVIDER_PROBE.codegraph).toBe("mcp");
+  });
+
+  it("lets Lite close when optional MCP is missing and does not ingest Extra MCP", () => {
+    expect(fs.existsSync(path.join(tmp, ".git"))).toBe(false);
+    const created = applyKernelCreate({
+      taskDir,
+      actor: "task.py create",
+      idempotencyKey: "create:stage6-optional-mcp",
+      record: stage6Record({
+        id: "stage6-optional",
+        name: "stage6-optional",
+      }),
+      extras: {
+        required_controls: resolveRequiredControls({ rigor: "lite" }),
+        smart_search_probe: { available: true },
+        middleware_probes: {
+          codegraph: { present: false },
+          playwright: { present: true, reachable: false },
+          "cursor-ide-browser": { present: false },
+          "random-extra-mcp": { present: true },
+        },
+      },
+    });
+    const extras = created.kernel.projection?.extras ?? {};
+    expect(extras.profile_health).not.toBe("degraded");
+    expect(extras.middleware_providers).toMatchObject({
+      required: ["smart-search"],
+      degraded: [],
+      readiness: {
+        codegraph: { status: "missing", capability: "structural" },
+        playwright: { status: "failed", capability: "browser-automation" },
+        "cursor-ide-browser": { status: "missing", capability: "ide-browser" },
+        "smart-search": { status: "ready" },
+      },
+    });
+    const providers = extras.middleware_providers as {
+      registered: string[];
+      readiness: Record<string, unknown>;
+    };
+    expect(providers.registered).not.toContain("random-extra-mcp");
+    expect(providers.readiness["random-extra-mcp"]).toBeUndefined();
+    expect(
+      selectRegisteredMcpServers(
+        mcpServerIdsFromConfig({
+          mcpServers: {
+            codegraph: {},
+            "random-extra-mcp": {},
+            playwright: {},
+          },
+        }),
+      ),
+    ).toEqual(["codegraph", "playwright"]);
+    writeSurfaces(taskDir);
+    const started = applyKernelStart({
+      taskDir,
+      expectedRevision: created.kernel.revision,
+      actor: "task.py start-execution --approved",
+      idempotencyKey: "start:stage6-optional",
+      record: {
+        ...stage6Record({ id: "stage6-optional", name: "stage6-optional" }),
+        status: "in_progress",
+      },
+      extras: { execution_approval: { approved_by: "user" } },
+      evidence: "task.py start-execution --approved",
+    });
+    expect(started.legacy.status).toBe("in_progress");
+    const archived = applyKernelArchive({
+      taskDir,
+      expectedRevision: started.kernel.revision,
+      actor: "task.py archive",
+      idempotencyKey: "archive:stage6-optional",
+      record: {
+        ...stage6Record({ id: "stage6-optional", name: "stage6-optional" }),
+        status: "completed",
+        completedAt: "2026-08-29",
+      },
+      extras: { close_outcome: "completed" },
+      evidence: "verify.md",
+    });
+    expect(archived.kernel.phase).toBe("close");
+    expect(archived.legacy.status).toBe("completed");
   });
 });

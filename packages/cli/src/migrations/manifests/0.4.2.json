@@ -1,0 +1,9 @@
+{
+  "version": "0.4.2",
+  "description": "Cursor reachability index + framework-owned .cstl/framework/ docs relocation",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**@blxzer/cursor-trellis 0.4.2**\n\n- feat(framework): `.cstl/framework/` update-managed docs\n- feat(guides): PRD grill frontier, internal-skills reachability, dogfood-only surfaces\n- chore: empty migrations list (template sync via `cstl update`)",
+  "migrations": [],
+  "notes": "Backfilled so npm 0.4.2 has a local manifest. Run `cstl update`. No `--migrate` required."
+}

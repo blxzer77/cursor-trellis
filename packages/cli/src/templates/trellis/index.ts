@@ -59,6 +59,7 @@ export const commonTaskDependencies = readTemplate(
   "scripts/common/task_dependencies.py",
 );
 export const commonPoolStore = readTemplate("scripts/common/pool_store.py");
+export const commonPoolRefs = readTemplate("scripts/common/pool_refs.py");
 export const commonExecutionStrategy = readTemplate(
   "scripts/common/execution_strategy.py",
 );
@@ -79,10 +80,15 @@ export const commonKernelCommand = readTemplate(
   "scripts/common/kernel_command.py",
 );
 export const commonLiteContext = readTemplate("scripts/common/lite_context.py");
+export const commonSessionPack = readTemplate("scripts/common/session_pack.py");
 export const commonFullQuality = readTemplate("scripts/common/full_quality.py");
 export const commonOndemandTopology = readTemplate(
   "scripts/common/ondemand_topology.py",
 );
+export const commonParallelDeclaration = readTemplate(
+  "scripts/common/parallel_declaration.py",
+);
+export const commonPoolSlice = readTemplate("scripts/common/pool_slice.py");
 export const commonAdapterMiddleware = readTemplate(
   "scripts/common/adapter_middleware.py",
 );
@@ -169,6 +175,9 @@ export const verifyEvidenceProbeScript = readTemplate(
   "scripts/verify_evidence_probe.py",
 );
 export const getContextScript = readTemplate("scripts/get_context.py");
+export const compileSessionPackScript = readTemplate(
+  "scripts/compile_session_pack.py",
+);
 export const addSessionScript = readTemplate("scripts/add_session.py");
 export const searchArtifactsScript = readTemplate("scripts/search_artifacts.py");
 export const searchMemoryScript = readTemplate("scripts/search_memory.py");
@@ -257,9 +266,11 @@ export const MAINTAINER_ONLY_SCRIPT_PATHS = new Set([
   "common/test_lite_path.py",
   "common/test_full_quality.py",
   "common/test_ondemand_topology.py",
+  "common/test_parallel_declaration.py",
+  "common/test_pool_slice.py",
   "common/test_adapter_middleware.py",
+  "common/test_task_dashboard.py",
   "hooks/linear_sync.py",
-  "common/artifact_search.py",
   "common/session_memory.py",
   "common/smart_search_evidence.py",
   "common/smart_search_resolve.py",
@@ -276,7 +287,6 @@ export const MAINTAINER_ONLY_SCRIPT_PATHS = new Set([
   "common/context_pack.py",
   "common/retrieval_pack.py",
   "common/retrieval_pack_context.py",
-  "common/injection_budget.py",
   "search_artifacts.py",
   "search_memory.py",
   "run_smart_search.py",
@@ -324,15 +334,21 @@ export function getAllScripts(): Map<string, string> {
   scripts.set("common/task_gates.py", commonTaskGates);
   scripts.set("common/task_dependencies.py", commonTaskDependencies);
   scripts.set("common/pool_store.py", commonPoolStore);
+  scripts.set("common/pool_refs.py", commonPoolRefs);
   scripts.set("common/execution_strategy.py", commonExecutionStrategy);
   scripts.set("common/task_map.py", commonTaskMap);
   scripts.set("common/parent_orchestration.py", commonParentOrchestration);
   scripts.set("common/subagent_dispatch.py", commonSubagentDispatch);
   scripts.set("common/kernel_command.py", commonKernelCommand);
   scripts.set("common/lite_context.py", commonLiteContext);
+  scripts.set("common/session_pack.py", commonSessionPack);
   scripts.set("common/full_quality.py", commonFullQuality);
   scripts.set("common/ondemand_topology.py", commonOndemandTopology);
+  scripts.set("common/parallel_declaration.py", commonParallelDeclaration);
+  scripts.set("common/pool_slice.py", commonPoolSlice);
   scripts.set("common/adapter_middleware.py", commonAdapterMiddleware);
+  scripts.set("common/artifact_search.py", commonArtifactSearch);
+  scripts.set("common/injection_budget.py", commonInjectionBudget);
   scripts.set("common/session_context.py", commonSessionContext);
   scripts.set("common/packages_context.py", commonPackagesContext);
   scripts.set("common/workflow_phase.py", commonWorkflowPhase);
@@ -345,6 +361,7 @@ export function getAllScripts(): Map<string, string> {
   scripts.set("task.py", taskScript);
   scripts.set("pool.py", poolScript);
   scripts.set("get_context.py", getContextScript);
+  scripts.set("compile_session_pack.py", compileSessionPackScript);
   scripts.set("add_session.py", addSessionScript);
   scripts.set("generate_dispatch_prompt.py", generateDispatchPromptScript);
 
@@ -357,7 +374,6 @@ export function getAllScripts(): Map<string, string> {
  */
 export function getMaintainerScripts(): Map<string, string> {
   const scripts = new Map<string, string>();
-  scripts.set("common/artifact_search.py", commonArtifactSearch);
   scripts.set("common/session_memory.py", commonSessionMemory);
   scripts.set("common/smart_search_evidence.py", commonSmartSearchEvidence);
   scripts.set("common/smart_search_resolve.py", commonSmartSearchResolve);
@@ -380,7 +396,6 @@ export function getMaintainerScripts(): Map<string, string> {
   scripts.set("common/context_pack.py", commonContextPack);
   scripts.set("common/retrieval_pack.py", commonRetrievalPack);
   scripts.set("common/retrieval_pack_context.py", commonRetrievalPackContext);
-  scripts.set("common/injection_budget.py", commonInjectionBudget);
   scripts.set("search_artifacts.py", searchArtifactsScript);
   scripts.set("search_memory.py", searchMemoryScript);
   scripts.set("run_smart_search.py", runSmartSearchScript);

@@ -33,7 +33,28 @@ export const RETRIEVAL_INTENTS = [
 
 export type RetrievalIntent = (typeof RETRIEVAL_INTENTS)[number];
 
-export const DEFAULT_MIDDLEWARE_PROVIDERS = ["smart-search"] as const;
+export type MiddlewareProbeKind = "cli" | "mcp" | "host";
+
+export const SHIPPED_MIDDLEWARE_PROVIDERS = [
+  "smart-search",
+  "codegraph",
+  "fast-context",
+  "chrome-cdp",
+  "playwright",
+  "github",
+  "cursor-ide-browser",
+] as const;
+
+export type ShippedMiddlewareProvider =
+  (typeof SHIPPED_MIDDLEWARE_PROVIDERS)[number];
+
+/** Default `registered` catalog (Protocol v1 shipped table). */
+export const DEFAULT_MIDDLEWARE_PROVIDERS = SHIPPED_MIDDLEWARE_PROVIDERS;
+
+export const DEFAULT_REQUIRED_MIDDLEWARE_PROVIDERS = [
+  "smart-search",
+] as const;
+
 export const OPTIONAL_CODE_INTEL_PROVIDERS = [
   "codegraph",
   "fast-context",
@@ -41,6 +62,32 @@ export const OPTIONAL_CODE_INTEL_PROVIDERS = [
 
 export const SMART_SEARCH_PROVIDER = "smart-search";
 export const EXTERNAL_KNOWLEDGE_CAPABILITY = "external-knowledge";
+
+export const SHIPPED_PROVIDER_CAPABILITY: Record<
+  ShippedMiddlewareProvider,
+  string
+> = {
+  "smart-search": EXTERNAL_KNOWLEDGE_CAPABILITY,
+  codegraph: "structural",
+  "fast-context": "semantic",
+  "chrome-cdp": "browser-session",
+  playwright: "browser-automation",
+  github: "vcs-host",
+  "cursor-ide-browser": "ide-browser",
+};
+
+export const SHIPPED_PROVIDER_PROBE: Record<
+  ShippedMiddlewareProvider,
+  MiddlewareProbeKind
+> = {
+  "smart-search": "cli",
+  codegraph: "mcp",
+  "fast-context": "mcp",
+  "chrome-cdp": "cli",
+  playwright: "mcp",
+  github: "mcp",
+  "cursor-ide-browser": "host",
+};
 
 export type Stage6CommandPhase = "create" | "start" | "archive" | "patch";
 
@@ -109,21 +156,27 @@ export function defaultEventBridge(): EventBridgeState {
   };
 }
 
+function defaultReadinessMap(): Record<string, ProviderReadiness> {
+  const readiness: Record<string, ProviderReadiness> = {};
+  for (const id of SHIPPED_MIDDLEWARE_PROVIDERS) {
+    readiness[id] = {
+      status: "unknown",
+      capability: SHIPPED_PROVIDER_CAPABILITY[id],
+      evidence: null,
+    };
+  }
+  return readiness;
+}
+
 export function defaultMiddlewareProviders(): MiddlewareProviders {
   return {
     schema_version: STAGE6_SCHEMA_VERSION,
     source: STAGE6_SOURCE,
-    registered: [...DEFAULT_MIDDLEWARE_PROVIDERS],
-    required: [...DEFAULT_MIDDLEWARE_PROVIDERS],
+    registered: [...SHIPPED_MIDDLEWARE_PROVIDERS],
+    required: [...DEFAULT_REQUIRED_MIDDLEWARE_PROVIDERS],
     active: [],
     degraded: [],
-    readiness: {
-      [SMART_SEARCH_PROVIDER]: {
-        status: "unknown",
-        capability: EXTERNAL_KNOWLEDGE_CAPABILITY,
-        evidence: null,
-      },
-    },
+    readiness: defaultReadinessMap(),
   };
 }
 
@@ -190,42 +243,129 @@ export function recordHookEvent(
   return lastEvent;
 }
 
+export function shippedProviderCapability(id: string): string {
+  if (id in SHIPPED_PROVIDER_CAPABILITY) {
+    return SHIPPED_PROVIDER_CAPABILITY[id as ShippedMiddlewareProvider];
+  }
+  return id === SMART_SEARCH_PROVIDER
+    ? EXTERNAL_KNOWLEDGE_CAPABILITY
+    : "unknown";
+}
+
+export function shippedProviderProbeKind(id: string): MiddlewareProbeKind | null {
+  if (id in SHIPPED_PROVIDER_PROBE) {
+    return SHIPPED_PROVIDER_PROBE[id as ShippedMiddlewareProvider];
+  }
+  return null;
+}
+
+export function classifyTransportProbe(input: {
+  kind?: MiddlewareProbeKind;
+  present?: boolean;
+  reachable?: boolean;
+  available?: boolean;
+  status?: ProviderReadinessStatus;
+  evidence?: string | null;
+}): Pick<ProviderReadiness, "status" | "evidence"> {
+  if (
+    input.status === "ready" ||
+    input.status === "missing" ||
+    input.status === "failed" ||
+    input.status === "unknown"
+  ) {
+    return { status: input.status, evidence: input.evidence ?? null };
+  }
+  const present = input.present ?? input.available;
+  if (present === false) {
+    return { status: "missing", evidence: input.evidence ?? null };
+  }
+  if (present === true && input.reachable === false) {
+    return { status: "failed", evidence: input.evidence ?? null };
+  }
+  if (present === true) {
+    return { status: "ready", evidence: input.evidence ?? null };
+  }
+  return { status: "unknown", evidence: input.evidence ?? null };
+}
+
+export function mcpServerIdsFromConfig(raw: unknown): string[] {
+  if (!isPlainObject(raw)) return [];
+  const servers = raw.mcpServers;
+  if (!isPlainObject(servers)) return [];
+  return Object.keys(servers);
+}
+
+export function selectRegisteredMcpServers(
+  configuredServerIds: readonly string[],
+  registered: readonly string[] = SHIPPED_MIDDLEWARE_PROVIDERS,
+): string[] {
+  return uniqueStrings(configuredServerIds).filter((id) =>
+    registered.includes(id),
+  );
+}
+
+export function probeShippedProviderReadiness(
+  id: string,
+  input: {
+    present?: boolean;
+    reachable?: boolean;
+    available?: boolean;
+    status?: ProviderReadinessStatus;
+    evidence?: string | null;
+  } = {},
+): ProviderReadiness {
+  const classified = classifyTransportProbe({
+    kind: shippedProviderProbeKind(id) ?? undefined,
+    ...input,
+  });
+  return {
+    status: classified.status,
+    capability: shippedProviderCapability(id),
+    evidence: classified.evidence ?? null,
+  };
+}
+
 export function probeSmartSearchReadiness(input: {
   available?: boolean;
   status?: ProviderReadinessStatus;
   evidence?: string | null;
 } = {}): ProviderReadiness {
-  const status =
-    input.status ??
-    (input.available === true
-      ? "ready"
-      : input.available === false
-        ? "missing"
-        : "unknown");
-  return {
-    status,
-    capability: EXTERNAL_KNOWLEDGE_CAPABILITY,
-    evidence: input.evidence ?? null,
+  return probeShippedProviderReadiness(SMART_SEARCH_PROVIDER, input);
+}
+
+export function applyShippedProviderReadiness(
+  extras: Record<string, unknown>,
+  id: string,
+  readiness: ProviderReadiness,
+): MiddlewareProviders {
+  const current = readMiddlewareProviders(extras);
+  if (!current.registered.includes(id)) {
+    extras.middleware_providers = applyProviderHealth(current, extras);
+    return extras.middleware_providers as MiddlewareProviders;
+  }
+  const next: MiddlewareProviders = {
+    ...current,
+    readiness: {
+      ...current.readiness,
+      [id]: {
+        ...readiness,
+        capability: shippedProviderCapability(id),
+      },
+    },
   };
+  extras.middleware_providers = applyProviderHealth(next, extras);
+  return extras.middleware_providers as MiddlewareProviders;
 }
 
 export function applySmartSearchReadiness(
   extras: Record<string, unknown>,
   readiness: ProviderReadiness,
 ): MiddlewareProviders {
-  const current = readMiddlewareProviders(extras);
-  const next: MiddlewareProviders = {
-    ...current,
-    readiness: {
-      ...current.readiness,
-      [SMART_SEARCH_PROVIDER]: {
-        ...readiness,
-        capability: EXTERNAL_KNOWLEDGE_CAPABILITY,
-      },
-    },
-  };
-  extras.middleware_providers = applyProviderHealth(next, extras);
-  return extras.middleware_providers as MiddlewareProviders;
+  return applyShippedProviderReadiness(
+    extras,
+    SMART_SEARCH_PROVIDER,
+    readiness,
+  );
 }
 
 export function normalizeEventBridge(raw: unknown): EventBridgeState {
@@ -420,6 +560,10 @@ export function normalizeStage6InExtras(extras: Record<string, unknown>): void {
   extras.middleware_providers = normalizeMiddlewareProviders(
     extras.middleware_providers,
   );
+  if (isPlainObject(extras.middleware_probes)) {
+    applyMiddlewareProbes(extras, extras.middleware_probes);
+    delete extras.middleware_probes;
+  }
   if (isPlainObject(extras.smart_search_probe)) {
     const probeStatus = extras.smart_search_probe.status;
     applySmartSearchReadiness(
@@ -445,12 +589,11 @@ export function normalizeStage6InExtras(extras: Record<string, unknown>): void {
       }),
     );
     delete extras.smart_search_probe;
-  } else {
-    extras.middleware_providers = applyProviderHealth(
-      extras.middleware_providers as MiddlewareProviders,
-      extras,
-    );
   }
+  extras.middleware_providers = applyProviderHealth(
+    extras.middleware_providers as MiddlewareProviders,
+    extras,
+  );
 }
 
 export function assertStage6ForPhase(
@@ -482,17 +625,61 @@ export function normalizeStage6InExtrasAndAssert(
   assertStage6ForPhase(extras, phase);
 }
 
+function applyMiddlewareProbes(
+  extras: Record<string, unknown>,
+  probes: Record<string, unknown>,
+): void {
+  const current = readMiddlewareProviders(extras);
+  for (const [id, value] of Object.entries(probes)) {
+    if (!current.registered.includes(id)) continue;
+    if (!isPlainObject(value)) continue;
+    applyShippedProviderReadiness(
+      extras,
+      id,
+      probeShippedProviderReadiness(id, {
+        available:
+          value.available === true
+            ? true
+            : value.available === false
+              ? false
+              : undefined,
+        present:
+          value.present === true
+            ? true
+            : value.present === false
+              ? false
+              : undefined,
+        reachable:
+          value.reachable === true
+            ? true
+            : value.reachable === false
+              ? false
+              : undefined,
+        status:
+          value.status === "ready" ||
+          value.status === "missing" ||
+          value.status === "failed" ||
+          value.status === "unknown"
+            ? value.status
+            : undefined,
+        evidence:
+          typeof value.evidence === "string" ? value.evidence : null,
+      }),
+    );
+  }
+}
+
 function applyProviderHealth(
   providers: MiddlewareProviders,
   extras: Record<string, unknown>,
 ): MiddlewareProviders {
   const degraded = uniqueStrings([...providers.degraded]);
-  const smart = providers.readiness[SMART_SEARCH_PROVIDER];
-  if (smart && smart.status !== "ready" && smart.status !== "unknown") {
-    if (!degraded.includes(SMART_SEARCH_PROVIDER)) {
-      degraded.push(SMART_SEARCH_PROVIDER);
+  for (const id of providers.required) {
+    const row = providers.readiness[id];
+    if (row && row.status !== "ready" && row.status !== "unknown") {
+      if (!degraded.includes(id)) degraded.push(id);
+      extras.profile_health = "degraded";
     }
-    extras.profile_health = "degraded";
   }
   const missing = uniqueStrings(asStringArray(extras.ondemand_required_missing));
   if (

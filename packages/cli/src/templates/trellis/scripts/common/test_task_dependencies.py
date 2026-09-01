@@ -35,6 +35,7 @@ def _write_task(tasks_dir: Path, dir_name: str, status: str, depends_on=None) ->
         "id": dir_name,
         "name": dir_name,
         "title": dir_name,
+        "description": "",
         "status": status,
     }
     if depends_on is not None:
@@ -111,15 +112,17 @@ def test_dangling_reference_is_unresolved_warning(tmp_path: Path) -> None:
     assert any("dangling" in w for w in report.warnings())
 
 
-def test_pool_prefix_is_unresolved_and_never_falls_through(tmp_path: Path) -> None:
+def test_pool_prefix_without_pool_dir_is_ignored(tmp_path: Path) -> None:
     tasks_dir = _tasks_fixture(tmp_path)
     task_dir = _write_task(tasks_dir, "task-x", "planning", ["pool:P09"])
 
     dep = resolve_dep_ref("pool:P09", tasks_dir=tasks_dir)
     assert dep.kind == KIND_POOL
-    assert satisfaction_status(dep)[0] == UNRESOLVED
+    status, note = satisfaction_status(dep)
+    assert status == SATISFIED
+    assert "not materialized" in (note or "")
     report = describe_dependencies(task_dir, {"depends_on": ["pool:P09"]}, tasks_dir=tasks_dir)
-    assert any("unresolved" in w for w in report.warnings())
+    assert report.warnings() == []
 
 
 def test_cycle_detected_across_tasks(tmp_path: Path) -> None:
@@ -216,7 +219,7 @@ def test_dashboard_deps_line_renders_badges(tmp_path: Path) -> None:
     assert "dep-done ✅" in line
     assert "dep-wait ⏳" in line
     assert "dep-gone ✅已取消" in line
-    assert "pool:P09 ⚠️" in line
+    assert "pool:P09 ✅" in line
 
 
 def test_normalize_dep_list_dedupes_and_strips(tmp_path: Path) -> None:
@@ -226,26 +229,32 @@ def test_normalize_dep_list_dedupes_and_strips(tmp_path: Path) -> None:
 
 
 # =============================================================================
-# pool: real status (08-09-pool-links-and-cli)
+# pool: delivery-based status (not linked-task Close)
 # =============================================================================
 
-def _pool_repo(tmp_path: Path, linked_tasks: list[str] | None) -> Path:
+def _pool_repo(
+    tmp_path: Path,
+    *,
+    delivery: str | None = "standing",
+    status: str = "accepted",
+) -> Path:
     repo = tmp_path / "repo"
     items_dir = repo / ".cstl" / "pool" / "items"
     items_dir.mkdir(parents=True)
-    lines = ["id: P09", "title: t", "status: accepted", "type: mechanism"]
-    if linked_tasks:
-        lines.append("linked_tasks:")
-        lines += [f"  - {task}" for task in linked_tasks]
+    lines = ["id: P09", "title: t", f"status: {status}", "type: mechanism"]
+    if delivery is not None:
+        lines.append(f"delivery: {delivery}")
     (items_dir / "P09.md").write_text(
         "---\n" + "\n".join(lines) + "\n---\n\n## 意图\nx\n",
         encoding="utf-8",
     )
+    (repo / ".cstl" / "tasks").mkdir(parents=True, exist_ok=True)
     return repo
 
 
 def test_pool_missing_item_is_unresolved(tmp_path: Path) -> None:
     tasks_dir = _tasks_fixture(tmp_path)
+    (tmp_path / "repo" / ".cstl" / "pool" / "items").mkdir(parents=True)
     task_dir = _write_task(tasks_dir, "task-x", "planning", ["pool:P09"])
 
     dep = resolve_dep_ref("pool:P09", tasks_dir=tasks_dir)
@@ -257,89 +266,64 @@ def test_pool_missing_item_is_unresolved(tmp_path: Path) -> None:
     assert any("unresolved" in w for w in report.warnings())
 
 
-def test_pool_unlinked_is_unresolved(tmp_path: Path) -> None:
-    repo = _pool_repo(tmp_path, linked_tasks=None)
+def test_pool_standing_is_satisfied_without_links(tmp_path: Path) -> None:
+    repo = _pool_repo(tmp_path, delivery="standing")
     tasks_dir = repo / ".cstl" / "tasks"
     task_dir = _write_task(tasks_dir, "task-x", "planning", ["pool:P09"])
 
     dep = resolve_dep_ref("pool:P09", tasks_dir=tasks_dir)
-    assert dep.kind == KIND_POOL
-    status, note = satisfaction_status(dep)
-    assert status == UNRESOLVED
-    assert "no linked tasks" in (note or "")
-
-
-def test_pool_linked_planning_task_is_not_satisfied(tmp_path: Path) -> None:
-    repo = _pool_repo(tmp_path, linked_tasks=["task-a"])
-    tasks_dir = repo / ".cstl" / "tasks"
-    _write_task(tasks_dir, "task-a", "planning")
-    task_dir = _write_task(tasks_dir, "task-x", "planning", ["pool:P09"])
-
-    dep = resolve_dep_ref("pool:P09", tasks_dir=tasks_dir)
-    assert dep.status == "not_satisfied"
-    status, note = satisfaction_status(dep)
-    assert status == NOT_SATISFIED
-    assert "not yet completed" in (note or "")
-    assert "task-a" in (note or "")
-    report = describe_dependencies(task_dir, {"depends_on": ["pool:P09"]}, tasks_dir=tasks_dir)
-    assert any("not satisfied" in w for w in report.warnings())
-
-
-def test_pool_linked_completed_task_is_satisfied(tmp_path: Path) -> None:
-    repo = _pool_repo(tmp_path, linked_tasks=["task-a"])
-    tasks_dir = repo / ".cstl" / "tasks"
-    _write_task(tasks_dir, "task-a", "completed")
-    task_dir = _write_task(tasks_dir, "task-x", "planning", ["pool:P09"])
-
-    dep = resolve_dep_ref("pool:P09", tasks_dir=tasks_dir)
-    assert dep.status == "satisfied"
-    status, _ = satisfaction_status(dep)
-    assert status == SATISFIED
+    assert satisfaction_status(dep)[0] == SATISFIED
     report = describe_dependencies(task_dir, {"depends_on": ["pool:P09"]}, tasks_dir=tasks_dir)
     assert report.warnings() == []
 
 
-def test_pool_multilink_partial_then_complete(tmp_path: Path) -> None:
-    repo = _pool_repo(tmp_path, linked_tasks=["task-a", "task-b"])
+def test_pool_open_is_not_satisfied(tmp_path: Path) -> None:
+    repo = _pool_repo(tmp_path, delivery="open")
     tasks_dir = repo / ".cstl" / "tasks"
-    _write_task(tasks_dir, "task-a", "completed")
-    _write_task(tasks_dir, "task-b", "in_progress")
     task_dir = _write_task(tasks_dir, "task-x", "planning", ["pool:P09"])
 
     dep = resolve_dep_ref("pool:P09", tasks_dir=tasks_dir)
     status, note = satisfaction_status(dep)
     assert status == NOT_SATISFIED
-    assert "task-a, task-b" in (note or "")
+    assert "remaining obligation" in (note or "")
+    report = describe_dependencies(task_dir, {"depends_on": ["pool:P09"]}, tasks_dir=tasks_dir)
+    assert any("not satisfied" in w for w in report.warnings())
 
-    _write_task(tasks_dir, "task-b", "completed")
+
+def test_pool_in_slice_is_not_satisfied(tmp_path: Path) -> None:
+    repo = _pool_repo(tmp_path, delivery="in-slice")
+    tasks_dir = repo / ".cstl" / "tasks"
+    dep = resolve_dep_ref("pool:P09", tasks_dir=tasks_dir)
+    assert satisfaction_status(dep)[0] == NOT_SATISFIED
+
+
+def test_pool_landed_is_satisfied(tmp_path: Path) -> None:
+    repo = _pool_repo(tmp_path, delivery="landed")
+    tasks_dir = repo / ".cstl" / "tasks"
     dep = resolve_dep_ref("pool:P09", tasks_dir=tasks_dir)
     assert satisfaction_status(dep)[0] == SATISFIED
 
 
-def test_pool_all_dangling_linked_tasks_is_unresolved(tmp_path: Path) -> None:
-    repo = _pool_repo(tmp_path, linked_tasks=["ghost-a"])
+def test_pool_deferred_is_satisfied(tmp_path: Path) -> None:
+    repo = _pool_repo(tmp_path, delivery="deferred")
     tasks_dir = repo / ".cstl" / "tasks"
-    task_dir = _write_task(tasks_dir, "task-x", "planning", ["pool:P09"])
-
     dep = resolve_dep_ref("pool:P09", tasks_dir=tasks_dir)
-    assert dep.status == "unresolved"
+    assert satisfaction_status(dep)[0] == SATISFIED
+
+
+def test_pool_accepted_missing_delivery_is_not_satisfied(tmp_path: Path) -> None:
+    repo = _pool_repo(tmp_path, delivery=None)
+    tasks_dir = repo / ".cstl" / "tasks"
+    dep = resolve_dep_ref("pool:P09", tasks_dir=tasks_dir)
+    status, note = satisfaction_status(dep)
+    assert status == NOT_SATISFIED
+    assert "missing delivery" in (note or "")
+
+
+def test_pool_inbox_is_unresolved(tmp_path: Path) -> None:
+    repo = _pool_repo(tmp_path, delivery=None, status="inbox")
+    tasks_dir = repo / ".cstl" / "tasks"
+    dep = resolve_dep_ref("pool:P09", tasks_dir=tasks_dir)
     status, note = satisfaction_status(dep)
     assert status == UNRESOLVED
-    report = describe_dependencies(task_dir, {"depends_on": ["pool:P09"]}, tasks_dir=tasks_dir)
-    assert any("unresolved" in w for w in report.warnings())
-
-
-def test_pool_cancelled_linked_task_is_satisfied_with_cancelled_note(tmp_path: Path) -> None:
-    repo = _pool_repo(tmp_path, linked_tasks=["task-a"])
-    tasks_dir = repo / ".cstl" / "tasks"
-    _write_task(tasks_dir, "task-a", "cancelled")
-    task_dir = _write_task(tasks_dir, "task-x", "planning", ["pool:P09"])
-
-    dep = resolve_dep_ref("pool:P09", tasks_dir=tasks_dir)
-    assert dep.status == "cancelled"
-    assert dep.is_cancelled
-    status, note = satisfaction_status(dep)
-    assert status == SATISFIED
-    assert "cancelled" in (note or "")
-    report = describe_dependencies(task_dir, {"depends_on": ["pool:P09"]}, tasks_dir=tasks_dir)
-    assert any("cancelled" in w for w in report.warnings())
+    assert "not accepted" in (note or "")
