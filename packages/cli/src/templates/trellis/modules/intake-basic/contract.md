@@ -12,7 +12,7 @@ Baseline 装着，但只在 Intake 事件进入 Prompt。有 `selected_task` 且
 
 触发：无选中任务 | 新请求与当前 Task 冲突 | 用户显式要新 Task。
 
-Agent 看见：入口判断规则、Risk 初判标签（可解释，非黑箱分）、禁止未同意就 `task.py create` 的提醒（门本身在 approval）。建议 Topology 时先问/判「有无可隔离单位」：能指出 ≥2 个可隔离写集 → 倾向 parent-child 或 Full 扇出；指不出 → 倾向 single，并预期真·单写集要写 `serial_reason`。看不见五档梯子印、看不见 Parent 集成教战。
+Agent 看见：入口判断规则、Risk 初判标签（可解释，非黑箱分）、禁止未同意就 `task.py create` 的提醒（门本身在 approval）。建议 Topology 时先问/判「有无可隔离单位」：能指出 ≥2 个可隔离写集 → 倾向多个可 Close 的 Full 或 Full 扇出，**不默认 Parent**；要统一集成权威才建议 parent-child；指不出 → 倾向 single，并预期真·单写集要写 `serial_reason`。用户要开始实现**已 accepted** 池条目时，Open Proposal 必须带切片清单（写到该条目 `## 切片`：短名、`touches`、Lite/Full/Parent、并行或 `serial_reason`），未 Open 不建目录。开过大 Task（关不了 / 证不了 / `touches` 跨无关模块）必须建议按池拆分规则再拆；用户可坚持，但要写范围风险 / `serial_reason`。会话内已可直接做的小改仍可不进池。看不见五档梯子印、看不见 Parent 集成教战。
 
 用户看见：闲聊被直接回答；要开 Task 时看到形状建议（Lite/Full × single/parent-child）以及有无可隔离单位，被问是否 Open；未成形想法可被建议进池。
 
@@ -21,7 +21,7 @@ Agent 看见：入口判断规则、Risk 初判标签（可解释，非黑箱分
 ## 停止条件
 
 - 输入：Intake 事件（无选中任务 / 冲突 / 显式要新 Task）。
-- 出口：无 Task（直接答）/ 澄清（Task 前，只澄清到「有没有工作」）/ 进池意图 / Open Proposal（Rigor×Topology + 有无可隔离单位 + 理由）。
+- 出口：无 Task（直接答）/ 澄清（Task 前，只澄清到「有没有工作」）/ 进池意图 / Open Proposal（Rigor×Topology + 有无可隔离单位 + 若来自已 accepted 池条目则含 `## 切片` 提案 + 理由）。
 - 不得写 `prd.md`、不得 archive、不得改代码。
 - 不得未同意就 `task.py create`。
 

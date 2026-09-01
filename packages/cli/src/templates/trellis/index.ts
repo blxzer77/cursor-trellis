@@ -88,6 +88,7 @@ export const commonOndemandTopology = readTemplate(
 export const commonParallelDeclaration = readTemplate(
   "scripts/common/parallel_declaration.py",
 );
+export const commonPoolSlice = readTemplate("scripts/common/pool_slice.py");
 export const commonAdapterMiddleware = readTemplate(
   "scripts/common/adapter_middleware.py",
 );
@@ -266,6 +267,7 @@ export const MAINTAINER_ONLY_SCRIPT_PATHS = new Set([
   "common/test_full_quality.py",
   "common/test_ondemand_topology.py",
   "common/test_parallel_declaration.py",
+  "common/test_pool_slice.py",
   "common/test_adapter_middleware.py",
   "common/test_task_dashboard.py",
   "hooks/linear_sync.py",
@@ -345,6 +347,7 @@ export function getAllScripts(): Map<string, string> {
   scripts.set("common/full_quality.py", commonFullQuality);
   scripts.set("common/ondemand_topology.py", commonOndemandTopology);
   scripts.set("common/parallel_declaration.py", commonParallelDeclaration);
+  scripts.set("common/pool_slice.py", commonPoolSlice);
   scripts.set("common/adapter_middleware.py", commonAdapterMiddleware);
   scripts.set("common/session_context.py", commonSessionContext);
   scripts.set("common/packages_context.py", commonPackagesContext);
