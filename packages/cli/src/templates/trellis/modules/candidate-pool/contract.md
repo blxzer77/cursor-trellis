@@ -15,9 +15,10 @@ P29 表名：`candidate-pool`（不得改名）。层：on-demand。
 Agent 看见：
 
 1. 进池要有可审摘要；意图式同意（用户说记录即批准进池），否则先展示摘要再问一次。
-2. 不得把池项当已开 Task、不得未 Open 就写 `prd.md`。
-3. 选下一件：只在 open / in-slice 里排；standing 不排队。
-4. 本块不决定 Rigor×Topology；开 Task 时仍走 Intake Proposal + Open 门。
+2. 不得把池项当已开 Task、不得未 Open 就写 `prd.md` 或建任务目录。`accepted` 只冻需求，**不自动** `task.py create`。
+3. 用户说开始实现某条已 accepted 条目时：先在该条目写 `## 切片`，再走 Intake Open Proposal；Open 之后才 `pool.py link`。
+4. 选下一件：只在 open / in-slice 里排；standing 不排队。单一切片 Close ≠ 整条 `landed`（剩余可 `deferred`）。
+5. 本块不决定 Rigor×Topology；开 Task 时仍走 Intake Proposal + Open 门。
 
 用户看见：一个候选队列，不是看板。默认不出现池配置。
 

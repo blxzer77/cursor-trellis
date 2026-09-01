@@ -308,6 +308,7 @@ describe("getAllScripts", () => {
     expect(scripts.has("common/full_quality.py")).toBe(true);
     expect(scripts.has("common/ondemand_topology.py")).toBe(true);
     expect(scripts.has("common/parallel_declaration.py")).toBe(true);
+    expect(scripts.has("common/pool_slice.py")).toBe(true);
     expect(scripts.has("common/adapter_middleware.py")).toBe(true);
     expect(scripts.has("common/artifact_search.py")).toBe(false);
     expect(scripts.has("search_artifacts.py")).toBe(false);

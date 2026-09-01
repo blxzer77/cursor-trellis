@@ -93,8 +93,27 @@ All commands accept `--root <path>` when the Trellis root is not the current wor
 
 1. New idea / gap → write an `items/` entry with status `inbox`.
 2. Review: Agent proposes a decision; user adjudicates → `accepted` / `rejected` / `rework`.
-3. `accepted` → add to `plan.md` (plan cites item ids only; do not rewrite a second narrative).
-4. When a planned item starts work → Task Ladder (`task.py create`).
+3. `accepted` → add to `plan.md` (plan cites item ids only; do not rewrite a second narrative). **Does not split into tasks and does not create task directories.**
+4. When the user says to **start implementing** an accepted item → write or update `## 切片` on that item (see below), then Open (`task.py create` + `pool.py link`). Not before Open.
+
+## Starting implementation (split)
+
+`accepted` freezes the requirement only. Do not treat it as a Task.
+
+When the user asks to start implementing an accepted item:
+
+1. Propose a slice list **on the item body** under the heading **`## 切片`**. Each row: short name, `touches`, Lite / Full / Parent, parallel vs `serial_reason`.
+2. After Open, create directories and `pool.py link`. Empty task dirs before Open are forbidden.
+3. One slice = one closable write-set + cohesive AC. Prefer several Fulls that can Close on their own. Use Parent only when one integration authority is required.
+4. Default: isolatable Fulls run in parallel. Colliding `touches` → resplit or write `serial_reason`. No numeric size cap; if it cannot Close / cannot be proven / `touches` span unrelated modules, resplit. Intake must propose that split if the user opens a giant task; the user may insist with range risk / `serial_reason`.
+5. Progress stays `delivery` + `linked_tasks` + `pool.py status`. Unsplit `open`; work running `in-slice`; remaining obligation done `landed`. One slice Close does **not** land the whole item. Remainder may be `deferred`.
+6. Default one pool item per task. Extra links need per-item duties in that task’s PRD (`## 池义务` / `## Pool obligations`). Closing the task only advances the declared duties.
+7. More slices may be added while the item is `open` / `in-slice`. Do not reopen a Closed task to stuff new scope. New slices still need Open.
+8. This split rule applies to **new Open after the rule landed**. Already-open tasks are not force-resplit.
+
+`pool.py validate` **does not fail** when `## 切片` is missing. The heading is an Open-proposal convention, not a new schema.
+
+In-session tiny work still skips the pool (clear request → Intake → Open Task).
 
 ## Choosing the next item (attention, not a serial lock)
 
