@@ -9,6 +9,25 @@ SemVer: [semver.org](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.5.0-beta.2] - 2026-09-01
+
+P40 pool split at Open + default-script init hole. **Not** `@latest` — install with `@beta` or the exact version.
+
+### Added
+
+- **feat(pool)**: when the user starts implementing an accepted pool item, write `## 切片` on that item and Open isolatable Fulls (or a Parent only if integration authority is required). Check helper `evaluate_pool_slice` fails Full/Parent missing `touches`, unrelated module pairs without `serial_reason` / `oversized_accepted`, and multi-link tasks whose PRD lacks per-item `## 池义务`. `pool.py validate` does **not** fail when `## 切片` is missing.
+
+### Fixed
+
+- **fix(init)**: ship `common/artifact_search.py` and `common/injection_budget.py` in the default `getAllScripts()` set. 0.5.0-beta.1 omitted them even though `pool_store` / `pool_refs` / `subagent_dispatch` / `task_context` import them at top level, so a clean `cstl init` could not import pool or dispatch.
+
+### Notes for consumers
+
+- Install **`npm i -g @blxzer/cursor-trellis@0.5.0-beta.2`** or **`@blxzer/cursor-trellis@beta`**. `@latest` stays **0.4.3**.
+- In the **project root** run `cstl update` (do not re-run `init`). Official `.cstl/pool/README.md`, `pool_slice.py`, and the two common modules refresh. `.cstl/middleware/` is never written.
+- Core and CLI versions stay paired: `@blxzer/cursor-trellis-core@0.5.0-beta.2`.
+- Maintainers: tag **`cstl-v0.5.0-beta.2`**. Do not promote this prerelease to `main` / `@latest` until an explicit official release.
+
 ## [0.5.0-beta.1] - 2026-09-01
 
 P38 parallel-first runtime + P39 Cursor Adapter on the modular preview. **Not** `@latest` — install with `@beta` or the exact version.
