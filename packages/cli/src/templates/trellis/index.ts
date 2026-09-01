@@ -271,7 +271,6 @@ export const MAINTAINER_ONLY_SCRIPT_PATHS = new Set([
   "common/test_adapter_middleware.py",
   "common/test_task_dashboard.py",
   "hooks/linear_sync.py",
-  "common/artifact_search.py",
   "common/session_memory.py",
   "common/smart_search_evidence.py",
   "common/smart_search_resolve.py",
@@ -288,7 +287,6 @@ export const MAINTAINER_ONLY_SCRIPT_PATHS = new Set([
   "common/context_pack.py",
   "common/retrieval_pack.py",
   "common/retrieval_pack_context.py",
-  "common/injection_budget.py",
   "search_artifacts.py",
   "search_memory.py",
   "run_smart_search.py",
@@ -349,6 +347,8 @@ export function getAllScripts(): Map<string, string> {
   scripts.set("common/parallel_declaration.py", commonParallelDeclaration);
   scripts.set("common/pool_slice.py", commonPoolSlice);
   scripts.set("common/adapter_middleware.py", commonAdapterMiddleware);
+  scripts.set("common/artifact_search.py", commonArtifactSearch);
+  scripts.set("common/injection_budget.py", commonInjectionBudget);
   scripts.set("common/session_context.py", commonSessionContext);
   scripts.set("common/packages_context.py", commonPackagesContext);
   scripts.set("common/workflow_phase.py", commonWorkflowPhase);
@@ -374,7 +374,6 @@ export function getAllScripts(): Map<string, string> {
  */
 export function getMaintainerScripts(): Map<string, string> {
   const scripts = new Map<string, string>();
-  scripts.set("common/artifact_search.py", commonArtifactSearch);
   scripts.set("common/session_memory.py", commonSessionMemory);
   scripts.set("common/smart_search_evidence.py", commonSmartSearchEvidence);
   scripts.set("common/smart_search_resolve.py", commonSmartSearchResolve);
@@ -397,7 +396,6 @@ export function getMaintainerScripts(): Map<string, string> {
   scripts.set("common/context_pack.py", commonContextPack);
   scripts.set("common/retrieval_pack.py", commonRetrievalPack);
   scripts.set("common/retrieval_pack_context.py", commonRetrievalPackContext);
-  scripts.set("common/injection_budget.py", commonInjectionBudget);
   scripts.set("search_artifacts.py", searchArtifactsScript);
   scripts.set("search_memory.py", searchMemoryScript);
   scripts.set("run_smart_search.py", runSmartSearchScript);
