@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python
+#!/usr/bin/env python
 """
 Task CRUD operations.
 
@@ -70,6 +70,7 @@ from .safe_commit import (
 from .task_gates import (
     BASELINE_GATE,
     archive_repair_hints,
+    build_notes_projection,
     build_spec_update_scaffold,
     collect_kernel_projection_extras,
     prepare_archive_evidence,
@@ -303,6 +304,15 @@ def _resolve_seed_spec_paths(
     for path in suggest_spec_targets(repo_root, task_dir, task_data):
         if path not in candidates:
             candidates.append(path)
+
+    guides_dir = repo_root / ".cstl" / "spec" / "guides"
+    if guides_dir.is_dir():
+        for guide in sorted(guides_dir.iterdir()):
+            if guide.is_file() and guide.suffix.lower() == ".md":
+                rel = f".cstl/spec/guides/{guide.name}"
+                if rel not in candidates:
+                    candidates.append(rel)
+
     for rel in _STABLE_SEED_PATHS:
         if rel not in candidates:
             candidates.append(rel)
@@ -699,6 +709,15 @@ def _archive_one_task(
             write_gate_record(data, "full-task-complete", BASELINE_GATE, guard.baseline_record)
         data["status"] = "completed"
         data["completedAt"] = today
+
+        year_month = datetime.now().strftime("%Y-%m")
+        archived_rel_guess = (
+            f"{DIR_WORKFLOW}/{DIR_TASKS}/{DIR_ARCHIVE}/{year_month}/{dir_name}"
+        )
+        data["notes_projection"] = build_notes_projection(
+            task_dir, data, archived_rel=archived_rel_guess
+        )
+
         extras = collect_kernel_projection_extras(data)
         try:
             expected = kernel_expected_revision(task_dir)

@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python
+#!/usr/bin/env python
 """
 Task quality gate helpers.
 
@@ -554,6 +554,7 @@ KERNEL_PROJECTION_EXTRA_KEYS = (
     "required_controls",
     "ac_evidence_ledger",
     "independent_check",
+    "notes_projection",
     "topology",
     "dependency_graph",
     "ondemand_modules",
@@ -576,6 +577,114 @@ def collect_kernel_projection_extras(task_data: dict) -> dict:
         if key in task_data:
             extras[key] = task_data[key]
     return extras
+
+
+NOTES_PROJECTION_SCHEMA_VERSION = 1
+NOTES_PROJECTION_MAX_TOKEN_BUDGET = 150
+
+
+def _ledger_evidence_points(task_data: dict) -> list[str]:
+    """Best-effort key points from ``ac_evidence_ledger.items[].evidence_ref``."""
+    ledger = task_data.get("ac_evidence_ledger")
+    if not isinstance(ledger, dict):
+        return []
+    items = ledger.get("items")
+    if not isinstance(items, list):
+        return []
+    points: list[str] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        evidence = item.get("evidence_ref")
+        if isinstance(evidence, str) and evidence.strip():
+            points.append(evidence.strip())
+    return points
+
+
+def _independent_check_note(task_data: dict) -> str:
+    check = task_data.get("independent_check")
+    if not isinstance(check, dict):
+        return ""
+    result = check.get("result")
+    mode = check.get("mode")
+    evidence = check.get("evidence")
+    parts = []
+    if isinstance(result, str) and result.strip():
+        parts.append(f"independent check {result}")
+    if isinstance(mode, str) and mode.strip():
+        parts.append(f"mode={mode}")
+    if isinstance(evidence, str) and evidence.strip():
+        parts.append(evidence.strip())
+    return "; ".join(parts)
+
+
+def _verify_md_note(task_dir: Path) -> str:
+    """Extract archive-evidence lines from verify.md for the notes summary."""
+    verify_path = task_dir / "verify.md"
+    if not verify_path.is_file():
+        return ""
+    try:
+        content = verify_path.read_text(encoding="utf-8")
+    except OSError:
+        return ""
+    sections: list[str] = []
+    for pattern in (VALIDATION_EVIDENCE_RE, ACCEPTANCE_EVIDENCE_RE):
+        for match in pattern.finditer(content):
+            if match.lastindex and match.lastindex >= 1:
+                value = match.group(1).strip()
+                if _is_substantive_evidence(value):
+                    sections.append(value)
+                    break
+    for match in DURABLE_LEARNING_EVIDENCE_RE.finditer(content):
+        if match.lastindex and match.lastindex >= 1:
+            value = match.group(1).strip()
+            if _is_substantive_evidence(value) and not NO_DURABLE_LEARNING_RE.search(value):
+                sections.append(value)
+                break
+    return "; ".join(sections)
+
+
+def build_notes_projection(
+    task_dir: Path,
+    task_data: dict,
+    archived_rel: str = "",
+) -> dict:
+    """Build the ``notes_projection`` slot for kernel.json extras.
+
+    Summarizes re-usable key points from ``ac_evidence_ledger`` /
+    ``independent_check`` / ``verify.md`` (best-effort) and points at the
+    archived task artifacts. Missing key points never blocks: summary is
+    left empty and pointers still filled.
+    """
+    from .session_memory import JOURNAL_SNIPPET_MAX_TOKENS, truncate_to_token_budget
+
+    points = _ledger_evidence_points(task_data)
+    independent_note = _independent_check_note(task_data)
+    if independent_note:
+        points.append(independent_note)
+    verify_note = _verify_md_note(task_dir)
+    if verify_note:
+        points.append(verify_note)
+
+    summary = truncate_to_token_budget(
+        "; ".join(points),
+        max_tokens=JOURNAL_SNIPPET_MAX_TOKENS,
+    )
+
+    pointers: list[str] = []
+    if archived_rel:
+        pointers.append(archived_rel)
+        if (task_dir / "verify.md").is_file():
+            pointers.append(f"{archived_rel}/verify.md")
+    elif task_dir.is_dir():
+        pointers.append(str(task_dir))
+
+    return {
+        "schema_version": NOTES_PROJECTION_SCHEMA_VERSION,
+        "summary": summary,
+        "pointers": pointers,
+        "source": "cmd_archive",
+    }
 
 
 def build_reviewer_gate_record(

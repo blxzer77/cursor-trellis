@@ -32,7 +32,8 @@ export type SharedHookName =
   | "inject-retrieval-plan.py"
   | "inject-workflow-state.py"
   | "inject-subagent-context.py"
-  | "research-end-retrieval-pack.py";
+  | "research-end-retrieval-pack.py"
+  | "spec-write-audit.py";
 
 export type SharedHookPlatform =
   | "claude"
@@ -85,6 +86,7 @@ export const SHARED_HOOKS_BY_PLATFORM: Record<
     "inject-retrieval-plan.py",
     "inject-subagent-context.py",
     "research-end-retrieval-pack.py",
+    "spec-write-audit.py",
   ],
   codex: ["inject-workflow-state.py"],
   gemini: ["session-start.py", "inject-workflow-state.py"],

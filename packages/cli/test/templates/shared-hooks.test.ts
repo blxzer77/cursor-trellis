@@ -182,6 +182,7 @@ const ALL_HOOK_FILES = [
   "inject-workflow-state.py",
   "inject-subagent-context.py",
   "research-end-retrieval-pack.py",
+  "spec-write-audit.py",
 ] as const;
 
 describe("shared-hooks capability table", () => {

@@ -93,6 +93,13 @@ MODULE_HOOK_SUBSCRIPTIONS: dict[str, tuple[dict[str, str], ...]] = {
             "hook": "research-end-retrieval-pack.py",
         },
     ),
+    "spec-learning": (
+        {
+            "event": "preToolUse",
+            "module": "spec-learning",
+            "hook": "spec-write-audit.py",
+        },
+    ),
 }
 
 
