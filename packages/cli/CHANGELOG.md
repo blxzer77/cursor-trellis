@@ -9,6 +9,17 @@ SemVer: [semver.org](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.5.0-beta.4] - 2026-09-07
+
+Version bump only (rebuild of the beta-3 publish). No functional changes vs `0.5.0-beta.3`; this release carries the same P41 memory-cut feature set (notes_projection + spec-write audit + Lite archive relaxation). **Not** `@latest` — install with `@beta` or the exact version.
+
+### Notes for consumers
+
+- Install **`npm i -g @blxzer/cursor-trellis@0.5.0-beta.4`** or **`@blxzer/cursor-trellis@beta`**. `@latest` stays **0.4.3**.
+- In the **project root** run `cstl update` (do not re-run `init`). Existing projects migrate; `.cstl/middleware/` is never written.
+- Core and CLI versions stay paired: `@blxzer/cursor-trellis-core@0.5.0-beta.4`.
+- Maintainers: tag **`cstl-v0.5.0-beta.4`**. Do not promote this prerelease to `main` / `@latest` until an explicit official release.
+
 ## [0.5.0-beta.3] - 2026-09-07
 
 P41 memory cut: notes_projection slot + spec-write audit + Lite archive relaxation. **Not** `@latest` — install with `@beta` or the exact version.
