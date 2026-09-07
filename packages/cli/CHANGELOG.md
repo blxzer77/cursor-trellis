@@ -9,6 +9,30 @@ SemVer: [semver.org](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.5.0-beta.3] - 2026-09-07
+
+P41 memory cut: notes_projection slot + spec-write audit + Lite archive relaxation. **Not** `@latest` — install with `@beta` or the exact version.
+
+### Added
+
+- **feat(memory)**: `kernel.json` extras gains `notes_projection` — at archive, `cmd_archive` summarizes reusable points from `ac_evidence_ledger` / `independent_check` / `verify.md` (≤150 tokens via `session_memory`) plus artifact pointers. This is the Notes track of the 双轨记忆 (Notes + History) design: machine-recorded at Close, searchable later, never full-text injected.
+- **feat(memory)**: `spec-write-audit.py` preToolUse hook records spec writes — when a write targets `.cstl/spec/`, `docs/adr/`, or Policy, it logs actor / timestamp / target / verification state to `.cstl/.runtime/hooks/spec-write.log`. It only records and always allows (never blocks a write). Contract updated in `spec-learning`; Event Bridge subscription registered; shipped in `shared-hooks`.
+- **feat(contracts)**: `personal-memory` gains a Close Notes index-projection clause (≤N-token summary + path pointer, `context-progressive` layer-4 retrieval, not resident); `close-basic` learning disposition gains `note-projection` (missing slot only leaves a trace, never blocks Close).
+
+### Changed
+
+- **fix(templates)**: `_resolve_seed_spec_paths` now scans `.cstl/spec/guides/` for real guide files instead of only fixed seed paths, so `task.py create` jsonl seeds stay valid when guides live there.
+- **fix(templates)**: `start-execution --ignore-deps` writes `depends_on` refs into `dependency_satisfied` so the Kernel `start` transition allows the override (previously the Kernel still rejected `requires unmet`).
+- **fix(hooks)**: `spec-write-audit` moved to second in `preToolUse` so the `Task|Subagent` matcher stays first (documented `platforms.test.ts` contract).
+- **fix(gates)**: Lite tasks no longer require a substantive `durable-learning` decision in `verify.md` — explicit `N/A` or a missing line archives cleanly (one-off bugfixes shouldn't be over-gated). Full / Parent still require a real decision.
+
+### Notes for consumers
+
+- Install **`npm i -g @blxzer/cursor-trellis@0.5.0-beta.3`** or **`@blxzer/cursor-trellis@beta`**. `@latest` stays **0.4.3**.
+- In the **project root** run `cstl update` (do not re-run `init`). Existing projects migrate; `.cstl/middleware/` is never written.
+- Core and CLI versions stay paired: `@blxzer/cursor-trellis-core@0.5.0-beta.3`.
+- Maintainers: tag **`cstl-v0.5.0-beta.3`**. Do not promote this prerelease to `main` / `@latest` until an explicit official release.
+
 ## [0.5.0-beta.2] - 2026-09-01
 
 P40 pool split at Open + default-script init hole. **Not** `@latest` — install with `@beta` or the exact version.

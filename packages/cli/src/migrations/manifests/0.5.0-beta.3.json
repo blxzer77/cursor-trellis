@@ -1,0 +1,9 @@
+{
+  "version": "0.5.0-beta.3",
+  "description": "P41 memory cut: notes_projection slot + spec-write audit + Lite archive relaxation. Not @latest — install with @beta or the exact version.",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**@blxzer/cursor-trellis 0.5.0-beta.3**\n\n- feat(memory): `kernel.json` extras gains `notes_projection` — at archive, `cmd_archive` summarizes reusable points from `ac_evidence_ledger` / `independent_check` / `verify.md` (<=150 tokens via `session_memory`) plus artifact pointers. Notes track of the 双轨记忆 (Notes + History) design: machine-recorded at Close, searchable later, never full-text injected.\n- feat(memory): `spec-write-audit.py` preToolUse hook records spec writes — for `.cstl/spec/`, `docs/adr/`, or Policy targets it logs actor / timestamp / target / verification state to `.cstl/.runtime/hooks/spec-write.log`. Only records, always allows (never blocks a write). `spec-learning` contract updated; Event Bridge subscription registered; shipped in `shared-hooks`.\n- feat(contracts): `personal-memory` gains a Close Notes index-projection clause (<=N-token summary + path pointer, `context-progressive` layer-4 retrieval, not resident); `close-basic` disposition gains `note-projection` (missing slot only leaves a trace, never blocks Close).\n- fix(templates): `_resolve_seed_spec_paths` scans `.cstl/spec/guides/` for real guide files; `start-execution --ignore-deps` writes refs into `dependency_satisfied` so Kernel start allows the override; `spec-write-audit` moved to second in `preToolUse` so `Task|Subagent` stays first; Lite tasks no longer require a substantive `durable-learning` decision (explicit N/A or missing line archives cleanly).\n- chore: empty migrations list (template sync via `cstl update`)",
+  "migrations": [],
+  "notes": "Prerelease. Install `@blxzer/cursor-trellis@0.5.0-beta.3` or `@beta`. Run `cstl update`. No `--migrate` required."
+}

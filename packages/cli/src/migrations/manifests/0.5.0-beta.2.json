@@ -1,0 +1,9 @@
+{
+  "version": "0.5.0-beta.2",
+  "description": "P40 pool split at Open + default-script init hole. Not @latest — install with @beta or the exact version.",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**@blxzer/cursor-trellis 0.5.0-beta.2**\n\n- feat(pool): when the user starts implementing an accepted pool item, write `## 切片` on that item and Open isolatable Fulls (or a Parent only if integration authority is required). Check helper `evaluate_pool_slice` fails Full/Parent missing `touches`, unrelated module pairs without `serial_reason` / `oversized_accepted`, and multi-link tasks whose PRD lacks per-item pool obligations. `pool.py validate` does **not** fail when `## 切片` is missing.\n- fix(init): ship `common/artifact_search.py` and `common/injection_budget.py` in the default `getAllScripts()` set. 0.5.0-beta.1 omitted them even though `pool_store` / `pool_refs` / `subagent_dispatch` / `task_context` import them at top level.\n- chore: empty migrations list (template sync via `cstl update`)",
+  "migrations": [],
+  "notes": "Prerelease. Install `@blxzer/cursor-trellis@0.5.0-beta.2` or `@beta`. Run `cstl update`. No `--migrate` required."
+}
