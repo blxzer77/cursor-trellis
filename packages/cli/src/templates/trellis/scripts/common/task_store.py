@@ -304,6 +304,15 @@ def _resolve_seed_spec_paths(
     for path in suggest_spec_targets(repo_root, task_dir, task_data):
         if path not in candidates:
             candidates.append(path)
+
+    guides_dir = repo_root / ".cstl" / "spec" / "guides"
+    if guides_dir.is_dir():
+        for guide in sorted(guides_dir.iterdir()):
+            if guide.is_file() and guide.suffix.lower() == ".md":
+                rel = f".cstl/spec/guides/{guide.name}"
+                if rel not in candidates:
+                    candidates.append(rel)
+
     for rel in _STABLE_SEED_PATHS:
         if rel not in candidates:
             candidates.append(rel)

@@ -370,6 +370,14 @@ def cmd_start_execution(args: argparse.Namespace) -> int:
             mode=read_depends_mode(task_data),
             blocking_summary=guard.deps_blocking_summary,
         )
+        # Kernel's start op resolves `requires` edges via extras.dependency_satisfied.
+        # --ignore-deps must mark the blocked depends_on refs satisfied so the
+        # Kernel transition is allowed, in the same write as the audit event.
+        depends_on = task_data.get("depends_on")
+        if isinstance(depends_on, list):
+            task_data["dependency_satisfied"] = [
+                str(ref) for ref in depends_on if isinstance(ref, str) and ref.strip()
+            ]
     if guard.baseline_record:
         write_gate_record(task_data, "start-execution", BASELINE_GATE, guard.baseline_record)
     for gate, record in guard.auto_gate_records.items():
