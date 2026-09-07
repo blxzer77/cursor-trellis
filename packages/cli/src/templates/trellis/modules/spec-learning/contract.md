@@ -6,6 +6,13 @@ P29 表名：`spec-learning`（不得改名）。层：on-demand。
 
 Close 窗口里，把**可复用**的约定写进长期知识（`.cstl/spec/`、ADR、Policy）。先提案、人确认、再写盘。`cstl-update-spec` 是本块的内部技能，不是用户 slash。`close-basic` 只产出学习 disposition（update-spec / no-update / unsure）；本块只在 disposition 需要写盘时才动手。不在 Execute 中改长期 spec，不把任务 `prd.md` 当长期 spec。
 
+## 写盘动作会有机器记录（只记事实、不拦写盘）
+
+对 `.cstl/spec/`、`docs/adr/`、Policy 文件的写盘动作（Write/Edit），机器会留一条审计记录：**谁写的（actor）、写盘时间、目标文件、有没有经过确认（经/未经验证）**。该记录由 hook（`.cursor/hooks/spec-write-audit.py`）落盘到 `.cstl/.runtime/hooks/spec-write.log`，与 `kernel.json` 审计链同属 History 轨，只作审计档案、不常驻注入窗口。
+
+- **机器记录 ≠ 机器裁决**：机器只记"有没有确认记录"这个**事实**，不做"内容对错"判定。对错由人裁决。
+- **只记录、不拦写盘**：记录失败不阻塞写盘；不因"未经验证"而拒绝写盘。本 gate 是记录不是门禁，任何情况下不因缺确认记录而挡住写盘。
+
 ## 触发/披露
 
 未触发当没装。Execute / Define / 日常修 bug 看不见本块。触发（可审计）：

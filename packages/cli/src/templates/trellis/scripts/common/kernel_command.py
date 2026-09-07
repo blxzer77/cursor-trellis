@@ -279,6 +279,7 @@ KERNEL_PROJECTION_EXTRA_KEYS = (
     "required_controls",
     "ac_evidence_ledger",
     "independent_check",
+    "notes_projection",
     "topology",
     "dependency_graph",
     "ondemand_modules",
