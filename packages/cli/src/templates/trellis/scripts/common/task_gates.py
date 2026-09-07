@@ -1291,7 +1291,11 @@ def _verify_evidence_errors(task_dir: Path, task_data: dict) -> list[str]:
         errors.append("verify.md missing validation evidence")
     if not status["acceptance"]:
         errors.append("verify.md missing final acceptance evidence")
-    if not status["durable_learning"]:
+    # Durable-learning is a learning decision, not task evidence. For Lite
+    # (one-off bugfix etc.) it is not a required slot: skip it so a Lite can
+    # close without forcing an explicit learning disposition (allow N/A).
+    # Full / Parent tasks still require a durable-learning decision.
+    if task_closeout_profile(task_dir, task_data) != "lite" and not status["durable_learning"]:
         errors.append("verify.md missing durable-learning decision evidence")
     if not status["integration"]:
         errors.append("verify.md missing final integration evidence")
