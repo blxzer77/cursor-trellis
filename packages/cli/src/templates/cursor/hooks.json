@@ -3,14 +3,14 @@
   "hooks": {
     "preToolUse": [
       {
-        "command": "{{PYTHON_CMD}} .cursor/hooks/spec-write-audit.py",
-        "matcher": "Write|Edit|NotebookEdit|ApplyDiff|MultipleDiff",
-        "timeout": 5
-      },
-      {
         "command": "{{PYTHON_CMD}} .cursor/hooks/inject-subagent-context.py",
         "matcher": "Task|Subagent",
         "timeout": 30
+      },
+      {
+        "command": "{{PYTHON_CMD}} .cursor/hooks/spec-write-audit.py",
+        "matcher": "Write|Edit|NotebookEdit|ApplyDiff|MultipleDiff",
+        "timeout": 5
       }
     ],
     "sessionStart": [
