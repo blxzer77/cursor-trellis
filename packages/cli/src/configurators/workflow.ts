@@ -38,6 +38,7 @@ import {
   guidesDebugLoopGuideContent,
   guidesPrototypeGuideContent,
   guidesTestDisciplineGuideContent,
+  guidesE2eWalkthroughGuideContent,
   guidesCrossPlatformThinkingGuideContent,
   frameworkDocs,
 } from "../templates/markdown/index.js";
@@ -325,6 +326,10 @@ async function createSpecTemplates(
     {
       name: "test-discipline-guide.md",
       content: guidesTestDisciplineGuideContent,
+    },
+    {
+      name: "e2e-walkthrough-guide.md",
+      content: guidesE2eWalkthroughGuideContent,
     },
     {
       name: "cross-platform-thinking-guide.md",

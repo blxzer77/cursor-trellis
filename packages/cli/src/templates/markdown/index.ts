@@ -106,6 +106,9 @@ export const guidesPrototypeGuideContent: string = readLocalTemplate(
 export const guidesTestDisciplineGuideContent: string = readLocalTemplate(
   "spec/guides/test-discipline-guide.md.txt",
 );
+export const guidesE2eWalkthroughGuideContent: string = readLocalTemplate(
+  "spec/guides/e2e-walkthrough-guide.md.txt",
+);
 export const guidesCrossPlatformThinkingGuideContent: string =
   readLocalTemplate("spec/guides/cross-platform-thinking-guide.md.txt");
 

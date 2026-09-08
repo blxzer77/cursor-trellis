@@ -24,6 +24,7 @@ These guides help you **ask the right questions before coding**.
 | [Durable Learning Decision Guide](./durable-learning-decision-guide.md) | Choose no-learning vs spec update vs learning artifact before archive | Finishing a task, parent review, or after `/cstl:break-loop` |
 | [Debug Loop Guide](./debug-loop-guide.md) | Debug discipline: tight red-capable feedback loop before hypotheses; six phases; `[DEBUG-xxx]` tags; Redact; PS7 HITL | User reports a hard bug / performance regression; diagnosis in progress (before `cstl-break-loop`) |
 | [Test Discipline Guide](./test-discipline-guide.md) | 测试写作纪律：pre-agreed seams、垂直切片、三反模式、mock 边界；**不是 TDD 要求** | Writing or reviewing tests; planning what to test; choosing mock boundaries |
+| [E2E Walkthrough Guide](./e2e-walkthrough-guide.md) | 大改端到端走查：prd→实现→verify→archive→notes_projection；小改不强制；**不是 Close 硬门** | Kernel / archive / 投影 / 任务生命周期接口的大改后 |
 | [Prototype Guide](./prototype-guide.md) | 原型纪律：一次性代码回答设计问题；问题决定形态；LOGIC/Python 默认、UI 原型按项目约定；折叠重写不 mv、留证 + 清理 | A design question needs a runnable throwaway answer (mechanism / state model / algorithm); folding a verdict into design or real code |
 | [Code Reuse Thinking Guide](./code-reuse-thinking-guide.md) | Identify patterns and reduce duplication | When you notice repeated patterns |
 | [Cross-Layer Thinking Guide](./cross-layer-thinking-guide.md) | Think through data flow across layers | Features spanning multiple layers |

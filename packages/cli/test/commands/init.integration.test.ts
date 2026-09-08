@@ -812,7 +812,7 @@ describe("init() integration", () => {
     expect(fs.existsSync(path.join(tmpDir, PATHS.MIDDLEWARE))).toBe(false);
   });
 
-  it("#10b spec/guides seeds stay init-only (7 thinking guides + index; no moved docs, no maintainer runbooks)", async () => {
+  it("#10b spec/guides seeds stay init-only (8 guides + index; no moved docs, no maintainer runbooks)", async () => {
     await init({ yes: true });
 
     const guidesDir = path.join(tmpDir, PATHS.SPEC, "guides");
@@ -823,10 +823,20 @@ describe("init() integration", () => {
       "cross-platform-thinking-guide.md",
       "debug-loop-guide.md",
       "durable-learning-decision-guide.md",
+      "e2e-walkthrough-guide.md",
       "index.md",
       "prototype-guide.md",
       "test-discipline-guide.md",
     ]);
+    expect(
+      fs.readFileSync(path.join(guidesDir, "index.md"), "utf-8"),
+    ).toContain("[E2E Walkthrough Guide](./e2e-walkthrough-guide.md)");
+    expect(
+      fs.readFileSync(
+        path.join(guidesDir, "test-discipline-guide.md"),
+        "utf-8",
+      ),
+    ).toContain("[E2E Walkthrough Guide](./e2e-walkthrough-guide.md)");
 
     // None of the relocated framework docs ship under spec/guides/
     // (index.md stays in both locations by design — spec seed + framework index)
