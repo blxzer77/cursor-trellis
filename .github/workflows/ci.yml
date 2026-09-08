@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, beta]
   pull_request:
-    branches: [main]
+    branches: [main, beta]
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -12,7 +12,12 @@ concurrency:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    name: test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       # Default fetch-depth is 1. Tests must not `git show` historical SHAs or
       # retired blobs — rewritten history and shallow clones will fail red.
@@ -33,7 +38,16 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
       - name: Materialize dogfood for tests
+        # Git Bash is available on both hosted runners. Keeping one materializer
+        # means Linux and Windows execute the same test fixture.
+        shell: bash
         run: |
           rm -rf .cursor/rules .cursor/agents .cstl/scripts
           mkdir -p .cursor/rules .cursor/agents .cstl/scripts
@@ -50,3 +64,12 @@ jobs:
 
       - name: Mirror-check
         run: pnpm mirror-check
+
+      - name: Verify package file contract
+        run: pnpm --filter @blxzer/cursor-trellis check:pack-files
+
+      - name: Verify release tarball contents
+        run: pnpm --filter @blxzer/cursor-trellis check:release-pack
+
+      - name: Verify packed dependency and bins
+        run: node packages/cli/scripts/release-preflight.js verify-packed-cli
