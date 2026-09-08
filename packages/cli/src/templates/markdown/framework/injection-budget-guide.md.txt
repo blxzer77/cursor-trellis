@@ -10,7 +10,7 @@
 
 - **No `beforeSubmitPrompt` injection** — C04 stays telemetry-only until Cursor changelog proves otherwise.
 - **No black-box silent injection** — Layer 2 and jsonl loads emit stderr manifest lines.
-- **No weakening gates** — Triage (`cstl-triage.mdc`), execution approval, and retrieval policy remain always-on.
+- **No weakening active controls** — execution approval and retrieval policy remain enforced. Intake is handled by `intake-basic`; it has no `[Triage:]` line, and the removed `cstl-triage.mdc` is not an always-on gate.
 - **No Auto-Trigger Skill as retrieval primary** — C16 stays Rules + `route_codebase_retrieval.py --instructions`.
 
 ---
@@ -20,7 +20,7 @@
 | Tier | Channels | When | Budget |
 | --- | --- | --- | --- |
 | **Per-turn hard** | C01 Rules, C02 AGENTS | Every agent turn | Rules total warn 20 KiB / fail 32 KiB; AGENTS CSTL block warn 4 KiB |
-| **Session once** | C03 sessionStart | New session | Keep dashboard/workflow summary compact; not a substitute for per-turn rules |
+| **Session once** | C03 sessionStart | New session | Keep the context-progressive Session pack compact; not a substitute for per-turn rules |
 | **Zero** | C04 beforeSubmit | Every message | **0** — log only |
 | **Subagent only** | C06 Layer 2 | `generate_dispatch_prompt` → Task | Role default `max_chars` + jsonl caps (§3) |
 | **On demand** | C16 retrieval | When agent needs a plan | Rules default order or router CLI; no per-message plan block |

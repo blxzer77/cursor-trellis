@@ -1,0 +1,93 @@
+# E2E Walkthrough Guide（端到端走查）
+
+> **Purpose**: 大改 CSTL 内核 / 归档 / 投影 / 任务生命周期接口时，走一遍合成或真实任务：`prd → 实现 → verify → archive → 检查 notes_projection 落盘`。小改不强制。走查是约定，**不是 Close / archive 硬门**。
+
+---
+
+## 1. Non-goals
+
+- **不是 Close 硬门**：走查失败只报告；不得接入 `task.py archive` 硬失败，不得新增 Close gate。
+- **不是合成任务 runner 平台**：不实现完整编排器。约定 + 可选小脚本足够。
+- **不替代测试积木 / P08**：何时写软件测试、怎么写，见 [Test Discipline Guide](./test-discipline-guide.md)。
+- **不替代 P06**：closeout 要验多深仍由 Verification Strength Guide 管。本 guide 不重写 P06。
+- **不改投影实现**：`build_notes_projection` 行为由记忆层任务拥有（P41 / P42 wave2）。本 guide **引用**投影槽，不改它。
+- **不削弱 kernel 护栏**：`.cstl/scripts/common/test_task_gates.py` 等接口完整性测试保留；大改后仍应跑，但那是既有护栏，不是本走查新门。
+
+## 2. When — large change vs skip
+
+**必走查（大改）** — 改动触及任一：
+
+- kernel 命令 / `kernel.json` extras 契约
+- `task.py archive` / `_archive_one_task` / 归档路径
+- `notes_projection` 槽的写入或收集（白名单、落盘位置）
+- 任务生命周期接口（create / start-execution / record-gate / archive 的签名或记账语义）
+
+**不强制（小改）** — 文档措辞、指南、错别字、与归档路径无关的注释、单一旁路脚本且不碰上述接口。模型仍可自愿走查；跳过时在 `verify.md` 写一句即可，例如：`E2E walkthrough: skipped — docs-only, no kernel/archive/lifecycle change`。
+
+## 3. Path
+
+用一个**合成任务**（docs-only / no-op 切片即可）或一个**即将归档的真实任务**：
+
+1. **prd** — 任务有 `prd.md`（合成任务可极短：一个可验收句子）。
+2. **实现** — 合成任务可以是空切片或只改文档；真实任务则是本次大改本身。
+3. **verify** — 按 P06 写 `verify.md`（至少有可 grep 的 Validation / Acceptance / Durable learning 行，深度随 rigor）。
+4. **archive** — 先非变更预检，再归档（或只做 `--check` 并在 `verify.md` 记录「稍后正式 archive」——预检不能代替投影落盘；**投影断言必须对着已归档的 `kernel.json`**）：
+
+   ```powershell
+   python ./.cstl/scripts/task.py archive <task-dir> --check
+   python ./.cstl/scripts/task.py archive <task-dir>
+   ```
+
+5. **检查 `notes_projection` 落盘** — 归档后的 `kernel.json` 里 **`projection.extras.notes_projection`** 存在且为对象。`summary` 为空不失败（P41：缺要点不挡 Close，只留槽）。
+
+合成任务若只为走查而建：走完后按正常流程归档，不要把它做成新的机器门槛。
+
+## 4. Checklist
+
+大改收工前（人工或 Agent）：
+
+- [ ] 触发判断：本次是 kernel / archive / 投影 / 生命周期接口大改（否则 skip）
+- [ ] `prd.md` 存在且有可验收句子
+- [ ] 实现完成（合成任务允许 no-op / docs-only）
+- [ ] `verify.md` 有任务验证证据（P06 深度）
+- [ ] `python ./.cstl/scripts/task.py archive <task> --check` 可解释的通过或已记录的阻塞原因（阻塞时先修证据，不把走查脚本接到 archive）
+- [ ] 正式 `archive` 后，归档目录 `kernel.json` 的 `projection.extras` 含 `notes_projection`
+- [ ] 触及投影/归档代码时，另跑既有护栏（仍不是 Close 门）：
+
+  ```powershell
+  python -m pytest .cstl/scripts/common/test_task_gates.py -q
+  ```
+
+可选检查脚本（只打印 PASS/FAIL，不调用 archive，不接入硬门）：
+
+```powershell
+python ./.cstl/scripts/e2e_walkthrough_check.py
+python ./.cstl/scripts/e2e_walkthrough_check.py .cstl/tasks/archive/<yyyy-mm>/<task>
+```
+
+无参数打印本清单；给定归档任务目录或 `kernel.json` 时，断言 `projection.extras.notes_projection` 槽存在。退出码 1 仅表示这次检查未看到槽——**不是** `task.py archive` 失败。
+
+## 5. What “projection landed” means
+
+归档后 `kernel.json` 形如：
+
+```json
+{
+  "projection": {
+    "extras": {
+      "notes_projection": {
+        "schema_version": 1,
+        "summary": "<may be empty>",
+        "pointers": ["<archived task path>", ".../verify.md"],
+        "source": "cmd_archive"
+      }
+    }
+  }
+}
+```
+
+- **PASS**：`projection.extras.notes_projection` 存在且为 object。
+- **仍 PASS**：`summary` 为 `""`（缺要点留痕，不挡 Close）。
+- **FAIL（仅走查报告）**：归档后仍无该槽。去查 archive 是否真的跑过、extras 白名单是否仍含 `notes_projection`（修代码，而不是加硬门）。
+
+Wave2 若为投影点增加 `source` / `confidence`，走查仍只断言**槽落盘**；不把置信度缺失当失败。

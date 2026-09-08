@@ -14,16 +14,6 @@ import {
   commonArtifactSearch,
   commonSessionMemory,
   commonSmartSearchEvidence,
-  commonSmartSearchResolve,
-  commonRetrievalEvidence,
-  commonCodebaseRetrievalRouter,
-  commonProjectFileStats,
-  commonRetrievalAgentInstructions,
-  commonContextPack,
-  commonRetrievalPack,
-  commonRetrievalPackContext,
-  routeCodebaseRetrievalScript,
-  codegraphSessionSmokeScript,
   getDeveloperScript,
   initDeveloperScript,
   taskScript,
@@ -32,8 +22,6 @@ import {
   searchArtifactsScript,
   searchMemoryScript,
   runSmartSearchScript,
-  buildContextPackScript,
-  buildRetrievalPackScript,
   workflowMdTemplate,
   gitignoreTemplate,
   getAllScripts,
@@ -88,10 +76,6 @@ describe("trellis template constants", () => {
     return fs.readFileSync(workflowPath, "utf-8");
   }
 
-  function inProgressBreadcrumb(): string {
-    return workflowStateBreadcrumb("in_progress");
-  }
-
   function workflowStateBreadcrumb(status: string): string {
     const match = new RegExp(
       `^\\[workflow-state:${status}\\]\\r?\\n([\\s\\S]*?)^\\[/workflow-state:${status}\\]`,
@@ -101,17 +85,6 @@ describe("trellis template constants", () => {
     );
     if (!match) {
       throw new Error(`${status} breadcrumb block must exist in workflow.md`);
-    }
-    return match[1];
-  }
-
-  function stepSection(step: string): string {
-    const pattern = new RegExp(
-      `#### ${step.replace(".", "\\.")}[^\\n]*\\n([\\s\\S]*?)(?=\\n#### |\\n### |$)`,
-    );
-    const match = pattern.exec(workflowMdTemplate);
-    if (!match) {
-      throw new Error(`workflow.md step ${step} must exist`);
     }
     return match[1];
   }
@@ -188,67 +161,62 @@ describe("trellis template constants", () => {
     }
   });
 
-  it("[issue-225] workflow.md in_progress breadcrumb has class-2 sub-agent dispatch protocol", () => {
-    // Cursor-only fork: dispatch guidance targets Cursor sub-agents via
-    // Selected task path injection (no multi-platform host list).
-    const block = inProgressBreadcrumb();
-    expect(block).toContain("Selected task:");
-    expect(block.toLowerCase()).toContain("dispatch prompt");
+  it("workflow.md is a thin interface card, not the runtime SSOT", () => {
+    expect(workflowMdTemplate).toMatch(/Human overview[^\n]*not runtime SSOT/i);
+    expect(workflowMdTemplate).toContain("## Interfaces");
+    for (const artifact of [
+      "`prd.md`",
+      "`implement.md`",
+      "`verify.md`",
+      "`task.json`",
+      "`kernel.json`",
+    ]) {
+      expect(workflowMdTemplate).toContain(artifact);
+    }
+    expect(workflowMdTemplate).not.toContain("## Phase Index");
+    expect(workflowMdTemplate).not.toContain("Request Triage");
+    expect(workflowMdTemplate).not.toContain("MANDATORY TRIAGE");
+    expect(workflowMdTemplate).not.toContain("[Triage:");
   });
 
-  it("workflow.md planning breadcrumbs mention parent child split guidance", () => {
-    const planning = workflowStateBreadcrumb("planning");
-    expect(planning).toContain("Multi-deliverable scope");
-    expect(planning).toContain("parent task plus independently verifiable child tasks");
-    expect(planning).toContain("not implied by tree position");
+  it("workflow.md keeps the Execute and Close command signatures", () => {
+    expect(workflowMdTemplate).toContain(
+      "task.py start-execution <task> --approved",
+    );
+    expect(workflowMdTemplate).toContain("task.py archive <task>");
+    expect(workflowMdTemplate).toContain("`--check` is preflight only");
   });
 
-  it("[issue-237] workflow.md in_progress breadcrumb self-exempts implement/check sub-agents", () => {
-    const block = inProgressBreadcrumb();
-    expect(block).toContain("execution_mode");
-    expect(block).toContain("`worker`");
-    expect(block).toContain("Sub-agent self-exemption");
-    expect(block).toContain("already running as `cstl-implement`");
-    expect(block).toContain("do NOT spawn another `cstl-implement`");
-    expect(block).toContain("already running as `cstl-check`");
-    expect(block).toContain("do NOT spawn another `cstl-check`");
-    expect(block).toContain("main session only");
-  });
-
-  it("[issue-237] workflow.md Phase 2 dispatch steps require prompt recursion guards", () => {
-    expect(workflowMdTemplate).toContain("execution_mode");
-    expect(workflowMdTemplate).toContain("cstl-implement");
-    expect(workflowMdTemplate).toContain(
-      "must not spawn another `cstl-implement` / `cstl-check`",
+  it("workflow.md keeps concise workflow-state breadcrumbs", () => {
+    for (const status of ["no_task", "planning", "in_progress", "completed"]) {
+      const lines = workflowStateBreadcrumb(status)
+        .trim()
+        .split(/\r?\n/)
+        .filter(Boolean);
+      expect(lines.length, `${status} should contain one or two fact lines`).toBeGreaterThan(0);
+      expect(lines.length, `${status} should stay concise`).toBeLessThanOrEqual(2);
+    }
+    expect(workflowStateBreadcrumb("planning")).toContain(
+      "task.py start-execution --approved",
     );
-    expect(workflowMdTemplate).toContain("cstl-check");
-    expect(workflowMdTemplate).toContain(
-      "must not spawn another check/implement agent",
-    );
-  });
-
-  it("workflow.md documents parent child task tree responsibilities", () => {
-    expect(workflowMdTemplate).toContain("### Parent / Child Task Trees");
-    expect(workflowMdTemplate).toContain(
-      "several independently verifiable deliverables",
-    );
-    expect(workflowMdTemplate).toContain(
-      "Ordering between deliverables is an explicit declaration, not an implicit system",
-    );
-    expect(workflowMdTemplate).toContain("--parent <parent-dir>");
-    expect(workflowMdTemplate).toContain("task.py add-subtask <parent> <child>");
-    expect(workflowMdTemplate).toContain(
-      "start the child that owns the next independently verifiable deliverable",
+    expect(workflowStateBreadcrumb("in_progress")).toContain(
+      "task.py archive",
     );
   });
 
-  it("workflow.md step 1.1 includes parent child split guidance", () => {
-    const step = stepSection("1.1");
-    expect(step).toContain("When considering a parent/child split");
-    expect(step).toContain("Parent tasks own source requirements");
-    expect(step).toContain("Child tasks own actual deliverables");
-    expect(step).toContain("not an implicit Parent/child edge");
-    expect(step).toContain("Do not start the parent unless");
+  it("workflow.md points detailed methods to framework docs", () => {
+    expect(workflowMdTemplate).toContain(
+      ".cstl/framework/parallel-first-execution.md",
+    );
+    expect(workflowMdTemplate).toContain(
+      ".cstl/framework/verification-strength-guide.md",
+    );
+    expect(workflowMdTemplate).toContain(
+      ".cstl/framework/retrieval-daily-guide.md",
+    );
+    expect(workflowMdTemplate).toContain(
+      ".cstl/framework/cursor-subagent-policy.md",
+    );
   });
 
   it("gitignoreTemplate contains ignore patterns", () => {
@@ -257,29 +225,6 @@ describe("trellis template constants", () => {
     expect(gitignoreTemplate).toContain("__pycache__");
   });
 
-  it("workflow.md documents reusable research artifact metadata", () => {
-    expect(workflowMdTemplate).toContain("Optional reusable-research frontmatter");
-    expect(workflowMdTemplate).toContain("doc_type: research");
-    expect(workflowMdTemplate).toContain("status: active");
-    expect(workflowMdTemplate).toContain("confidence: medium");
-    expect(workflowMdTemplate).toContain("related_files:");
-    expect(workflowMdTemplate).toContain("Quick Answer");
-    expect(workflowMdTemplate).toContain("Key Evidence");
-  });
-
-  it("workflow.md connects retrieval layers to task evidence artifacts", () => {
-    expect(workflowMdTemplate).toContain("**Retrieval during research**");
-    expect(workflowMdTemplate).toContain("search_artifacts.py --query");
-    expect(workflowMdTemplate).toContain("durable Trellis specs");
-    expect(workflowMdTemplate).toContain("codebase-retrieval");
-    expect(workflowMdTemplate).toContain("candidate -> corroborated candidate");
-    expect(workflowMdTemplate).toContain(
-      "Record exploratory chains in `{TASK_DIR}/research/`",
-    );
-    expect(workflowMdTemplate).toContain(
-      "unresolved adapter or artifact-search gaps belong in `verify.md`",
-    );
-  });
 });
 
 function importNames(raw: string): string[] {

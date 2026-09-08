@@ -10,10 +10,28 @@ import {
   hasLegacyTrellisBlock,
   removeCstlManagedBlock,
 } from "../../src/utils/agents-md.js";
+import { agentsMdContent } from "../../src/templates/markdown/index.js";
 
 const CSTL_BLOCK = `${CSTL_BLOCK_START}\n# cursor-trellis managed\n${CSTL_BLOCK_END}`;
 const TRELLIS_BLOCK = `${LEGACY_TRELLIS_BLOCK_START}\n# upstream trellis managed\n${LEGACY_TRELLIS_BLOCK_END}`;
 const TEMPLATE_WITH_CSTL = `${CSTL_BLOCK_START}\n# cursor-trellis managed\n${CSTL_BLOCK_END}`;
+
+describe("AGENTS.md product template", () => {
+  it("is only the managed CSTL pointer block", () => {
+    const trimmed = agentsMdContent.trim();
+    expect(trimmed.startsWith(CSTL_BLOCK_START)).toBe(true);
+    expect(trimmed.endsWith(CSTL_BLOCK_END)).toBe(true);
+    expect(trimmed.match(new RegExp(CSTL_BLOCK_START, "g"))?.length).toBe(1);
+    expect(trimmed).toContain("Working knowledge is pointers, not a playbook");
+    expect(trimmed).toContain("`.cstl/framework/index.md`");
+    expect(trimmed).toContain("`.cstl/workflow.md` — interface card (not runtime SSOT)");
+    expect(trimmed).toContain("`docs/` — harness docs");
+    expect(trimmed).toContain("`cstl-continue`");
+    expect(trimmed).not.toContain("## Command surface");
+    expect(trimmed).not.toContain("## Internal skill reachability");
+    expect(trimmed).not.toContain(".cstl/spec/");
+  });
+});
 
 describe("insertCstlManagedBlock", () => {
   it("appends CSTL block when no managed block exists", () => {

@@ -20,16 +20,35 @@ describe("cursor getAllAgents", () => {
     expect(names).toEqual(EXPECTED_AGENT_NAMES);
   });
 
-  it("cstl-check declares Cursor reviewer id and record-gate boundary", () => {
+  it("keeps all three agents dispatchable, recursion-safe, and off the workflow SSOT", () => {
+    const expectedDispatchKinds = new Map([
+      ["cstl-check", "check"],
+      ["cstl-implement", "implement"],
+      ["cstl-research", "research"],
+    ]);
+
+    for (const agent of getAllAgents()) {
+      const dispatchKind = expectedDispatchKinds.get(agent.name);
+      expect(dispatchKind, `${agent.name} should have a dispatch kind`).toBeDefined();
+      expect(agent.content).toContain(
+        `generate_dispatch_prompt.py --agent ${dispatchKind}`,
+      );
+      expect(agent.content).toContain("## Recursion Guard");
+      expect(agent.content).toMatch(
+        /not (?:a )?runtime SSOT|not `\.cstl\/workflow\.md`/i,
+      );
+      expect(agent.content).toMatch(/## (?:Forbidden Operations|Write FORBIDDEN)/);
+      for (const command of ["git commit", "git push", "git merge"]) {
+        expect(agent.content).toContain(`\`${command}\``);
+      }
+    }
+  });
+
+  it("cstl-check keeps optional gate evidence without owning baseline-check", () => {
     const checkAgent = getAllAgents().find(
       (agent) => agent.name === "cstl-check",
     );
-    expect(checkAgent?.content).toContain("Reviewer id: `cursor`");
     expect(checkAgent?.content).toContain("task.py record-gate");
-    expect(checkAgent?.content).toContain("--reviewer cursor");
-    expect(checkAgent?.content).toContain(
-      "--root-cause implementation-defect|contract-changing-defect|validation-environment-blocker",
-    );
     expect(checkAgent?.content).toContain("Never record `baseline-check`");
     expect(checkAgent?.content).toContain("verify.md");
   });

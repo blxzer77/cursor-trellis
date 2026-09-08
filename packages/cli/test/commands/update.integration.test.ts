@@ -660,9 +660,11 @@ describe("update() integration", () => {
       CSTL_BLOCK_START,
       CSTL_BLOCK_END,
     );
-    expect(expectedBlock).not.toBeNull();
+    if (expectedBlock === null) {
+      throw new Error("updated AGENTS.md must contain the managed CSTL block");
+    }
     expect(readHashesV2(hashFile)[targetRelative]).toBe(
-      computeHash(expectedBlock!),
+      computeHash(expectedBlock),
     );
   });
 
@@ -913,7 +915,13 @@ describe("update() integration", () => {
     expect(readProjectFile(PATHS.WORKFLOW_GUIDE_FILE)).toBe(expectedWorkflow);
     expect(readProjectFile(MANAGED_FILE)).toBe(expectedGetContext);
     expect(readProjectFile(PATHS.WORKFLOW_GUIDE_FILE)).toContain(
-      "Selected task:",
+      "## Interfaces",
+    );
+    expect(readProjectFile(PATHS.WORKFLOW_GUIDE_FILE)).toContain(
+      "[workflow-state:in_progress]",
+    );
+    expect(readProjectFile(PATHS.WORKFLOW_GUIDE_FILE)).not.toContain(
+      "Request Triage",
     );
     expect(readProjectFile(PATHS.WORKFLOW_GUIDE_FILE)).not.toContain(
       "[Codex]",
@@ -1380,7 +1388,7 @@ describe("update() integration", () => {
     ).toBe(false);
   });
 
-  it("#workflow-md-r4 updates workflow.md as one runtime template when hash-tracked", async () => {
+  it("#workflow-md-r4 updates workflow.md as one interface-card template when hash-tracked", async () => {
     await setupProject();
 
     const workflowPath = path.join(tmpDir, PATHS.WORKFLOW_GUIDE_FILE);
@@ -1397,8 +1405,8 @@ describe("update() integration", () => {
     fs.writeFileSync(workflowPath, staleWorkflow, "utf-8");
 
     // Simulate an older installed workflow.md that is still pristine relative
-    // to the version that installed it. Update must replace the whole file:
-    // platform markers outside [workflow-state:*] blocks are runtime-parsed too.
+    // to the version that installed it. Update must replace the whole managed
+    // file, removing stale long-form workflow teaching and platform markers.
     const hashFile = path.join(
       tmpDir,
       DIR_NAMES.WORKFLOW,
@@ -1412,8 +1420,11 @@ describe("update() integration", () => {
 
     const updated = fs.readFileSync(workflowPath, "utf-8");
     expect(updated).toBe(replacePythonCommandLiterals(workflowMdTemplate));
-    expect(updated).toContain("Selected task:");
-    expect(updated).toContain("cstl-implement");
+    expect(updated).toMatch(/Human overview[^\n]*not runtime SSOT/i);
+    expect(updated).toContain("## Interfaces");
+    expect(updated).toContain("[workflow-state:in_progress]");
+    expect(updated).not.toContain("Request Triage");
+    expect(updated).not.toContain("[Triage:");
     expect(updated).not.toContain("[Codex]");
     expect(updated).not.toContain("legacy body");
 
