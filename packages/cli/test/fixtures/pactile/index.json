@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "scenarios": [
+    {
+      "id": "cstl-0.4.3",
+      "provenanceKind": "release-derived",
+      "sourceRef": "cstl-v0.4.3",
+      "sourceCommit": "768bffdc58d83917d1089f334910ddd8e89c2c8e",
+      "sourcePath": "packages/cli/package.json",
+      "contentClasses": ["active", "closed-history"],
+      "manifestSha256": "ca3cce81e56354f84b43c2957fa1523f745a01bcd188ef1ab6be29675192215e"
+    },
+    {
+      "id": "cstl-0.5.0-beta.0",
+      "provenanceKind": "release-derived",
+      "sourceRef": "cstl-v0.5.0-beta.0",
+      "sourceCommit": "e0e50acabc077653f408031f6861b7d07ed6a868",
+      "sourcePath": "packages/cli/package.json",
+      "contentClasses": ["active"],
+      "manifestSha256": "820d63192f55bf40504c147d3f4b3a40bc55823b0d45f933ac84f8bc57470f70"
+    },
+    {
+      "id": "cstl-0.5.0-beta.5",
+      "provenanceKind": "release-derived",
+      "sourceRef": "cstl-v0.5.0-beta.5",
+      "sourceCommit": "e8c05a1f7e7f3f49f605cc4f056be5a4eb44af73",
+      "sourcePath": "packages/cli/package.json",
+      "contentClasses": ["active"],
+      "manifestSha256": "ef693c43726eacf05ddbbf28cf16d14a0bcf48d056ad77f15ddaa9ad2cc91284"
+    },
+    {
+      "id": "fresh",
+      "provenanceKind": "representative",
+      "sourceRef": null,
+      "sourceCommit": null,
+      "sourcePath": null,
+      "contentClasses": [],
+      "manifestSha256": "9d26b24298c4fd38776e3eab0bf8ce8d51c459a7b4be5654841ef0080add2b5e"
+    },
+    {
+      "id": "generated-lifecycle",
+      "provenanceKind": "representative",
+      "sourceRef": null,
+      "sourceCommit": null,
+      "sourcePath": null,
+      "contentClasses": ["active"],
+      "manifestSha256": "2c3603ee04623d13064572cd933f5809bcba3223300ceca192e8ffa26f5430e4"
+    },
+    {
+      "id": "malformed-manifest",
+      "provenanceKind": "representative",
+      "sourceRef": null,
+      "sourceCommit": null,
+      "sourcePath": null,
+      "contentClasses": ["active"],
+      "manifestSha256": "1e60ad3348e5301b8fe462a4296908d64773d2e0323a7f1b1aec786861ac2c96"
+    },
+    {
+      "id": "mixed-interrupted",
+      "provenanceKind": "representative",
+      "sourceRef": null,
+      "sourceCommit": null,
+      "sourcePath": null,
+      "contentClasses": ["active"],
+      "manifestSha256": "03467f203521bc762220df270dacc5942d2c554e61653779594f0e03445fc962"
+    },
+    {
+      "id": "trellis-legacy",
+      "provenanceKind": "representative",
+      "sourceRef": null,
+      "sourceCommit": null,
+      "sourcePath": null,
+      "contentClasses": ["active"],
+      "manifestSha256": "8c4fb5f6fa4dde569ca40c7c042ff28c44e9dc30f247406dc3ab390e84957030"
+    },
+    {
+      "id": "unknown-ledger",
+      "provenanceKind": "representative",
+      "sourceRef": null,
+      "sourceCommit": null,
+      "sourcePath": null,
+      "contentClasses": ["active"],
+      "manifestSha256": "587b55e09d74c7a8e84ef3ec1ae499bb4673d17db94ed96367d7cc446102deab"
+    },
+    {
+      "id": "user-modified-adopted",
+      "provenanceKind": "representative",
+      "sourceRef": null,
+      "sourceCommit": null,
+      "sourcePath": null,
+      "contentClasses": ["active"],
+      "manifestSha256": "c1d0747656198a92d01747cd07e4e584db835bf02aad81203cd31fd40cc5eda8"
+    }
+  ]
+}

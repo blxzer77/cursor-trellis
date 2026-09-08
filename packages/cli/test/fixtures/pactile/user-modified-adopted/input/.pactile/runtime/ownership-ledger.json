@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "generationId": "generation.stable",
+  "updatedAt": "2026-09-09T10:15:00Z",
+  "entries": [
+    {
+      "resourceId": "skill.external.review",
+      "targetPath": ".agents/skills/external-review/SKILL.md",
+      "format": "text",
+      "origin": "adopted",
+      "control": "borrowed",
+      "owner": { "kind": "external", "id": "user" },
+      "claimants": [
+        { "id": "adapter.cursor", "kind": "adapter", "adapterId": "cursor" },
+        { "id": "adapter.codex", "kind": "adapter", "adapterId": "codex" }
+      ],
+      "preimage": {
+        "state": "present",
+        "fingerprint": "sha256:239a243ee25ee64fbaa04a34ef2ab9a9a8bb26f4fd08039398fd1af0c521af53",
+        "contentRef": null
+      },
+      "generated": { "state": "absent", "fingerprint": null, "contentRef": null },
+      "current": {
+        "state": "present",
+        "fingerprint": "sha256:239a243ee25ee64fbaa04a34ef2ab9a9a8bb26f4fd08039398fd1af0c521af53",
+        "contentRef": null
+      },
+      "conflict": "none",
+      "disposition": "preserve-borrowed"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "unknown-ledger",
+  "provenance": {
+    "kind": "representative",
+    "reason": "Host projections exist without an ownership ledger"
+  },
+  "traits": [
+    "unknown-ledger",
+    "missing-ledger",
+    "adoption-candidate",
+    "requires-explicit-adoption"
+  ],
+  "files": [
+    {
+      "path": ".agents/skills/team-skill/SKILL.md",
+      "sha256": "82134a49638ee332c9373e076642ea1a02de39cd77fd7b18a15e0081e00748ad",
+      "policy": "manual-review"
+    },
+    {
+      "path": "AGENTS.md",
+      "sha256": "8a3246ad1d89cebc9caffeb756c7f7fae916e8a373cc31344b7c23ba5141b060",
+      "policy": "manual-review"
+    }
+  ]
+}

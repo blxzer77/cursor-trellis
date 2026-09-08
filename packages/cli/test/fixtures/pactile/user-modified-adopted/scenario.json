@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "id": "user-modified-adopted",
+  "provenance": {
+    "kind": "representative",
+    "reason": "User-owned Skill and MCP coexist with a modified managed projection"
+  },
+  "traits": ["managed-modified", "preexisting-adopted", "foreign-config"],
+  "expectations": {
+    "legacyInputs": "read-only",
+    "allowedWriteRoots": [".pactile"],
+    "requiresExplicitImport": false
+  },
+  "files": [
+    {
+      "path": ".agents/skills/external-review/SKILL.md",
+      "sha256": "239a243ee25ee64fbaa04a34ef2ab9a9a8bb26f4fd08039398fd1af0c521af53",
+      "policy": "preserve-borrowed"
+    },
+    {
+      "path": ".cstl/.template-hashes.json",
+      "sha256": "1d10bfed6c658567a43dd2c8ca5a60416bd5dfffe46c90a432dd7b4895e182d4",
+      "policy": "manual-review"
+    },
+    {
+      "path": ".cursor/mcp.json",
+      "sha256": "e49bd44a4a8cd4ba829165b670dad84931bbada4c6136106040205cb0b5b08dc",
+      "policy": "preserve-borrowed"
+    },
+    {
+      "path": ".pactile/runtime/ownership-ledger.json",
+      "sha256": "9a69de0ba48ed2b3a365debbb30ba61fc5ca98d2591a0244e95ae8a20fb905f7",
+      "policy": "no-op"
+    },
+    {
+      "path": "AGENTS.md",
+      "sha256": "43b268376c994cfafd3bcdb5f44fb5bdde2784360f02bdad371ea8cce57df6e9",
+      "policy": "preserve-modified"
+    }
+  ]
+}

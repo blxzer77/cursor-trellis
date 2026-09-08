@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "id": "cstl-0.4.3",
+  "provenance": {
+    "kind": "release-derived",
+    "ref": "cstl-v0.4.3",
+    "commit": "768bffdc58d83917d1089f334910ddd8e89c2c8e",
+    "sourcePath": "packages/cli/package.json",
+    "derivation": "The release version is represented as the installed .cstl/.version value; task records are minimal representatives."
+  },
+  "traits": [
+    "release:0.4.3",
+    "legacy:.cstl",
+    "active-schema-transform",
+    "closed-byte-preserved",
+    "missing-ledger"
+  ],
+  "expectations": {
+    "legacyInputs": "read-only",
+    "allowedWriteRoots": [".pactile"],
+    "requiresExplicitImport": false
+  },
+  "files": [
+    {
+      "path": ".cstl/.version",
+      "sha256": "520a19075780a38b440395e2c70e20d7cddd96b8c2e2c2403b265cbb74a1b333",
+      "policy": "active-transform"
+    },
+    {
+      "path": ".cstl/tasks/01-02-active/task.json",
+      "sha256": "1391a4b4b6d43521e2234ab6c1e5bdcdf48f8547ac4b913a14e3e072dc757ef6",
+      "policy": "active-transform"
+    },
+    {
+      "path": ".cstl/tasks/archive/2026-01/01-01-closed/verify.md",
+      "sha256": "07ed5f78b53408c42e56e260df6f4ea89fd90a6fbbe859c0159d51b4eee56c2b",
+      "policy": "byte-preserved"
+    }
+  ]
+}

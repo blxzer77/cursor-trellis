@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "id": "cstl-0.5.0-beta.5",
+  "provenance": {
+    "kind": "release-derived",
+    "ref": "cstl-v0.5.0-beta.5",
+    "commit": "e8c05a1f7e7f3f49f605cc4f056be5a4eb44af73",
+    "sourcePath": "packages/cli/package.json",
+    "derivation": "The release version is represented as the installed .cstl/.version value; managed hashes and hook output are minimal representatives."
+  },
+  "traits": [
+    "release:0.5.0-beta.5",
+    "legacy:.cstl",
+    "generated-unchanged",
+    "active-schema-transform"
+  ],
+  "expectations": {
+    "legacyInputs": "read-only",
+    "allowedWriteRoots": [".pactile"],
+    "requiresExplicitImport": false
+  },
+  "files": [
+    {
+      "path": ".cstl/.template-hashes.json",
+      "sha256": "284d997b5a6604cde3989b095524c187c9d735b1834df3c957714ca7dd92cefc",
+      "policy": "active-transform"
+    },
+    {
+      "path": ".cstl/.version",
+      "sha256": "69b4129246fe257f0c175f40946915c445014945fe087990028f18c79e04e14f",
+      "policy": "active-transform"
+    },
+    {
+      "path": ".cursor/hooks.json",
+      "sha256": "887820009578e8dc55e174da5873b4025cde40c5b0c33e750b69238b3c158079",
+      "policy": "no-op"
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "id": "generated-lifecycle",
+  "provenance": {
+    "kind": "representative",
+    "reason": "Generated projection write, rollback restore, and final-claimant uninstall removal"
+  },
+  "traits": [
+    "generated-write",
+    "rollback-restore",
+    "uninstall-remove",
+    "contract:v1"
+  ],
+  "lifecycleExpectations": [
+    {
+      "targetPath": ".cursor/rules/pactile-obsolete.mdc",
+      "disposition": "remove-generated",
+      "sourcePath": null
+    },
+    {
+      "targetPath": ".cursor/hooks.json",
+      "disposition": "restore-preimage",
+      "sourcePath": ".pactile/runtime/preimages/cursor-hooks.json"
+    },
+    {
+      "targetPath": ".cursor/rules/pactile-current.mdc",
+      "disposition": "write-generated",
+      "sourcePath": ".pactile/runtime/generated/cursor-rule.mdc"
+    }
+  ],
+  "files": [
+    {
+      "path": ".cursor/hooks.json",
+      "sha256": "9ac3d2157ddad5bea62ea62e219aacba8318b61926e014394f7e08dcd1da1eb7",
+      "policy": "restore-preimage"
+    },
+    {
+      "path": ".cursor/rules/pactile-current.mdc",
+      "sha256": "16d617e543f73ff71443140fbd800b8e4a45fc3e7722ad1b0e31a52ac615dcb3",
+      "policy": "write-generated"
+    },
+    {
+      "path": ".cursor/rules/pactile-obsolete.mdc",
+      "sha256": "a27ca847b161e1d50396b115f206c37305561f8ea3c833bf5df6f04fc50323f3",
+      "policy": "remove-generated"
+    },
+    {
+      "path": ".pactile/runtime/generated/cursor-rule.mdc",
+      "sha256": "e334339f84f71f94464de83cf71c7fc0a3bf15792fefcaa628c1abb3597fbd80",
+      "policy": "canonical-state"
+    },
+    {
+      "path": ".pactile/runtime/preimages/cursor-hooks.json",
+      "sha256": "ed635358196a9c8e241827f63c89ddedda76a9e95a76fef05848d4b96d4609ee",
+      "policy": "canonical-state"
+    }
+  ]
+}
