@@ -35,10 +35,10 @@ describe("closed-item product-template gaps (P02/P10/P12/P14/P19/P20)", () => {
     expect(rules).toContain("Context pointer wording");
   });
 
-  it("P12/P20 AGENTS points at official /goal and does not restore cstl-goal", () => {
+  it("P12/P20 retired goal commands stay absent after AGENTS pointer compaction", () => {
     const agents = readUtf8(path.join(templates, "markdown/agents.md"));
-    expect(agents).toMatch(/official Cursor `\/goal`/);
-    expect(agents).toMatch(/Do \*\*not\*\* restore or invent `cstl-goal`/);
+    expect(agents).toContain(".cstl/framework/index.md");
+    expect(agents).not.toContain("cstl-goal");
     expect(
       fs.existsSync(path.join(templates, "cursor/commands/cstl-goal.md")),
     ).toBe(false);
@@ -62,5 +62,33 @@ describe("closed-item product-template gaps (P02/P10/P12/P14/P19/P20)", () => {
     expect(en).toMatch(/does \*\*not\*\* embed BYOK/);
     expect(zh).toMatch(/不内嵌 BYOK/);
     expect(en).not.toContain("goal-release-regression-runbook");
+  });
+});
+
+describe("P43 product template mirrors", () => {
+  it("ships the optional PRD grill and zero-ambiguity front-anchor contract", () => {
+    const frontier = readUtf8(
+      path.join(templates, "markdown/framework/prd-grill-frontier.md.txt"),
+    );
+    expect(frontier).toMatch(/optional brick/);
+    expect(frontier).toMatch(/Front-anchor principle/);
+    expect(frontier).toMatch(/AC 歧义面 = 0/);
+  });
+
+  it("ships test-brick and E2E walkthrough template assets", () => {
+    const guidesDir = path.join(templates, "markdown/spec/guides");
+    const discipline = readUtf8(
+      path.join(guidesDir, "test-discipline-guide.md.txt"),
+    );
+    const e2e = readUtf8(
+      path.join(guidesDir, "e2e-walkthrough-guide.md.txt"),
+    );
+
+    expect(discipline).toMatch(/测试积木/);
+    expect(discipline).toMatch(/任务验证/);
+    expect(discipline).toMatch(/软件测试/);
+    expect(e2e).toContain("prd → 实现 → verify → archive");
+    expect(e2e).toContain("projection.extras.notes_projection");
+    expect(e2e).toMatch(/不是 Close \/ archive 硬门/);
   });
 });

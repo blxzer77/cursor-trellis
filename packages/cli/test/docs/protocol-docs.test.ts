@@ -100,10 +100,14 @@ describe("P31–P36 product protocol docs", () => {
     expect(boundary).not.toMatch(/P33.*硬依赖/);
   });
 
-  it("P34 workflow states parallel-first as a product convention, not a CLI gate", () => {
+  it("P34 workflow points to the parallel-first product contract", () => {
     expect(workflowMdTemplate).toMatch(/Parallel first/i);
-    expect(workflowMdTemplate).toMatch(/not a new CLI gate|不是新 CLI gate|not a CLI hard gate/i);
-    expect(doc("parallel-first-execution.md")).toMatch(/product/i);
+    expect(workflowMdTemplate).toContain(
+      ".cstl/framework/parallel-first-execution.md",
+    );
+    const parallelFirst = doc("parallel-first-execution.md");
+    expect(parallelFirst).toMatch(/product/i);
+    expect(parallelFirst).toMatch(/not a .*hard gate/i);
   });
 
   it("P31 plan skeleton has attention bands and no bare item-id tokens in prose", () => {

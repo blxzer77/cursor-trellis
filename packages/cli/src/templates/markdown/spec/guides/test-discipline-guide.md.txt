@@ -1,36 +1,69 @@
 # Test Discipline Guide（测试纪律）
 
-> **Purpose**: 测试写作纪律 —— pre-agreed seams、垂直切片、三反模式、mock 边界，让写出来的测试值得保留。**纪律不是 TDD 要求**；写测试、读测试、评审测试时都适用，与是否测试先行无关。
+> **Purpose**: 定义 CSTL **测试积木**（任务验证 + 软件测试），以及测试**写作纪律**（pre-agreed seams、垂直切片、三反模式、mock 边界）。积木是自觉，不是墙。**纪律不是 TDD 要求**；也**不是 archive 硬门**。
 
 ---
 
-## 1. Purpose — discipline, not TDD
+## 1. Purpose — brick + discipline, not TDD
 
-本 guide 定义「测试写作纪律」：当测试存在时（新写、补写、评审、bug 回归落地），它们应当落在哪、验证什么、不做什么。纪律约束的是测试**质量**，不是测试**时序**：
+本 guide 做两件事，都不要求测试先行：
+
+1. **测试积木**（§2）：测试 = 任务有没有被 verify 证明 + 软件改动该不该写自动化测试。改动需要测时，模型理应写测、跑测。
+2. **写作纪律**（§4 起）：当测试存在时（新写、补写、评审、bug 回归落地），它们应当落在哪、验证什么、不做什么。纪律约束的是测试**质量**，不是测试**时序**。
+
+写作纪律本身：
 
 - **不要求 red-before-green**。可以先写测试（test-first 是可选的节奏），也可以实现后补测试——纪律在两种时序下同样适用。
 - **不强制 TDD 循环**。本 guide 不定义 red → green → refactor 流程；不设「每个函数必须单测」门槛。
-- 与 [Verification Strength Guide](.cstl/framework/verification-strength-guide.md) 兼容：验证**强度**（任务 closeout 要验多深）≠ red-green 仪式；本 guide 管的是「测试怎么写才值得保留」。
+- 与 [Verification Strength Guide](./verification-strength-guide.md) 兼容：验证**强度**（任务 closeout 要验多深）≠ red-green 仪式；本 guide 管的是「测什么（积木）」和「测试怎么写才值得保留」。
+- 大改端到端走查见 sibling [E2E Walkthrough Guide](./e2e-walkthrough-guide.md)；小改不强制。走查**不是** Close 硬门。
 
-> 一句话：**先确认测点（seam），再写测试；测试验公共行为，不验实现。**
+> 一句话：**先确认测点（seam），再写测试；测试验公共行为，不验实现。需要测的改动理应写测跑测——这是积木，不是 archive 墙。**
 
-## 2. Non-goals
+## 2. Testing brick（积木，不是墙）
+
+测试积木有两层，缺一不可混为一谈：
+
+| 层 | 是什么 | 典型落点 | 机器是否强制 |
+| --- | --- | --- | --- |
+| **任务验证** | 这次任务有没有被证明做完 | `verify.md` / Evidence（P06 按 rigor 要求的深度） | 仅当该 rigor 已要求 evidence 时（verify-basic 等既有接口）；**不是**「必须有自动化测试才能 archive」 |
+| **软件测试** | 这次代码改动会不会把行为改坏 | 项目既有测试框架里的自动化测试 | **否**。需要测时模型**理应**写测、跑测；失败只报告。不把「有测试 / 测试绿」做成 archive / Close 硬门 |
+
+**何时理应写测跑测（自觉，不是门）：** 改动能破坏可观察行为——CLI/API 契约、gate 签名、kernel extras、归档路径、解析/校验、错误处理。文档-only / 错别字 / 纯注释通常不需要软件测试；任务验证仍按 P06 写 `verify.md`。
+
+**重点覆盖（优先于实现耦合断言）：**
+
+| 焦点 | 问什么 | 例子（思维提示，不是强制矩阵） |
+| --- | --- | --- |
+| **边界条件** | 空、缺、满、首尾、档位切换时行为是否仍对 | 空 `task_data`、缺 `verify.md`、150 token 截断、Lite vs Full |
+| **异常处理** | 失败是否可观察、是否吞掉、是否误挡 Close | kernel CLI 缺失、畸形 JSON、缺 Notes **不挡** Close（P41） |
+| **性能瓶颈** | 预算与放大是否把主路径拖死 | 摘要截断、Parent 带子任务归档、过大 `verify.md` |
+| **安全风险** | 不可信路径 / 密钥 / 注入是否进产物 | 任务路径穿越、`verify.md` / 投影里的密钥、未校验的外部输入 |
+
+**不是墙：** 本积木**不**把软件测试变成 Close / `task.py archive` 硬门。失效边界仍在：测试靠自觉，无新的机器兜底。既有 kernel 接口护栏（如 `.cstl/scripts/common/test_task_gates.py`）保留——那是接口完整性测试，不是本积木新加的门。
+
+与写作纪律的关系：积木决定**要不要测、测哪类风险**；§4–§8 决定**测点落在 seam、不 tautological、不 mock 内部**。
+
+## 3. Non-goals
 
 - **不是 TDD 手册**：不要求测试先行，不要求红-绿循环，不把 red-before-green 写成强制流程。
+- **不是 archive / Close 硬门**：不恢复测试硬门；走查失败不得接入 `task.py archive` 硬失败。
 - **不选型**：不规定 pytest 以外的框架，不做 mock 库选型。
-- **不替代 Verification Strength Guide**：验证强度（closeout 深度 / false-green 探针）由该 guide 管，本 guide 只管测试写作本身。
-- **不替代 Debug Loop Guide Phase 5**：bug 驱动的回归落地由 debug-loop 管，本 guide 只定义何为 good seam（见 §9）。
+- **不替代 Verification Strength Guide**：验证强度（closeout 深度 / false-green 探针）由该 guide 管；本 guide 管积木定义与测试写作。不重写 P06。
+- **不替代 Debug Loop Guide Phase 5**：bug 驱动的回归落地由 debug-loop 管，本 guide 只定义何为 good seam（见 §10）。
+- **不替代 E2E Walkthrough Guide**：kernel / archive / 投影 / 任务生命周期接口的大改走查由 sibling 管。
 
-## 3. What a good test is
+## 4. What a good test is
 
 好测试的判据，对每次测试写作生效：
 
 - **通过公共 interface 验行为，不验实现细节**。module 可以完全重写，测试不该跟着改；测试关心调用者能获得什么行为，不关心内部怎么拼。
 - **读起来像规格**。测试名描述能力（「用户可以用有效购物车结账」），读者从测试就能看出 module 支持什么。
 - **耐重构**。重构后行为不变，测试仍绿；只有行为真正变化时才变红。
-- **期望值来自独立事实源**。已知字面量、手算样例、规格值——不是用实现同款方式重算（见 §6 tautological）。
+- **期望值来自独立事实源**。已知字面量、手算样例、规格值——不是用实现同款方式重算（见 §7 tautological）。
+- **优先边界 / 异常 / 性能 / 安全**，而不是堆「实现怎么写就怎么断言」。
 
-## 4. Seams（pre-agreed）
+## 5. Seams（pre-agreed）
 
 **seam**（词汇与 CONTEXT.md architecture 段一致）：*不改动原处即可改变行为的位置*。测试在 seam 处通过 interface 观察行为，绝不伸手进内部。
 
@@ -44,7 +77,7 @@
 
 > 问句：「公共 interface 是什么？我们要测哪些 seam？」——接口形状本身有疑问时（module 多深、seam 该在哪），先做设计，再定测点。
 
-## 5. Vertical slices（tracer bullets）
+## 6. Vertical slices（tracer bullets）
 
 **一测 → 一段最小实现 → 重复**：
 
@@ -56,7 +89,7 @@
 
 垂直切片在测试**写作**上同样成立：不要在动手前批量铺测试，一条一条来。
 
-## 6. Anti-patterns（三反模式）
+## 7. Anti-patterns（三反模式）
 
 ### Implementation-coupled（实现耦合）
 
@@ -64,7 +97,7 @@ mock 内部协作对象、测私有方法、或旁路验证（绕过 interface �
 
 - 识别信号：重构后测试变红但行为没变；测试名描述 HOW 不描述 WHAT；断言调用次数 / 调用顺序。
 - 反例：`create_user` 后直接查库验入库——应通过 interface 验「创建后能取回」。
-- 修正：回到 §3——只通过公共 interface 观察行为。
+- 修正：回到 §4——只通过公共 interface 观察行为。
 
 ### Tautological（同义反复）
 
@@ -79,9 +112,9 @@ mock 内部协作对象、测私有方法、或旁路验证（绕过 interface �
 先写全部测试再实现；按层横切而不是按用户行为竖切。
 
 - 识别信号：测试一次性铺满所有层级（API 层全部 → 服务层全部 → …）；测试对象是「形状」而非行为；实现未动时测试结构已锁定。
-- 修正：回到 §5 垂直切片。
+- 修正：回到 §6 垂直切片。
 
-## 7. Mock boundaries
+## 8. Mock boundaries
 
 **只在系统边界 mock**：
 
@@ -112,13 +145,13 @@ def process_payment(order):
 
 - **SDK 式接口优于通用 fetcher**：每个外部操作用独立函数（`get_user(id)` / `create_order(data)`），而不是一个带条件分支的通用 `fetch(endpoint, opts)`。每个 mock 返回一种确定形状，测试设置里没有条件逻辑，也容易看出测试走了哪个端点。
 
-## 8. Relation to verification-strength-guide
+## 9. Relation to verification-strength-guide
 
 - Verification Strength Guide 管验证**强度**：任务 closeout 要验多深、false-green 探针，且明确 **not TDD**（§1 Non-goals：不产品化 red-green 仪式、无 per-function 单测门槛）。
-- 本 guide 管测试**写作质量**：测试存在时，落在 pre-agreed seam、验公共行为、避开三反模式。
-- 二者正交、兼容：按验证强度选验证深度；按本 guide 写测试。**验证强度 ≠ red-green 仪式。**
+- 本 guide 管测试**积木**（任务验证 + 软件测试）和测试**写作质量**：测试存在时，落在 pre-agreed seam、验公共行为、避开三反模式。
+- 二者正交、兼容：按验证强度选验证深度；按本 guide 决定要不要写软件测试、以及怎么写。**验证强度 ≠ red-green 仪式。本片不重写 P06。**
 
-## 9. Relation to debug-loop Phase 5（衔接不吞并）
+## 10. Relation to debug-loop Phase 5（衔接不吞并）
 
 [Debug Loop Guide](./debug-loop-guide.md) Phase 5 的回归是 **bug 驱动**：把最小复现冻结成测试或可重复命令，且必须落在 **correct seam**（在真实调用点复现真实 bug 模式）。
 
@@ -126,13 +159,21 @@ def process_payment(order):
 - **通用测试写作走本 guide**：新功能、补测、评审由本 guide 管（pre-agreed seam、反模式、mock 边界）。
 - 衔接点：Phase 5 判定 correct seam 时，引用的正是本 guide 的 good seam 概念与反模式——**衔接不吞并**：bug 驱动回归 ≠ 通用测试写作，两者各有入口，互不替代。
 
-## 10. Checklist before writing tests
+## 11. Relation to e2e walkthrough
+
+大改（kernel / archive / `notes_projection` / 任务生命周期接口）必须按 [E2E Walkthrough Guide](./e2e-walkthrough-guide.md) 走一遍 `prd → 实现 → verify → archive → 检查投影落盘`。小改不强制。走查约定与可选检查脚本**不是** Close 硬门，也不替代 `test_task_gates.py` 接口护栏。
+
+## 12. Checklist before writing tests
 
 写测试前确认：
 
+- [ ] 已分清两层：任务验证（`verify.md`）vs 软件测试（自动化）；本次改动若能破坏行为，理应写测跑测
+- [ ] 优先覆盖边界 / 异常 / 性能 / 安全，而不是实现耦合断言
+- [ ] 不把「有测试」当成 archive / Close 门槛
 - [ ] seam 清单已列出并与用户确认（**未确认的 seam 不写测试**）
 - [ ] 优先既有 seam / 高位 seam / 少而精
 - [ ] 测试通过公共 interface 验行为（不是私有方法、不是内部协作对象）
 - [ ] 期望值来自独立事实源（已知字面量 / 样例 / 规格），不是实现同款重算
 - [ ] mock 只在系统边界；自己的 module 不 mock；依赖经 DI 注入
 - [ ] 一次一条垂直切片（一测 → 最小实现 → 重复），不做横向批量
+- [ ] 大改 kernel/archive/投影/生命周期接口时，另见 [E2E Walkthrough Guide](./e2e-walkthrough-guide.md)

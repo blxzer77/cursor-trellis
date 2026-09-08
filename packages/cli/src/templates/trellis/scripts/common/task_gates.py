@@ -581,6 +581,14 @@ def collect_kernel_projection_extras(task_data: dict) -> dict:
 
 NOTES_PROJECTION_SCHEMA_VERSION = 1
 NOTES_PROJECTION_MAX_TOKEN_BUDGET = 150
+NOTES_PROJECTION_SOURCE_LEDGER = "ac_evidence_ledger"
+NOTES_PROJECTION_SOURCE_INDEPENDENT_CHECK = "independent_check"
+NOTES_PROJECTION_SOURCE_VERIFY = "verify.md"
+# Same high|medium|low labels as retrieval_evidence.TRUST_SCORE. Provenance
+# floor only — never a claim that the point text is factually correct.
+NOTES_PROJECTION_CONFIDENCE_HIGH = "high"
+NOTES_PROJECTION_CONFIDENCE_MEDIUM = "medium"
+NOTES_PROJECTION_CONFIDENCE_LOW = "low"
 
 
 def _ledger_evidence_points(task_data: dict) -> list[str]:
@@ -644,6 +652,120 @@ def _verify_md_note(task_dir: Path) -> str:
     return "; ".join(sections)
 
 
+def _independent_check_passed(task_data: dict) -> bool:
+    check = task_data.get("independent_check")
+    if not isinstance(check, dict):
+        return False
+    result = check.get("result")
+    return isinstance(result, str) and result.strip().upper() == "PASS"
+
+
+def _has_user_approval_signal(task_data: dict) -> bool:
+    """True when start-execution approval or a user-approved gate skip is present.
+
+    Presence only; does not judge whether the approval is still fresh.
+    """
+    approval = task_data.get("execution_approval")
+    if isinstance(approval, dict) and approval:
+        return True
+    qgr = task_data.get("quality_gate_results")
+    if not isinstance(qgr, dict):
+        return False
+    transitions = qgr.get("transitions")
+    if not isinstance(transitions, dict):
+        return False
+    for transition_records in transitions.values():
+        if not isinstance(transition_records, dict):
+            continue
+        for record in transition_records.values():
+            if not isinstance(record, dict):
+                continue
+            if record.get("approved_by") == "user":
+                return True
+            approved_skip = record.get("approved_skip")
+            if isinstance(approved_skip, dict) and approved_skip.get("approved_by") == "user":
+                return True
+    return False
+
+
+def _notes_point_confidence(
+    source: str,
+    *,
+    independent_check_pass: bool,
+    has_user_approval: bool,
+) -> str:
+    """Provenance floor for one notes point. Missing signals stay ``low``.
+
+    Independent check PASS raises that note (and, with user approval, other
+    notes) to ``high``. A non-empty ledger ``evidence_ref`` floors at
+    ``medium`` and is not auto-raised to ``high`` without the PASS+approval
+    pair. User approval alone floors at ``medium``. Never fails the caller.
+    """
+    if source == NOTES_PROJECTION_SOURCE_INDEPENDENT_CHECK and independent_check_pass:
+        return NOTES_PROJECTION_CONFIDENCE_HIGH
+    if has_user_approval and independent_check_pass:
+        return NOTES_PROJECTION_CONFIDENCE_HIGH
+    if source == NOTES_PROJECTION_SOURCE_LEDGER:
+        return NOTES_PROJECTION_CONFIDENCE_MEDIUM
+    if has_user_approval:
+        return NOTES_PROJECTION_CONFIDENCE_MEDIUM
+    return NOTES_PROJECTION_CONFIDENCE_LOW
+
+
+def _notes_projection_point(
+    text: str,
+    source: str,
+    *,
+    independent_check_pass: bool,
+    has_user_approval: bool,
+) -> dict:
+    return {
+        "text": text,
+        "source": source,
+        "confidence": _notes_point_confidence(
+            source,
+            independent_check_pass=independent_check_pass,
+            has_user_approval=has_user_approval,
+        ),
+    }
+
+
+def _collect_notes_projection_points(task_dir: Path, task_data: dict) -> list[dict]:
+    independent_check_pass = _independent_check_passed(task_data)
+    has_user_approval = _has_user_approval_signal(task_data)
+    points: list[dict] = []
+    for text in _ledger_evidence_points(task_data):
+        points.append(
+            _notes_projection_point(
+                text,
+                NOTES_PROJECTION_SOURCE_LEDGER,
+                independent_check_pass=independent_check_pass,
+                has_user_approval=has_user_approval,
+            )
+        )
+    independent_note = _independent_check_note(task_data)
+    if independent_note:
+        points.append(
+            _notes_projection_point(
+                independent_note,
+                NOTES_PROJECTION_SOURCE_INDEPENDENT_CHECK,
+                independent_check_pass=independent_check_pass,
+                has_user_approval=has_user_approval,
+            )
+        )
+    verify_note = _verify_md_note(task_dir)
+    if verify_note:
+        points.append(
+            _notes_projection_point(
+                verify_note,
+                NOTES_PROJECTION_SOURCE_VERIFY,
+                independent_check_pass=independent_check_pass,
+                has_user_approval=has_user_approval,
+            )
+        )
+    return points
+
+
 def build_notes_projection(
     task_dir: Path,
     task_data: dict,
@@ -653,21 +775,17 @@ def build_notes_projection(
 
     Summarizes re-usable key points from ``ac_evidence_ledger`` /
     ``independent_check`` / ``verify.md`` (best-effort) and points at the
-    archived task artifacts. Missing key points never blocks: summary is
-    left empty and pointers still filled.
+    archived task artifacts. Each point carries ``source`` and a provenance
+    ``confidence`` (high|medium|low). Missing key points never blocks:
+    ``points`` is ``[]``, summary is left empty, and pointers still filled.
+    Low confidence never fails archive.
     """
     from .session_memory import JOURNAL_SNIPPET_MAX_TOKENS, truncate_to_token_budget
 
-    points = _ledger_evidence_points(task_data)
-    independent_note = _independent_check_note(task_data)
-    if independent_note:
-        points.append(independent_note)
-    verify_note = _verify_md_note(task_dir)
-    if verify_note:
-        points.append(verify_note)
+    points = _collect_notes_projection_points(task_dir, task_data)
 
     summary = truncate_to_token_budget(
-        "; ".join(points),
+        "; ".join(point["text"] for point in points),
         max_tokens=JOURNAL_SNIPPET_MAX_TOKENS,
     )
 
@@ -684,6 +802,7 @@ def build_notes_projection(
         "summary": summary,
         "pointers": pointers,
         "source": "cmd_archive",
+        "points": points,
     }
 
 
