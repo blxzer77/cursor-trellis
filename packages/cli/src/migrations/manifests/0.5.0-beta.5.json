@@ -1,0 +1,9 @@
+{
+  "version": "0.5.0-beta.5",
+  "description": "P42/P43 Freestyle product mirrors + P44 E2E guide init registry. Not @latest — install with @beta or the exact version.",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**@blxzer/cursor-trellis 0.5.0-beta.5**\n\n- feat(templates): product workflow.md is the interface card (no Request Triage / [Triage: / MANDATORY TRIAGE); pointer AGENTS.md; thin cstl-implement / cstl-check / cstl-research agents; grill frontier optional-brick + AC 歧义面=0; test-discipline testing brick; E2E walkthrough guide template asset.\n- feat(memory): product task_gates.py template writes notes_projection.points[] with source / confidence.\n- feat(docs): framework injection / budget / reachability guides (and .md.txt mirrors) no longer describe Request Triage as a live hard gate; prohibition sentences stay.\n- feat(init): cstl init installs .cstl/spec/guides/e2e-walkthrough-guide.md next to test-discipline (init-only seed; cstl update still does not overwrite user spec/guides).\n- chore: empty migrations list (template sync via `cstl update`)",
+  "migrations": [],
+  "notes": "Prerelease. Install `@blxzer/cursor-trellis@0.5.0-beta.5` or `@beta`. Run `cstl update`. Existing spec/guides stay user-owned. No `--migrate` required."
+}

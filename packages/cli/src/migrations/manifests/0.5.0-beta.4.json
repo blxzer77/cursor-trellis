@@ -1,0 +1,9 @@
+{
+  "version": "0.5.0-beta.4",
+  "description": "Version bump only (rebuild of the beta-3 publish). No functional changes vs 0.5.0-beta.3. Not @latest — install with @beta or the exact version.",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**@blxzer/cursor-trellis 0.5.0-beta.4**\n\n- chore: version bump / republish of 0.5.0-beta.3 (P41 memory-cut). Empty migrations list (template sync via `cstl update`).",
+  "migrations": [],
+  "notes": "Prerelease. Install `@blxzer/cursor-trellis@0.5.0-beta.4` or `@beta`. Run `cstl update`. No `--migrate` required."
+}
