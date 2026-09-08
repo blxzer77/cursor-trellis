@@ -336,7 +336,8 @@ describe("Stage 6 Adapter and Middleware", () => {
     );
     expect(workflow).not.toMatch(/compatible v0\.0\.11\+/);
     expect(workflow).not.toMatch(/\.cstl\/local\/cursor2plus\//);
-    expect(workflow).toContain("Adapter and Middleware");
+    expect(workflow).toContain("not runtime SSOT");
+    expect(workflow).toContain(".cstl/framework/index.md");
   });
 
   it("registers seven shipped providers and keeps only smart-search required", () => {
