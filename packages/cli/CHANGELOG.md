@@ -9,6 +9,24 @@ SemVer: [semver.org](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.5.0-beta.5] - 2026-09-08
+
+P42/P43 Freestyle product mirrors + P44 E2E guide init registry. **Not** `@latest` — install with `@beta` or the exact version.
+
+### Added
+
+- **feat(templates)**: product `workflow.md` is the interface card (no Request Triage / `[Triage:` / MANDATORY TRIAGE); pointer `AGENTS.md`; thin `cstl-implement` / `cstl-check` / `cstl-research` agents; grill frontier optional-brick + AC 歧义面=0; test-discipline testing brick; E2E walkthrough guide template asset.
+- **feat(memory)**: product `task_gates.py` template writes `notes_projection.points[]` with `source` / `confidence`.
+- **feat(docs)**: framework injection / budget / reachability guides (and their `.md.txt` mirrors) no longer describe Request Triage as a live hard gate; prohibition sentences stay.
+- **feat(init)**: `cstl init` installs `.cstl/spec/guides/e2e-walkthrough-guide.md` next to test-discipline (init-only seed; `cstl update` still does not overwrite user `spec/guides`).
+
+### Notes for consumers
+
+- Install **`npm i -g @blxzer/cursor-trellis@0.5.0-beta.5`** or **`@blxzer/cursor-trellis@beta`**. `@latest` stays **0.4.3**.
+- In the **project root** run `cstl update` (do not re-run `init`). Existing projects migrate; `.cstl/middleware/` is never written. Existing `spec/guides` stay user-owned; new installs get the E2E guide.
+- Core and CLI versions stay paired: `@blxzer/cursor-trellis-core@0.5.0-beta.5`.
+- Maintainers: tag **`cstl-v0.5.0-beta.5`**. Do not promote this prerelease to `main` / `@latest` until an explicit official release.
+
 ## [0.5.0-beta.4] - 2026-09-07
 
 Version bump only (rebuild of the beta-3 publish). No functional changes vs `0.5.0-beta.3`; this release carries the same P41 memory-cut feature set (notes_projection + spec-write audit + Lite archive relaxation). **Not** `@latest` — install with `@beta` or the exact version.
