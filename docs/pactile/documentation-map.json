@@ -1,0 +1,1080 @@
+{
+  "schemaVersion": 1,
+  "contractId": "pactile.documentation-map/v1",
+  "status": "batch-0-source-map",
+  "generatedFromCommit": "e8c05a1f7e7f3f49f605cc4f056be5a4eb44af73",
+  "discovery": {
+    "includePathRegexes": [
+      "^[^/]+\\.md$",
+      "^docs/.*\\.md$",
+      "^packages/[^/]+/(?:README(?:\\.[^/]+)?|CHANGELOG)\\.md$",
+      "^examples?/.*README(?:\\.[^/]+)?\\.md$",
+      "^\\.github/.*\\.(?:md|yml|yaml)$"
+    ],
+    "excludePathRegexes": [
+      "^docs/pactile/(?:brand-contract|documentation-map)\\.md$"
+    ],
+    "exclusionReason": "Only the two Batch 0 brand-map narratives are control-plane artifacts. Other tracked docs/pactile Markdown, including contracts-v1, remains discoverable and requires an explicit mapping."
+  },
+  "actions": ["rewrite", "merge", "redirect", "archive"],
+  "classifications": ["live", "compat", "history", "attribution"],
+  "ownerLanes": [
+    "batch-3-brand-runtime",
+    "batch-4-docs-entry-concepts",
+    "batch-4-docs-hosts-capabilities",
+    "batch-4-docs-lifecycle-support",
+    "batch-4-docs-governance-history"
+  ],
+  "languagePolicy": {
+    "firstClassLocales": ["en", "zh-CN"],
+    "englishSuffix": ".md",
+    "chineseSuffix": ".zh-CN.md",
+    "parityRequirements": [
+      "same logical page id and navigation position",
+      "same conceptual outline and warnings",
+      "same executable command tables",
+      "same internal link destinations"
+    ],
+    "localizationRule": "Meaning and structure stay aligned; wording is localized rather than mirrored sentence by sentence.",
+    "historyException": "Frozen history may remain in its original language when a bilingual history index summarizes and labels it."
+  },
+  "requiredTopics": [
+    "tiles",
+    "kernel",
+    "evidence",
+    "trace",
+    "projection",
+    "ownership",
+    "cursor",
+    "codex",
+    "coexistence",
+    "skills",
+    "mcp",
+    "native-adoption",
+    "retrieval",
+    "providers",
+    "privacy",
+    "install",
+    "upgrade",
+    "migration",
+    "detach",
+    "uninstall",
+    "rollback",
+    "purge",
+    "doctor",
+    "recovery",
+    "governance",
+    "release"
+  ],
+  "targetPages": [
+    {
+      "id": "entry.repo",
+      "navigationGroup": "entry",
+      "ownerLane": "batch-4-docs-entry-concepts",
+      "status": "rewrite",
+      "parityRequired": true,
+      "paths": { "en": "README.md", "zh-CN": "README.zh-CN.md" },
+      "topics": ["install", "cursor", "codex", "upgrade"]
+    },
+    {
+      "id": "entry.cli-package",
+      "navigationGroup": "entry",
+      "ownerLane": "batch-4-docs-entry-concepts",
+      "status": "rewrite",
+      "parityRequired": true,
+      "paths": {
+        "en": "packages/cli/README.md",
+        "zh-CN": "packages/cli/README.zh-CN.md"
+      },
+      "topics": ["install", "upgrade", "uninstall"]
+    },
+    {
+      "id": "entry.example-minimal",
+      "navigationGroup": "entry",
+      "ownerLane": "batch-4-docs-entry-concepts",
+      "status": "rewrite-and-add-locale-peer",
+      "parityRequired": true,
+      "paths": {
+        "en": "examples/minimal-agent-app/README.md",
+        "zh-CN": "examples/minimal-agent-app/README.zh-CN.md"
+      },
+      "topics": ["install", "cursor", "codex"]
+    },
+    {
+      "id": "repo.agents",
+      "navigationGroup": "machine-surface",
+      "ownerLane": "batch-3-brand-runtime",
+      "status": "rewrite",
+      "parityRequired": false,
+      "paths": { "neutral": "AGENTS.md" },
+      "topics": ["projection", "ownership"]
+    },
+    {
+      "id": "github.ci",
+      "navigationGroup": "machine-surface",
+      "ownerLane": "batch-3-brand-runtime",
+      "status": "rewrite",
+      "parityRequired": false,
+      "paths": { "neutral": ".github/workflows/ci.yml" },
+      "topics": ["release"]
+    },
+    {
+      "id": "github.publish",
+      "navigationGroup": "machine-surface",
+      "ownerLane": "batch-3-brand-runtime",
+      "status": "rewrite",
+      "parityRequired": false,
+      "paths": { "neutral": ".github/workflows/publish.yml" },
+      "topics": ["release"]
+    },
+    {
+      "id": "concepts.index",
+      "navigationGroup": "concepts",
+      "ownerLane": "batch-4-docs-entry-concepts",
+      "status": "planned",
+      "parityRequired": true,
+      "paths": {
+        "en": "docs/concepts/index.md",
+        "zh-CN": "docs/concepts/index.zh-CN.md"
+      },
+      "topics": [
+        "tiles",
+        "kernel",
+        "evidence",
+        "trace",
+        "projection",
+        "ownership"
+      ]
+    },
+    {
+      "id": "concepts.architecture",
+      "navigationGroup": "concepts",
+      "ownerLane": "batch-4-docs-entry-concepts",
+      "status": "planned",
+      "parityRequired": true,
+      "paths": {
+        "en": "docs/concepts/architecture.md",
+        "zh-CN": "docs/concepts/architecture.zh-CN.md"
+      },
+      "topics": ["kernel", "projection", "ownership"]
+    },
+    {
+      "id": "concepts.tiles",
+      "navigationGroup": "concepts",
+      "ownerLane": "batch-4-docs-entry-concepts",
+      "status": "planned",
+      "parityRequired": true,
+      "paths": {
+        "en": "docs/concepts/tiles.md",
+        "zh-CN": "docs/concepts/tiles.zh-CN.md"
+      },
+      "topics": ["tiles"]
+    },
+    {
+      "id": "concepts.kernel-evidence-trace",
+      "navigationGroup": "concepts",
+      "ownerLane": "batch-4-docs-entry-concepts",
+      "status": "planned",
+      "parityRequired": true,
+      "paths": {
+        "en": "docs/concepts/kernel-evidence-trace.md",
+        "zh-CN": "docs/concepts/kernel-evidence-trace.zh-CN.md"
+      },
+      "topics": ["kernel", "evidence", "trace"]
+    },
+    {
+      "id": "concepts.projection-ownership",
+      "navigationGroup": "concepts",
+      "ownerLane": "batch-4-docs-entry-concepts",
+      "status": "planned",
+      "parityRequired": true,
+      "paths": {
+        "en": "docs/concepts/projection-and-ownership.md",
+        "zh-CN": "docs/concepts/projection-and-ownership.zh-CN.md"
+      },
+      "topics": ["projection", "ownership"]
+    },
+    {
+      "id": "concepts.spec-system",
+      "navigationGroup": "concepts",
+      "ownerLane": "batch-4-docs-entry-concepts",
+      "status": "planned",
+      "parityRequired": true,
+      "paths": {
+        "en": "docs/concepts/spec-system.md",
+        "zh-CN": "docs/concepts/spec-system.zh-CN.md"
+      },
+      "topics": ["evidence"]
+    },
+    {
+      "id": "concepts.task-system",
+      "navigationGroup": "concepts",
+      "ownerLane": "batch-4-docs-entry-concepts",
+      "status": "planned",
+      "parityRequired": true,
+      "paths": {
+        "en": "docs/concepts/task-system.md",
+        "zh-CN": "docs/concepts/task-system.zh-CN.md"
+      },
+      "topics": ["kernel", "evidence", "trace"]
+    },
+    {
+      "id": "hosts.index",
+      "navigationGroup": "hosts",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "status": "planned",
+      "parityRequired": true,
+      "paths": {
+        "en": "docs/hosts/index.md",
+        "zh-CN": "docs/hosts/index.zh-CN.md"
+      },
+      "topics": ["cursor", "codex", "coexistence"]
+    },
+    {
+      "id": "hosts.cursor",
+      "navigationGroup": "hosts",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "status": "planned",
+      "parityRequired": true,
+      "paths": {
+        "en": "docs/hosts/cursor.md",
+        "zh-CN": "docs/hosts/cursor.zh-CN.md"
+      },
+      "topics": ["cursor", "skills", "mcp"]
+    },
+    {
+      "id": "hosts.cursor-limitations",
+      "navigationGroup": "hosts",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "status": "planned",
+      "parityRequired": true,
+      "paths": {
+        "en": "docs/hosts/cursor-limitations.md",
+        "zh-CN": "docs/hosts/cursor-limitations.zh-CN.md"
+      },
+      "topics": ["cursor", "retrieval"]
+    },
+    {
+      "id": "hosts.codex",
+      "navigationGroup": "hosts",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "status": "planned",
+      "parityRequired": true,
+      "paths": {
+        "en": "docs/hosts/codex.md",
+        "zh-CN": "docs/hosts/codex.zh-CN.md"
+      },
+      "topics": ["codex", "skills", "mcp", "retrieval"]
+    },
+    {
+      "id": "hosts.coexistence",
+      "navigationGroup": "hosts",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "status": "planned",
+      "parityRequired": true,
+      "paths": {
+        "en": "docs/hosts/coexistence.md",
+        "zh-CN": "docs/hosts/coexistence.zh-CN.md"
+      },
+      "topics": ["cursor", "codex", "coexistence", "ownership"]
+    },
+    {
+      "id": "capabilities.index",
+      "navigationGroup": "capabilities",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "status": "planned",
+      "parityRequired": true,
+      "paths": {
+        "en": "docs/capabilities/index.md",
+        "zh-CN": "docs/capabilities/index.zh-CN.md"
+      },
+      "topics": ["skills", "mcp", "retrieval", "providers"]
+    },
+    {
+      "id": "capabilities.skills",
+      "navigationGroup": "capabilities",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "status": "planned",
+      "parityRequired": true,
+      "paths": {
+        "en": "docs/capabilities/skills.md",
+        "zh-CN": "docs/capabilities/skills.zh-CN.md"
+      },
+      "topics": ["tiles", "skills", "native-adoption"]
+    },
+    {
+      "id": "capabilities.mcp",
+      "navigationGroup": "capabilities",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "status": "planned",
+      "parityRequired": true,
+      "paths": {
+        "en": "docs/capabilities/mcp.md",
+        "zh-CN": "docs/capabilities/mcp.zh-CN.md"
+      },
+      "topics": ["mcp", "native-adoption", "providers"]
+    },
+    {
+      "id": "capabilities.native-adoption",
+      "navigationGroup": "capabilities",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "status": "planned",
+      "parityRequired": true,
+      "paths": {
+        "en": "docs/capabilities/native-adoption.md",
+        "zh-CN": "docs/capabilities/native-adoption.zh-CN.md"
+      },
+      "topics": ["native-adoption", "projection", "ownership"]
+    },
+    {
+      "id": "capabilities.retrieval",
+      "navigationGroup": "capabilities",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "status": "planned",
+      "parityRequired": true,
+      "paths": {
+        "en": "docs/capabilities/retrieval.md",
+        "zh-CN": "docs/capabilities/retrieval.zh-CN.md"
+      },
+      "topics": ["retrieval", "providers", "evidence"]
+    },
+    {
+      "id": "capabilities.providers",
+      "navigationGroup": "capabilities",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "status": "planned",
+      "parityRequired": true,
+      "paths": {
+        "en": "docs/capabilities/providers.md",
+        "zh-CN": "docs/capabilities/providers.zh-CN.md"
+      },
+      "topics": ["providers", "mcp", "privacy"]
+    },
+    {
+      "id": "capabilities.privacy",
+      "navigationGroup": "capabilities",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "status": "planned",
+      "parityRequired": true,
+      "paths": {
+        "en": "docs/capabilities/privacy-and-permissions.md",
+        "zh-CN": "docs/capabilities/privacy-and-permissions.zh-CN.md"
+      },
+      "topics": ["privacy", "providers", "ownership"]
+    },
+    {
+      "id": "capabilities.subagents",
+      "navigationGroup": "capabilities",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "status": "planned",
+      "parityRequired": true,
+      "paths": {
+        "en": "docs/capabilities/subagents.md",
+        "zh-CN": "docs/capabilities/subagents.zh-CN.md"
+      },
+      "topics": ["cursor", "codex"]
+    },
+    {
+      "id": "lifecycle.index",
+      "navigationGroup": "lifecycle",
+      "ownerLane": "batch-4-docs-lifecycle-support",
+      "status": "planned",
+      "parityRequired": true,
+      "paths": {
+        "en": "docs/lifecycle/index.md",
+        "zh-CN": "docs/lifecycle/index.zh-CN.md"
+      },
+      "topics": [
+        "install",
+        "upgrade",
+        "migration",
+        "detach",
+        "uninstall",
+        "rollback",
+        "purge"
+      ]
+    },
+    {
+      "id": "lifecycle.install",
+      "navigationGroup": "lifecycle",
+      "ownerLane": "batch-4-docs-lifecycle-support",
+      "status": "planned",
+      "parityRequired": true,
+      "paths": {
+        "en": "docs/lifecycle/install.md",
+        "zh-CN": "docs/lifecycle/install.zh-CN.md"
+      },
+      "topics": ["install", "cursor", "codex"]
+    },
+    {
+      "id": "lifecycle.workflow",
+      "navigationGroup": "lifecycle",
+      "ownerLane": "batch-4-docs-lifecycle-support",
+      "status": "planned",
+      "parityRequired": true,
+      "paths": {
+        "en": "docs/lifecycle/workflow.md",
+        "zh-CN": "docs/lifecycle/workflow.zh-CN.md"
+      },
+      "topics": ["evidence", "trace"]
+    },
+    {
+      "id": "lifecycle.upgrade-migrate",
+      "navigationGroup": "lifecycle",
+      "ownerLane": "batch-4-docs-lifecycle-support",
+      "status": "planned",
+      "parityRequired": true,
+      "paths": {
+        "en": "docs/lifecycle/upgrade-and-migrate.md",
+        "zh-CN": "docs/lifecycle/upgrade-and-migrate.zh-CN.md"
+      },
+      "topics": ["upgrade", "migration", "rollback"]
+    },
+    {
+      "id": "lifecycle.detach-uninstall",
+      "navigationGroup": "lifecycle",
+      "ownerLane": "batch-4-docs-lifecycle-support",
+      "status": "planned",
+      "parityRequired": true,
+      "paths": {
+        "en": "docs/lifecycle/detach-and-uninstall.md",
+        "zh-CN": "docs/lifecycle/detach-and-uninstall.zh-CN.md"
+      },
+      "topics": ["detach", "uninstall", "ownership"]
+    },
+    {
+      "id": "lifecycle.rollback-purge",
+      "navigationGroup": "lifecycle",
+      "ownerLane": "batch-4-docs-lifecycle-support",
+      "status": "planned",
+      "parityRequired": true,
+      "paths": {
+        "en": "docs/lifecycle/rollback-and-purge.md",
+        "zh-CN": "docs/lifecycle/rollback-and-purge.zh-CN.md"
+      },
+      "topics": ["rollback", "purge", "recovery"]
+    },
+    {
+      "id": "troubleshooting.index",
+      "navigationGroup": "troubleshooting",
+      "ownerLane": "batch-4-docs-lifecycle-support",
+      "status": "planned",
+      "parityRequired": true,
+      "paths": {
+        "en": "docs/troubleshooting/index.md",
+        "zh-CN": "docs/troubleshooting/index.zh-CN.md"
+      },
+      "topics": ["doctor", "recovery"]
+    },
+    {
+      "id": "troubleshooting.doctor",
+      "navigationGroup": "troubleshooting",
+      "ownerLane": "batch-4-docs-lifecycle-support",
+      "status": "planned",
+      "parityRequired": true,
+      "paths": {
+        "en": "docs/troubleshooting/doctor.md",
+        "zh-CN": "docs/troubleshooting/doctor.zh-CN.md"
+      },
+      "topics": ["doctor", "providers", "cursor", "codex"]
+    },
+    {
+      "id": "troubleshooting.recovery",
+      "navigationGroup": "troubleshooting",
+      "ownerLane": "batch-4-docs-lifecycle-support",
+      "status": "planned",
+      "parityRequired": true,
+      "paths": {
+        "en": "docs/troubleshooting/recovery.md",
+        "zh-CN": "docs/troubleshooting/recovery.zh-CN.md"
+      },
+      "topics": ["recovery", "rollback"]
+    },
+    {
+      "id": "troubleshooting.known-limitations",
+      "navigationGroup": "troubleshooting",
+      "ownerLane": "batch-4-docs-lifecycle-support",
+      "status": "planned",
+      "parityRequired": true,
+      "paths": {
+        "en": "docs/troubleshooting/known-limitations.md",
+        "zh-CN": "docs/troubleshooting/known-limitations.zh-CN.md"
+      },
+      "topics": ["cursor", "codex", "providers"]
+    },
+    {
+      "id": "governance.index",
+      "navigationGroup": "governance",
+      "ownerLane": "batch-4-docs-governance-history",
+      "status": "planned",
+      "parityRequired": true,
+      "paths": {
+        "en": "docs/governance/index.md",
+        "zh-CN": "docs/governance/index.zh-CN.md"
+      },
+      "topics": ["governance", "release"]
+    },
+    {
+      "id": "governance.contributing",
+      "navigationGroup": "governance",
+      "ownerLane": "batch-4-docs-governance-history",
+      "status": "planned",
+      "parityRequired": true,
+      "paths": {
+        "en": "docs/governance/contributing.md",
+        "zh-CN": "docs/governance/contributing.zh-CN.md"
+      },
+      "topics": ["governance"]
+    },
+    {
+      "id": "governance.security",
+      "navigationGroup": "governance",
+      "ownerLane": "batch-4-docs-governance-history",
+      "status": "planned",
+      "parityRequired": true,
+      "paths": {
+        "en": "docs/governance/security.md",
+        "zh-CN": "docs/governance/security.zh-CN.md"
+      },
+      "topics": ["governance", "privacy"]
+    },
+    {
+      "id": "governance.compatibility",
+      "navigationGroup": "governance",
+      "ownerLane": "batch-4-docs-governance-history",
+      "status": "planned",
+      "parityRequired": true,
+      "paths": {
+        "en": "docs/governance/compatibility.md",
+        "zh-CN": "docs/governance/compatibility.zh-CN.md"
+      },
+      "topics": ["governance", "upgrade", "migration"]
+    },
+    {
+      "id": "governance.releasing",
+      "navigationGroup": "governance",
+      "ownerLane": "batch-4-docs-governance-history",
+      "status": "planned",
+      "parityRequired": true,
+      "paths": {
+        "en": "docs/governance/releasing.md",
+        "zh-CN": "docs/governance/releasing.zh-CN.md"
+      },
+      "topics": ["governance", "release"]
+    },
+    {
+      "id": "history.index",
+      "navigationGroup": "history",
+      "ownerLane": "batch-4-docs-governance-history",
+      "status": "planned",
+      "parityRequired": true,
+      "paths": {
+        "en": "docs/history/index.md",
+        "zh-CN": "docs/history/index.zh-CN.md"
+      },
+      "topics": ["governance"]
+    },
+    {
+      "id": "history.cursor-plus-plus",
+      "navigationGroup": "history",
+      "ownerLane": "batch-4-docs-governance-history",
+      "status": "planned",
+      "parityRequired": true,
+      "paths": {
+        "en": "docs/history/cursor-plus-plus.md",
+        "zh-CN": "docs/history/cursor-plus-plus.zh-CN.md"
+      },
+      "topics": ["cursor"]
+    },
+    {
+      "id": "history.campaign-ui",
+      "navigationGroup": "history",
+      "ownerLane": "batch-4-docs-governance-history",
+      "status": "archive-original-language",
+      "parityRequired": false,
+      "paths": { "en": "docs/history/campaign-ui.md" },
+      "topics": ["governance"]
+    },
+    {
+      "id": "history.community-linux-do",
+      "navigationGroup": "history",
+      "ownerLane": "batch-4-docs-governance-history",
+      "status": "archive-original-language",
+      "parityRequired": false,
+      "paths": { "zh-CN": "docs/history/community/linux-do-release.md" },
+      "topics": ["release"]
+    },
+    {
+      "id": "history.research-personal-skills",
+      "navigationGroup": "history",
+      "ownerLane": "batch-4-docs-governance-history",
+      "status": "archive-original-language",
+      "parityRequired": false,
+      "paths": { "en": "docs/history/research/personal-skills-integration.md" },
+      "topics": ["skills"]
+    },
+    {
+      "id": "history.release-changelog",
+      "navigationGroup": "history",
+      "ownerLane": "batch-4-docs-governance-history",
+      "status": "preserve-in-place",
+      "parityRequired": false,
+      "paths": { "en": "packages/cli/CHANGELOG.md" },
+      "topics": ["release"]
+    }
+  ],
+  "sourceMappings": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "classification": "live",
+      "language": "neutral",
+      "action": "rewrite",
+      "targetPage": "github.ci",
+      "ownerLane": "batch-3-brand-runtime",
+      "reason": "CI commands, environment variables, and materialized runtime paths must follow the new machine names."
+    },
+    {
+      "path": ".github/workflows/publish.yml",
+      "classification": "live",
+      "language": "neutral",
+      "action": "rewrite",
+      "targetPage": "github.publish",
+      "ownerLane": "batch-3-brand-runtime",
+      "reason": "Package names, tag prefix, release notes, and publish commands are live release surfaces."
+    },
+    {
+      "path": "AGENTS.md",
+      "classification": "live",
+      "language": "neutral",
+      "action": "rewrite",
+      "targetPage": "repo.agents",
+      "ownerLane": "batch-3-brand-runtime",
+      "reason": "The repository agent contract is a live managed surface and must describe both hosts."
+    },
+    {
+      "path": "README.md",
+      "classification": "live",
+      "language": "en",
+      "action": "rewrite",
+      "targetPage": "entry.repo",
+      "ownerLane": "batch-4-docs-entry-concepts",
+      "reason": "Primary English GitHub entry."
+    },
+    {
+      "path": "README.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "rewrite",
+      "targetPage": "entry.repo",
+      "ownerLane": "batch-4-docs-entry-concepts",
+      "reason": "Primary Chinese GitHub entry."
+    },
+    {
+      "path": "packages/cli/README.md",
+      "classification": "live",
+      "language": "en",
+      "action": "rewrite",
+      "targetPage": "entry.cli-package",
+      "ownerLane": "batch-4-docs-entry-concepts",
+      "reason": "npm CLI package English entry."
+    },
+    {
+      "path": "packages/cli/README.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "rewrite",
+      "targetPage": "entry.cli-package",
+      "ownerLane": "batch-4-docs-entry-concepts",
+      "reason": "npm CLI package Chinese entry."
+    },
+    {
+      "path": "examples/minimal-agent-app/README.md",
+      "classification": "live",
+      "language": "en",
+      "action": "rewrite",
+      "targetPage": "entry.example-minimal",
+      "ownerLane": "batch-4-docs-entry-concepts",
+      "reason": "The first-run example must exercise Cursor and Codex without legacy commands."
+    },
+    {
+      "path": "docs/agent-tooling-narrative.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "merge",
+      "targetPage": "capabilities.native-adoption",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "reason": "Consolidate CLI, MCP, Hook, Rule, and native-resource adoption into one host-neutral capability narrative."
+    },
+    {
+      "path": "docs/architecture.md",
+      "classification": "live",
+      "language": "en",
+      "action": "redirect",
+      "targetPage": "concepts.architecture",
+      "ownerLane": "batch-4-docs-entry-concepts",
+      "reason": "Move architecture into the concept IA while retaining the old URL pointer."
+    },
+    {
+      "path": "docs/architecture.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "redirect",
+      "targetPage": "concepts.architecture",
+      "ownerLane": "batch-4-docs-entry-concepts",
+      "reason": "Move architecture into the concept IA while retaining the old URL pointer."
+    },
+    {
+      "path": "docs/campaign-ui.md",
+      "classification": "history",
+      "language": "en",
+      "action": "archive",
+      "targetPage": "history.campaign-ui",
+      "ownerLane": "batch-4-docs-governance-history",
+      "reason": "The page already records a removed experiment and must not become current product guidance."
+    },
+    {
+      "path": "docs/community/linux-do-release.md",
+      "classification": "history",
+      "language": "zh-CN",
+      "action": "archive",
+      "targetPage": "history.community-linux-do",
+      "ownerLane": "batch-4-docs-governance-history",
+      "reason": "Preserve the published community release narrative and label it as a historical snapshot."
+    },
+    {
+      "path": "docs/cursor-platform-limitations-and-trellis-adaptation.md",
+      "classification": "live",
+      "language": "en",
+      "action": "redirect",
+      "targetPage": "hosts.cursor-limitations",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "reason": "Revalidate current Cursor limits and move historical Cursor++ material to the canonical history page."
+    },
+    {
+      "path": "docs/cursor-platform-limitations-and-trellis-adaptation.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "redirect",
+      "targetPage": "hosts.cursor-limitations",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "reason": "Revalidate current Cursor limits and move historical Cursor++ material to the canonical history page."
+    },
+    {
+      "path": "docs/cursor-trellis-release-coexistence-guide.md",
+      "classification": "live",
+      "language": "en",
+      "action": "merge",
+      "targetPage": "governance.releasing",
+      "ownerLane": "batch-4-docs-governance-history",
+      "reason": "Merge release mechanics into governance; replace old Trellis coexistence with Cursor/Codex lifecycle guidance."
+    },
+    {
+      "path": "docs/cursor.md",
+      "classification": "live",
+      "language": "en",
+      "action": "redirect",
+      "targetPage": "hosts.cursor",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "reason": "Move Cursor installation and projection behavior into the host IA."
+    },
+    {
+      "path": "docs/cursor.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "redirect",
+      "targetPage": "hosts.cursor",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "reason": "Move Cursor installation and projection behavior into the host IA."
+    },
+    {
+      "path": "docs/retrieval.md",
+      "classification": "live",
+      "language": "en",
+      "action": "redirect",
+      "targetPage": "capabilities.retrieval",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "reason": "Rewrite retrieval around four intents, minimum host assurance, and Middleware Provider origin/readiness."
+    },
+    {
+      "path": "docs/retrieval.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "redirect",
+      "targetPage": "capabilities.retrieval",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "reason": "Rewrite retrieval around four intents, minimum host assurance, and Middleware Provider origin/readiness."
+    },
+    {
+      "path": "docs/skills.md",
+      "classification": "live",
+      "language": "en",
+      "action": "redirect",
+      "targetPage": "capabilities.skills",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "reason": "Explain Tiles projected as shared Agent Skills, including deduplication and ownership."
+    },
+    {
+      "path": "docs/skills.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "redirect",
+      "targetPage": "capabilities.skills",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "reason": "Explain Tiles projected as shared Agent Skills, including deduplication and ownership."
+    },
+    {
+      "path": "docs/spec-system.md",
+      "classification": "live",
+      "language": "en",
+      "action": "redirect",
+      "targetPage": "concepts.spec-system",
+      "ownerLane": "batch-4-docs-entry-concepts",
+      "reason": "Retell specs as Pactile-owned project knowledge rather than a host-specific directory tour."
+    },
+    {
+      "path": "docs/spec-system.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "redirect",
+      "targetPage": "concepts.spec-system",
+      "ownerLane": "batch-4-docs-entry-concepts",
+      "reason": "Retell specs as Pactile-owned project knowledge rather than a host-specific directory tour."
+    },
+    {
+      "path": "docs/subagents.md",
+      "classification": "live",
+      "language": "en",
+      "action": "redirect",
+      "targetPage": "capabilities.subagents",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "reason": "Separate shared orchestration from Cursor- and Codex-native dispatch details."
+    },
+    {
+      "path": "docs/subagents.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "redirect",
+      "targetPage": "capabilities.subagents",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "reason": "Separate shared orchestration from Cursor- and Codex-native dispatch details."
+    },
+    {
+      "path": "docs/task-system.md",
+      "classification": "live",
+      "language": "en",
+      "action": "redirect",
+      "targetPage": "concepts.task-system",
+      "ownerLane": "batch-4-docs-entry-concepts",
+      "reason": "Move task, gate, evidence, and parent/child concepts under the host-neutral Kernel story."
+    },
+    {
+      "path": "docs/task-system.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "redirect",
+      "targetPage": "concepts.task-system",
+      "ownerLane": "batch-4-docs-entry-concepts",
+      "reason": "Move task, gate, evidence, and parent/child concepts under the host-neutral Kernel story."
+    },
+    {
+      "path": "docs/workflow.md",
+      "classification": "live",
+      "language": "en",
+      "action": "redirect",
+      "targetPage": "lifecycle.workflow",
+      "ownerLane": "batch-4-docs-lifecycle-support",
+      "reason": "Make workflow host-neutral and link host-specific invocation from the Cursor and Codex guides."
+    },
+    {
+      "path": "docs/workflow.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "redirect",
+      "targetPage": "lifecycle.workflow",
+      "ownerLane": "batch-4-docs-lifecycle-support",
+      "reason": "Make workflow host-neutral and link host-specific invocation from the Cursor and Codex guides."
+    },
+    {
+      "path": "packages/cli/CHANGELOG.md",
+      "classification": "history",
+      "language": "en",
+      "action": "archive",
+      "targetPage": "history.release-changelog",
+      "ownerLane": "batch-4-docs-governance-history",
+      "reason": "Published version facts and historical commands remain immutable; only new entries use the new brand."
+    },
+    {
+      "path": "PERSONAL_SKILLS_TRELLIS_INTEGRATION_RESEARCH.md",
+      "classification": "history",
+      "language": "en",
+      "action": "archive",
+      "targetPage": "history.research-personal-skills",
+      "ownerLane": "batch-4-docs-governance-history",
+      "reason": "Preserve the research decision record without presenting it as current architecture."
+    }
+  ],
+  "p23CursorPlusPlus": {
+    "status": "mapped-not-reimplemented",
+    "canonicalTargetPage": "history.cursor-plus-plus",
+    "disposition": "Remove operational Cursor++ guidance from live prose and link to the canonical history page only when useful.",
+    "routes": [
+      { "sourcePath": "AGENTS.md", "targetPage": "history.cursor-plus-plus" },
+      { "sourcePath": "README.md", "targetPage": "history.cursor-plus-plus" },
+      {
+        "sourcePath": "README.zh-CN.md",
+        "targetPage": "history.cursor-plus-plus"
+      },
+      {
+        "sourcePath": "packages/cli/README.md",
+        "targetPage": "history.cursor-plus-plus"
+      },
+      {
+        "sourcePath": "packages/cli/README.zh-CN.md",
+        "targetPage": "history.cursor-plus-plus"
+      },
+      {
+        "sourcePath": "docs/cursor-platform-limitations-and-trellis-adaptation.md",
+        "targetPage": "history.cursor-plus-plus"
+      },
+      {
+        "sourcePath": "docs/cursor-platform-limitations-and-trellis-adaptation.zh-CN.md",
+        "targetPage": "history.cursor-plus-plus"
+      },
+      {
+        "sourcePath": "docs/cursor.md",
+        "targetPage": "history.cursor-plus-plus"
+      },
+      {
+        "sourcePath": "docs/cursor.zh-CN.md",
+        "targetPage": "history.cursor-plus-plus"
+      },
+      {
+        "sourcePath": "docs/retrieval.md",
+        "targetPage": "history.cursor-plus-plus"
+      },
+      {
+        "sourcePath": "docs/retrieval.zh-CN.md",
+        "targetPage": "history.cursor-plus-plus"
+      },
+      {
+        "sourcePath": "docs/skills.md",
+        "targetPage": "history.cursor-plus-plus"
+      },
+      {
+        "sourcePath": "docs/skills.zh-CN.md",
+        "targetPage": "history.cursor-plus-plus"
+      },
+      {
+        "sourcePath": "docs/subagents.md",
+        "targetPage": "history.cursor-plus-plus"
+      },
+      {
+        "sourcePath": "docs/subagents.zh-CN.md",
+        "targetPage": "history.cursor-plus-plus"
+      }
+    ]
+  },
+  "plannedGitHubSurfaces": [
+    {
+      "path": "CONTRIBUTING.md",
+      "status": "create",
+      "ownerLane": "batch-4-docs-governance-history",
+      "languagePolicy": "bilingual-entry-to-governance.contributing"
+    },
+    {
+      "path": "SECURITY.md",
+      "status": "create",
+      "ownerLane": "batch-4-docs-governance-history",
+      "languagePolicy": "bilingual-entry-to-governance.security"
+    },
+    {
+      "path": "CODE_OF_CONDUCT.md",
+      "status": "create",
+      "ownerLane": "batch-4-docs-governance-history",
+      "languagePolicy": "bilingual-inline"
+    },
+    {
+      "path": "SUPPORT.md",
+      "status": "create",
+      "ownerLane": "batch-4-docs-governance-history",
+      "languagePolicy": "bilingual-inline"
+    },
+    {
+      "path": ".github/PULL_REQUEST_TEMPLATE.md",
+      "status": "create",
+      "ownerLane": "batch-4-docs-governance-history",
+      "languagePolicy": "bilingual-inline"
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/bug_report.yml",
+      "status": "create",
+      "ownerLane": "batch-4-docs-governance-history",
+      "languagePolicy": "bilingual-routing"
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/feature_request.yml",
+      "status": "create",
+      "ownerLane": "batch-4-docs-governance-history",
+      "languagePolicy": "bilingual-routing"
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/config.yml",
+      "status": "create",
+      "ownerLane": "batch-4-docs-governance-history",
+      "languagePolicy": "language-neutral-links"
+    }
+  ],
+  "redirectPolicy": {
+    "window": "0.5.x",
+    "pointerRequirements": [
+      "name Pactile as the current product",
+      "state why the page moved",
+      "link both first-class locale targets",
+      "contain no obsolete operational procedure"
+    ],
+    "logicalDeadLinkRule": "Every source targetPage and P23 route must resolve to exactly one targetPages record before a redirect ships.",
+    "filesystemDeadLinkRule": "Batch 4 must run a relative-link checker after planned target files are materialized."
+  },
+  "commandSmoke": [
+    {
+      "command": "pactile --version",
+      "availableAfter": "batch-3-brand-runtime",
+      "surfaces": ["windows", "posix"]
+    },
+    {
+      "command": "pactile init --cursor",
+      "availableAfter": "cursor-adapter",
+      "surfaces": ["windows", "posix"]
+    },
+    {
+      "command": "pactile init --codex",
+      "availableAfter": "codex-adapter",
+      "surfaces": ["windows", "posix"]
+    },
+    {
+      "command": "pactile update",
+      "availableAfter": "batch-3-brand-runtime",
+      "surfaces": ["clean", "legacy", "coexistence"]
+    },
+    {
+      "command": "pactile doctor",
+      "availableAfter": "provider-doctor",
+      "surfaces": ["cursor", "codex", "coexistence"]
+    },
+    {
+      "command": "pactile detach --host cursor",
+      "availableAfter": "projection-lifecycle",
+      "surfaces": ["coexistence"]
+    },
+    {
+      "command": "pactile detach --host codex",
+      "availableAfter": "projection-lifecycle",
+      "surfaces": ["coexistence"]
+    },
+    {
+      "command": "pactile uninstall",
+      "availableAfter": "projection-lifecycle",
+      "surfaces": ["keep-data", "purge"]
+    }
+  ]
+}
