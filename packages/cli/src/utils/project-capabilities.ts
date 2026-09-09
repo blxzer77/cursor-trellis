@@ -831,11 +831,11 @@ export function managedMcpServerNames(): string[] {
   return [...names];
 }
 
-export type McpServerEntry = {
+export interface McpServerEntry {
   command: string;
   args: string[];
   [key: string]: unknown;
-};
+}
 
 export function loadExistingMcpServers(
   cwd: string,
@@ -902,7 +902,7 @@ export function renderMcpJson(
   const managed = new Set(managedMcpServerNames());
   for (const name of managed) {
     if (!(name in desired)) {
-      delete merged[name];
+      Reflect.deleteProperty(merged, name);
     }
   }
   for (const [name, server] of Object.entries(desired)) {

@@ -145,7 +145,12 @@ describe("project capabilities", () => {
         undefined,
         { cwd: tmpDir },
       );
-      const parsed = JSON.parse(files.get(".cursor/mcp.json")!) as {
+      const cursorMcpJson = files.get(".cursor/mcp.json");
+      expect(cursorMcpJson).toBeDefined();
+      if (cursorMcpJson === undefined) {
+        throw new Error("expected Cursor MCP template to be generated");
+      }
+      const parsed = JSON.parse(cursorMcpJson) as {
         mcpServers: Record<string, { command: string; args: string[] }>;
       };
       expect(parsed.mcpServers.keepme).toEqual({

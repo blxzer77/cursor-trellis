@@ -781,7 +781,10 @@ describe("init() integration", () => {
       CSTL_BLOCK_END,
     );
     expect(cstlBlock).not.toBeNull();
-    expect(hashes[FILE_NAMES.AGENTS]).toBe(computeHash(cstlBlock!));
+    if (cstlBlock === null) {
+      throw new Error("expected generated AGENTS.md to contain the managed block");
+    }
+    expect(hashes[FILE_NAMES.AGENTS]).toBe(computeHash(cstlBlock));
     expect(Object.keys(hashes).length).toBeGreaterThan(0);
   });
 

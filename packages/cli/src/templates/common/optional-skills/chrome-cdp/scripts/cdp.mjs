@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* global Buffer, URL, WebSocket, clearTimeout, console, process, setTimeout */
 // cdp - lightweight Chrome DevTools Protocol CLI
 // Uses raw CDP over WebSocket, no Puppeteer dependency.
 // Requires Node 22+ (built-in WebSocket).
@@ -26,7 +27,7 @@ const RUNTIME_DIR = IS_WINDOWS
   : process.env.XDG_RUNTIME_DIR
     ? resolve(process.env.XDG_RUNTIME_DIR, 'cdp')
     : resolve(homedir(), '.cache', 'cdp');
-try { mkdirSync(RUNTIME_DIR, { recursive: true, mode: 0o700 }); } catch {}
+try { mkdirSync(RUNTIME_DIR, { recursive: true, mode: 0o700 }); } catch { /* The existing runtime directory is usable. */ }
 const PAGES_CACHE = resolve(RUNTIME_DIR, 'pages.json');
 
 function sockPath(targetId) {
@@ -232,7 +233,7 @@ async function getActiveChromeUrl() {
       const script = `tell application "${browser}" to get URL of active tab of front window`;
       const { stdout } = await execFileAsync('osascript', ['-e', script], { timeout: 3000 });
       return stdout.trim();
-    } catch {}
+    } catch { /* Try the next supported browser. */ }
   }
   return null;
 }
@@ -328,14 +329,14 @@ async function shotStr(cdp, sid, filePath, targetId) {
     // Simpler: deviceScaleFactor is on the root Page metrics
     const { deviceScaleFactor } = await cdp.send('Emulation.getDeviceMetricsOverride', {}, sid).catch(() => ({}));
     if (deviceScaleFactor) dpr = deviceScaleFactor;
-  } catch {}
+  } catch { /* Fall back to the page-reported device pixel ratio. */ }
   // Fallback: try to get DPR from JS
   if (dpr === 1) {
     try {
       const raw = await evalStr(cdp, sid, 'window.devicePixelRatio');
       const parsed = parseFloat(raw);
       if (parsed > 0) dpr = parsed;
-    } catch {}
+    } catch { /* Keep the default device pixel ratio. */ }
   }
 
   const { data } = await cdp.send('Page.captureScreenshot', { format: 'png' }, sid);
@@ -527,7 +528,7 @@ async function runDaemon(targetId) {
     if (!alive) return;
     alive = false;
     server.close();
-    if (!IS_WINDOWS) try { unlinkSync(sp); } catch {}
+    if (!IS_WINDOWS) try { unlinkSync(sp); } catch { /* Best-effort socket cleanup. */ }
     cdp.close();
     process.exit(0);
   }
@@ -620,7 +621,7 @@ async function runDaemon(targetId) {
     process.exit(1);
   });
 
-  if (!IS_WINDOWS) try { unlinkSync(sp); } catch {}
+  if (!IS_WINDOWS) try { unlinkSync(sp); } catch { /* Best-effort stale-socket cleanup. */ }
   server.listen(sp);
 }
 
@@ -639,10 +640,10 @@ function connectToSocket(sp) {
 async function getOrStartTabDaemon(targetId) {
   const sp = sockPath(targetId);
   // Try existing daemon
-  try { return await connectToSocket(sp); } catch {}
+  try { return await connectToSocket(sp); } catch { /* Start a fresh daemon below. */ }
 
   // Clean stale socket
-  if (!IS_WINDOWS) try { unlinkSync(sp); } catch {}
+  if (!IS_WINDOWS) try { unlinkSync(sp); } catch { /* Best-effort stale-socket cleanup. */ }
 
   // Spawn daemon
   const child = spawn(process.execPath, [process.argv[1], '_daemon', targetId], {
@@ -654,7 +655,7 @@ async function getOrStartTabDaemon(targetId) {
   // Wait for socket (includes time for user to click Allow)
   for (let i = 0; i < DAEMON_CONNECT_RETRIES; i++) {
     await sleep(DAEMON_CONNECT_DELAY);
-    try { return await connectToSocket(sp); } catch {}
+    try { return await connectToSocket(sp); } catch { /* Retry until the daemon is ready. */ }
   }
   throw new Error('Daemon failed to start — did you click Allow in Chrome?');
 }
@@ -728,7 +729,7 @@ async function stopDaemons(targetPrefix) {
       const conn = await connectToSocket(sp);
       await sendCommand(conn, { cmd: 'stop' });
     } catch {
-      if (!IS_WINDOWS) try { unlinkSync(sp); } catch {}
+      if (!IS_WINDOWS) try { unlinkSync(sp); } catch { /* Best-effort stale-socket cleanup. */ }
     }
   }
 }

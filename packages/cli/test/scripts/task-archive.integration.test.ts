@@ -254,8 +254,11 @@ describe.skipIf(!PY)(
       );
       fs.chmodSync(hookPath, 0o755);
 
+      if (PY === null) {
+        throw new Error("python executable not found");
+      }
       const r = spawnSync(
-        PY!,
+        PY,
         [".cstl/scripts/task.py", "archive", "tracked"],
         { cwd: tmp, encoding: "utf-8", env: kernelCliEnv() },
       );
