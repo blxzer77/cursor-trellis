@@ -1,18 +1,30 @@
 #!/usr/bin/env node
 /**
- * Release orchestrator for the CLI + core pair.
+ * Fail-closed release candidate planner.
  *
- * This keeps package.json as a thin command table while the release sequence
- * stays in one place:
- *   manifest guards -> tests -> pre-release commit -> synchronized bump
- *   -> version check -> version commit -> tag -> push
+ * This command intentionally does not bump package files, stage, commit, tag,
+ * or push. It proves that the current integrated source is clean and releasable,
+ * runs the complete candidate validation set, and prints the exact next version
+ * and tag for a maintainer-controlled release change.
  */
-import { execFileSync, execSync } from "node:child_process";
+import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+import {
+  assertMatchingVersions,
+  compareReleaseVersions,
+  createCommandRunner,
+  inspectLocalRelease,
+  parseReleaseVersion,
+  RELEASE_TAG_PREFIX,
+} from "./release-guard.js";
+import { runCandidateValidation } from "./release-validation.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CLI_DIR = path.resolve(__dirname, "..");
+const REPO_ROOT = path.resolve(CLI_DIR, "../..");
+const CORE_DIR = path.join(REPO_ROOT, "packages/core");
 
 const RELEASE_TYPES = new Set([
   "patch",
@@ -22,90 +34,191 @@ const RELEASE_TYPES = new Set([
   "rc",
   "promote",
 ]);
+const EXPLICIT_VERSION =
+  /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-(?:beta|rc|alpha)\.(0|[1-9]\d*))?$/;
 
-function fail(message) {
-  console.error(`x ${message}`);
-  process.exit(1);
-}
-
-function run(command, options = {}) {
-  execSync(command, {
-    cwd: options.cwd ?? CLI_DIR,
-    env: process.env,
-    stdio: options.capture ? ["pipe", "pipe", "pipe"] : "inherit",
-    encoding: "utf-8",
-  });
-}
-
-/** Avoid shell quoting (Windows cmd/PowerShell do not treat '...' as one argument). */
-function gitCommit(message, options = {}) {
-  execFileSync("git", ["commit", "-m", message], {
-    cwd: options.cwd ?? CLI_DIR,
-    env: process.env,
-    stdio: "inherit",
-  });
-}
-
-function output(command, options = {}) {
-  return execSync(command, {
-    cwd: options.cwd ?? CLI_DIR,
-    env: process.env,
-    stdio: ["pipe", "pipe", "pipe"],
-    encoding: "utf-8",
-  }).trim();
-}
-
-function hasGitDiff() {
-  try {
-    execSync("git diff-index --quiet HEAD", {
-      cwd: CLI_DIR,
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-    return false;
-  } catch {
-    return true;
+export function computeReleaseTarget(current, type) {
+  let target;
+  if (EXPLICIT_VERSION.test(type)) {
+    parseReleaseVersion(type);
+    target = type;
+  } else {
+    const parsed = parseReleaseVersion(current);
+    const [major, minor, patch] = parsed.baseVersion.split(".").map(Number);
+    if (type === "patch") {
+      target =
+        parsed.channel === "stable"
+          ? `${major}.${minor}.${patch + 1}`
+          : parsed.baseVersion;
+    } else if (type === "minor") {
+      target = `${major}.${minor + 1}.0`;
+    } else if (type === "major") {
+      target = `${major + 1}.0.0`;
+    } else if (type === "promote") {
+      if (parsed.channel === "stable") {
+        throw new Error(
+          `promote requires a prerelease version (got ${current}).`,
+        );
+      }
+      target = parsed.baseVersion;
+    } else if (type === "beta" || type === "rc") {
+      if (parsed.channel === type) {
+        const currentNumber = Number(
+          current.slice(current.lastIndexOf(".") + 1),
+        );
+        target = `${parsed.baseVersion}-${type}.${currentNumber + 1}`;
+      } else {
+        const base =
+          parsed.channel === "stable"
+            ? `${major}.${minor}.${patch + 1}`
+            : parsed.baseVersion;
+        target = `${base}-${type}.0`;
+      }
+    } else {
+      throw new Error(`unknown release type: ${type}`);
+    }
   }
+  if (compareReleaseVersions(target, current) <= 0) {
+    throw new Error(
+      `Target version ${target} must be newer than current version ${current}.`,
+    );
+  }
+  return target;
 }
 
-function pushTarget(_type) {
-  // Fork policy: push only to the `private` remote on the current branch
-  // (default: `main`). Do not push to `origin` / upstream.
-  return "HEAD";
+function readPackageInfo() {
+  const cli = JSON.parse(
+    fs.readFileSync(path.join(CLI_DIR, "package.json"), "utf-8"),
+  );
+  const core = JSON.parse(
+    fs.readFileSync(path.join(CORE_DIR, "package.json"), "utf-8"),
+  );
+  return {
+    cliName: cli.name,
+    cliVersion: cli.version,
+    coreName: core.name,
+    coreVersion: core.version,
+  };
+}
+
+export function buildReleaseCandidatePlan({ type, packageInfo, git }) {
+  assertMatchingVersions(packageInfo);
+  if (!RELEASE_TYPES.has(type) && !EXPLICIT_VERSION.test(type)) {
+    throw new Error(
+      "usage: release.js <patch|minor|major|beta|rc|promote|x.y.z[-beta.N|-rc.N]>",
+    );
+  }
+  const targetVersion = computeReleaseTarget(packageInfo.cliVersion, type);
+  const parsed = parseReleaseVersion(targetVersion);
+  return {
+    mode: "validated-candidate-plan",
+    currentVersion: packageInfo.cliVersion,
+    targetVersion,
+    channel: parsed.channel,
+    tag: `${RELEASE_TAG_PREFIX}${targetVersion}`,
+    branch: git.branch,
+    head: git.head,
+    remote: git.remote,
+    mutationsPerformed: [],
+  };
+}
+
+export function runReleaseCandidate({
+  type = "patch",
+  remote = "private",
+  runner = createCommandRunner(),
+  packageInfo = readPackageInfo(),
+  repoRoot = REPO_ROOT,
+  cliDir = CLI_DIR,
+  validate = true,
+}) {
+  assertMatchingVersions(packageInfo);
+  if (!RELEASE_TYPES.has(type) && !EXPLICIT_VERSION.test(type)) {
+    throw new Error(
+      "usage: release.js <patch|minor|major|beta|rc|promote|x.y.z[-beta.N|-rc.N]>",
+    );
+  }
+  const targetVersion = computeReleaseTarget(packageInfo.cliVersion, type);
+  parseReleaseVersion(targetVersion);
+
+  // Git facts and provenance are checked before the first build/test command.
+  const git = inspectLocalRelease({
+    runner,
+    cwd: repoRoot,
+    version: targetVersion,
+    remote,
+  });
+  if (validate) {
+    const kernelBin = path.join(cliDir, "bin", "cstl.js");
+    const quoted = /\s/.test(kernelBin) ? `"${kernelBin}"` : kernelBin;
+    runCandidateValidation({
+      runner,
+      repoRoot,
+      cliDir,
+      env: {
+        TRELLIS_KERNEL_CLI: `node ${quoted} kernel --json`,
+        TRELLIS_SKIP_SMART_SEARCH_POSTINSTALL: "1",
+      },
+    });
+  }
+  return buildReleaseCandidatePlan({ type, packageInfo, git });
+}
+
+function parseArgs(argv) {
+  let type = "patch";
+  let remote = "private";
+  let sawType = false;
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (arg === "--json") continue;
+    if (arg === "--remote") {
+      remote = argv[index + 1];
+      index += 1;
+      continue;
+    }
+    if (arg.startsWith("--")) throw new Error(`unknown option: ${arg}`);
+    if (sawType) throw new Error(`unexpected argument: ${arg}`);
+    type = arg;
+    sawType = true;
+  }
+  return {
+    type,
+    remote,
+    json: argv.includes("--json"),
+  };
 }
 
 function main() {
-  const [type = "patch"] = process.argv.slice(2);
-  const explicitVersion = /^\d+\.\d+\.\d+(?:-[A-Za-z0-9.+-]+)?$/.test(type);
-  if (!RELEASE_TYPES.has(type) && !explicitVersion) {
-    fail(
-      `usage: release.js <patch|minor|major|beta|rc|promote|x.y.z[-pre]>`,
+  try {
+    const options = parseArgs(process.argv.slice(2));
+    if (!options.remote) throw new Error("--remote requires a remote name.");
+    const plan = runReleaseCandidate(options);
+    if (options.json) {
+      process.stdout.write(`${JSON.stringify(plan, null, 2)}\n`);
+      return;
+    }
+    console.log(
+      [
+        `ok release candidate validated at ${plan.head}`,
+        `  source: ${plan.branch} (remote ${plan.remote})`,
+        `  current: ${plan.currentVersion}`,
+        `  target:  ${plan.targetVersion}`,
+        `  tag:     ${plan.tag}`,
+        "No package file, index, commit, tag, remote, or registry state was changed.",
+      ].join("\n"),
     );
+  } catch (error) {
+    console.error(
+      `x ${error instanceof Error ? error.message : String(error)}`,
+    );
+    process.exitCode = 1;
   }
-
-  run("node scripts/check-manifest-continuity.js");
-  run("pnpm run check:router-copy-sync:hash");
-  run("pnpm --filter @blxzer/cursor-trellis-core test");
-  run("pnpm test");
-
-  run("git add -A");
-  if (hasGitDiff()) {
-    gitCommit("chore: pre-release updates");
-  }
-
-  const version = output(`node scripts/bump-versions.js ${type}`);
-  run("node scripts/release-preflight.js check-versions");
-  run("git add package.json ../core/package.json");
-  gitCommit(version);
-  // Tag with the `cstl-v` prefix to avoid collisions with legacy
-  // @blxzer/trellis tags (v0.3.x–v0.6.x) that share this repo's history.
-  // release-preflight tagVersionFromEnv still extracts the version from the
-  // prefixed tag (its regex is end-anchored, not start-anchored).
-  run(`git tag "cstl-v${version}"`);
-  // Push HEAD and only this release tag. `git push --tags` also tries to
-  // update every local tag and fails when historical tags already exist
-  // on the remote with different SHAs.
-  run(`git push private ${pushTarget(type)}`);
-  run(`git push private "cstl-v${version}"`);
 }
 
-main();
+const invokedAs = process.argv[1];
+if (
+  invokedAs &&
+  import.meta.url === pathToFileURL(path.resolve(invokedAs)).href
+) {
+  main();
+}

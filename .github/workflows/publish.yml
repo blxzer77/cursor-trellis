@@ -7,7 +7,10 @@
 # Required repo secret: NPM_TOKEN (npm automation token with publish access to
 # both @blxzer/cursor-trellis and @blxzer/cursor-trellis-core).
 #
-# Manual fallback (maintainer machine): node packages/cli/scripts/publish-packages.js
+# Manual fallback uses the same two-process credential wall: run
+# `publish-packages.js --prepare-only --receipt-output <outside-artifact-file>`
+# without a token, then pass that file's `manifest_sha256` value explicitly to
+# `publish-packages.js --publish-only --expected-manifest-sha256 <value>`.
 
 name: Publish
 
@@ -25,10 +28,21 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      # Same shallow-clone contract as CI: no historical `git show` in tests.
+      # Publish provenance needs the tag commit plus release branch ancestry.
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          # Candidate preparation needs history, never a persisted write-capable token.
+          persist-credentials: false
+
+      - name: Verify exact tag and commit provenance
+        run: >-
+          node packages/cli/scripts/release-preflight.js check-provenance
+          --tag "${GITHUB_REF_NAME}" --remote origin
 
       - uses: pnpm/action-setup@v6
+        with:
+          version: 10.32.1
 
       - uses: actions/setup-node@v7
         with:
@@ -45,9 +59,6 @@ jobs:
           cp packages/cli/src/templates/cursor/rules/* .cursor/rules/
           cp packages/cli/src/templates/cursor/agents/* .cursor/agents/
           cp -r packages/cli/src/templates/trellis/scripts/* .cstl/scripts/
-
-      - name: Verify tag matches package versions
-        run: node packages/cli/scripts/release-preflight.js check-versions --require-tag
 
       - name: Prepare GitHub Release notes from CHANGELOG
         run: |
@@ -70,16 +81,26 @@ jobs:
           fs.writeFileSync(process.env.NOTES_FILE, notes);
           NODE
 
-      - name: Verify packed CLI resolves core dependency
-        run: node packages/cli/scripts/release-preflight.js verify-packed-cli
-
-      - name: Publish core then cli
-        run: node packages/cli/scripts/publish-packages.js
+      - name: Validate candidate and prepare immutable tarballs
+        id: prepare
+        run: >-
+          node packages/cli/scripts/publish-packages.js
+          --prepare-only --artifact-dir "${RUNNER_TEMP}/release-artifacts"
+          --receipt-output "${GITHUB_OUTPUT}"
+          --tag "${GITHUB_REF_NAME}" --remote origin
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          # cli prepublishOnly runs tests. Archive/create/start-execution call
-          # Kernel; without this, core publishes and cli fails (0.4.3 incident).
+          # Candidate tests call Kernel before either package is published.
           TRELLIS_KERNEL_CLI: node ${{ github.workspace }}/packages/cli/bin/cstl.js kernel --json
+
+      - name: Publish verified tarballs
+        run: >-
+          node packages/cli/scripts/publish-packages.js
+          --publish-only --artifact-dir "${RUNNER_TEMP}/release-artifacts"
+          --expected-manifest-sha256 "${{ steps.prepare.outputs.manifest_sha256 }}"
+          --tag "${GITHUB_REF_NAME}"
+        env:
+          # The publish token exists only in this minimal artifact-consumer step.
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Verify npm registry visibility
         run: node packages/cli/scripts/release-preflight.js verify-npm --package all

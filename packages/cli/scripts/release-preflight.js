@@ -1,66 +1,29 @@
 #!/usr/bin/env node
-/**
- * Shared release / publish preflight.
- *
- * One source of truth for:
- *   1. Version match between `@blxzer/cursor-trellis` and
- *      `@blxzer/cursor-trellis-core` (and the current git tag when checked from
- *      a tag context).
- *   2. The npm dist-tag derived from the shared version (`beta`, `rc`,
- *      `alpha`, or `latest`).
- *   3. An idempotent publish plan that checks npm for each package + version
- *      and reports whether a fresh publish is needed.
- *
- * Used by both `packages/cli` release scripts (humans) and
- * `.github/workflows/publish.yml` (CI) so the rules cannot drift.
- *
- * Commands:
- *   check-versions [--require-tag]   Verify core/cli (and optional GITHUB_REF
- *                                    tag) all agree on the exact version.
- *   npm-tag                          Print the computed npm dist-tag.
- *   publish-plan [--json|--github]   Decide which packages still need a
- *                                    publish. Idempotent: if a package
- *                                    version already exists on npm it is
- *                                    skipped (but version mismatches still
- *                                    fail loudly).
- *   verify-packed-cli                Pack the CLI and assert its dependency
- *                                    on @blxzer/cursor-trellis-core resolves
- *                                    to the exact shared version (not
- *                                    "workspace:*" or a loose range).
- *   verify-npm [--package all|core|cli]
- *                                    Verify the published package version and
- *                                    dist-tag are visible on the public npm
- *                                    registry. Used after CI publish so a
- *                                    registry visibility problem fails the
- *                                    release pipeline instead of being fixed
- *                                    by a local publish.
- *
- * Idempotency rule: a CI rerun on the same tag must not republish an
- * already-published version, but must also never silently paper over a
- * version/tag mismatch. Version equality is checked first; npm existence
- * decides per-package skip.
- */
-import { execFileSync, execSync } from "node:child_process";
+/** Shared, fail-closed release and publish preflight. */
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+
+import {
+  assertMatchingVersions,
+  createCommandRunner,
+  inspectPublishRelease,
+  parseReleaseTag,
+  resolveReleaseTag,
+} from "./release-guard.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "../../..");
 const CORE_PKG = path.join(REPO_ROOT, "packages/core/package.json");
 const CLI_PKG = path.join(REPO_ROOT, "packages/cli/package.json");
+const CORE_DEPENDENCY = "@blxzer/cursor-trellis-core";
 
-const RED = "\x1b[31m";
-const YELLOW = "\x1b[33m";
-const GREEN = "\x1b[32m";
-const DIM = "\x1b[2m";
-const RESET = "\x1b[0m";
-
-function readJSON(p) {
-  return JSON.parse(fs.readFileSync(p, "utf-8"));
+function readJSON(file) {
+  return JSON.parse(fs.readFileSync(file, "utf-8"));
 }
 
-function readVersions() {
+export function readVersions() {
   const core = readJSON(CORE_PKG);
   const cli = readJSON(CLI_PKG);
   return {
@@ -71,14 +34,6 @@ function readVersions() {
   };
 }
 
-function tagVersionFromEnv() {
-  // GITHUB_REF for `push: tags: v*` looks like `refs/tags/v0.6.0-beta.12`.
-  // GITHUB_REF_NAME on `release.published` is the tag name.
-  const ref = process.env.GITHUB_REF_NAME || process.env.GITHUB_REF || "";
-  const m = ref.match(/(?:refs\/tags\/)?v(\d+\.\d+\.\d+(?:-[A-Za-z0-9.+-]+)?)$/);
-  return m ? m[1] : null;
-}
-
 export function computeNpmTag(version) {
   if (/-beta\./.test(version)) return "beta";
   if (/-rc\./.test(version)) return "rc";
@@ -86,31 +41,50 @@ export function computeNpmTag(version) {
   return "latest";
 }
 
-export function npmVersionExists(pkgName, version) {
+function errorText(error) {
+  if (!(error instanceof Error)) return String(error);
+  const stderr = "stderr" in error ? String(error.stderr ?? "") : "";
+  return `${error.message}\n${stderr}`;
+}
+
+export function npmVersionExists(
+  packageName,
+  version,
+  { runner = createCommandRunner() } = {},
+) {
   try {
-    const out = execSync(
-      `npm view ${pkgName}@${version} version --json --registry=https://registry.npmjs.org/`,
-      { encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"], timeout: 15_000 },
+    const out = String(
+      runner(
+        "npm",
+        [
+          "view",
+          `${packageName}@${version}`,
+          "version",
+          "--json",
+          "--registry=https://registry.npmjs.org/",
+        ],
+        { capture: true },
+      ),
     ).trim();
-    if (!out) return false;
-    // npm returns the literal version string for an exact-version match,
-    // and an empty body for unknown versions.
-    return JSON.parse(out) === version;
-  } catch (err) {
-    const stderr = err.stderr?.toString() ?? "";
-    if (stderr.includes("E404") || stderr.includes("not found")) return false;
-    // Any other npm failure (network, auth) should surface; don't pretend
-    // the version doesn't exist, because that would trigger a republish.
-    throw err;
+    return out !== "" && JSON.parse(out) === version;
+  } catch (error) {
+    const text = errorText(error);
+    if (text.includes("E404") || text.toLowerCase().includes("not found")) {
+      return false;
+    }
+    throw error;
   }
 }
 
-function npmViewJSON(args) {
-  const out = execSync(
-    `npm view ${args} --json --registry=https://registry.npmjs.org/`,
-    { encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"], timeout: 15_000 },
+function npmViewJSON(args, runner) {
+  const out = String(
+    runner(
+      "npm",
+      ["view", ...args, "--json", "--registry=https://registry.npmjs.org/"],
+      { capture: true },
+    ),
   ).trim();
-  return out ? JSON.parse(out) : null;
+  return out === "" ? null : JSON.parse(out);
 }
 
 async function sleep(ms) {
@@ -120,14 +94,14 @@ async function sleep(ms) {
 async function retry(label, fn) {
   const attempts = 6;
   let lastError;
-  for (let i = 1; i <= attempts; i += 1) {
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
     try {
       return fn();
-    } catch (err) {
-      lastError = err;
-      if (i === attempts) break;
+    } catch (error) {
+      lastError = error;
+      if (attempt === attempts) break;
       console.error(
-        `${YELLOW}! ${label} not visible yet; retrying (${i}/${attempts})${RESET}`,
+        `! ${label} not visible yet; retrying (${attempt}/${attempts})`,
       );
       await sleep(10_000);
     }
@@ -135,95 +109,111 @@ async function retry(label, fn) {
   throw lastError;
 }
 
-function fail(msg) {
-  console.error(`${RED}x ${msg}${RESET}`);
-  process.exit(1);
+function inferredTag({ explicitTag, env }) {
+  const candidate = resolveReleaseTag({ explicitTag, env });
+  if (explicitTag) return candidate;
+  if (env.GITHUB_REF?.startsWith("refs/tags/")) return candidate;
+  if (env.GITHUB_REF_TYPE === "tag") return candidate;
+  if (candidate.startsWith("cstl-v")) return candidate;
+  return "";
 }
 
-function packWorkspacePackage(packageDir, destinationDir) {
-  const out = execSync(`pnpm pack --pack-destination "${destinationDir}"`, {
-    cwd: packageDir,
-    encoding: "utf-8",
-    stdio: ["pipe", "pipe", "pipe"],
-    env: {
-      ...process.env,
-      TRELLIS_SKIP_SMART_SEARCH_POSTINSTALL: "1",
-    },
-  });
-  const filename = out.trim().split(/\r?\n/).filter(Boolean).pop() || "";
-  let packed = filename
-    ? path.isAbsolute(filename)
-      ? filename
-      : path.join(destinationDir, filename)
-    : "";
-  if (!packed || !fs.existsSync(packed)) {
-    const tgz = fs.readdirSync(destinationDir).find((f) => f.endsWith(".tgz"));
-    if (!tgz) fail(`pnpm pack did not produce a tarball in ${destinationDir}`);
-    packed = path.join(destinationDir, tgz);
-  }
-  return packed;
-}
-
-function checkVersions({ requireTag, quiet = false }) {
-  const v = readVersions();
-  if (v.coreVersion !== v.cliVersion) {
-    fail(
-      `Version mismatch:\n` +
-        `  ${v.coreName}: ${v.coreVersion}\n` +
-        `  ${v.cliName}:  ${v.cliVersion}\n` +
-        `Both packages must share the exact same version. Re-run the release\n` +
-        `bump script so they move together.`,
+export function checkVersions({
+  requireTag = false,
+  quiet = false,
+  explicitTag,
+  env = process.env,
+  versions = readVersions(),
+} = {}) {
+  assertMatchingVersions(versions);
+  const tag = inferredTag({ explicitTag, env });
+  let tagVersion = null;
+  if (tag) tagVersion = parseReleaseTag(tag).version;
+  if (requireTag && !tag) {
+    throw new Error(
+      `Expected an exact cstl-v${versions.cliVersion} tag, but no release tag was provided.`,
     );
   }
-  const tagVersion = tagVersionFromEnv();
-  if (requireTag) {
-    if (!tagVersion) {
-      fail(
-        `Expected a git tag like v${v.cliVersion} via GITHUB_REF / GITHUB_REF_NAME but found "${
-          process.env.GITHUB_REF_NAME || process.env.GITHUB_REF || ""
-        }".`,
-      );
-    }
-    if (tagVersion !== v.cliVersion) {
-      fail(
-        `Git tag version (${tagVersion}) does not match package version (${v.cliVersion}).\n` +
-          `Refusing to publish: the tag, core package, and CLI package must agree.`,
-      );
-    }
-  } else if (tagVersion && tagVersion !== v.cliVersion) {
-    fail(
-      `Git tag version (${tagVersion}) does not match package version (${v.cliVersion}).`,
+  if (tagVersion !== null && tagVersion !== versions.cliVersion) {
+    throw new Error(
+      `Git tag version (${tagVersion}) does not match package version (${versions.cliVersion}).`,
     );
   }
   if (!quiet) {
     console.log(
-      `${GREEN}ok${RESET} versions match: ${v.coreName}@${v.coreVersion} = ${v.cliName}@${v.cliVersion}` +
-        (tagVersion ? ` = git tag v${tagVersion}` : ""),
+      `ok versions match: ${versions.coreName}@${versions.coreVersion} = ` +
+        `${versions.cliName}@${versions.cliVersion}` +
+        (tag ? ` = git tag ${tag}` : ""),
     );
   }
-  return { ...v, tagVersion };
+  return { ...versions, tag, tagVersion };
 }
 
-function publishPlan({ output }) {
-  const v = checkVersions({ requireTag: false, quiet: output === "json" });
-  const tag = computeNpmTag(v.cliVersion);
-  const coreExists = npmVersionExists(v.coreName, v.coreVersion);
-  const cliExists = npmVersionExists(v.cliName, v.cliVersion);
-  const plan = {
-    version: v.cliVersion,
+export function checkPublishProvenance({
+  runner = createCommandRunner(),
+  remote = "origin",
+  explicitTag,
+  env = process.env,
+  versions = readVersions(),
+  repoRoot = REPO_ROOT,
+} = {}) {
+  const checked = checkVersions({
+    requireTag: true,
+    quiet: true,
+    explicitTag,
+    env,
+    versions,
+  });
+  const provenance = inspectPublishRelease({
+    runner,
+    cwd: repoRoot,
+    packageVersion: checked.cliVersion,
+    explicitTag: checked.tag,
+    remote,
+    env,
+  });
+  console.log(
+    `ok ${checked.tag} matches package version and ${provenance.channel} provenance (${provenance.head}).`,
+  );
+  return { ...checked, ...provenance };
+}
+
+export function createPublishPlan({ versions, exists = npmVersionExists }) {
+  assertMatchingVersions(versions);
+  const tag = computeNpmTag(versions.cliVersion);
+  const coreExists = exists(versions.coreName, versions.coreVersion);
+  const cliExists = exists(versions.cliName, versions.cliVersion);
+  return {
+    version: versions.cliVersion,
     tag,
-    core: { name: v.coreName, publish: !coreExists, alreadyOnNpm: coreExists },
-    cli: { name: v.cliName, publish: !cliExists, alreadyOnNpm: cliExists },
+    core: {
+      name: versions.coreName,
+      publish: !coreExists,
+      alreadyOnNpm: coreExists,
+    },
+    cli: {
+      name: versions.cliName,
+      publish: !cliExists,
+      alreadyOnNpm: cliExists,
+    },
   };
+}
+
+function publishPlan({ output, runner = createCommandRunner() }) {
+  const versions = checkVersions({ quiet: output === "json" });
+  const plan = createPublishPlan({
+    versions,
+    exists: (name, version) => npmVersionExists(name, version, { runner }),
+  });
   if (output === "json") {
-    process.stdout.write(JSON.stringify(plan, null, 2) + "\n");
+    process.stdout.write(`${JSON.stringify(plan, null, 2)}\n`);
     return plan;
   }
   if (output === "github") {
-    const gh = process.env.GITHUB_OUTPUT;
-    if (!gh) fail(`--github requested but GITHUB_OUTPUT is not set.`);
+    const githubOutput = process.env.GITHUB_OUTPUT;
+    if (!githubOutput) throw new Error("--github requires GITHUB_OUTPUT.");
     fs.appendFileSync(
-      gh,
+      githubOutput,
       [
         `version=${plan.version}`,
         `tag=${plan.tag}`,
@@ -234,123 +224,195 @@ function publishPlan({ output }) {
       ].join("\n") + "\n",
     );
   }
-  const status = (pkg) =>
-    pkg.publish
-      ? `${GREEN}publish${RESET}`
-      : `${YELLOW}skip (already on npm)${RESET}`;
+  const status = (pkg) => (pkg.publish ? "publish" : "skip (already on npm)");
   console.log(
-    `${DIM}plan for v${plan.version} -> npm tag "${plan.tag}":${RESET}\n` +
+    `plan for ${plan.version} -> npm tag "${plan.tag}":\n` +
       `  ${plan.core.name}@${plan.version}: ${status(plan.core)}\n` +
-      `  ${plan.cli.name}@${plan.version}:  ${status(plan.cli)}`,
+      `  ${plan.cli.name}@${plan.version}: ${status(plan.cli)}`,
   );
   return plan;
 }
 
-function verifyPackedCli() {
-  const v = checkVersions({ requireTag: false });
-  const tmp = fs.mkdtempSync(path.join(REPO_ROOT, ".pack-verify-"));
-  let packed;
-  try {
-    packed = packWorkspacePackage(path.join(REPO_ROOT, "packages/cli"), tmp);
-    const extractDir = path.join(tmp, "extract");
-    fs.mkdirSync(extractDir);
-    execFileSync("tar", ["-xzf", packed, "-C", extractDir, "package/package.json"], {
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-    const packedPkg = readJSON(path.join(extractDir, "package/package.json"));
-    const dep = packedPkg.dependencies?.["@blxzer/cursor-trellis-core"];
-    if (!dep) {
-      fail(`packed CLI is missing dependency on @blxzer/cursor-trellis-core.`);
-    }
-    if (dep !== v.cliVersion) {
-      fail(
-        `packed CLI depends on @blxzer/cursor-trellis-core@"${dep}" but expected exact "${v.cliVersion}".\n` +
-          `pnpm should rewrite workspace:* to the exact published version; got "${dep}" instead.`,
+function packWorkspacePackage(packageDir, destinationDir, runner) {
+  const out = String(
+    runner("pnpm", ["pack", "--pack-destination", destinationDir], {
+      cwd: packageDir,
+      capture: true,
+      env: { TRELLIS_SKIP_SMART_SEARCH_POSTINSTALL: "1" },
+    }),
+  );
+  const filename = out.trim().split(/\r?\n/).filter(Boolean).pop() ?? "";
+  let packed = filename
+    ? path.isAbsolute(filename)
+      ? filename
+      : path.join(destinationDir, filename)
+    : "";
+  if (!packed || !fs.existsSync(packed)) {
+    const tarball = fs
+      .readdirSync(destinationDir)
+      .find((file) => file.endsWith(".tgz"));
+    if (!tarball) {
+      throw new Error(
+        `pnpm pack did not produce a tarball in ${destinationDir}.`,
       );
     }
+    packed = path.join(destinationDir, tarball);
+  }
+  return packed;
+}
+
+function normalizeBin(value) {
+  return typeof value === "string" ? value.replace(/^\.\//, "") : value;
+}
+
+export function validatePackedCliPackage(packedPackage, expectedVersion) {
+  const errors = [];
+  const dependency = packedPackage.dependencies?.[CORE_DEPENDENCY];
+  if (dependency !== expectedVersion) {
+    errors.push(
+      `packed CLI dependency ${CORE_DEPENDENCY} is "${dependency ?? "missing"}"; expected exact "${expectedVersion}"`,
+    );
+  }
+  const bins = packedPackage.bin ?? {};
+  if (normalizeBin(bins.cstl) !== "bin/cstl.js") {
+    errors.push(`packed CLI bin "cstl" does not resolve to bin/cstl.js`);
+  }
+  if (normalizeBin(bins["smart-search"]) !== "bin/smart-search.js") {
+    errors.push(
+      `packed CLI bin "smart-search" does not resolve to bin/smart-search.js`,
+    );
+  }
+  if (errors.length > 0) throw new Error(errors.join("\n"));
+}
+
+export function verifyPackedCli({
+  runner = createCommandRunner(),
+  versions = readVersions(),
+} = {}) {
+  assertMatchingVersions(versions);
+  const temporary = fs.mkdtempSync(path.join(os.tmpdir(), "cstl-pack-verify-"));
+  try {
+    const packed = packWorkspacePackage(
+      path.join(REPO_ROOT, "packages/cli"),
+      temporary,
+      runner,
+    );
+    const extractDir = path.join(temporary, "extract");
+    fs.mkdirSync(extractDir);
+    runner("tar", ["-xzf", packed, "-C", extractDir, "package/package.json"], {
+      capture: true,
+    });
+    const packedPackage = readJSON(
+      path.join(extractDir, "package/package.json"),
+    );
+    validatePackedCliPackage(packedPackage, versions.cliVersion);
     console.log(
-      `${GREEN}ok${RESET} packed CLI pins @blxzer/cursor-trellis-core to exact ${v.cliVersion}.`,
+      `ok packed CLI pins ${CORE_DEPENDENCY} to ${versions.cliVersion} and exposes both bins.`,
     );
   } finally {
-    fs.rmSync(tmp, { recursive: true, force: true });
+    fs.rmSync(temporary, { recursive: true, force: true });
   }
 }
 
-async function verifyNpm({ packageFilter }) {
-  const v = checkVersions({ requireTag: false });
-  const tag = computeNpmTag(v.cliVersion);
+async function verifyNpm({ packageFilter, runner = createCommandRunner() }) {
+  const versions = checkVersions();
+  const tag = computeNpmTag(versions.cliVersion);
   const packages = [
-    { key: "core", name: v.coreName },
-    { key: "cli", name: v.cliName },
+    { key: "core", name: versions.coreName },
+    { key: "cli", name: versions.cliName },
   ].filter((pkg) => packageFilter === "all" || pkg.key === packageFilter);
 
   for (const pkg of packages) {
-    await retry(`${pkg.name}@${v.cliVersion}`, () => {
-      const version = npmViewJSON(`${pkg.name}@${v.cliVersion} version`);
-      if (version !== v.cliVersion) {
-        fail(
-          `${pkg.name}@${v.cliVersion} is not visible on the public npm registry.`,
+    await retry(`${pkg.name}@${versions.cliVersion}`, () => {
+      const version = npmViewJSON(
+        [`${pkg.name}@${versions.cliVersion}`, "version"],
+        runner,
+      );
+      if (version !== versions.cliVersion) {
+        throw new Error(
+          `${pkg.name}@${versions.cliVersion} is not visible on npm.`,
         );
       }
-      const taggedVersion = npmViewJSON(`${pkg.name}@${tag} version`);
-      if (taggedVersion !== v.cliVersion) {
-        fail(
-          `${pkg.name}@${tag} resolves to ${taggedVersion ?? "nothing"}, expected ${v.cliVersion}.`,
+      const taggedVersion = npmViewJSON(
+        [`${pkg.name}@${tag}`, "version"],
+        runner,
+      );
+      if (taggedVersion !== versions.cliVersion) {
+        throw new Error(
+          `${pkg.name}@${tag} resolves to ${taggedVersion ?? "nothing"}, expected ${versions.cliVersion}.`,
         );
       }
       console.log(
-        `${GREEN}ok${RESET} ${pkg.name}@${v.cliVersion} visible on npm tag "${tag}".`,
+        `ok ${pkg.name}@${versions.cliVersion} visible on npm tag "${tag}".`,
       );
     });
   }
 }
 
+function optionValue(args, flag, fallback) {
+  const index = args.indexOf(flag);
+  return index >= 0 ? args[index + 1] : fallback;
+}
+
 async function main() {
-  const [cmd, ...rest] = process.argv.slice(2);
-  if (!cmd || cmd === "--help" || cmd === "-h") {
+  const runner = createCommandRunner();
+  const [command, ...args] = process.argv.slice(2);
+  if (!command || command === "--help" || command === "-h") {
     console.log(
-      `release-preflight <command>\n\n` +
-        `commands:\n` +
-        `  check-versions [--require-tag]\n` +
-        `  npm-tag\n` +
-        `  publish-plan [--json|--github]\n` +
-        `  verify-packed-cli\n` +
-        `  verify-npm [--package all|core|cli]\n`,
+      "release-preflight <command>\n\n" +
+        "commands:\n" +
+        "  check-versions [--require-tag] [--tag cstl-vX.Y.Z]\n" +
+        "  check-provenance [--tag cstl-vX.Y.Z] [--remote origin]\n" +
+        "  npm-tag\n" +
+        "  publish-plan [--json|--github]\n" +
+        "  verify-packed-cli\n" +
+        "  verify-npm [--package all|core|cli]",
     );
     return;
   }
-  if (cmd === "check-versions") {
-    checkVersions({ requireTag: rest.includes("--require-tag") });
+  if (command === "check-versions") {
+    checkVersions({
+      requireTag: args.includes("--require-tag"),
+      explicitTag: optionValue(args, "--tag"),
+    });
     return;
   }
-  if (cmd === "npm-tag") {
-    const v = readVersions();
-    process.stdout.write(computeNpmTag(v.cliVersion) + "\n");
+  if (command === "check-provenance") {
+    checkPublishProvenance({
+      runner,
+      explicitTag: optionValue(args, "--tag"),
+      remote: optionValue(args, "--remote", "origin"),
+    });
     return;
   }
-  if (cmd === "publish-plan") {
-    const output = rest.includes("--json")
-      ? "json"
-      : rest.includes("--github")
-        ? "github"
-        : "text";
-    publishPlan({ output });
+  if (command === "npm-tag") {
+    process.stdout.write(`${computeNpmTag(readVersions().cliVersion)}\n`);
     return;
   }
-  if (cmd === "verify-packed-cli") {
-    verifyPackedCli();
+  if (command === "publish-plan") {
+    publishPlan({
+      output: args.includes("--json")
+        ? "json"
+        : args.includes("--github")
+          ? "github"
+          : "text",
+      runner,
+    });
     return;
   }
-  if (cmd === "verify-npm") {
-    const packageIndex = rest.indexOf("--package");
-    const packageArg = packageIndex >= 0 ? rest[packageIndex + 1] : "all";
-    if (!["all", "core", "cli"].includes(packageArg)) {
-      fail(`--package must be one of: all, core, cli`);
+  if (command === "verify-packed-cli") {
+    verifyPackedCli({ runner });
+    return;
+  }
+  if (command === "verify-npm") {
+    const packageFilter = optionValue(args, "--package", "all");
+    if (!["all", "core", "cli"].includes(packageFilter)) {
+      throw new Error("--package must be one of: all, core, cli.");
     }
-    await verifyNpm({ packageFilter: packageArg });
+    await verifyNpm({ packageFilter, runner });
     return;
   }
-  fail(`unknown command: ${cmd}`);
+  throw new Error(`unknown command: ${command}`);
 }
 
 const invokedAs = process.argv[1];
@@ -358,5 +420,10 @@ if (
   invokedAs &&
   import.meta.url === pathToFileURL(path.resolve(invokedAs)).href
 ) {
-  main();
+  main().catch((error) => {
+    console.error(
+      `x ${error instanceof Error ? error.message : String(error)}`,
+    );
+    process.exitCode = 1;
+  });
 }

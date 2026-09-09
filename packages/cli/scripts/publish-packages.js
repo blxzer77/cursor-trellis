@@ -1,143 +1,488 @@
 #!/usr/bin/env node
 /**
- * Publish @blxzer/cursor-trellis-core and @blxzer/cursor-trellis to npm in dependency order.
+ * Prepare and publish the Core + CLI pair across an explicit credential wall.
  *
- * Why this exists: release.js only does the git side (bump + commit + tag +
- * push). npm publishing was manual, and manual publishing repeatedly forgot
- * core (core's 1.1.0 was never published; 1.1.1 was missed until the manifest
- * continuity gate caught it). This script makes the publish step a single
- * command so both packages always land together.
- *
- * Order matters: core is a dependency of cli. If cli is published first, the
- * cli tarball references a core version that does not exist on npm yet, and
- * `npm install -g @blxzer/cursor-trellis` fails with ETARGET until core catches up
- * (this exact breakage happened during 1.1.2 release).
- *
- * Safety:
- *   - Both package.json versions must match before anything is published.
- *   - core is built fresh (dist/ is gitignored, never committed).
- *   - cli relies on its own `prepublishOnly` (build + test + copy-release-assets).
- *   - Stage 2 `task.py` ops need `cstl kernel --json`. This script sets
- *     `TRELLIS_KERNEL_CLI` to this tree's `bin/cstl.js` when unset, and builds
- *     cli before `pnpm publish` so `dist/` exists for those tests. Otherwise a
- *     clean CI runner publishes core and then fails cli (0.4.3).
- *
- * Usage:
- *   node scripts/publish-packages.js              # publish both
- *   node scripts/publish-packages.js --dry-run    # npm pack --dry-run, no upload
- *
- * Prerequisite: run `pnpm release <type>` first (git side: bump + tag + push).
- * This script does NOT bump versions or touch git.
+ * `--prepare-only` must run without publish credentials. It validates the full
+ * candidate, creates both tarballs once, validates their packed contracts, and
+ * seals their byte hashes in a manifest. It also returns a SHA-256 receipt that
+ * must travel outside the artifact directory. `--publish-only` requires that
+ * receipt through `--expected-manifest-sha256`, verifies it before parsing the
+ * manifest, and publishes those exact tarballs; it never builds or packs from a
+ * source directory. `--dry-run` exercises both phases in one process, passes
+ * the generated receipt internally, and performs no registry writes, though
+ * the manifest-continuity gate still performs its documented read-only query.
  */
-import { execSync } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
-import { computeNpmTag, npmVersionExists } from "./release-preflight.js";
+import {
+  assertCleanTree,
+  assertMatchingVersions,
+  createCommandRunner,
+  inspectLocalRelease,
+  inspectPublishRelease,
+  parseReleaseTag,
+  resolveReleaseTag,
+} from "./release-guard.js";
+import {
+  assertManifestSha256,
+  prepareReleaseArtifacts,
+  readPreparedReleaseArtifacts,
+  runCandidateValidation,
+} from "./release-validation.js";
+import {
+  computeNpmTag,
+  createPublishPlan,
+  npmVersionExists,
+} from "./release-preflight.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CLI_DIR = path.resolve(__dirname, "..");
+const REPO_ROOT = path.resolve(CLI_DIR, "../..");
 const CORE_DIR = path.resolve(CLI_DIR, "../core");
 
-function readVersion(pkgDir) {
-  const pkg = JSON.parse(
-    fs.readFileSync(path.join(pkgDir, "package.json"), "utf-8"),
+export const PUBLISH_CREDENTIAL_ENV_KEYS = ["NODE_AUTH_TOKEN", "NPM_TOKEN"];
+
+function readPackage(file) {
+  return JSON.parse(fs.readFileSync(file, "utf-8"));
+}
+
+export function readPackageInfo() {
+  const cli = readPackage(path.join(CLI_DIR, "package.json"));
+  const core = readPackage(path.join(CORE_DIR, "package.json"));
+  return {
+    cliName: cli.name,
+    cliVersion: cli.version,
+    cliDir: CLI_DIR,
+    coreName: core.name,
+    coreVersion: core.version,
+    coreDir: CORE_DIR,
+  };
+}
+
+export function assertCredentialFreePreparation(env = process.env) {
+  const present = PUBLISH_CREDENTIAL_ENV_KEYS.filter(
+    (key) => typeof env[key] === "string" && env[key].trim() !== "",
   );
-  return pkg.version;
-}
-
-function run(command, options = {}) {
-  execSync(command, {
-    cwd: options.cwd ?? CLI_DIR,
-    env: process.env,
-    stdio: "inherit",
-  });
-}
-
-function fail(message) {
-  console.error(`\x1b[31m✗ ${message}\x1b[0m`);
-  process.exit(1);
-}
-
-/** `kernel_command.py` treats TRELLIS_KERNEL_CLI as the full argv (includes `kernel --json`). */
-function ensureKernelCliEnv() {
-  if (process.env.TRELLIS_KERNEL_CLI?.trim()) {
-    return;
-  }
-  const bin = path.join(CLI_DIR, "bin", "cstl.js");
-  const quoted = /\s/.test(bin) ? `"${bin}"` : bin;
-  process.env.TRELLIS_KERNEL_CLI = `node ${quoted} kernel --json`;
-}
-
-function publishOne(pkgDir, version, tag, dryRun) {
-  if (dryRun) {
-    run("npm pack --dry-run", { cwd: pkgDir });
-    return;
-  }
-  const pkg = JSON.parse(
-    fs.readFileSync(path.join(pkgDir, "package.json"), "utf-8"),
-  );
-  if (npmVersionExists(pkg.name, version)) {
-    console.log(
-      `\x1b[33m○\x1b[0m ${pkg.name}@${version} already on npm — skip`,
+  if (present.length > 0) {
+    throw new Error(
+      `Release preparation refuses publish credentials (${present.join(
+        ", ",
+      )}). Run validation/packing in a credential-free step.`,
     );
-    return;
   }
-  run(`pnpm publish --access public --no-git-checks --tag ${tag}`, {
-    cwd: pkgDir,
+}
+
+function validationEnvironment(cliDir, env) {
+  const bin = path.join(cliDir, "bin", "cstl.js");
+  const quoted = /\s/.test(bin) ? `"${bin}"` : bin;
+  return {
+    TRELLIS_KERNEL_CLI:
+      env.TRELLIS_KERNEL_CLI ?? `node ${quoted} kernel --json`,
+    TRELLIS_SKIP_SMART_SEARCH_POSTINSTALL: "1",
+    NODE_AUTH_TOKEN: undefined,
+    NPM_TOKEN: undefined,
+  };
+}
+
+function credentialFreeRunner(runner) {
+  return (command, args = [], options = {}) =>
+    runner(command, args, {
+      ...options,
+      env: {
+        ...options.env,
+        // The parent process writes the receipt only after validation and
+        // packing finish. Candidate scripts must not be able to pre-seed or
+        // replace the GitHub step output used as the independent channel.
+        GITHUB_OUTPUT: undefined,
+        NODE_AUTH_TOKEN: undefined,
+        NPM_TOKEN: undefined,
+      },
+    });
+}
+
+function isPathInside(parent, candidate) {
+  const relative = path.relative(path.resolve(parent), path.resolve(candidate));
+  return (
+    relative === "" ||
+    (!relative.startsWith(`..${path.sep}`) &&
+      relative !== ".." &&
+      !path.isAbsolute(relative))
+  );
+}
+
+export function writeManifestReceiptOutput({
+  outputPath,
+  artifactDir,
+  manifestSha256,
+}) {
+  assertManifestSha256(manifestSha256);
+  if (!outputPath) throw new Error("--receipt-output requires a path.");
+  if (isPathInside(artifactDir, outputPath)) {
+    throw new Error(
+      "Manifest receipt output must remain outside the release artifact directory.",
+    );
+  }
+  fs.appendFileSync(
+    path.resolve(outputPath),
+    `manifest_sha256=${manifestSha256}${os.EOL}`,
+    "utf-8",
+  );
+}
+
+function dryRunPlan(packageInfo) {
+  return {
+    version: packageInfo.cliVersion,
+    tag: computeNpmTag(packageInfo.cliVersion),
+    registryChecked: false,
+    core: {
+      name: packageInfo.coreName,
+      publish: true,
+      alreadyOnNpm: null,
+    },
+    cli: {
+      name: packageInfo.cliName,
+      publish: true,
+      alreadyOnNpm: null,
+    },
+  };
+}
+
+function statusAfter(runner, repoRoot) {
+  return String(
+    runner("git", ["status", "--porcelain=v1", "--untracked-files=all"], {
+      cwd: repoRoot,
+      capture: true,
+      env: {
+        GITHUB_OUTPUT: undefined,
+        NODE_AUTH_TOKEN: undefined,
+        NPM_TOKEN: undefined,
+      },
+    }) ?? "",
+  ).trim();
+}
+
+/** Credential-free source validation plus creation of the immutable pair. */
+export function runCandidatePreparation({
+  dryRun = false,
+  explicitTag,
+  remote = "private",
+  artifactDir,
+  runner = createCommandRunner(),
+  packageInfo = readPackageInfo(),
+  repoRoot = REPO_ROOT,
+  validateCandidate = runCandidateValidation,
+  prepareArtifacts = prepareReleaseArtifacts,
+  env = process.env,
+  log = console.log,
+} = {}) {
+  assertCredentialFreePreparation(process.env);
+  assertCredentialFreePreparation(env);
+  if (!artifactDir)
+    throw new Error("Release preparation requires --artifact-dir.");
+  const preparationRunner = credentialFreeRunner(runner);
+  const version = assertMatchingVersions(packageInfo);
+  const provenance = dryRun
+    ? inspectLocalRelease({
+        runner: preparationRunner,
+        cwd: repoRoot,
+        version,
+        remote,
+      })
+    : inspectPublishRelease({
+        runner: preparationRunner,
+        cwd: repoRoot,
+        packageVersion: version,
+        explicitTag,
+        remote,
+        env,
+      });
+
+  const validationCommands = validateCandidate({
+    runner: preparationRunner,
+    repoRoot,
+    cliDir: packageInfo.cliDir,
+    env: validationEnvironment(packageInfo.cliDir, env),
   });
+  assertCleanTree(statusAfter(preparationRunner, repoRoot));
+
+  const artifacts = prepareArtifacts({
+    runner: preparationRunner,
+    repoRoot,
+    artifactDir,
+    packageInfo,
+    provenance,
+  });
+  const manifestSha256 = assertManifestSha256(artifacts.manifestSha256);
+  assertCleanTree(statusAfter(preparationRunner, repoRoot));
+  log(
+    `prepared ${artifacts.packages.length} immutable release tarballs for ${version} (${artifacts.npmTag}); manifest receipt ${manifestSha256}.`,
+  );
+  return { artifacts, manifestSha256, provenance, validationCommands };
+}
+
+function packageArtifact(artifacts, key) {
+  const item = artifacts.packages.find((entry) => entry.key === key);
+  if (!item) throw new Error(`Prepared release artifact is missing ${key}.`);
+  return item;
+}
+
+/** Registry plan/auth and publication of the already-validated byte artifacts. */
+export function runPreparedPublish({
+  dryRun = false,
+  explicitTag,
+  artifactDir,
+  expectedManifestSha256,
+  runner = createCommandRunner(),
+  packageInfo = readPackageInfo(),
+  repoRoot = REPO_ROOT,
+  loadArtifacts = readPreparedReleaseArtifacts,
+  npmExists = npmVersionExists,
+  env = process.env,
+  log = console.log,
+} = {}) {
+  if (!artifactDir)
+    throw new Error("Prepared publish requires --artifact-dir.");
+  assertManifestSha256(expectedManifestSha256);
+  assertMatchingVersions(packageInfo);
+
+  let releaseTag;
+  if (!dryRun) {
+    releaseTag = resolveReleaseTag({ explicitTag, env });
+    const parsed = parseReleaseTag(releaseTag);
+    if (parsed.version !== packageInfo.cliVersion) {
+      throw new Error(
+        `Release tag ${releaseTag} does not match package version ${packageInfo.cliVersion}.`,
+      );
+    }
+  }
+  const artifacts = loadArtifacts({
+    runner,
+    artifactDir,
+    packageInfo,
+    expectedReleaseTag: releaseTag,
+    expectedManifestSha256,
+  });
+  const currentCommit =
+    env.GITHUB_SHA ??
+    String(
+      runner("git", ["rev-parse", "HEAD"], {
+        cwd: repoRoot,
+        capture: true,
+        env: {
+          GITHUB_OUTPUT: undefined,
+          NODE_AUTH_TOKEN: undefined,
+          NPM_TOKEN: undefined,
+        },
+      }),
+    ).trim();
+  if (artifacts.commit !== currentCommit) {
+    throw new Error(
+      `Prepared artifact commit ${artifacts.commit} does not match checkout ${currentCommit}.`,
+    );
+  }
+
+  // All artifact parsing, content checks, and checksum verification are above
+  // the first registry query and therefore above the first possible publish.
+  const plan = dryRun
+    ? dryRunPlan(packageInfo)
+    : {
+        ...createPublishPlan({
+          versions: packageInfo,
+          exists: (name, version) => npmExists(name, version, { runner }),
+        }),
+        registryChecked: true,
+      };
+  if (plan.tag !== artifacts.npmTag || plan.version !== artifacts.version) {
+    throw new Error("Prepared artifact manifest does not match publish plan.");
+  }
+
+  log(
+    `publish plan: ${plan.version} -> ${plan.tag} ` +
+      `(core=${plan.core.publish ? "publish" : "skip"}, ` +
+      `cli=${plan.cli.publish ? "publish" : "skip"})`,
+  );
+  if (!dryRun && (plan.core.publish || plan.cli.publish)) {
+    try {
+      runner("npm", ["whoami"], { cwd: repoRoot, capture: true });
+    } catch {
+      throw new Error(
+        "npm authentication failed after artifact validation; no publish command ran.",
+      );
+    }
+  }
+
+  for (const entry of [
+    { key: "core", item: plan.core },
+    { key: "cli", item: plan.cli },
+  ]) {
+    if (!entry.item.publish) continue;
+    const artifact = packageArtifact(artifacts, entry.key);
+    runner(
+      "npm",
+      [
+        "publish",
+        artifact.tarballPath,
+        ...(dryRun ? ["--dry-run"] : []),
+        "--access",
+        "public",
+        "--ignore-scripts",
+        "--tag",
+        plan.tag,
+      ],
+      {
+        cwd: repoRoot,
+        capture: false,
+        env: dryRun
+          ? {
+              GITHUB_OUTPUT: undefined,
+              NODE_AUTH_TOKEN: undefined,
+              NPM_TOKEN: undefined,
+            }
+          : undefined,
+      },
+    );
+    log(
+      `${dryRun ? "dry-run" : "published"} ${entry.item.name}@${plan.version} from ${artifact.filename}`,
+    );
+  }
+  return { artifacts, plan };
+}
+
+/** Credential/tag-free rehearsal; registry continuity is read-only, not skipped. */
+export function runPublishDryRun({ artifactDir, ...options } = {}) {
+  const ownDirectory = !artifactDir;
+  const target =
+    artifactDir ?? fs.mkdtempSync(path.join(os.tmpdir(), "cstl-release-dry-"));
+  try {
+    const preparation = runCandidatePreparation({
+      ...options,
+      dryRun: true,
+      artifactDir: target,
+    });
+    const publication = runPreparedPublish({
+      ...options,
+      dryRun: true,
+      artifactDir: target,
+      expectedManifestSha256: preparation.manifestSha256,
+    });
+    return { ...preparation, plan: publication.plan };
+  } finally {
+    if (ownDirectory) fs.rmSync(target, { recursive: true, force: true });
+  }
+}
+
+/** Backwards-compatible programmatic entry point: only safe dry-run is combined. */
+export function runPublishPipeline(options = {}) {
+  if (!options.dryRun) {
+    throw new Error(
+      "Real release requires separate --prepare-only and --publish-only invocations.",
+    );
+  }
+  return runPublishDryRun(options);
+}
+
+function optionValue(args, flag, fallback) {
+  const index = args.indexOf(flag);
+  return index >= 0 ? args[index + 1] : fallback;
 }
 
 function main() {
-  const dryRun = process.argv.includes("--dry-run");
-
-  // Step 1: version parity guard — both packages must be at the same version
-  // before anything ships. release.js bumps them together via bump-versions.js,
-  // so a mismatch here means someone edited one package.json by hand.
-  const cliVersion = readVersion(CLI_DIR);
-  const coreVersion = readVersion(CORE_DIR);
-  if (cliVersion !== coreVersion) {
-    fail(
-      `Version mismatch: @blxzer/cursor-trellis@${cliVersion} vs @blxzer/cursor-trellis-core@${coreVersion}. ` +
-        `Reconcile both package.json files before publishing.`,
-    );
-  }
-  const tag = computeNpmTag(cliVersion);
-  console.log(
-    `\x1b[32m✓\x1b[0m versions match: ${cliVersion} (npm dist-tag "${tag}")`,
-  );
-
-  // Step 2: npm auth guard — fail fast with a clear message instead of a
-  // cryptic 403 mid-publish.
   try {
-    execSync("npm whoami", { stdio: "pipe", encoding: "utf-8" });
-  } catch {
-    fail(
-      "Not logged in to npm. Run `npm login` as the package owner first.",
+    const args = process.argv.slice(2);
+    const prepareOnly = args.includes("--prepare-only");
+    const publishOnly = args.includes("--publish-only");
+    const dryRun = args.includes("--dry-run");
+    if ([prepareOnly, publishOnly, dryRun].filter(Boolean).length !== 1) {
+      throw new Error(
+        "Choose exactly one mode: --prepare-only, --publish-only, or --dry-run.",
+      );
+    }
+    const remote = optionValue(args, "--remote", "private");
+    const explicitTag = optionValue(args, "--tag");
+    const artifactDir = optionValue(args, "--artifact-dir");
+    const receiptOutput = optionValue(args, "--receipt-output");
+    const expectedManifestSha256 = optionValue(
+      args,
+      "--expected-manifest-sha256",
     );
+    if (!remote) throw new Error("--remote requires a remote name.");
+    if (args.includes("--tag") && !explicitTag) {
+      throw new Error("--tag requires an exact cstl-v<semver> value.");
+    }
+    if (args.includes("--receipt-output") && !receiptOutput) {
+      throw new Error("--receipt-output requires a path.");
+    }
+    if (
+      args.includes("--expected-manifest-sha256") &&
+      !expectedManifestSha256
+    ) {
+      throw new Error("--expected-manifest-sha256 requires a digest.");
+    }
+
+    if (prepareOnly) {
+      if (expectedManifestSha256) {
+        throw new Error(
+          "--expected-manifest-sha256 is only valid with --publish-only.",
+        );
+      }
+      const result = runCandidatePreparation({
+        explicitTag,
+        remote,
+        artifactDir,
+      });
+      if (receiptOutput) {
+        writeManifestReceiptOutput({
+          outputPath: receiptOutput,
+          artifactDir,
+          manifestSha256: result.manifestSha256,
+        });
+      }
+      console.log(
+        `ok release artifacts prepared for ${result.artifacts.version}; manifest receipt ${result.manifestSha256}; no publish credential was available.`,
+      );
+      return;
+    }
+    if (publishOnly) {
+      if (receiptOutput) {
+        throw new Error("--receipt-output is only valid with --prepare-only.");
+      }
+      if (!expectedManifestSha256) {
+        throw new Error(
+          "Real publish-only requires --expected-manifest-sha256 from the independent preparation receipt.",
+        );
+      }
+      const result = runPreparedPublish({
+        explicitTag,
+        artifactDir,
+        expectedManifestSha256,
+      });
+      console.log(`ok publish completed for ${result.plan.version}.`);
+      return;
+    }
+    if (receiptOutput || expectedManifestSha256) {
+      throw new Error(
+        "--dry-run creates and consumes its manifest receipt in the same process; receipt flags are not accepted.",
+      );
+    }
+    const result = runPublishDryRun({ remote, artifactDir });
+    console.log(
+      `ok publish dry-run completed for ${result.plan.version}; registry continuity was read only and no registry state changed.`,
+    );
+  } catch (error) {
+    console.error(
+      `x ${error instanceof Error ? error.message : String(error)}`,
+    );
+    process.exitCode = 1;
   }
-
-  // Step 3: publish core first (cli depends on it). Build fresh because
-  // dist/ is gitignored and may be stale or absent after a clean checkout.
-  console.log("\n— @blxzer/cursor-trellis-core —");
-  run("pnpm run build", { cwd: CORE_DIR });
-  publishOne(CORE_DIR, coreVersion, tag, dryRun);
-
-  // Step 4: publish cli. Build first so Kernel tests in prepublishOnly can
-  // load `bin/cstl.js` → `dist/`. Then `pnpm publish` runs prepublishOnly
-  // (build + test + copy-release-assets). --dry-run skips that hook.
-  console.log("\n— @blxzer/cursor-trellis —");
-  ensureKernelCliEnv();
-  run("pnpm run build", { cwd: CLI_DIR });
-  if (dryRun) {
-    run("pnpm run copy:release-assets", { cwd: CLI_DIR });
-  }
-  publishOne(CLI_DIR, cliVersion, tag, dryRun);
-
-  console.log(
-    `\n\x1b[32m✓ Published @blxzer/cursor-trellis-core@${coreVersion} and @blxzer/cursor-trellis@${cliVersion} with tag "${tag}"\x1b[0m`,
-  );
 }
 
-main();
+const invokedAs = process.argv[1];
+if (
+  invokedAs &&
+  import.meta.url === pathToFileURL(path.resolve(invokedAs)).href
+) {
+  main();
+}
