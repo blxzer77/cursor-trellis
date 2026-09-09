@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "id": "journal.beta5",
+  "planId": "migration.beta5",
+  "planFingerprint": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "state": "reconciling",
+  "canonicalCommit": {
+    "status": "committed",
+    "actionId": "migration.commit",
+    "generationId": "generation.stable",
+    "committedAt": "2026-09-09T10:10:00Z"
+  },
+  "recovery": {
+    "status": "available",
+    "backupRef": "backup://migration.beta5",
+    "updatedAt": "2026-09-09T10:10:00Z",
+    "error": null
+  },
+  "adapterReconciliations": [
+    {
+      "adapterId": "cursor",
+      "projectionPlanId": "projection.cursor",
+      "status": "succeeded",
+      "attempts": 1,
+      "lastAttemptAt": "2026-09-09T10:11:00Z",
+      "lastError": null
+    },
+    {
+      "adapterId": "codex",
+      "projectionPlanId": "projection.codex",
+      "status": "in-progress",
+      "attempts": 1,
+      "lastAttemptAt": "2026-09-09T10:12:00Z",
+      "lastError": null
+    }
+  ],
+  "events": [
+    {
+      "sequence": 1,
+      "at": "2026-09-09T10:00:00Z",
+      "event": "planned",
+      "actionId": null,
+      "adapterId": null,
+      "evidenceRefs": []
+    },
+    {
+      "sequence": 2,
+      "at": "2026-09-09T10:03:00Z",
+      "event": "backup-completed",
+      "actionId": "migration.backup",
+      "adapterId": null,
+      "evidenceRefs": ["evidence://backup/migration.beta5"]
+    },
+    {
+      "sequence": 3,
+      "at": "2026-09-09T10:06:00Z",
+      "event": "stage-completed",
+      "actionId": "migration.stage",
+      "adapterId": null,
+      "evidenceRefs": ["evidence://stage/migration.beta5"]
+    },
+    {
+      "sequence": 4,
+      "at": "2026-09-09T10:08:00Z",
+      "event": "validation-completed",
+      "actionId": "migration.validate",
+      "adapterId": null,
+      "evidenceRefs": ["evidence://validation/migration.beta5"]
+    },
+    {
+      "sequence": 5,
+      "at": "2026-09-09T10:10:00Z",
+      "event": "canonical-committed",
+      "actionId": "migration.commit",
+      "adapterId": null,
+      "evidenceRefs": ["evidence://canonical/commit"]
+    },
+    {
+      "sequence": 6,
+      "at": "2026-09-09T10:10:30Z",
+      "event": "adapter-reconcile-started",
+      "actionId": "migration.reconcile.cursor",
+      "adapterId": "cursor",
+      "evidenceRefs": []
+    },
+    {
+      "sequence": 7,
+      "at": "2026-09-09T10:11:00Z",
+      "event": "adapter-reconcile-succeeded",
+      "actionId": "migration.reconcile.cursor",
+      "adapterId": "cursor",
+      "evidenceRefs": ["evidence://projection/cursor"]
+    },
+    {
+      "sequence": 8,
+      "at": "2026-09-09T10:12:00Z",
+      "event": "adapter-reconcile-started",
+      "actionId": "migration.reconcile.codex",
+      "adapterId": "codex",
+      "evidenceRefs": []
+    }
+  ]
+}

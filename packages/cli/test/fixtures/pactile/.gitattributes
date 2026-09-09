@@ -1,0 +1,7 @@
+# Fixture input is byte evidence: never normalize it on checkout or add.
+**/input/** -text
+
+# Manifest hashes must be stable across Windows, macOS, and Linux checkouts.
+**/scenario.json text eol=lf
+index.json text eol=lf
+README.md text eol=lf

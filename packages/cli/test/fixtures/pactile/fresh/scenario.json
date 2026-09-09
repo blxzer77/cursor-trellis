@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "fresh",
+  "provenance": {
+    "kind": "representative",
+    "reason": "Empty project before Pactile initialization"
+  },
+  "traits": ["fresh", "missing-ledger"],
+  "files": []
+}

@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "hooks": {
+    "beforeSubmitPrompt": [
+      {
+        "command": "node scripts/user-hook.mjs"
+      }
+    ]
+  }
+}

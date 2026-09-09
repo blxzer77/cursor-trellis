@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "id": "cstl-0.5.0-beta.0",
+  "provenance": {
+    "kind": "release-derived",
+    "ref": "cstl-v0.5.0-beta.0",
+    "commit": "e0e50acabc077653f408031f6861b7d07ed6a868",
+    "sourcePath": "packages/cli/package.json",
+    "derivation": "The release version is represented as the installed .cstl/.version value with a minimal active config."
+  },
+  "traits": [
+    "release:0.5.0-beta.0",
+    "legacy:.cstl",
+    "active-schema-transform",
+    "missing-ledger"
+  ],
+  "expectations": {
+    "legacyInputs": "read-only",
+    "allowedWriteRoots": [".pactile"],
+    "requiresExplicitImport": false
+  },
+  "files": [
+    {
+      "path": ".cstl/.version",
+      "sha256": "85d73d7192487e2041ae9181e6df29dcfac0d19b0b8b7baa7f1dee2d5e78959a",
+      "policy": "active-transform"
+    },
+    {
+      "path": ".cstl/config.yaml",
+      "sha256": "de86458b99f0d74c319125bdccda748a710acd8a4b36ec36a194c21688bf19c9",
+      "policy": "active-transform"
+    }
+  ]
+}

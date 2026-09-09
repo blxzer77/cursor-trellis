@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "mixed-interrupted",
+  "provenance": {
+    "kind": "representative",
+    "reason": "Canonical commit completed while host projection remained pending"
+  },
+  "traits": [
+    "mixed-roots",
+    "interrupted",
+    "legacy:.cstl",
+    "canonical:.pactile",
+    "contract:v1",
+    "legacy-read-only"
+  ],
+  "expectations": {
+    "legacyInputs": "read-only",
+    "allowedWriteRoots": [".pactile"],
+    "requiresExplicitImport": false
+  },
+  "files": [
+    {
+      "path": ".cstl/.version",
+      "sha256": "69b4129246fe257f0c175f40946915c445014945fe087990028f18c79e04e14f",
+      "policy": "legacy-read-only"
+    },
+    {
+      "path": ".pactile/runtime/install-state.json",
+      "sha256": "f524b801c1f4e8e003ab25ce713af2e1cf1c0cb86f14e1d05c1fcc90bf3c14d5",
+      "policy": "canonical-state"
+    },
+    {
+      "path": ".pactile/runtime/migrations/journal.beta5.json",
+      "sha256": "ca42d5fd589fcaf2f7fd765426b9a9cb0365f529088be432aa9630f38c8de3e3",
+      "policy": "resume-journal"
+    }
+  ]
+}

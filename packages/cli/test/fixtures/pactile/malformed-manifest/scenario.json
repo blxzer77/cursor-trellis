@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "malformed-manifest",
+  "provenance": {
+    "kind": "representative",
+    "reason": "Malformed legacy ownership and host MCP manifests"
+  },
+  "traits": ["malformed-manifest", "unknown-ledger", "foreign-config"],
+  "expectations": {
+    "legacyInputs": "read-only",
+    "allowedWriteRoots": [".pactile"],
+    "requiresExplicitImport": false
+  },
+  "files": [
+    {
+      "path": ".cstl/.template-hashes.json",
+      "sha256": "ee4f97c5c541c76a590c02c6213285db1f61aa982a0ab12d73dc9ba1015f7f00",
+      "policy": "manual-review"
+    },
+    {
+      "path": ".cursor/mcp.json",
+      "sha256": "81b976871f047de6d6f46bb12404d8c9c298218df59cb86eda98f93961e3de7a",
+      "policy": "manual-review"
+    }
+  ]
+}

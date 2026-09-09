@@ -1,0 +1,7 @@
+# The repository ignores installed runtime roots globally. These are inert fixture bytes.
+!**/input/.cstl/
+!**/input/.cstl/**
+!**/input/.cursor/
+!**/input/.cursor/**
+!**/input/.trellis/
+!**/input/.trellis/**

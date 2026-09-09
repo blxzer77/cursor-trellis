@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "user-owned": {
+      "command": "node",
+      "args": ["./tools/user-owned-server.js"]
+    }
+  }
+}

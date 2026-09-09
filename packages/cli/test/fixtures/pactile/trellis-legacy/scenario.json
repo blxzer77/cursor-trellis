@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "trellis-legacy",
+  "provenance": {
+    "kind": "representative",
+    "reason": "Representative pre-CSTL project layout"
+  },
+  "traits": [
+    "legacy:.trellis",
+    "active-schema-transform",
+    "missing-ledger",
+    "legacy-read-only",
+    "requires-explicit-import"
+  ],
+  "expectations": {
+    "legacyInputs": "read-only",
+    "allowedWriteRoots": [".pactile"],
+    "requiresExplicitImport": true
+  },
+  "files": [
+    {
+      "path": ".trellis/.version",
+      "sha256": "79e3f22ca37c7fdf4c29ae3648d6b008c3cb6547260a453409275470919dc674",
+      "policy": "active-transform"
+    },
+    {
+      "path": ".trellis/tasks/09-01-active/task.json",
+      "sha256": "39218de09e48b0a0953e64088f4a5289a2314fad8ecc330af71f9a855cd54112",
+      "policy": "active-transform"
+    }
+  ]
+}

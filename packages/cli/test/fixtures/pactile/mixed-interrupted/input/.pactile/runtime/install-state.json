@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "product": "pactile",
+  "canonicalRoot": ".pactile",
+  "runtimeVersion": "0.5.0",
+  "contractVersion": 1,
+  "generationId": "generation.stable",
+  "status": "degraded",
+  "installedAdapters": [
+    {
+      "id": "cursor",
+      "version": "1.0.0",
+      "status": "active",
+      "lastProjectionFingerprint": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "reconciledAt": "2026-09-09T10:11:00Z"
+    },
+    {
+      "id": "codex",
+      "version": "1.0.0",
+      "status": "degraded",
+      "lastProjectionFingerprint": null,
+      "reconciledAt": null
+    }
+  ],
+  "lastMigrationJournalId": "journal.beta5",
+  "createdAt": "2026-09-09T10:00:00Z",
+  "updatedAt": "2026-09-09T10:12:00Z"
+}
