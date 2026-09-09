@@ -1,0 +1,293 @@
+{
+  "schemaVersion": 1,
+  "contractId": "pactile.rename-map/v1",
+  "status": "batch-0-frozen-input",
+  "canonical": {
+    "product": "Pactile",
+    "pronunciation": "PACK-tile",
+    "cli": "pactile",
+    "runtimeDirectory": ".pactile/",
+    "environmentPrefix": "PACTILE_",
+    "markerPrefix": "PACTILE",
+    "cliPackage": "@blxzer/pactile",
+    "corePackage": "@blxzer/pactile-core",
+    "repositorySlug": "pactile",
+    "releaseTagPrefix": "pactile-v"
+  },
+  "compatibilityWindow": {
+    "firstVersion": "0.5.0",
+    "supportedLine": "0.5.x",
+    "removalEarliest": "0.6.0",
+    "removalConditions": [
+      "The removal is announced in release notes and migration guidance.",
+      "Doctor and ownership-ledger evidence show no remaining legacy claimant that would be orphaned.",
+      "Detach and full-uninstall recovery paths have passed the coexistence matrix."
+    ]
+  },
+  "entities": [
+    {
+      "id": "product-name",
+      "kind": "product",
+      "sources": ["Cursor-Trellis", "cursor-trellis", "CSTL"],
+      "target": "Pactile",
+      "classification": "live",
+      "strategy": "rewrite-live-prose",
+      "ownerLane": "batch-3-brand-runtime",
+      "reason": "The current host-qualified and abbreviated names do not express the host-neutral product.",
+      "exitCondition": "No live surface uses a legacy product name before the stable 0.5.0 release."
+    },
+    {
+      "id": "cli-package",
+      "kind": "package",
+      "sources": ["@blxzer/cursor-trellis"],
+      "target": "@blxzer/pactile",
+      "classification": "live",
+      "strategy": "publish-new-and-deprecate-old",
+      "ownerLane": "batch-3-brand-runtime",
+      "reason": "The published CLI package must use the canonical product name.",
+      "exitCondition": "The Pactile package is reserved, published, documented, and verified before the old package becomes a compatibility bridge."
+    },
+    {
+      "id": "core-package",
+      "kind": "package",
+      "sources": ["@blxzer/cursor-trellis-core"],
+      "target": "@blxzer/pactile-core",
+      "classification": "live",
+      "strategy": "publish-new-and-deprecate-old",
+      "ownerLane": "batch-3-brand-runtime",
+      "reason": "CLI and core package identities must remain aligned.",
+      "exitCondition": "Both new packages publish atomically and packed dependency references resolve to the new core package."
+    },
+    {
+      "id": "npm-package-bridge",
+      "kind": "compatibility-alias",
+      "sources": ["@blxzer/cursor-trellis", "@blxzer/cursor-trellis-core"],
+      "target": "@blxzer/pactile and @blxzer/pactile-core",
+      "classification": "compat",
+      "strategy": "deprecation-pointer",
+      "ownerLane": "batch-3-brand-runtime",
+      "reason": "Existing installations need a discoverable route to the new packages.",
+      "exitCondition": "Keep the published deprecation pointer for 0.5.x; do not remove published history, and reassess active support no earlier than 0.6.0."
+    },
+    {
+      "id": "cli-bin",
+      "kind": "bin",
+      "sources": ["cstl"],
+      "target": "pactile",
+      "classification": "compat",
+      "strategy": "canonical-bin-plus-warning-alias",
+      "ownerLane": "batch-3-brand-runtime",
+      "reason": "Users and automation need time to migrate executable commands.",
+      "exitCondition": "The `cstl` bin remains a non-preferred 0.5.x shim and may be removed no earlier than 0.6.0 after migration telemetry and release notice."
+    },
+    {
+      "id": "retired-cli-bins",
+      "kind": "compatibility-alias",
+      "sources": ["trellis", "tl"],
+      "target": "pactile",
+      "classification": "history",
+      "strategy": "do-not-reintroduce",
+      "ownerLane": "batch-4-docs-governance-history",
+      "reason": "These aliases belong to older releases or upstream history and are not current compatibility promises.",
+      "exitCondition": "Never emit them; preserve only historical evidence and attribution."
+    },
+    {
+      "id": "project-runtime",
+      "kind": "runtime-directory",
+      "sources": [".cstl/"],
+      "target": ".pactile/",
+      "classification": "compat",
+      "strategy": "plan-copy-verify-switch-with-dual-read",
+      "ownerLane": "batch-3-brand-runtime",
+      "reason": "Existing project state must survive the runtime-directory rename and user rollback.",
+      "exitCondition": "During 0.5.x dual-read the legacy path, emit only `.pactile/`, and stop reading `.cstl/` no earlier than 0.6.0 after a verified migration receipt exists."
+    },
+    {
+      "id": "upstream-runtime",
+      "kind": "runtime-directory",
+      "sources": [".trellis/"],
+      "target": ".pactile/ only after explicit import",
+      "classification": "attribution",
+      "strategy": "never-auto-claim",
+      "ownerLane": "batch-3-brand-runtime",
+      "reason": "A `.trellis/` directory may belong to the upstream project and is not evidence of Pactile ownership.",
+      "exitCondition": "Permanent ownership guard; import only with provenance evidence and explicit user approval."
+    },
+    {
+      "id": "environment-prefix",
+      "kind": "environment-prefix",
+      "sources": ["CSTL_", "TRELLIS_"],
+      "target": "PACTILE_",
+      "classification": "compat",
+      "strategy": "canonical-write-legacy-read",
+      "ownerLane": "batch-3-brand-runtime",
+      "reason": "Automation may still export old environment names.",
+      "exitCondition": "Emit and document only `PACTILE_`; dual-read explicitly inventoried public legacy variables through 0.5.x and remove that read no earlier than 0.6.0."
+    },
+    {
+      "id": "managed-marker",
+      "kind": "managed-marker",
+      "sources": [
+        "CSTL:START/END",
+        "TRELLIS:START/END",
+        "TRELLIS:PROJECT-CAPABILITIES:START/END"
+      ],
+      "target": "PACTILE:START/END and PACTILE:PROJECT-CAPABILITIES:START/END",
+      "classification": "compat",
+      "strategy": "recognize-plan-reconcile",
+      "ownerLane": "batch-3-brand-runtime",
+      "reason": "Old markers are migration evidence, while an upstream TRELLIS block may be foreign-owned.",
+      "exitCondition": "A reviewed projection plan records the preimage and produces one Pactile block; never rewrite a foreign TRELLIS block without ownership evidence."
+    },
+    {
+      "id": "agents-managed-block",
+      "kind": "managed-block",
+      "sources": ["<!-- CSTL:START -->...<!-- CSTL:END -->"],
+      "target": "<!-- PACTILE:START -->...<!-- PACTILE:END -->",
+      "classification": "compat",
+      "strategy": "single-resource-multi-claimant",
+      "ownerLane": "batch-3-brand-runtime",
+      "reason": "Cursor and Codex must share one small project instruction block.",
+      "exitCondition": "Exactly one Pactile block exists; user content and foreign blocks remain byte-preserved; old Pactile-owned markers are no longer emitted."
+    },
+    {
+      "id": "command-and-skill-prefix",
+      "kind": "command-skill-prefix",
+      "sources": ["cstl-", "/cstl-", "$cstl-"],
+      "target": "pactile-, /pactile-, and $pactile-",
+      "classification": "compat",
+      "strategy": "adopt-bind-and-thin-alias",
+      "ownerLane": "batch-3-brand-runtime",
+      "reason": "Existing user rituals and skill references need deterministic migration without duplicate full instructions.",
+      "exitCondition": "Canonical Tile projections use `pactile-`; any 0.5.x alias is a thin redirect, is ledger-owned, and is removed after no claimant remains."
+    },
+    {
+      "id": "release-tags",
+      "kind": "release-tag",
+      "sources": ["cstl-v*", "v* legacy Trellis tags"],
+      "target": "pactile-v*",
+      "classification": "history",
+      "strategy": "new-prefix-preserve-old-tags",
+      "ownerLane": "batch-3-brand-runtime",
+      "reason": "Published Git tags and releases are immutable historical coordinates.",
+      "exitCondition": "Never rename old tags; all new releases after the cutover use `pactile-v*`."
+    },
+    {
+      "id": "repository-url",
+      "kind": "repository-url",
+      "sources": ["https://github.com/blxzer77/cursor-trellis"],
+      "target": "https://github.com/blxzer77/pactile",
+      "classification": "compat",
+      "strategy": "host-redirect-and-update-live-links",
+      "ownerLane": "batch-3-brand-runtime",
+      "reason": "Current clones and external links need a stable route after repository rename.",
+      "exitCondition": "GitHub redirect is verified, package metadata uses the new URL, and live docs contain no old URL; historical snapshots may retain it."
+    },
+    {
+      "id": "documentation-urls",
+      "kind": "documentation-url",
+      "sources": ["README and docs URLs under the cursor-trellis repository"],
+      "target": "Resolve each source through documentation-map.json",
+      "classification": "compat",
+      "strategy": "rewrite-merge-redirect-or-archive",
+      "ownerLane": "batch-4-docs-governance-history",
+      "reason": "The new user-journey IA changes paths while old public links may still be in circulation.",
+      "exitCondition": "Every source URL has exactly one mapped action; redirect pointers remain through 0.5.x and link checks pass before any pointer is retired."
+    },
+    {
+      "id": "cursor-plus-plus",
+      "kind": "retired-surface",
+      "sources": [
+        "Cursor++",
+        "cursor2plus",
+        "ccursor",
+        "trellis-task-models.json5",
+        "subagent-models.json"
+      ],
+      "target": "history.cursor-plus-plus",
+      "classification": "history",
+      "strategy": "remove-from-live-preserve-history",
+      "ownerLane": "batch-4-docs-governance-history",
+      "reason": "P23 retired Cursor++; BYOK work is separate and deferred.",
+      "exitCondition": "No live surface presents Cursor++ as installable or required; the canonical history page and hash-safe residue cleanup remain."
+    },
+    {
+      "id": "upstream-name",
+      "kind": "attribution",
+      "sources": ["Trellis", "mindfold-ai/Trellis", "Mindfold LLC"],
+      "target": "Preserve in provenance, license, and historical facts",
+      "classification": "attribution",
+      "strategy": "preserve-with-context",
+      "ownerLane": "batch-4-docs-governance-history",
+      "reason": "The rebrand must not falsify origin, copyright, or upstream history.",
+      "exitCondition": "Permanent. Attribution must not be used as the current product name."
+    }
+  ],
+  "nativeAdoptionModel": {
+    "resourceIdentity": "resource kind + stable logical id",
+    "identityScope": "workspace",
+    "ownershipLedgerRequired": true,
+    "multipleClaimantsAllowed": true,
+    "sharedResourceKinds": ["agent-skill", "agents-managed-block"],
+    "borrowedResourceDeletion": "never",
+    "generatedResourceDeletion": "final-claimant-and-safe-managed-bytes-only",
+    "conflictResolution": "explicit",
+    "degradedScope": "affected-host-adapter-only",
+    "retryPlanRequired": true,
+    "absencePolicy": {
+      "externalNative": {
+        "operation": "install-hint",
+        "installer": "user-or-host",
+        "ownershipAfterInstall": "borrowed",
+        "pactileMayInstall": false
+      },
+      "pactileProjection": {
+        "operation": "install",
+        "installer": "pactile",
+        "ownershipAfterInstall": "managed",
+        "pactileMayInstall": true
+      }
+    },
+    "states": [
+      {
+        "observed": "pactile-composed-or-generated-projection-absent",
+        "operation": "install",
+        "result": "Create only the Pactile-composed/generated projection, record it as managed, and add the requesting Adapter as claimant. A missing external/native dependency receives an InstallHint instead."
+      },
+      {
+        "observed": "semantically-compatible-preexisting",
+        "operation": "adopt",
+        "result": "Record a borrowed resource and preimage; do not rewrite or delete it."
+      },
+      {
+        "observed": "installed-or-adopted",
+        "operation": "bind",
+        "result": "Bind the capability intent to the resource through the host projection and Middleware Resolver."
+      },
+      {
+        "observed": "same-id-different-semantics",
+        "operation": "conflict",
+        "result": "Leave the resource untouched and require explicit reuse, rename, or skip resolution."
+      },
+      {
+        "observed": "malformed-locked-or-untrusted",
+        "operation": "degraded",
+        "result": "Keep a retryable plan and degrade only the affected host Adapter."
+      }
+    ],
+    "detachRules": [
+      "Remove only the detaching Adapter claimant and its binding.",
+      "Delete a generated resource only after its final claimant leaves and its bytes remain in a safe managed state.",
+      "Never delete a borrowed pre-existing resource.",
+      "Do not remove another host's Provider, hook, Skill, or AGENTS.md claim."
+    ],
+    "detachPolicy": {
+      "removeOnlyDetachingClaimant": true,
+      "preserveWhileClaimed": true,
+      "deleteGeneratedOnlyOnFinalClaimant": true,
+      "requireSafeManagedBytesForGeneratedDeletion": true,
+      "deleteBorrowed": false,
+      "preserveOtherHostBindings": true
+    }
+  }
+}

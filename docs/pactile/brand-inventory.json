@@ -1,0 +1,174 @@
+{
+  "schemaVersion": 1,
+  "contractId": "pactile.brand-inventory/v1",
+  "status": "batch-0-baseline",
+  "generatedFromCommit": "e8c05a1f7e7f3f49f605cc4f056be5a4eb44af73",
+  "capturedAtUtc": "2026-09-08T18:30:51Z",
+  "enforcement": {
+    "current": "inventory",
+    "stableRelease": "deny-live",
+    "compatibilityWindow": "0.5.x"
+  },
+  "tokenRules": [
+    {
+      "id": "legacy-product-name",
+      "pattern": "\\bcursor[- ]trellis\\b",
+      "flags": "giu",
+      "replacement": "Pactile"
+    },
+    {
+      "id": "legacy-cstl-token",
+      "pattern": "(?<![A-Za-z0-9_])cstl(?![A-Za-z0-9_])",
+      "flags": "giu",
+      "replacement": "Pactile or pactile according to surface"
+    },
+    {
+      "id": "legacy-trellis-token",
+      "pattern": "(?<![A-Za-z0-9_])trellis(?![A-Za-z0-9_])",
+      "flags": "giu",
+      "replacement": "Pactile when live; preserve when history or attribution"
+    },
+    {
+      "id": "legacy-runtime-path",
+      "pattern": "\\.cstl(?=[/\\\\]|\\b)",
+      "flags": "giu",
+      "replacement": ".pactile/"
+    },
+    {
+      "id": "upstream-runtime-path",
+      "pattern": "\\.trellis(?=[/\\\\]|\\b)",
+      "flags": "giu",
+      "replacement": "never auto-claim; explicit import only"
+    },
+    {
+      "id": "legacy-package-name",
+      "pattern": "@blxzer/(?:cursor-trellis(?:-core)?|trellis(?:-core)?)",
+      "flags": "giu",
+      "replacement": "@blxzer/pactile or @blxzer/pactile-core"
+    },
+    {
+      "id": "legacy-environment-name",
+      "pattern": "\\b(?:CSTL|TRELLIS)_[A-Z][A-Z0-9_]*\\b",
+      "flags": "gu",
+      "replacement": "PACTILE_*"
+    },
+    {
+      "id": "legacy-managed-marker",
+      "pattern": "(?:CSTL|TRELLIS):(?:START|END|PROJECT-CAPABILITIES:(?:START|END))",
+      "flags": "gu",
+      "replacement": "PACTILE:*"
+    },
+    {
+      "id": "cursor-plus-plus",
+      "pattern": "Cursor\\+\\+|cursor2plus|ccursor|trellis-task-models\\.json5|subagent-models\\.json",
+      "flags": "giu",
+      "replacement": "remove from live surface; preserve canonical history"
+    }
+  ],
+  "scanExclusions": [
+    {
+      "path": "docs/pactile/brand-inventory.json",
+      "reason": "The inventory contains the token regular expressions and its own baseline."
+    },
+    {
+      "path": "docs/pactile/rename-map.json",
+      "reason": "The rename control plane must spell every legacy source identifier."
+    },
+    {
+      "path": "docs/pactile/documentation-map.json",
+      "reason": "The source map intentionally records legacy file names and P23 routes."
+    },
+    {
+      "path": "packages/cli/scripts/check-pactile-brand-surface.js",
+      "reason": "The checker implements and reports legacy-token policy."
+    },
+    {
+      "path": "packages/cli/test/docs/pactile-brand-surface.test.ts",
+      "reason": "The focused test contains synthetic legacy-token examples."
+    }
+  ],
+  "pathClassifiers": [
+    {
+      "classification": "attribution",
+      "pathRegex": "^(?:LICENSE|COPYRIGHT)$",
+      "reason": "License and copyright provenance are permanent.",
+      "exitCondition": "Never remove required attribution."
+    },
+    {
+      "classification": "history",
+      "pathRegex": "^packages/cli/(?:CHANGELOG\\.md|src/migrations/manifests(?:-legacy)?/)",
+      "reason": "Published release notes and migration manifests preserve versioned facts.",
+      "exitCondition": "Never rewrite released facts; new entries use Pactile names."
+    },
+    {
+      "classification": "history",
+      "pathRegex": "^packages/cli/test/fixtures/.*/archive/",
+      "reason": "Archived fixtures are evidence for past behavior.",
+      "exitCondition": "Retain while the associated regression remains useful."
+    },
+    {
+      "classification": "history",
+      "pathRegex": "^(?:PERSONAL_SKILLS_TRELLIS_INTEGRATION_RESEARCH\\.md|docs/campaign-ui\\.md|docs/community/linux-do-release\\.md)$",
+      "reason": "These are frozen research, removed experiments, or released community narratives.",
+      "exitCondition": "Move under the history IA without rewriting the historical claims."
+    },
+    {
+      "classification": "history",
+      "pathRegex": "^drafts/",
+      "reason": "Versioned announcement drafts record pre-Pactile release language and are not a live documentation surface.",
+      "exitCondition": "Archive under the history IA when the corresponding announcement is published or withdrawn."
+    },
+    {
+      "classification": "compat",
+      "pathRegex": "^packages/cli/src/(?:migrations/|utils/cursor2plus-residue-cleanup\\.ts$)",
+      "reason": "Migration and residue code must recognize legacy state during the compatibility window.",
+      "exitCondition": "Retire individual readers only after their documented 0.5.x exit conditions are met."
+    },
+    {
+      "classification": "compat",
+      "pathRegex": "^packages/cli/test/(?:migrations/|utils/cursor2plus-residue-cleanup\\.test\\.ts$|docs/migration-readme\\.test\\.ts$)",
+      "reason": "These tests preserve compatibility and history boundaries.",
+      "exitCondition": "Keep while the corresponding compatibility behavior is supported."
+    },
+    {
+      "classification": "compat",
+      "pathRegex": "^docs/pactile/.*\\.md$",
+      "reason": "Batch 0 control documents must name legacy inputs so later lanes can remove them safely.",
+      "exitCondition": "Move these audit artifacts to history after the rebrand and compatibility window close."
+    }
+  ],
+  "lineClassifiers": [],
+  "livePathAllowlist": [
+    "^(?:README(?:\\.zh-CN)?\\.md|AGENTS\\.md|package\\.json|pnpm-lock\\.yaml|pnpm-workspace\\.yaml|pyrightconfig\\.json|\\.mcp\\.json|\\.gitignore)$",
+    "^\\.github/",
+    "^\\.cursor/",
+    "^\\.agents/",
+    "^assets/",
+    "^docs/",
+    "^examples?/",
+    "^packages/",
+    "^scripts/"
+  ],
+  "baselineSnapshot": {
+    "sha256": "e01eb6d20c788cb22cbd97b1d3757c8cc5f9fee9d8d53464798552153320c1cd",
+    "occurrences": 13623,
+    "files": 691,
+    "byClassification": {
+      "attribution": 1,
+      "compat": 142,
+      "history": 3334,
+      "live": 10146
+    },
+    "byToken": {
+      "cursor-plus-plus": 488,
+      "legacy-cstl-token": 4686,
+      "legacy-environment-name": 371,
+      "legacy-managed-marker": 77,
+      "legacy-package-name": 408,
+      "legacy-product-name": 527,
+      "legacy-runtime-path": 2497,
+      "legacy-trellis-token": 4086,
+      "upstream-runtime-path": 483
+    }
+  }
+}
