@@ -787,6 +787,15 @@
       "reason": "Move Cursor installation and projection behavior into the host IA."
     },
     {
+      "path": "docs/pactile/contracts-v1.md",
+      "classification": "live",
+      "language": "en",
+      "action": "merge",
+      "targetPage": "concepts.architecture",
+      "ownerLane": "batch-4-docs-entry-concepts",
+      "reason": "Preserve the frozen v1 ABI as the implementation contract while merging its user-facing architecture into the bilingual concepts IA."
+    },
+    {
       "path": "docs/retrieval.md",
       "classification": "live",
       "language": "en",

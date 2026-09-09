@@ -28,7 +28,7 @@ interface CheckRun {
 }
 
 interface DocumentationMap {
-  sourceMappings: { path: string }[];
+  sourceMappings: { path: string; classification: string }[];
   p23CursorPlusPlus: {
     canonicalTargetPage: string;
     routes: { sourcePath: string; targetPage: string }[];
@@ -186,7 +186,7 @@ describe("Pactile Batch 0 brand and documentation surface", () => {
     expect(result.status, result.stderr).toBe(0);
     expect(result.report.ok).toBe(true);
     expect(result.report.errors).toEqual([]);
-    expect(result.report.documentationSourceCount).toBe(32);
+    expect(result.report.documentationSourceCount).toBe(33);
     expect(result.report.filesByClassification.history).toContain(
       "packages/cli/CHANGELOG.md",
     );
@@ -307,9 +307,9 @@ describe("Pactile Batch 0 brand and documentation surface", () => {
     );
   });
 
-  it("requires a mapping for tracked Pactile contract documentation", () => {
+  it("requires a mapping for newly tracked Pactile contract documentation", () => {
     const temporaryRoot = createMinimalContractRepository();
-    const relativePath = "docs/pactile/contracts-v1.md";
+    const relativePath = "docs/pactile/future-contract.md";
     writeEmptyFile(temporaryRoot, relativePath);
     runGit(temporaryRoot, ["add", relativePath]);
 
@@ -319,7 +319,37 @@ describe("Pactile Batch 0 brand and documentation surface", () => {
     expect(result.report.errors).toEqual(
       expect.arrayContaining([
         expect.stringMatching(
-          /documentation source map missing: docs\/pactile\/contracts-v1\.md/,
+          /documentation source map missing: docs\/pactile\/future-contract\.md/,
+        ),
+      ]),
+    );
+  });
+
+  it("keeps documentation-map and inventory classifications aligned", () => {
+    const temporaryRoot = createMinimalContractRepository();
+    mutateContract<{
+      pathClassifiers: {
+        pathRegex: string;
+        classification: string;
+      }[];
+    }>(temporaryRoot, "brand-inventory.json", (inventory) => {
+      const controlDocuments = inventory.pathClassifiers.find(
+        (classifier) =>
+          classifier.pathRegex ===
+          "^docs/pactile/(?:brand-contract|documentation-map)\\.md$",
+      );
+      expect(controlDocuments).toBeDefined();
+      if (controlDocuments !== undefined) {
+        controlDocuments.pathRegex = "^docs/pactile/.*\\.md$";
+      }
+    });
+    const result = runChecker(temporaryRoot);
+
+    expect(result.status).toBe(1);
+    expect(result.report.errors).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(
+          /documentation source classification mismatch for docs\/pactile\/contracts-v1\.md: map=live, inventory=compat/,
         ),
       ]),
     );

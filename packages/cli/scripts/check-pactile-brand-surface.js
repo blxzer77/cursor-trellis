@@ -55,10 +55,10 @@ const CONTRACT_IDS = {
   documentationMap: "pactile.documentation-map/v1",
 };
 const CANONICAL_POLICY_DIGESTS = {
-  inventory: "3e77aa626e18db2c0da71e26f50da04124f884ce13600e4ccf947fd4b8c9c1bb",
+  inventory: "886e1ffe9976530c969b8c96b53a50d4d6841b185541395bf480950257183da2",
   renameMap: "e7e3a0eeb7ba5c97b5ed614b13c8ac628e9e3781d57ec763be06f405bb1b91aa",
   documentationMap:
-    "0cd15078869dba4e2e33cdf22635c1264bc510c07e257dea689e5be0429fc47f",
+    "3d2c61ab1c72219d05f546c8748a746df02cff2b881a49c64ac75543d48b316d",
 };
 const REQUIRED_TOKEN_IDS = [
   "legacy-product-name",
@@ -88,6 +88,7 @@ const REQUIRED_DOCUMENTATION_SOURCES = [
   "docs/cursor-trellis-release-coexistence-guide.md",
   "docs/cursor.md",
   "docs/cursor.zh-CN.md",
+  "docs/pactile/contracts-v1.md",
   "docs/retrieval.md",
   "docs/retrieval.zh-CN.md",
   "docs/skills.md",
@@ -802,8 +803,14 @@ function validateRenameMap(renameMap) {
   return errors;
 }
 
-function validateDocumentationMap(documentationMap, trackedFiles, scan) {
+function validateDocumentationMap(
+  documentationMap,
+  trackedFiles,
+  scan,
+  inventory,
+) {
   const errors = [];
+  const inventoryPolicy = compileInventoryPolicy(inventory);
   if (documentationMap.schemaVersion !== 1) {
     errors.push("documentation-map.json schemaVersion must be 1");
   }
@@ -1042,6 +1049,15 @@ function validateDocumentationMap(documentationMap, trackedFiles, scan) {
         `source ${mapping.path} must be classified ${expectedClassification}`,
       );
     }
+    const inventoryClassification = classifyOccurrence(
+      mapping.path,
+      inventoryPolicy,
+    );
+    if (mapping.classification !== inventoryClassification) {
+      errors.push(
+        `documentation source classification mismatch for ${mapping.path}: map=${mapping.classification}, inventory=${inventoryClassification}`,
+      );
+    }
   }
 
   const topicSet = new Set(
@@ -1169,6 +1185,7 @@ function auditBrandSurface(repoRoot, options = {}) {
     contracts.documentationMap,
     trackedFiles,
     scan,
+    contracts.inventory,
   );
   const inventoryErrors = options.skipSnapshotCheck
     ? validateBrandInventory(

@@ -3,7 +3,7 @@
   "contractId": "pactile.brand-inventory/v1",
   "status": "batch-0-baseline",
   "generatedFromCommit": "e8c05a1f7e7f3f49f605cc4f056be5a4eb44af73",
-  "capturedAtUtc": "2026-09-08T18:30:51Z",
+  "capturedAtUtc": "2026-09-08T20:38:56Z",
   "enforcement": {
     "current": "inventory",
     "stableRelease": "deny-live",
@@ -132,9 +132,9 @@
     },
     {
       "classification": "compat",
-      "pathRegex": "^docs/pactile/.*\\.md$",
-      "reason": "Batch 0 control documents must name legacy inputs so later lanes can remove them safely.",
-      "exitCondition": "Move these audit artifacts to history after the rebrand and compatibility window close."
+      "pathRegex": "^docs/pactile/(?:brand-contract|documentation-map)\\.md$",
+      "reason": "The two Batch 0 brand control narratives must name legacy inputs so later lanes can remove them safely; product contracts remain live debt.",
+      "exitCondition": "Move these two audit artifacts to history after the rebrand and compatibility window close."
     }
   ],
   "lineClassifiers": [],
@@ -150,25 +150,25 @@
     "^scripts/"
   ],
   "baselineSnapshot": {
-    "sha256": "e01eb6d20c788cb22cbd97b1d3757c8cc5f9fee9d8d53464798552153320c1cd",
-    "occurrences": 13623,
-    "files": 691,
+    "sha256": "9137168955101ce56ce12f1934fa86b5c5f018343319675cf13f5814b944a274",
+    "occurrences": 13847,
+    "files": 725,
     "byClassification": {
       "attribution": 1,
       "compat": 142,
-      "history": 3334,
-      "live": 10146
+      "history": 3337,
+      "live": 10367
     },
     "byToken": {
       "cursor-plus-plus": 488,
-      "legacy-cstl-token": 4686,
-      "legacy-environment-name": 371,
+      "legacy-cstl-token": 4800,
+      "legacy-environment-name": 373,
       "legacy-managed-marker": 77,
-      "legacy-package-name": 408,
-      "legacy-product-name": 527,
-      "legacy-runtime-path": 2497,
-      "legacy-trellis-token": 4086,
-      "upstream-runtime-path": 483
+      "legacy-package-name": 401,
+      "legacy-product-name": 525,
+      "legacy-runtime-path": 2556,
+      "legacy-trellis-token": 4118,
+      "upstream-runtime-path": 509
     }
   }
 }
