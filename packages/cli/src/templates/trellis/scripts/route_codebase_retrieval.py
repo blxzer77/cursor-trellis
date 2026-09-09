@@ -8,23 +8,8 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from pathlib import Path
-
-from common.codebase_retrieval_router import (
-    codebase_retrieval_selected_from_capabilities,
-    route_codebase_retrieval,
-)
-from common.paths import get_repo_root
-from common.project_file_stats import resolve_project_file_count_arg
+from common.codebase_retrieval_router import route_codebase_retrieval
 from common.retrieval_agent_instructions import render_agent_instructions
-
-
-def load_capabilities(path: Path | None) -> dict[str, object] | None:
-    if path is None or not path.is_file():
-        return None
-    with path.open(encoding="utf-8") as handle:
-        parsed = json.load(handle)
-    return parsed if isinstance(parsed, dict) else None
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -34,21 +19,18 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("query", nargs="?", default="", help="Natural-language retrieval question.")
     parser.add_argument(
         "--capabilities",
-        help="Path to .cstl/capabilities.json for optional adapter gating.",
+        help="Deprecated compatibility option; capability binding is resolver-owned.",
     )
     parser.add_argument(
         "--no-codebase-retrieval",
         action="store_true",
-        help="Treat codebase-retrieval as unselected (omit optional adapter routes).",
+        help="Deprecated compatibility option; does not change the V3 plan.",
     )
     parser.add_argument(
         "--project-file-count",
         default="auto",
         metavar="N|auto",
-        help=(
-            "File count for large-repo routing (>2000 promotes codegraph). "
-            "Default auto: git ls-files or walk from repo root. Example: 5000."
-        ),
+        help="Deprecated compatibility option; does not change the V3 plan.",
     )
     parser.add_argument(
         "--locale",
@@ -69,24 +51,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     try:
-        project_file_count = resolve_project_file_count_arg(
-            args.project_file_count,
-            repo_root=get_repo_root(),
-        )
+        plan = route_codebase_retrieval(args.query)
     except ValueError as error:
         print(f"route_codebase_retrieval: {error}", file=sys.stderr)
         return 2
-    caps = load_capabilities(Path(args.capabilities) if args.capabilities else None)
-    selected = (
-        False
-        if args.no_codebase_retrieval
-        else codebase_retrieval_selected_from_capabilities(caps)
-    )
-    plan = route_codebase_retrieval(
-        args.query,
-        codebase_retrieval_selected=selected,
-        project_file_count=project_file_count,
-    )
     instructions = render_agent_instructions(
         plan,
         locale=args.locale,

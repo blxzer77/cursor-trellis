@@ -1,943 +1,1339 @@
 #!/usr/bin/env python3
-"""
-Deterministic codebase retrieval intent router (Python template).
+"""Host-neutral Pactile retrieval request, plan, and evidence contract.
 
-Shared contract with the Trellis CLI router; used by hooks, route_codebase_retrieval.py,
-and get_context retrieval-pack flows. Does not invoke rg, MCP, or network tools.
+This is the Python mirror of the TypeScript V3 planner.  It describes intent,
+assurance, policy, evidence, budgets, and stop conditions; concrete capability
+binding belongs to the project resolver and its adapters.
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
+import math
 import re
+import unicodedata
+from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
-from .cursor_retrieval_env import (
-    detect_cursor_retrieval_env,
-    is_byok_conservative,
-    semantic_route_spec,
+
+ROUTER_VERSION = 3
+RETRIEVAL_ABI_VERSION = ROUTER_VERSION
+
+INTENT_ORDER = ("exact", "semantic", "structural", "external")
+PROVIDER_INTENTS = ("semantic", "structural", "external")
+ASSURANCE_LEVELS = ("best-effort", "evidence-backed", "verified")
+PROVIDER_STATUSES = (
+    "resolution-required",
+    "ready",
+    "degraded",
+    "unavailable",
+    "unsupported",
+)
+PROVIDER_READINESS = ("ready", "degraded", "unavailable")
+CORROBORATION_KINDS = (
+    "source-reference",
+    "git-evidence",
+    "repeatable-test",
+)
+REASON_CODES = (
+    "invalid-plan",
+    "invalid-evidence",
+    "query-empty",
+    "provider-resolution-required",
+    "provider-degraded",
+    "provider-unavailable",
+    "provider-unsupported",
+    "candidate-missing",
+    "corroboration-required",
+    "required-evidence-missing",
+    "minimum-assurance-not-met",
+    "verified-provider-proof-required",
+    "repeatable-verification-required",
+    "budget-exhausted",
 )
 
-ROUTER_VERSION = 2
+FILESYSTEM_CEILINGS = ("none", "read", "write")
+PROCESS_CEILINGS = ("none", "execute")
+NETWORK_CEILINGS = ("forbidden", "project-authorized")
+CREDENTIAL_CEILINGS = ("forbidden", "project-authorized")
+PRIVACY_CEILINGS = ("local-only", "project-approved-egress", "external")
+TELEMETRY_CEILINGS = ("forbidden", "local-only", "project-authorized")
+COST_CEILINGS = ("none", "free", "low", "medium", "high")
 
-PLATFORM_CURSOR = "cursor"
+DEFAULT_RETRIEVAL_BUDGET_V3: dict[str, int] = {
+    "maxSteps": 16,
+    "maxCandidatesPerStep": 50,
+}
+DEFAULT_RETRIEVAL_POLICY_V3: dict[str, object] = {
+    "filesystem": "read",
+    "process": "execute",
+    "network": "forbidden",
+    "credentials": "forbidden",
+    "privacy": "local-only",
+    "egressDestinations": [],
+    "telemetry": "local-only",
+    "cost": "free",
+}
 
-MODALITY_LEXICAL = "lexical"
-MODALITY_STRUCTURAL = "structural"
-MODALITY_SEMANTIC = "semantic"
+MAX_QUERY_BYTES = 16 * 1024
+MAX_SCOPE_HINTS = 128
+MAX_SCOPE_HINT_BYTES = 512
+MAX_EVIDENCE_KINDS = 64
+MAX_LOGICAL_ID_BYTES = 128
+LOGICAL_ID = re.compile(r"^[a-z][a-z0-9]*(?:[._:-][a-z0-9]+)*$")
+SEMVER = re.compile(
+    r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)"
+    r"(?:-[0-9A-Za-z]+(?:\.[0-9A-Za-z]+)*)?"
+    r"(?:\+[0-9A-Za-z]+(?:\.[0-9A-Za-z]+)*)?$"
+)
+RFC3339 = re.compile(
+    r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$"
+)
+LOGICAL_REF = re.compile(
+    r"^(?:artifact|evidence|source|git|test)://"
+    r"([a-z0-9]+(?:[._-][a-z0-9]+)*(?:/[a-z0-9]+(?:[._-][a-z0-9]+)*)*)$"
+)
+SENSITIVE_REFERENCE_TERMS = frozenset(
+    {"credential", "credentials", "passwd", "password", "secret", "token"}
+)
+FORBIDDEN_JSON_KEYS = frozenset({"__proto__", "constructor", "prototype"})
+_MISSING_CONTEXT = object()
 
-TOKEN_ECONOMY_HIGH = "high"
-TOKEN_ECONOMY_MEDIUM = "medium"
-TOKEN_ECONOMY_LOW = "low"
-
-INTENT_EXACT = "exact-symbol-path"
-INTENT_POLICY = "policy-document"
-INTENT_CALLER = "caller-chain"
-INTENT_TRAP = "trap-package-disambiguation"
-INTENT_EXTENSION = "extension-shared-symbol"
-INTENT_ENV = "env-config-literal"
-INTENT_PRESERVE = "protocol-platform-preserve"
-INTENT_CONCEPTUAL = "cross-cutting-discovery"
-
-POLICY_PATTERNS = [
-    re.compile(r"\bstorage\s+policy\b", re.I),
-    re.compile(r"\bsidecar\b", re.I),
-    re.compile(r"\bsqlite\s+only\b", re.I),
-    re.compile(r"\bpersistence\b", re.I),
-    re.compile(r"\bimport\s+boundar", re.I),
-    re.compile(r"\btransport[- ]only\b", re.I),
-    re.compile(r"\barchitecture\b", re.I),
-    re.compile(r"\bconvention(s)?\b", re.I),
-    re.compile(r"\bforbidden\b", re.I),
-    re.compile(r"\ballowed\b", re.I),
-    re.compile(r"\bwhere\s+is\s+\w+\s+defined\b", re.I),
-    re.compile(r"\bwho\s+owns\b", re.I),
-    re.compile(r"\bwho\s+is\s+responsible\s+for\b", re.I),
-    re.compile(r"\bwhich\s+module\s+handles\b", re.I),
-    re.compile(r"\bwhich\s+package\s+is\s+responsible\b", re.I),
-    re.compile(r"\ballowed\s+in\b", re.I),
-    re.compile(r"\bforbidden\s+in\b", re.I),
-    re.compile(r"\brestricted\s+to\b", re.I),
-    re.compile(r"\bmust\s+not\b", re.I),
-    re.compile(r"\bshould\s+not\b", re.I),
-    re.compile(r"\bboundary\s+between\b", re.I),
-    re.compile(r"\bboundary\s+of\b", re.I),
-    re.compile(r"\bcode\s+boundary\b", re.I),
-    re.compile(r"\bmodule\s+boundary\b", re.I),
-    re.compile(r"\bpackage\s+boundary\b", re.I),
-    re.compile(r"规定"),
-    re.compile(r"边界"),
-    re.compile(r"为什么不能"),
-    re.compile(r"\bAGENTS\.md\b", re.I),
-    re.compile(r"\bpolicy\b", re.I),
-    re.compile(r"\bownership\b", re.I),
-    re.compile(r"\bresponsibilit(y|ies)\b", re.I),
-    re.compile(r"不能"),
-    re.compile(r"规则"),
-    # Workflow / task-ladder docs (AGENTS.md, workflow.md) — not code-search first
-    re.compile(r"\bFull\s+Task\b", re.I),
-    re.compile(r"\bLite\s+Task\b", re.I),
-    re.compile(r"\bMicro-Grill\b", re.I),
-    re.compile(r"\bParent\s+Task\b", re.I),
-    re.compile(r"\bChild\s+Task\b", re.I),
-    re.compile(r"\bTriage\b"),
-    re.compile(r"\btask\s+ladder\b", re.I),
-    re.compile(r"任务阶梯"),
-    re.compile(r"工作流"),
-]
-
-CONCEPTUAL_PATTERNS = [
-    re.compile(r"\bhow\s+does\b", re.I),
-    re.compile(r"\bacross\s+(packages|modules)\b", re.I),
-    re.compile(r"\bwhere\s+is\b.*\b(handled|implemented)\b", re.I),
-    re.compile(r"\bdifference\s+between\b", re.I),
-    re.compile(r"\boverall\s+design\b", re.I),
-    re.compile(r"如何"),
-    re.compile(r"机制"),
-    re.compile(r"跨"),
-    re.compile(r"为什么"),
-    re.compile(r"原理"),
-    re.compile(r"区别"),
-]
-
-PRESERVE_PATTERNS = [
-    re.compile(r"\bapps/(ios|android)\b", re.I),
-    re.compile(r"\bgateway-protocol\b", re.I),
-    re.compile(r"\bpackages/gateway-protocol\b", re.I),
-    re.compile(r"\.swift\b", re.I),
-    re.compile(r"\.kt\b", re.I),
-    re.compile(r"\bschema\b", re.I),
-    re.compile(r"\bcontract\b", re.I),
-    re.compile(r"\bprotocol\s+constant\b", re.I),
-]
-
-CALLER_PATTERNS = [
-    re.compile(r"\bwho\s+calls\b", re.I),
-    re.compile(r"\bwhich\s+modules?\s+invoke\b", re.I),
-    re.compile(r"\bcall\s*sites?\b", re.I),
-    re.compile(r"\bcaller(s)?\b", re.I),
-    re.compile(r"\bwired\b", re.I),
-    re.compile(r"\bdelegate(s|d)?\b", re.I),
-    re.compile(r"\bassembly\b", re.I),
-    re.compile(r"\bdependents\b", re.I),
-    re.compile(r"\busages?\s+of\b", re.I),
-    re.compile(r"谁调用"),
-    re.compile(r"调用链"),
-    re.compile(r"影响面"),
-    re.compile(r"被哪些"),
-    re.compile(r"哪些地方"),
-    re.compile(r"哪里用到"),
-]
-
-TRAP_PATTERNS = [
-    re.compile(r"\bpackages/[a-z0-9-]+\b", re.I),
-    re.compile(r"\bsrc/agents\b", re.I),
-    re.compile(r"\btrap\b", re.I),
-    re.compile(r"\bdifferent\s+package\b", re.I),
-    re.compile(r"\blayer\b", re.I),
-    re.compile(r"\boverlay\b", re.I),
-    re.compile(r"\bcore\s+library\b", re.I),
-]
-
-EXTENSION_PATTERNS = [
-    re.compile(r"\bextensions/\b", re.I),
-    re.compile(r"\bextension\s+id\b", re.I),
-    re.compile(r"\bshared\s+symbol\b", re.I),
-    re.compile(r"\bacross\s+extensions\b", re.I),
-]
-
-ENV_PATTERNS = [
-    re.compile(r"\bOPENCLAW_[A-Z0-9_]+\b"),
-    re.compile(r"\be2e\b", re.I),
-    re.compile(r"\bbench(mark)?\b", re.I),
-    re.compile(r"\benv\s+var", re.I),
-    re.compile(r"\benvironment\s+variable\b", re.I),
-    re.compile(r"\bstartup\s+script\b", re.I),
-]
-
-EXACT_PATTERNS = [
-    re.compile(r"\b[A-Z][a-zA-Z0-9]+(?:[A-Z][a-zA-Z0-9]+)+\b"),
-    re.compile(r"\b[a-z][a-zA-Z0-9]+(?:[A-Z][a-zA-Z0-9]+)+\b"),
-    re.compile(r"`[^`]+`"),
-    re.compile(r"\b[\w.-]+\.(ts|tsx|js|jsx|py|rs|go|swift|kt|md|json|yaml|yml)\b", re.I),
-    re.compile(r"\b(?:src|packages|extensions)/[\w./-]+", re.I),
-    # Meta / router-implementation queries → lexical exact (not policy docs)
-    re.compile(r"检索(意图)?路由"),
-    re.compile(r"\bintent\s*rout(?:e|ing)?\b", re.I),
-    re.compile(r"codebase[_-]?retrieval[_-]?router", re.I),
-]
+EXACT_SIGNALS = (
+    "where is",
+    "defined",
+    "definition",
+    "symbol",
+    "path",
+    "file",
+    "literal",
+    "identifier",
+    "exact",
+    "grep",
+    "rg ",
+    "在哪里",
+    "定义",
+    "路径",
+    "文件",
+    "字面量",
+)
+SEMANTIC_SIGNALS = (
+    "concept",
+    "conceptual",
+    "semantic",
+    "behavior",
+    "behaviour",
+    "how does",
+    "unknown name",
+    "概念",
+    "语义",
+    "行为",
+    "如何工作",
+)
+STRUCTURAL_SIGNALS = (
+    "caller",
+    "callee",
+    "call graph",
+    "dependency",
+    "dependencies",
+    "impact",
+    "blast radius",
+    "structural",
+    "architecture",
+    "调用者",
+    "调用链",
+    "依赖",
+    "影响面",
+    "结构",
+    "架构",
+)
+EXTERNAL_SIGNALS = (
+    "latest",
+    "current version",
+    "release note",
+    "official docs",
+    "web",
+    "cve",
+    "external",
+    "remote system",
+    "最新",
+    "当前版本",
+    "发布说明",
+    "官方文档",
+    "外部",
+    "远端系统",
+)
 
 
-def _normalize_query(query: str) -> str:
-    return " ".join(query.split())
+def _utf8_key(value: str) -> bytes:
+    return value.encode("utf-8")
 
 
-def _match_any(patterns: list[re.Pattern[str]], text: str) -> list[str]:
-    hits: list[str] = []
-    for pattern in patterns:
-        match = pattern.search(text)
-        if match:
-            hits.append(match.group(0))
-    return hits
+def _copy_policy(policy: dict[str, object]) -> dict[str, object]:
+    destinations = cast(list[str], policy["egressDestinations"])
+    return {**policy, "egressDestinations": list(destinations)}
 
 
-def _confidence(hit_count: int, strong: bool) -> str:
-    if strong and hit_count >= 2:
-        return "high"
-    if hit_count >= 2:
-        return "medium"
-    if hit_count == 1:
-        return "medium" if strong else "low"
-    return "low"
+def _canonical_json(value: object) -> str:
+    return json.dumps(
+        value,
+        sort_keys=True,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        allow_nan=False,
+    )
 
 
-def _intent(
-    intent_id: str,
-    label: str,
-    signals: list[str],
-    confidence: str,
-    preserve_exact_primary: bool,
-) -> dict[str, object]:
-    unique_signals = list(dict.fromkeys(signals))[:12]
-    return {
-        "id": intent_id,
-        "label": label,
-        "confidence": confidence,
-        "signals": unique_signals,
-        "preserveExactPrimary": preserve_exact_primary,
-    }
-
-
-def classify_codebase_retrieval_intents(query: str) -> list[dict[str, object]]:
-    """Public intent classifier for hooks and dogfood scripts."""
-    return _classify_intents(query)
-
-
-def _classify_intents(query: str) -> list[dict[str, object]]:
-    intents: list[dict[str, object]] = []
-
-    preserve_hits = _match_any(PRESERVE_PATTERNS, query)
-    if preserve_hits:
-        intents.append(
-            _intent(
-                INTENT_PRESERVE,
-                "Protocol / platform preserve (F/G)",
-                preserve_hits,
-                _confidence(len(preserve_hits), True),
-                True,
-            )
-        )
-
-    exact_hits = _match_any(EXACT_PATTERNS, query)
-    if exact_hits:
-        intents.append(
-            _intent(
-                INTENT_EXACT,
-                "Exact symbol or path",
-                exact_hits,
-                _confidence(len(exact_hits), True),
-                True,
-            )
-        )
-
-    policy_hits = _match_any(POLICY_PATTERNS, query)
-    if policy_hits:
-        intents.append(
-            _intent(
-                INTENT_POLICY,
-                "Policy and document-first (C-class)",
-                policy_hits,
-                _confidence(len(policy_hits), False),
-                False,
-            )
-        )
-
-    caller_hits = _match_any(CALLER_PATTERNS, query)
-    if caller_hits:
-        intents.append(
-            _intent(
-                INTENT_CALLER,
-                "Caller and assembly chain (B-class)",
-                caller_hits,
-                _confidence(len(caller_hits), False),
-                False,
-            )
-        )
-
-    trap_hits = _match_any(TRAP_PATTERNS, query)
-    if trap_hits:
-        intents.append(
-            _intent(
-                INTENT_TRAP,
-                "Trap demotion and package boundary (E-class)",
-                trap_hits,
-                _confidence(len(trap_hits), False),
-                False,
-            )
-        )
-
-    extension_hits = _match_any(EXTENSION_PATTERNS, query)
-    if extension_hits:
-        intents.append(
-            _intent(
-                INTENT_EXTENSION,
-                "Extension shared-symbol disambiguation (A-class)",
-                extension_hits,
-                _confidence(len(extension_hits), False),
-                False,
-            )
-        )
-
-    env_hits = _match_any(ENV_PATTERNS, query)
-    if env_hits:
-        intents.append(
-            _intent(
-                INTENT_ENV,
-                "Environment and config literals (D-class)",
-                env_hits,
-                _confidence(len(env_hits), False),
-                False,
-            )
-        )
-
-    if not exact_hits and not preserve_hits:
-        conceptual_hits = _match_any(CONCEPTUAL_PATTERNS, query)
-        if conceptual_hits:
-            intents.append(
-                _intent(
-                    INTENT_CONCEPTUAL,
-                    "Conceptual / cross-cutting discovery",
-                    conceptual_hits,
-                    _confidence(len(conceptual_hits), False),
-                    False,
-                )
-            )
-
-    if not intents:
-        intents.append(
-            _intent(
-                INTENT_EXACT,
-                "General codebase (exact baseline)",
-                ["default-exact-baseline"],
-                "low",
-                True,
-            )
-        )
-
-    seen: set[str] = set()
-    deduped: list[dict[str, object]] = []
-    for item in intents:
-        intent_id = str(item["id"])
-        if intent_id in seen:
-            continue
-        seen.add(intent_id)
-        deduped.append(item)
-    return deduped
-
-
-def _base_verification() -> list[dict[str, object]]:
-    return [
-        {
-            "id": "source-read",
-            "requirement": "Read current source around candidate file ranges before final claims.",
-            "appliesToRoles": ["exact", "ast", "lsp", "semantic"],
-        },
-        {
-            "id": "git-scope",
-            "requirement": "Inspect relevant Git diff/log evidence when behavior or impact is claimed.",
-            "appliesToRoles": ["verification"],
-        },
-        {
-            "id": "focused-tests",
-            "requirement": "Run task-appropriate validation when tests define the claim boundary.",
-            "appliesToRoles": ["verification"],
-        },
-    ]
-
-
-def _verification_for_intents(intents: list[dict[str, object]]) -> list[dict[str, object]]:
-    ids = {str(item["id"]) for item in intents}
-    if INTENT_POLICY in ids:
-        return [
-            {
-                "id": "policy-doc-top1",
-                "requirement": (
-                    "For policy/document intents, confirm Top-1 policy evidence from "
-                    "AGENTS.md or .cstl/spec before ranking implementation modules first."
-                ),
-                "appliesToRoles": ["exact", "semantic"],
-            },
-            {
-                "id": "agents-neighborhood",
-                "requirement": (
-                    "Read AGENTS.md neighborhood: root AGENTS.md, nested **/AGENTS.md, "
-                    "and package-level policy files before searching implementation modules."
-                ),
-                "appliesToRoles": ["exact", "semantic"],
-            },
-            *_base_verification(),
-        ]
-    if INTENT_CALLER in ids:
-        return [
-            {
-                "id": "caller-sites",
-                "requirement": (
-                    "Confirm codegraph-caller results cover the call chain, then verify "
-                    "dynamic dispatch points (callbacks, event handlers, DI registrations) "
-                    "that codegraph may not resolve statically."
-                ),
-                "appliesToRoles": ["exact", "ast"],
-            },
-            *_base_verification(),
-        ]
-    if INTENT_TRAP in ids:
-        return [
-            {
-                "id": "trap-package-check",
-                "requirement": (
-                    "When multiple same-named symbols exist across packages, confirm the "
-                    "codegraph result belongs to the correct package by checking the file's "
-                    "package root or AGENTS.md scope before ranking."
-                ),
-                "appliesToRoles": ["ast", "exact"],
-            },
-            *_base_verification(),
-        ]
-    if INTENT_EXTENSION in ids:
-        return [
-            {
-                "id": "extension-scope-check",
-                "requirement": (
-                    "Confirm the symbol definition lives inside the target extension "
-                    "directory, not in a shared core module with the same name."
-                ),
-                "appliesToRoles": ["ast", "exact"],
-            },
-            *_base_verification(),
-        ]
-    return _base_verification()
-
-
-def _modality_for_intent(
-    intent_ids: set[str],
+def _is_plain_json_tree(
+    value: object,
     *,
-    structural_intents: set[str] | None = None,
-) -> list[str]:
-    """Map classified intents to an ordered list of retrieval modalities.
-
-    Structural intents (caller-chain, trap, extension) prefer structural search;
-    conceptual-only queries prefer semantic first; all others default to lexical-first.
-    """
-    if structural_intents is None:
-        structural_intents = {INTENT_CALLER, INTENT_TRAP, INTENT_EXTENSION}
-
-    if intent_ids & structural_intents:
-        return [MODALITY_STRUCTURAL, MODALITY_LEXICAL, MODALITY_SEMANTIC]
-    if INTENT_CONCEPTUAL in intent_ids and INTENT_EXACT not in intent_ids:
-        return [MODALITY_SEMANTIC, MODALITY_LEXICAL, MODALITY_STRUCTURAL]
-    return [MODALITY_LEXICAL, MODALITY_STRUCTURAL, MODALITY_SEMANTIC]
-
-
-def _token_economy_for_route(route_id: str) -> str:
-    """Return a token-economy label for a given route ID."""
-    high_economy = {
-        "caller-chain-ast",
-        "trap-demote-codegraph",
-        "extension-codegraph",
-        "ast-codegraph",
-        "platform-semantic",
-    }
-    if route_id in high_economy:
-        return TOKEN_ECONOMY_HIGH
-    return TOKEN_ECONOMY_MEDIUM
-
-
-def _large_project(project_file_count: int | None) -> bool:
-    if project_file_count is None:
+    active: set[int] | None = None,
+    depth: int = 0,
+    counter: list[int] | None = None,
+) -> bool:
+    """Accept only finite builtin JSON trees and reject cycles/subclasses."""
+    if active is None:
+        active = set()
+    if counter is None:
+        counter = [0]
+    counter[0] += 1
+    if counter[0] > 100_000 or depth > 64:
         return False
-    return project_file_count > 2000
-
-
-def _platform_semantic_route(
-    *,
-    base_rationale: str,
-    cursor_env: str,
-) -> dict[str, object]:
-    spec = semantic_route_spec(cursor_env)
-    suffix = str(spec.get("rationale_suffix", ""))
-    commands = spec.get("commands")
-    cmd_list = list(commands) if isinstance(commands, list) else []
-    return {
-        "id": "platform-semantic",
-        "role": "semantic",
-        "sourceFamily": "platform-semantic",
-        "commands": cmd_list,
-        "rationale": base_rationale + suffix,
-        "platformNative": bool(spec.get("platformNative", False)),
-        "semanticBackend": spec.get("semanticBackend"),
-    }
-
-
-def _ordered_routes(
-    intents: list[dict[str, object]],
-    include_optional_adapters: bool,
-    *,
-    project_file_count: int | None = None,
-    cursor_env: str | None = None,
-) -> list[dict[str, object]]:
-    ids = {str(item["id"]) for item in intents}
-    active = list(ids)
-    preserve = INTENT_PRESERVE in ids
-    policy = INTENT_POLICY in ids
-    caller = INTENT_CALLER in ids
-    trap = INTENT_TRAP in ids
-    extension = INTENT_EXTENSION in ids
-    env = INTENT_ENV in ids
-    exact = INTENT_EXACT in ids
-    conceptual = INTENT_CONCEPTUAL in ids
-    exact_primary_first = preserve or exact
-    conceptual_primary = conceptual and not preserve and not exact_primary_first
-    large = _large_project(project_file_count)
-    semantic_promoted = False
-    cenv = cursor_env or detect_cursor_retrieval_env()
-
-    routes: list[dict[str, object]] = []
-
-    def append(route: dict[str, object]) -> None:
-        route_id = str(route.get("id", ""))
-        routes.append({
-            **route,
-            "order": len(routes) + 1,
-            "intentIds": active,
-            "tokenEconomy": _token_economy_for_route(route_id),
-            "platformNative": route.get("platformNative", False),
-        })
-
-    # ── Structural-first intents: caller, trap, extension ──
-    # R2: codegraph ahead of rg for structural intents
-    if caller:
-        append({
-            "id": "caller-chain-ast",
-            "role": "ast",
-            "sourceFamily": "codegraph",
-            "commands": [
-                "codegraph callers <symbol> --path <path> --json",
-            ],
-            "rationale": "Caller-chain intent: codegraph for precise call edges first.",
-        })
-        append({
-            "id": "caller-rg-followup",
-            "role": "exact",
-            "sourceFamily": "rg",
-            "commands": ["rg <symbol> --glob '*.ts'"],
-            "rationale": "Caller-chain intent: rg follow-up for dynamic callsites codegraph may miss.",
-        })
-
-    if trap and not preserve:
-        append({
-            "id": "trap-demote-codegraph",
-            "role": "ast",
-            "sourceFamily": "codegraph",
-            "commands": ["codegraph search <symbol> --path <path> --json"],
-            "rationale": "Trap intent: codegraph distinguishes same-named symbols across packages.",
-        })
-        append({
-            "id": "trap-demote-rg",
-            "role": "exact",
-            "sourceFamily": "rg",
-            "commands": ["rg <symbol> packages/<name>/", "rg <symbol> src/"],
-            "rationale": "Trap intent: rg follow-up across package boundaries.",
-        })
-
-    if extension and not preserve:
-        append({
-            "id": "extension-codegraph",
-            "role": "ast",
-            "sourceFamily": "codegraph",
-            "commands": ["codegraph search <symbol> --path <path> --json"],
-            "rationale": "Extension intent: codegraph finds cross-extension symbol definitions.",
-        })
-        append({
-            "id": "extension-rg",
-            "role": "exact",
-            "sourceFamily": "rg",
-            "commands": ["rg <symbol> extensions/"],
-            "rationale": "Extension intent: rg follow-up for extension directory.",
-        })
-
-    # ── Lexical-first intents: exact, policy, preserve, env ──
-    if conceptual_primary:
-        if policy:
-            append({
-                "id": "policy-docs-rg",
-                "role": "exact",
-                "sourceFamily": "policy-docs",
-                "commands": [
-                    'rg -i "storage default|sidecar|sqlite only" AGENTS.md "**/AGENTS.md" '
-                    "README.md CONTRIBUTING.md .cstl/spec"
-                ],
-                "rationale": "Policy/document intent: search instruction and spec docs first.",
-            })
-        semantic_rationale = (
-            "Policy plus conceptual intent: semantic recall after policy docs, before exact rg follow-up."
-            if policy
-            else "Conceptual query without exact signals; semantic recall before exact rg narrowing."
-        )
-        append(_platform_semantic_route(base_rationale=semantic_rationale, cursor_env=cenv))
-        semantic_promoted = True
-        append({
-            "id": "exact-rg-primary",
-            "role": "exact",
-            "sourceFamily": "rg",
-            "commands": ["rg <pattern> <path>"],
-            "rationale": (
-                "Exact rg follow-up after semantic recall (or policy docs) "
-                "narrows candidate files and symbols."
-            ),
-        })
-    elif policy and not preserve and not exact_primary_first:
-        append({
-            "id": "policy-docs-rg",
-            "role": "exact",
-            "sourceFamily": "policy-docs",
-            "commands": [
-                'rg -i "storage default|sidecar|sqlite only" AGENTS.md "**/AGENTS.md" '
-                "README.md CONTRIBUTING.md .cstl/spec"
-            ],
-            "rationale": "Policy/document intent: search instruction and spec docs first.",
-        })
-        append({
-            "id": "exact-rg-primary",
-            "role": "exact",
-            "sourceFamily": "rg",
-            "commands": ["rg <pattern> <path>"],
-            "rationale": "Exact rg after policy doc pass when no symbol/path intent is present.",
-        })
-    elif exact_primary_first:
-        append({
-            "id": "exact-rg-primary",
-            "role": "exact",
-            "sourceFamily": "rg",
-            "commands": ["rg <pattern> <path>"],
-            "rationale": "Exact identifiers and paths stay primary.",
-        })
-        if policy and not preserve:
-            append({
-                "id": "policy-docs-rg",
-                "role": "exact",
-                "sourceFamily": "policy-docs",
-                "commands": [
-                    'rg -i "storage default|sidecar|sqlite only" AGENTS.md "**/AGENTS.md" '
-                    "README.md CONTRIBUTING.md .cstl/spec"
-                ],
-                "rationale": "Policy/document branch after exact-primary when both intents match.",
-            })
-
-    if env and not preserve:
-        append({
-            "id": "env-scripts-rg",
-            "role": "exact",
-            "sourceFamily": "rg",
-            "commands": ["rg <env-prefix> scripts test e2e bench"],
-            "rationale": "Env/config literals: scripts and test trees before src/ modules.",
-        })
-
-    if not any(str(item.get("id")) == "exact-rg-primary" for item in routes):
-        append({
-            "id": "exact-rg-primary",
-            "role": "exact",
-            "sourceFamily": "rg",
-            "commands": ["rg <pattern> <path>"],
-            "rationale": "Baseline exact search.",
-        })
-
-    # ── Optional adapters ──
-    if include_optional_adapters:
-        # R4: large project → codegraph as structural-first supplement
-        if not any(str(r.get("id")) == "caller-chain-ast" for r in routes):
-            cg_rationale = (
-                "Structural search first on large codebase for token efficiency."
-                if large
-                else "Structural expansion after exact candidates."
-            )
-            append({
-                "id": "ast-codegraph",
-                "role": "ast",
-                "sourceFamily": "codegraph",
-                "commands": [
-                    "codegraph query <symbol-or-search> --path <path> --json",
-                    "codegraph callers <symbol> --path <path> --json",
-                ],
-                "rationale": cg_rationale,
-            })
-        append({
-            "id": "definition-jump-native",
-            "role": "exact",
-            "sourceFamily": "rg",
-            "commands": [
-                "rg <symbol> --glob '*.{py,ts,tsx,js}'",
-                "Read <file> at matched definition line range",
-            ],
-            "rationale": (
-                "Prefer Cursor native: Grep for named-symbol definition, then Read "
-                "to verify (GO_TO_DEFINITION not in Agent tool table per cursor.com/docs/agent/overview)."
-            ),
-            "platformNative": True,
-        })
-        append({
-            "id": "lsp-navigation",
-            "role": "ast",
-            "sourceFamily": "codegraph",
-            "commands": [
-                "codegraph_explore <symbol-or-question>",
-                "codegraph_node <symbol> --includeCode",
-                "codegraph_search <symbol>",
-            ],
-            "rationale": (
-                "Own/codegraph: structural definition/reference when Grep+Read is "
-                "ambiguous (cross-package traps, overloads) or blast/caller context "
-                "is needed; GO_TO_DEFINITION not exposed in Agent."
-            ),
-            "platformNative": False,
-        })
-        if not semantic_promoted:
-            append(
-                _platform_semantic_route(
-                    base_rationale="Semantic recall for conceptual narrowing.",
-                    cursor_env=cenv,
+    if value is None or type(value) in (str, bool, int):
+        return True
+    if type(value) is float:
+        return math.isfinite(value)
+    if type(value) not in (dict, list):
+        return False
+    identity = id(value)
+    if identity in active:
+        return False
+    active.add(identity)
+    try:
+        if type(value) is list:
+            items = cast(list[object], value)
+            return all(
+                _is_plain_json_tree(
+                    item, active=active, depth=depth + 1, counter=counter
                 )
+                for item in items
             )
-
-    append({
-        "id": "verification-source-git-tests",
-        "role": "verification",
-        "sourceFamily": "source-git-tests",
-        "commands": ["git diff -- <path>", "Get-Content <file>"],
-        "rationale": "Required proof layer for verified claims.",
-    })
-
-    # R4: large project → reorder so codegraph routes precede rg when not already
-    if large:
-        structural = [r for r in routes if r.get("role") in ("ast",)]
-        others = [r for r in routes if r.get("role") not in ("ast",)]
-        routes = structural + others
-
-    routes = _prefer_native_definition_before_codegraph(routes)
-
-    return [{**route, "order": index + 1} for index, route in enumerate(routes)]
+        mapping = cast(dict[object, object], value)
+        if any(
+            type(key) is not str or key in FORBIDDEN_JSON_KEYS
+            for key in mapping
+        ):
+            return False
+        return all(
+            _is_plain_json_tree(
+                item, active=active, depth=depth + 1, counter=counter
+            )
+            for item in mapping.values()
+        )
+    finally:
+        active.remove(identity)
 
 
-def _prefer_native_definition_before_codegraph(
-    routes: list[dict[str, object]],
-) -> list[dict[str, object]]:
-    """Keep definition-jump-native (Grep+Read) before lsp-navigation (codegraph)."""
-    ids = {str(r.get("id", "")) for r in routes}
-    if "definition-jump-native" not in ids or "lsp-navigation" not in ids:
-        return routes
-    native = next(r for r in routes if str(r.get("id")) == "definition-jump-native")
-    rest = [r for r in routes if str(r.get("id")) != "definition-jump-native"]
-    lsp_idx = next(
-        (i for i, r in enumerate(rest) if str(r.get("id")) == "lsp-navigation"),
-        len(rest),
-    )
-    rest.insert(lsp_idx, native)
-    return rest
+def fingerprint_pactile_contract_v1(value: object) -> str:
+    digest = hashlib.sha256(_canonical_json(value).encode("utf-8")).hexdigest()
+    return f"sha256:{digest}"
 
 
-def _fallback_hints(
-    intents: list[dict[str, object]],
-    include_optional_adapters: bool,
-    routes: list[dict[str, object]],
+def _issue(
+    issues: list[dict[str, str]], code: str, path: str, message: str
+) -> None:
+    issues.append({"code": code, "path": path, "message": message})
+
+
+def _sorted_issues(issues: list[dict[str, str]]) -> list[dict[str, str]]:
+    return sorted(issues, key=lambda item: (_utf8_key(item["path"]), _utf8_key(item["code"])))
+
+
+def _record(
+    value: object,
+    path: str,
+    allowed: tuple[str, ...],
+    issues: list[dict[str, str]],
+) -> dict[str, object] | None:
+    if type(value) is not dict:
+        _issue(issues, "invalid-type", path, "must be an object")
+        return None
+    allowed_set = set(allowed)
+    output: dict[str, object] = {}
+    for key in sorted(value, key=_utf8_key):
+        if type(key) is not str:
+            _issue(issues, "unknown-field", path, "must contain only string fields")
+        elif key not in allowed_set:
+            _issue(issues, "unknown-field", path, "contains an unknown field")
+        else:
+            output[key] = value[key]
+    return output
+
+
+def _required(
+    record: dict[str, object] | None,
+    key: str,
+    path: str,
+    issues: list[dict[str, str]],
+) -> object:
+    if record is None or key not in record:
+        _issue(issues, "missing-field", f"{path}.{key}", "is required")
+        return None
+    return record[key]
+
+
+def _array(
+    value: object,
+    path: str,
+    issues: list[dict[str, str]],
+    max_items: int,
+) -> list[object]:
+    if type(value) is not list:
+        _issue(issues, "invalid-type", path, "must be an array")
+        return []
+    if len(value) > max_items:
+        _issue(issues, "limit-exceeded", path, f"must contain at most {max_items} items")
+    return list(value[:max_items])
+
+
+def _text(
+    value: object,
+    path: str,
+    issues: list[dict[str, str]],
     *,
-    cursor_env: str | None = None,
-) -> list[dict[str, object]]:
-    hints: list[dict[str, object]] = [
-        {
-            "when": "rg missing on PATH",
-            "action": "Codebase retrieval readiness fails; install or expose rg.",
-        }
-    ]
-    if not include_optional_adapters:
-        hints.append({
-            "when": "codebase-retrieval not selected",
-            "action": "Skip optional AST/semantic routes; use exact search and verification.",
-            "replacesRole": "semantic",
-        })
-    cenv = cursor_env or detect_cursor_retrieval_env()
-    if is_byok_conservative(cenv):
-        hints.append({
-            "when": "built-in @codebase / SemanticSearch not in agent tool list",
-            "action": (
-                "Use fast_context_search (fast-context MCP) per platform-semantic route; "
-                "do not use WebSearch for codebase questions."
-            ),
-            "replacesRole": "semantic",
-        })
-        hints.append({
-            "when": "DEEP_SEARCH not available for wide cross-cutting explore",
-            "action": "Use Task subagent (explore), then Grep/codegraph/Read to verify.",
-            "replacesRole": "semantic",
-        })
-    if any(str(item["id"]) == INTENT_POLICY for item in intents):
-        hints.append({
-            "when": "semantic Top-1 is implementation-only for policy query",
-            "action": "Fall back to policy-doc rg and AGENTS.md/.cstl/spec reads.",
-            "replacesRole": "semantic",
-        })
-    semantic_route = next(
-        (r for r in routes if str(r.get("role")) == "semantic"),
-        None,
+    max_bytes: int,
+    collapse_whitespace: bool = False,
+    logical_id: bool = False,
+) -> str:
+    if type(value) is not str:
+        _issue(issues, "invalid-type", path, "must be a string")
+        return ""
+    try:
+        value.encode("utf-8")
+    except UnicodeEncodeError:
+        _issue(issues, "invalid-value", path, "must contain valid Unicode scalar values")
+        return ""
+    normalized = (
+        re.sub(r"\s+", " ", value).strip() if collapse_whitespace else value.strip()
     )
-    ids = {str(item["id"]) for item in intents}
-    has_conceptual = INTENT_CONCEPTUAL in ids
-    exact_primary = any(
-        str(item["id"]) == INTENT_EXACT and bool(item.get("preserveExactPrimary"))
-        for item in intents
-    )
-    if include_optional_adapters and semantic_route and (
-        has_conceptual or int(semantic_route.get("order", 99)) >= 3 or exact_primary
-    ):
-        hints.append({
-            "when": (
-                "exact rg returns no corroborated file/range candidates "
-                "(or only trap hits) before final Top-1"
-            ),
-            "action": (
-                "Use fast_context_search (BYOK) or Cursor built-in semantic search (Native) "
-                "per platform-semantic route, then narrow with rg on returned keywords and paths."
-            ),
-            "replacesRole": "semantic",
-        })
-    return hints
+    normalized = unicodedata.normalize("NFC", normalized)
+    if not normalized:
+        _issue(issues, "invalid-value", path, "must not be empty")
+    if any(unicodedata.category(character) == "Cc" for character in normalized):
+        _issue(issues, "invalid-value", path, "must not contain control characters")
+    if len(normalized.encode("utf-8")) > max_bytes:
+        _issue(issues, "limit-exceeded", path, f"must be at most {max_bytes} UTF-8 bytes")
+    if logical_id and normalized and LOGICAL_ID.fullmatch(normalized) is None:
+        _issue(issues, "invalid-value", path, "must be a lowercase logical id")
+    return normalized
 
 
-def _warnings(
-    intents: list[dict[str, object]],
+def _enum(
+    value: object,
+    values: tuple[str, ...],
+    path: str,
+    issues: list[dict[str, str]],
+) -> str:
+    if type(value) is not str or value not in values:
+        _issue(issues, "invalid-value", path, f"must be one of: {', '.join(values)}")
+        return values[0]
+    return value
+
+
+def _integer(
+    value: object,
+    path: str,
+    issues: list[dict[str, str]],
+    minimum: int,
+    maximum: int,
+) -> int:
+    if type(value) is not int or value < minimum or value > maximum:
+        _issue(
+            issues,
+            "invalid-value",
+            path,
+            f"must be a safe integer from {minimum} through {maximum}",
+        )
+        return minimum
+    return value
+
+
+def _string_set(
+    value: object,
+    path: str,
+    issues: list[dict[str, str]],
+    *,
+    max_items: int,
+    max_bytes: int,
+    logical_id: bool = False,
 ) -> list[str]:
-    warnings: list[str] = []
-    low = [str(item["id"]) for item in intents if item.get("confidence") == "low"]
-    if low:
-        warnings.append(f"Low-confidence intent classification for: {', '.join(low)}.")
-    ids = {str(item["id"]) for item in intents}
-    if INTENT_POLICY in ids and INTENT_PRESERVE in ids:
-        warnings.append(
-            "Both policy-document and protocol-platform-preserve detected; preserve keeps exact-symbol primary."
+    raw = _array(value, path, issues, max_items)
+    normalized = [
+        _text(
+            item,
+            f"{path}[{index}]",
+            issues,
+            max_bytes=max_bytes,
+            logical_id=logical_id,
+        )
+        for index, item in enumerate(raw)
+    ]
+    seen: set[str] = set()
+    for index, item in enumerate(normalized):
+        if item in seen:
+            _issue(
+                issues,
+                "duplicate-value",
+                f"{path}[{index}]",
+                "must be unique after normalization",
+            )
+        seen.add(item)
+    return sorted(normalized, key=_utf8_key)
+
+
+def _policy(
+    value: object, path: str, issues: list[dict[str, str]]
+) -> dict[str, object]:
+    allowed = (
+        "filesystem",
+        "process",
+        "network",
+        "credentials",
+        "privacy",
+        "egressDestinations",
+        "telemetry",
+        "cost",
+    )
+    record = _record(value, path, allowed, issues)
+    policy: dict[str, object] = {
+        "filesystem": _enum(
+            _required(record, "filesystem", path, issues),
+            FILESYSTEM_CEILINGS,
+            f"{path}.filesystem",
+            issues,
+        ),
+        "process": _enum(
+            _required(record, "process", path, issues),
+            PROCESS_CEILINGS,
+            f"{path}.process",
+            issues,
+        ),
+        "network": _enum(
+            _required(record, "network", path, issues),
+            NETWORK_CEILINGS,
+            f"{path}.network",
+            issues,
+        ),
+        "credentials": _enum(
+            _required(record, "credentials", path, issues),
+            CREDENTIAL_CEILINGS,
+            f"{path}.credentials",
+            issues,
+        ),
+        "privacy": _enum(
+            _required(record, "privacy", path, issues),
+            PRIVACY_CEILINGS,
+            f"{path}.privacy",
+            issues,
+        ),
+        "egressDestinations": _string_set(
+            _required(record, "egressDestinations", path, issues),
+            f"{path}.egressDestinations",
+            issues,
+            max_items=64,
+            max_bytes=256,
+        ),
+        "telemetry": _enum(
+            _required(record, "telemetry", path, issues),
+            TELEMETRY_CEILINGS,
+            f"{path}.telemetry",
+            issues,
+        ),
+        "cost": _enum(
+            _required(record, "cost", path, issues),
+            COST_CEILINGS,
+            f"{path}.cost",
+            issues,
+        ),
+    }
+    if policy["network"] == "forbidden" and (
+        policy["privacy"] != "local-only" or policy["egressDestinations"]
+    ):
+        _issue(
+            issues,
+            "policy-violation",
+            f"{path}.privacy",
+            "network-forbidden policy cannot permit egress",
         )
     if (
-        INTENT_CONCEPTUAL in ids
-        and INTENT_EXACT not in ids
-        and INTENT_PRESERVE not in ids
+        policy["network"] == "project-authorized"
+        and policy["privacy"] != "local-only"
+        and not policy["egressDestinations"]
     ):
-        semantic_hint = "platform-semantic"
-        warnings.append(
-            f"Conceptual intent without exact signals; {semantic_hint} route promoted in plan. "
-            "Convert semantic hits to exact rg follow-ups before final claims."
+        _issue(
+            issues,
+            "policy-violation",
+            f"{path}.egressDestinations",
+            "external egress requires at least one destination",
         )
-    return warnings
+    if policy["network"] == "forbidden" and policy["telemetry"] == "project-authorized":
+        _issue(
+            issues,
+            "policy-violation",
+            f"{path}.telemetry",
+            "network-forbidden policy cannot permit remote telemetry",
+        )
+    return policy
+
+
+def _budget(
+    value: object, path: str, issues: list[dict[str, str]]
+) -> dict[str, int]:
+    record = _record(value, path, ("maxSteps", "maxCandidatesPerStep"), issues)
+    return {
+        "maxSteps": _integer(
+            _required(record, "maxSteps", path, issues),
+            f"{path}.maxSteps",
+            issues,
+            1,
+            32,
+        ),
+        "maxCandidatesPerStep": _integer(
+            _required(record, "maxCandidatesPerStep", path, issues),
+            f"{path}.maxCandidatesPerStep",
+            issues,
+            1,
+            1000,
+        ),
+    }
+
+
+def _intents(
+    value: object, path: str, issues: list[dict[str, str]]
+) -> list[str]:
+    raw = _array(value, path, issues, len(INTENT_ORDER))
+    if not raw:
+        _issue(issues, "invalid-value", path, "must contain at least one intent")
+    values = [
+        _enum(item, INTENT_ORDER, f"{path}[{index}]", issues)
+        for index, item in enumerate(raw)
+    ]
+    seen: set[str] = set()
+    for index, item in enumerate(values):
+        if item in seen:
+            _issue(issues, "duplicate-value", f"{path}[{index}]", "must be unique")
+        seen.add(item)
+    return [intent for intent in INTENT_ORDER if intent in seen]
+
+
+def parse_retrieval_request_v3(value: object) -> dict[str, object]:
+    """Strictly parse and canonicalize a V3 request."""
+    if type(value) is not dict or not _is_plain_json_tree(value):
+        return {
+            "success": False,
+            "issues": [
+                {
+                    "code": "invalid-type",
+                    "path": "$",
+                    "message": "must be a plain data value",
+                }
+            ],
+        }
+    issues: list[dict[str, str]] = []
+    try:
+        record = _record(
+            value,
+            "$",
+            (
+                "schemaVersion",
+                "query",
+                "intents",
+                "scopeHints",
+                "minimumAssurance",
+                "requestedPolicy",
+                "requiredEvidenceKinds",
+                "budget",
+            ),
+            issues,
+        )
+        schema_version = _required(record, "schemaVersion", "$", issues)
+        if type(schema_version) is not int or schema_version != RETRIEVAL_ABI_VERSION:
+            _issue(issues, "invalid-value", "$.schemaVersion", "must equal 3")
+        query = _text(
+            _required(record, "query", "$", issues),
+            "$.query",
+            issues,
+            max_bytes=MAX_QUERY_BYTES,
+            collapse_whitespace=True,
+        )
+        intents = _intents(_required(record, "intents", "$", issues), "$.intents", issues)
+        scope_hints = _string_set(
+            _required(record, "scopeHints", "$", issues),
+            "$.scopeHints",
+            issues,
+            max_items=MAX_SCOPE_HINTS,
+            max_bytes=MAX_SCOPE_HINT_BYTES,
+        )
+        minimum_assurance = _enum(
+            _required(record, "minimumAssurance", "$", issues),
+            ASSURANCE_LEVELS,
+            "$.minimumAssurance",
+            issues,
+        )
+        requested_policy = _policy(
+            _required(record, "requestedPolicy", "$", issues),
+            "$.requestedPolicy",
+            issues,
+        )
+        required_evidence_kinds = _string_set(
+            _required(record, "requiredEvidenceKinds", "$", issues),
+            "$.requiredEvidenceKinds",
+            issues,
+            max_items=MAX_EVIDENCE_KINDS,
+            max_bytes=MAX_LOGICAL_ID_BYTES,
+            logical_id=True,
+        )
+        if minimum_assurance != "best-effort" and not required_evidence_kinds:
+            _issue(
+                issues,
+                "policy-violation",
+                "$.requiredEvidenceKinds",
+                "evidence-backed and verified requests require evidence kinds",
+            )
+        budget = _budget(_required(record, "budget", "$", issues), "$.budget", issues)
+        if issues:
+            return {"success": False, "issues": _sorted_issues(issues)}
+        return {
+            "success": True,
+            "data": {
+                "schemaVersion": RETRIEVAL_ABI_VERSION,
+                "query": query,
+                "intents": intents,
+                "scopeHints": scope_hints,
+                "minimumAssurance": minimum_assurance,
+                "requestedPolicy": requested_policy,
+                "requiredEvidenceKinds": required_evidence_kinds,
+                "budget": budget,
+            },
+        }
+    except (AttributeError, KeyError, TypeError, UnicodeError, ValueError):
+        return {
+            "success": False,
+            "issues": [
+                {
+                    "code": "invalid-type",
+                    "path": "$",
+                    "message": "must be a plain data value",
+                }
+            ],
+        }
+
+
+def classify_codebase_retrieval_intents(query: str) -> list[str]:
+    """Return the four canonical intents in frozen order."""
+    normalized = unicodedata.normalize("NFC", re.sub(r"\s+", " ", query).strip()).lower()
+    matched: set[str] = set()
+    if any(signal in normalized for signal in EXACT_SIGNALS):
+        matched.add("exact")
+    if any(signal in normalized for signal in SEMANTIC_SIGNALS):
+        matched.add("semantic")
+    if any(signal in normalized for signal in STRUCTURAL_SIGNALS):
+        matched.add("structural")
+    if any(signal in normalized for signal in EXTERNAL_SIGNALS):
+        matched.add("external")
+    if not matched:
+        matched.add("exact")
+    return [intent for intent in INTENT_ORDER if intent in matched]
+
+
+def build_retrieval_request_v3(
+    query: str,
+    *,
+    intents: list[str] | tuple[str, ...] | None = None,
+    scope_hints: list[str] | tuple[str, ...] | None = None,
+    minimum_assurance: str = "evidence-backed",
+    requested_policy: dict[str, object] | None = None,
+    required_evidence_kinds: list[str] | tuple[str, ...] | None = None,
+    budget: dict[str, int] | None = None,
+) -> dict[str, object]:
+    candidate: dict[str, object] = {
+        "schemaVersion": RETRIEVAL_ABI_VERSION,
+        "query": query,
+        "intents": list(intents) if intents is not None else classify_codebase_retrieval_intents(query),
+        "scopeHints": list(scope_hints if scope_hints is not None else []),
+        "minimumAssurance": minimum_assurance,
+        "requestedPolicy": _copy_policy(
+            requested_policy
+            if requested_policy is not None
+            else DEFAULT_RETRIEVAL_POLICY_V3
+        ),
+        "requiredEvidenceKinds": list(
+            required_evidence_kinds
+            if required_evidence_kinds is not None
+            else ("source-reference",)
+        ),
+        "budget": dict(budget if budget is not None else DEFAULT_RETRIEVAL_BUDGET_V3),
+    }
+    parsed = parse_retrieval_request_v3(candidate)
+    if not parsed["success"]:
+        raise ValueError(
+            "PACTILE_RETRIEVAL_REQUEST_INVALID:" + _canonical_json(parsed["issues"])
+        )
+    return dict(cast(dict[str, object], parsed["data"]))
+
+
+def _parse_planning_context(value: object) -> dict[str, object]:
+    if type(value) is not dict or not _is_plain_json_tree(value):
+        return {
+            "success": False,
+            "issues": [
+                {
+                    "code": "invalid-type",
+                    "path": "$context",
+                    "message": "must be a plain data value",
+                }
+            ],
+        }
+    issues: list[dict[str, str]] = []
+    try:
+        record = _record(value, "$context", ("providerAvailability",), issues)
+        raw = record.get("providerAvailability", []) if record is not None else []
+        entries = _array(raw, "$context.providerAvailability", issues, 3)
+        output: list[dict[str, object]] = []
+        seen: set[str] = set()
+        for index, entry in enumerate(entries):
+            path = f"$context.providerAvailability[{index}]"
+            item = _record(entry, path, ("intent", "status", "readiness"), issues)
+            intent = _enum(
+                _required(item, "intent", path, issues),
+                PROVIDER_INTENTS,
+                f"{path}.intent",
+                issues,
+            )
+            status = _enum(
+                _required(item, "status", path, issues),
+                PROVIDER_STATUSES[1:],
+                f"{path}.status",
+                issues,
+            )
+            readiness_raw = item.get("readiness") if item is not None else None
+            readiness = (
+                None
+                if readiness_raw is None
+                else _enum(readiness_raw, PROVIDER_READINESS, f"{path}.readiness", issues)
+            )
+            if intent in seen:
+                _issue(issues, "duplicate-value", f"{path}.intent", "must be unique")
+            seen.add(intent)
+            if readiness is not None and status != "unsupported" and status != readiness:
+                _issue(
+                    issues,
+                    "policy-violation",
+                    f"{path}.readiness",
+                    "must agree with the neutral provider status",
+                )
+            if status == "unsupported" and readiness not in (None, "unavailable"):
+                _issue(
+                    issues,
+                    "policy-violation",
+                    f"{path}.readiness",
+                    "unsupported intent may only report unavailable readiness",
+                )
+            value_out: dict[str, object] = {"intent": intent, "status": status}
+            if readiness is not None:
+                value_out["readiness"] = readiness
+            output.append(value_out)
+        if issues:
+            return {"success": False, "issues": _sorted_issues(issues)}
+        ordered = [
+            entry
+            for intent in PROVIDER_INTENTS
+            for entry in output
+            if entry["intent"] == intent
+        ]
+        return {"success": True, "data": ordered}
+    except (AttributeError, KeyError, TypeError, UnicodeError, ValueError):
+        return {
+            "success": False,
+            "issues": [
+                {
+                    "code": "invalid-type",
+                    "path": "$context",
+                    "message": "must be a plain data value",
+                }
+            ],
+        }
+
+
+def _status_reason(intent: str, status: str) -> dict[str, object] | None:
+    codes = {
+        "resolution-required": "provider-resolution-required",
+        "degraded": "provider-degraded",
+        "unavailable": "provider-unavailable",
+        "unsupported": "provider-unsupported",
+    }
+    code = codes.get(status)
+    return None if code is None else {"code": code, "intent": intent, "blocking": True}
+
+
+def _build_plan(
+    request: dict[str, object], availability: list[dict[str, object]]
+) -> dict[str, object]:
+    request_intents = cast(list[str], request["intents"])
+    request_scope_hints = cast(list[str], request["scopeHints"])
+    requested_policy = cast(dict[str, object], request["requestedPolicy"])
+    required_evidence_kinds = cast(list[str], request["requiredEvidenceKinds"])
+    request_budget = cast(dict[str, int], request["budget"])
+    statuses = {str(entry["intent"]): str(entry["status"]) for entry in availability}
+    all_steps: list[dict[str, object]] = []
+    for index, raw_intent in enumerate(request_intents):
+        intent = str(raw_intent)
+        if intent == "exact":
+            all_steps.append(
+                {
+                    "order": index + 1,
+                    "intent": intent,
+                    "kind": "local-exact",
+                    "localToolHint": "rg",
+                    "providerRequirement": None,
+                    "outputRole": "candidate",
+                }
+            )
+            continue
+        status = statuses.get(intent, "resolution-required")
+        all_steps.append(
+            {
+                "order": index + 1,
+                "intent": intent,
+                "kind": "provider-request",
+                "localToolHint": None,
+                "providerRequirement": {
+                    "intent": intent,
+                    "minimumAssurance": request["minimumAssurance"],
+                    "requestedPolicy": _copy_policy(requested_policy),
+                    "requiredEvidenceKinds": list(required_evidence_kinds),
+                    "status": status,
+                },
+                "outputRole": "candidate",
+            }
+        )
+    steps = [
+        {**step, "order": index + 1}
+        for index, step in enumerate(all_steps[: request_budget["maxSteps"]])
+    ]
+    stop_reasons: list[dict[str, object]] = []
+    if len(steps) < len(all_steps):
+        stop_reasons.append({"code": "budget-exhausted", "intent": None, "blocking": True})
+    for step in steps:
+        requirement = step["providerRequirement"]
+        if type(requirement) is dict:
+            reason = _status_reason(str(requirement["intent"]), str(requirement["status"]))
+            if reason is not None:
+                stop_reasons.append(reason)
+    plan: dict[str, object] = {
+        "schemaVersion": RETRIEVAL_ABI_VERSION,
+        "query": request["query"],
+        "intents": list(request_intents),
+        "scopeHints": list(request_scope_hints),
+        "minimumAssurance": request["minimumAssurance"],
+        "requestedPolicy": _copy_policy(requested_policy),
+        "requiredEvidenceKinds": list(required_evidence_kinds),
+        "budget": dict(request_budget),
+        "steps": steps,
+        "verificationChain": [
+            {
+                "order": 1,
+                "stage": "candidate",
+                "required": True,
+                "acceptableEvidenceKinds": [],
+            },
+            *[
+                {
+                    "order": order,
+                    "stage": stage,
+                    "required": True,
+                    "acceptableEvidenceKinds": list(CORROBORATION_KINDS),
+                }
+                for order, stage in (
+                    (2, "corroborate"),
+                    (3, "classify-evidence"),
+                    (4, "check-assurance"),
+                    (5, "accept-or-stop"),
+                )
+            ],
+        ],
+        "stopReasons": stop_reasons,
+    }
+    plan["fingerprint"] = fingerprint_pactile_contract_v1(plan)
+    return plan
+
+
+def plan_retrieval_v3(
+    request: object, context: object = _MISSING_CONTEXT
+) -> dict[str, object]:
+    parsed = parse_retrieval_request_v3(request)
+    if not parsed["success"]:
+        return parsed
+    context_value: object = {} if context is _MISSING_CONTEXT else context
+    availability = _parse_planning_context(context_value)
+    if not availability["success"]:
+        return availability
+    return {
+        "success": True,
+        "data": _build_plan(
+            dict(cast(dict[str, object], parsed["data"])),
+            list(cast(list[dict[str, object]], availability["data"])),
+        ),
+    }
 
 
 def route_codebase_retrieval(
     query: str,
     *,
-    codebase_retrieval_selected: bool = True,
-    project_file_count: int | None = None,
-    cursor_env: str | None = None,
+    intents: list[str] | tuple[str, ...] | None = None,
+    scope_hints: list[str] | tuple[str, ...] | None = None,
+    minimum_assurance: str = "evidence-backed",
+    requested_policy: dict[str, object] | None = None,
+    required_evidence_kinds: list[str] | tuple[str, ...] | None = None,
+    budget: dict[str, int] | None = None,
+    provider_availability: list[dict[str, object]] | None = None,
+    **_compatibility_metadata: object,
 ) -> dict[str, object]:
-    """Return the shared evidence envelope with router-owned fields populated."""
-    normalized = _normalize_query(query)
-    include_optional = codebase_retrieval_selected
-    cenv = cursor_env or detect_cursor_retrieval_env()
-    if not normalized:
-        intents = [
-            _intent(INTENT_EXACT, "General codebase (exact baseline)", ["empty-query"], "low", True)
-        ]
-        empty_routes = _ordered_routes(
-            intents,
-            include_optional,
-            project_file_count=project_file_count,
-            cursor_env=cenv,
-        )
-        return {
-            "version": ROUTER_VERSION,
-            "query": normalized,
-            "cursorEnv": cenv,
-            "intents": intents,
-            "routes": empty_routes,
-            "adapterState": [],
-            "freshness": [],
-            "fallback": _fallback_hints(
-                intents, include_optional, empty_routes, cursor_env=cenv
-            ),
-            "warnings": ["Empty query; only baseline exact route is emitted."],
-            "verification": _base_verification(),
-            "projectFileCount": project_file_count,
-        }
-
-    intents = _classify_intents(normalized)
-    routes = _ordered_routes(
-        intents,
-        include_optional,
-        project_file_count=project_file_count,
-        cursor_env=cenv,
+    """Build a deterministic V3 plan; compatibility metadata has no effect."""
+    request = build_retrieval_request_v3(
+        query,
+        intents=intents,
+        scope_hints=scope_hints,
+        minimum_assurance=minimum_assurance,
+        requested_policy=requested_policy,
+        required_evidence_kinds=required_evidence_kinds,
+        budget=budget,
     )
+    result = plan_retrieval_v3(
+        request,
+        {
+            "providerAvailability": list(provider_availability)
+            if provider_availability is not None
+            else []
+        },
+    )
+    if not result["success"]:
+        raise ValueError("PACTILE_RETRIEVAL_PLAN_INVALID:" + _canonical_json(result["issues"]))
+    return dict(cast(dict[str, object], result["data"]))
+
+
+def _normalized_refs(values: object) -> list[str] | None:
+    if type(values) is not list or len(values) > 1024:
+        return None
+    output: list[str] = []
+    for value in values:
+        if type(value) is not str or not _valid_logical_ref(value):
+            return None
+        output.append(value)
+    return sorted(set(output), key=_utf8_key)
+
+
+def _normalized_facts(values: object) -> list[dict[str, str]] | None:
+    if type(values) is not list or len(values) > 1024:
+        return None
+    output: list[dict[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    for value in values:
+        if type(value) is not dict or set(value) != {"kind", "ref"}:
+            return None
+        kind = value["kind"]
+        ref = value["ref"]
+        if (
+            type(kind) is not str
+            or LOGICAL_ID.fullmatch(kind) is None
+            or type(ref) is not str
+            or not _valid_logical_ref(ref)
+        ):
+            return None
+        identity = (kind, ref)
+        if identity not in seen:
+            seen.add(identity)
+            output.append({"kind": kind, "ref": ref})
+    return sorted(output, key=lambda item: (_utf8_key(item["kind"]), _utf8_key(item["ref"])))
+
+
+def _valid_plan(plan: object, intent: str) -> bool:
+    expected_keys = {
+        "schemaVersion",
+        "query",
+        "intents",
+        "scopeHints",
+        "minimumAssurance",
+        "requestedPolicy",
+        "requiredEvidenceKinds",
+        "budget",
+        "steps",
+        "verificationChain",
+        "stopReasons",
+        "fingerprint",
+    }
+    if (
+        type(plan) is not dict
+        or not _is_plain_json_tree(plan)
+        or set(plan) != expected_keys
+        or type(plan.get("intents")) is not list
+        or intent not in plan["intents"]
+        or type(plan.get("steps")) is not list
+    ):
+        return False
+    request = {
+        key: plan[key]
+        for key in (
+            "schemaVersion",
+            "query",
+            "intents",
+            "scopeHints",
+            "minimumAssurance",
+            "requestedPolicy",
+            "requiredEvidenceKinds",
+            "budget",
+        )
+    }
+    availability: list[dict[str, object]] = []
+    for candidate in cast(list[object], plan["steps"]):
+        if type(candidate) is not dict:
+            return False
+        requirement = candidate.get("providerRequirement")
+        if requirement is None:
+            continue
+        if type(requirement) is not dict:
+            return False
+        provider_intent = requirement.get("intent")
+        status = requirement.get("status")
+        if provider_intent not in PROVIDER_INTENTS or status not in PROVIDER_STATUSES:
+            return False
+        if status != "resolution-required":
+            availability.append(
+                {
+                    "intent": provider_intent,
+                    "status": status,
+                    "readiness": "unavailable" if status == "unsupported" else status,
+                }
+            )
+    replanned = plan_retrieval_v3(
+        request, {"providerAvailability": availability}
+    )
+    return bool(replanned.get("success") and replanned.get("data") == plan)
+
+
+def _valid_logical_ref(value: str) -> bool:
+    if len(value) > 256:
+        return False
+    match = LOGICAL_REF.fullmatch(value)
+    if match is None:
+        return False
+    return not any(
+        term in SENSITIVE_REFERENCE_TERMS
+        for term in re.split(r"[._/-]", match.group(1))
+    )
+
+
+def _valid_core_string_array(value: object) -> bool:
+    return (
+        type(value) is list
+        and all(type(item) is str and bool(item.strip()) for item in value)
+        and len(value) == len(set(value))
+    )
+
+
+def _valid_timestamp(value: object) -> bool:
+    if type(value) is not str or RFC3339.fullmatch(value) is None:
+        return False
+    try:
+        datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return False
+    return True
+
+
+def _parsed_policy(value: object) -> dict[str, object] | None:
+    issues: list[dict[str, str]] = []
+    parsed = _policy(value, "$policy", issues)
+    return None if issues else parsed
+
+
+def _policy_within(requested: dict[str, object], ceiling: dict[str, object]) -> bool:
+    dimensions = (
+        ("filesystem", FILESYSTEM_CEILINGS),
+        ("process", PROCESS_CEILINGS),
+        ("network", NETWORK_CEILINGS),
+        ("credentials", CREDENTIAL_CEILINGS),
+        ("privacy", PRIVACY_CEILINGS),
+        ("telemetry", TELEMETRY_CEILINGS),
+        ("cost", COST_CEILINGS),
+    )
+    try:
+        if any(
+            values.index(str(requested[key])) > values.index(str(ceiling[key]))
+            for key, values in dimensions
+        ):
+            return False
+        requested_destinations = cast(list[str], requested["egressDestinations"])
+        ceiling_destinations = cast(list[str], ceiling["egressDestinations"])
+        return all(destination in ceiling_destinations for destination in requested_destinations)
+    except (KeyError, TypeError, ValueError):
+        return False
+
+
+def _valid_resolution(plan: dict[str, object], intent: str, value: object) -> bool:
+    required_keys = {
+        "schemaVersion",
+        "intent",
+        "minimumAssurance",
+        "origin",
+        "providerId",
+        "providerVersion",
+        "assurance",
+        "readiness",
+        "requestedPolicy",
+        "effectivePolicy",
+        "evidenceRefs",
+        "freshness",
+        "probedAt",
+        "probeResult",
+        "fallbackFromProviderId",
+    }
+    if (
+        type(value) is not dict
+        or not _is_plain_json_tree(value)
+        or set(value) != required_keys
+    ):
+        return False
+    origin = value["origin"]
+    provider_id = value["providerId"]
+    provider_version = value["providerVersion"]
+    assurance = value["assurance"]
+    readiness = value["readiness"]
+    requested_policy = _parsed_policy(value["requestedPolicy"])
+    effective_policy = _parsed_policy(value["effectivePolicy"])
+    freshness = value["freshness"]
+    probed_at = value["probedAt"]
+    probe_result = value["probeResult"]
+    fallback = value["fallbackFromProviderId"]
+    if (
+        type(value["schemaVersion"]) is not int
+        or value["schemaVersion"] != 1
+        or value["intent"] not in INTENT_ORDER
+        or value["intent"] != intent
+        or value["minimumAssurance"] not in ASSURANCE_LEVELS
+        or value["minimumAssurance"] != plan["minimumAssurance"]
+        or origin not in ("native", "provider", "heuristic", "unsupported")
+        or readiness not in PROVIDER_READINESS
+        or freshness not in ("fresh", "stale", "unknown", "not-applicable")
+        or probe_result not in ("passed", "failed", "not-run")
+        or (provider_id is not None and (type(provider_id) is not str or LOGICAL_ID.fullmatch(provider_id) is None))
+        or (provider_version is not None and (type(provider_version) is not str or SEMVER.fullmatch(provider_version) is None))
+        or (assurance is not None and assurance not in ASSURANCE_LEVELS)
+        or (fallback is not None and (type(fallback) is not str or LOGICAL_ID.fullmatch(fallback) is None))
+        or requested_policy is None
+        or fingerprint_pactile_contract_v1(requested_policy)
+        != fingerprint_pactile_contract_v1(plan["requestedPolicy"])
+        or not _valid_core_string_array(value["evidenceRefs"])
+    ):
+        return False
+    if origin == "unsupported":
+        return False
+    if (
+        provider_id is None
+        or provider_version is None
+        or assurance is None
+        or effective_policy is None
+        or readiness != "ready"
+        or not _policy_within(effective_policy, requested_policy)
+        or ASSURANCE_LEVELS.index(assurance)
+        < ASSURANCE_LEVELS.index(str(plan["minimumAssurance"]))
+    ):
+        return False
+    if assurance in ("evidence-backed", "verified") and not value["evidenceRefs"]:
+        return False
+    if assurance == "verified" and (
+        freshness != "fresh"
+        or probe_result != "passed"
+        or not _valid_timestamp(probed_at)
+    ):
+        return False
+    if probed_at is not None and not _valid_timestamp(probed_at):
+        return False
+    if probe_result == "not-run" and probed_at is not None:
+        return False
+    if probe_result != "not-run" and probed_at is None:
+        return False
+    if provider_id is not None and fallback == provider_id:
+        return False
+    return True
+
+
+def _rejected(intent: str, reasons: list[str], evidence_refs: list[str] | None = None) -> dict[str, object]:
+    unique = set(reasons)
     return {
-        "version": ROUTER_VERSION,
-        "query": normalized,
-        "cursorEnv": cenv,
-        "intents": intents,
-        "routes": routes,
-        "adapterState": [],
-        "freshness": [],
-        "fallback": _fallback_hints(intents, include_optional, routes, cursor_env=cenv),
-        "warnings": _warnings(intents),
-        "verification": _verification_for_intents(intents),
-        "projectFileCount": project_file_count,
+        "schemaVersion": RETRIEVAL_ABI_VERSION,
+        "intent": intent,
+        "accepted": False,
+        "achievedAssurance": None,
+        "evidenceRefs": list(evidence_refs or []),
+        "reasonCodes": [code for code in REASON_CODES if code in unique],
     }
 
 
+def assess_retrieval_claim_v3(value: object) -> dict[str, object]:
+    """Assess facts without treating ranking confidence as evidence."""
+    intent = "exact"
+    try:
+        if (
+            type(value) is not dict
+            or not _is_plain_json_tree(value)
+            or any(
+                key
+                not in {
+                    "plan",
+                    "intent",
+                    "candidateRefs",
+                    "corroboration",
+                    "resolution",
+                    "providerScore",
+                }
+                for key in value
+            )
+        ):
+            return _rejected(intent, ["invalid-evidence"])
+        raw_intent = value.get("intent")
+        if raw_intent not in INTENT_ORDER:
+            return _rejected(intent, ["invalid-evidence"])
+        intent = cast(str, raw_intent)
+        plan = value.get("plan")
+        if intent not in INTENT_ORDER or not _valid_plan(plan, intent):
+            return _rejected(intent, ["invalid-plan"])
+        plan = cast(dict[str, object], plan)
+        required_evidence_kinds = cast(list[str], plan["requiredEvidenceKinds"])
+        plan_steps = cast(list[dict[str, object]], plan["steps"])
+        candidate_refs = _normalized_refs(value.get("candidateRefs"))
+        facts = _normalized_facts(value.get("corroboration"))
+        if candidate_refs is None or facts is None:
+            return _rejected(intent, ["invalid-evidence"])
+        evidence_refs = sorted(
+            set(candidate_refs + [fact["ref"] for fact in facts]), key=_utf8_key
+        )
+        reasons: list[str] = []
+        if not candidate_refs:
+            reasons.append("candidate-missing")
+        fact_kinds = {fact["kind"] for fact in facts}
+        if any(kind not in fact_kinds for kind in required_evidence_kinds):
+            reasons.append("required-evidence-missing")
+        has_corroboration = any(kind in CORROBORATION_KINDS for kind in fact_kinds)
+        has_repeatable_test = "repeatable-test" in fact_kinds
+        if intent != "exact" and not has_corroboration:
+            reasons.append("corroboration-required")
+        step = next((item for item in plan_steps if item.get("intent") == intent), None)
+        requirement = step.get("providerRequirement") if type(step) is dict else None
+        status = (
+            requirement.get("status")
+            if type(requirement) is dict
+            else None
+        )
+        status_reasons = {
+            "degraded": "provider-degraded",
+            "unavailable": "provider-unavailable",
+            "unsupported": "provider-unsupported",
+        }
+        if status in status_reasons:
+            reasons.append(status_reasons[status])
+        resolution_valid = intent == "exact" or _valid_resolution(
+            plan, intent, value.get("resolution")
+        )
+        if intent != "exact" and not resolution_valid:
+            reasons.append("minimum-assurance-not-met")
+        minimum = str(plan["minimumAssurance"])
+        achieved: str | None
+        if minimum == "best-effort":
+            achieved = "best-effort"
+        elif not has_corroboration:
+            achieved = None
+        elif minimum == "evidence-backed":
+            achieved = "evidence-backed"
+        else:
+            achieved = "verified" if has_repeatable_test else None
+        if achieved is None:
+            reasons.append(
+                "repeatable-verification-required"
+                if minimum == "verified"
+                else "minimum-assurance-not-met"
+            )
+        resolution = value.get("resolution")
+        if minimum == "verified" and intent != "exact" and (
+            not resolution_valid
+            or type(resolution) is not dict
+            or resolution.get("assurance") != "verified"
+        ):
+            reasons.append("verified-provider-proof-required")
+        if reasons or achieved is None:
+            return _rejected(intent, reasons, evidence_refs)
+        return {
+            "schemaVersion": RETRIEVAL_ABI_VERSION,
+            "intent": intent,
+            "accepted": True,
+            "achievedAssurance": achieved,
+            "evidenceRefs": evidence_refs,
+            "reasonCodes": [],
+        }
+    except (AttributeError, KeyError, TypeError, UnicodeError, ValueError):
+        return _rejected(intent, ["invalid-evidence"])
+
+
 def codebase_retrieval_selected_from_capabilities(
-    capabilities: dict[str, Any] | None,
+    _capabilities: dict[str, Any] | None,
 ) -> bool:
-    if not capabilities:
-        return True
-    selected = capabilities.get("selected")
-    if not isinstance(selected, list):
-        return True
-    return "codebase-retrieval" in selected
+    """Compatibility helper; V3 capability resolution is deferred."""
+    return True
 
 
 def load_capabilities_json(repo_root: Path | None) -> dict[str, Any] | None:
+    """Compatibility reader retained for callers that inspect project metadata."""
     if repo_root is None:
         return None
     path = repo_root / ".cstl" / "capabilities.json"
     if not path.is_file():
         return None
     try:
-        with path.open(encoding="utf-8") as handle:
-            parsed = json.load(handle)
-    except (OSError, json.JSONDecodeError):
+        parsed = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError):
         return None
-    return parsed if isinstance(parsed, dict) else None
+    return parsed if type(parsed) is dict else None
 
 
 def resolve_router_envelope(
-    repo_root: Path | None,
+    _repo_root: Path | None,
     *,
     explicit_router: dict[str, Any] | None = None,
     query: str | None = None,
-    project_file_count: int | None = None,
+    **_compatibility_metadata: object,
 ) -> dict[str, object] | None:
-    """Prefer explicit routerEnvelope; otherwise route from query when present."""
-    if explicit_router:
-        return explicit_router
-    normalized = " ".join((query or "").split())
-    if not normalized:
-        return None
-    caps = load_capabilities_json(repo_root)
-    selected = codebase_retrieval_selected_from_capabilities(caps)
-    return route_codebase_retrieval(
-        normalized,
-        codebase_retrieval_selected=selected,
-        project_file_count=project_file_count,
-    )
+    """Validate an explicit V3 request/plan or build a plan from a query."""
+    if type(explicit_router) is dict:
+        explicit_intents = explicit_router.get("intents")
+        first_intent = (
+            explicit_intents[0]
+            if type(explicit_intents) is list and explicit_intents
+            else "exact"
+        )
+        if _valid_plan(explicit_router, str(first_intent)):
+            return dict(explicit_router)
+        parsed = parse_retrieval_request_v3(explicit_router)
+        if parsed["success"]:
+            planned = plan_retrieval_v3(parsed["data"])
+            return (
+                dict(cast(dict[str, object], planned["data"]))
+                if planned["success"]
+                else None
+            )
+        explicit_query = explicit_router.get("query")
+        if type(explicit_query) is str and explicit_query.strip():
+            return route_codebase_retrieval(explicit_query)
+    normalized = re.sub(r"\s+", " ", query or "").strip()
+    return route_codebase_retrieval(normalized) if normalized else None

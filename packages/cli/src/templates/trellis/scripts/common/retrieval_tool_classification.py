@@ -1,172 +1,166 @@
-"""Classify agent tool names for retrieval execution telemetry (Cursor-first)."""
+"""Classify observed retrieval execution without selecting an implementation."""
 
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass
 
-CODEGRAPH_PATTERNS = (
-    re.compile(r"^codegraph_", re.I),
-    re.compile(r"^project-0-.*-codegraph-", re.I),
-    re.compile(r"codegraph_search", re.I),
-    re.compile(r"codegraph_explore", re.I),
-    re.compile(r"codegraph_callers", re.I),
-    re.compile(r"codegraph_node", re.I),
-)
 
-PLATFORM_SEMANTIC_PATTERNS = (
-    re.compile(r"@codebase", re.I),
-    re.compile(r"semantic.?search", re.I),
-    re.compile(r"DEEP_SEARCH", re.I),
-    re.compile(r"codebase.?search", re.I),
-    re.compile(r"SemanticSearch", re.I),
-    re.compile(r"Instant Search", re.I),
-    re.compile(r"Cursor.*semantic", re.I),
-    re.compile(r"built-?in.*codebase", re.I),
-)
-
-FAST_CONTEXT_PATTERNS = (
-    re.compile(r"fast_context_search", re.I),
-    re.compile(r"fast-context", re.I),
-    re.compile(r"fast_context", re.I),
-)
-
-GREP_PATTERNS = (
+EXACT_PATTERNS = (
     re.compile(r"^grep$", re.I),
-    re.compile(r"^Grep$", re.I),
     re.compile(r"^rg$", re.I),
     re.compile(r"ripgrep", re.I),
-    re.compile(r"Instant Grep", re.I),
+    re.compile(r"find.?files?", re.I),
+    re.compile(r"^glob$", re.I),
 )
-
+SEMANTIC_PATTERNS = (
+    re.compile(r"semantic", re.I),
+    re.compile(r"concept", re.I),
+    re.compile(r"meaning", re.I),
+)
+STRUCTURAL_PATTERNS = (
+    re.compile(r"structural", re.I),
+    re.compile(r"callers?", re.I),
+    re.compile(r"callees?", re.I),
+    re.compile(r"dependenc", re.I),
+    re.compile(r"call.?graph", re.I),
+)
+EXTERNAL_PATTERNS = (
+    re.compile(r"external", re.I),
+    re.compile(r"^web", re.I),
+    re.compile(r"browser", re.I),
+    re.compile(r"http.?fetch", re.I),
+    re.compile(r"remote.?search", re.I),
+)
 READ_PATTERNS = (
     re.compile(r"^read$", re.I),
-    re.compile(r"^Read$", re.I),
-    re.compile(r"ReadFile", re.I),
-    re.compile(r"Get-Content", re.I),
+    re.compile(r"read.?file", re.I),
+    re.compile(r"get-content", re.I),
+    re.compile(r"source.?read", re.I),
 )
-
-ROUTER_CLI_PATTERNS = (
-    re.compile(r"route_codebase_retrieval", re.I),
-    re.compile(r"retrieval-routing", re.I),
+GIT_PATTERNS = (
+    re.compile(r"^git(?:\s|$)", re.I),
+    re.compile(r"git.?diff", re.I),
+    re.compile(r"git.?log", re.I),
+    re.compile(r"git.?show", re.I),
 )
-
-STRUCTURAL_ROUTE_IDS = frozenset(
-    {
-        "caller-chain-ast",
-        "trap-demote-codegraph",
-        "extension-codegraph",
-        "ast-codegraph",
-    }
+TEST_PATTERNS = (
+    re.compile(r"test", re.I),
+    re.compile(r"vitest", re.I),
+    re.compile(r"pytest", re.I),
+    re.compile(r"check", re.I),
+)
+ROUTER_PATTERNS = (
+    re.compile(r"route.?codebase.?retrieval", re.I),
+    re.compile(r"retrieval.?plan", re.I),
 )
 
 
 def _matches(name: str, patterns: tuple[re.Pattern[str], ...]) -> bool:
-    return any(p.search(name) for p in patterns)
-
-
-def is_platform_semantic_tool_name(name: str) -> bool:
-    return _matches(name.strip(), PLATFORM_SEMANTIC_PATTERNS)
-
-
-def is_fast_context_tool_name(name: str) -> bool:
-    return _matches(name.strip(), FAST_CONTEXT_PATTERNS)
+    return any(pattern.search(name) for pattern in patterns)
 
 
 @dataclass(frozen=True)
 class ClassifiedToolCalls:
+    exact_count: int
+    semantic_count: int
+    structural_count: int
+    external_count: int
+    read_count: int
+    git_count: int
+    test_count: int
+    router_cli_invoked: bool
+    unclassified_count: int
+    # Read-only aliases retained for pre-V3 evidence readers.
     tools_called: list[str]
     grep_count: int
-    read_count: int
     codegraph_attempted: bool
     codegraph_executed: bool
     semantic_attempted: bool
     semantic_executed: bool
-    router_cli_invoked: bool
-    platform_semantic_executed: bool = False
+    platform_semantic_executed: bool
     fast_context_count: int = 0
     cursor_fast_context_misuse: bool = False
 
 
 def classify_tool_calls(
     raw: list[str],
-    *,
-    platform: str = "cursor",
-    cursor_env: str | None = None,
-    route_ids: list[str] | None = None,
+    **_compatibility_options: object,
 ) -> ClassifiedToolCalls:
-    tools_called = list(raw)
-    grep_count = 0
-    read_count = 0
-    codegraph_executed = False
-    router_cli_invoked = False
-    platform_semantic_executed = False
-    fast_context_count = 0
-    plat = (platform or "cursor").lower()
-
-    for name in raw:
-        trimmed = name.strip()
-        if not trimmed:
+    exact = semantic = structural = external = read = git = test = unclassified = 0
+    router = False
+    for raw_name in raw:
+        name = raw_name.strip() if isinstance(raw_name, str) else ""
+        if not name:
+            unclassified += 1
             continue
-        if _matches(trimmed, GREP_PATTERNS):
-            grep_count += 1
-        if _matches(trimmed, READ_PATTERNS):
-            read_count += 1
-        if _matches(trimmed, CODEGRAPH_PATTERNS):
-            codegraph_executed = True
-        if _matches(trimmed, ROUTER_CLI_PATTERNS):
-            router_cli_invoked = True
-        if is_fast_context_tool_name(trimmed):
-            fast_context_count += 1
-        if is_platform_semantic_tool_name(trimmed):
-            platform_semantic_executed = True
-
-    env = (cursor_env or "").strip().lower()
-    if plat == "cursor":
-        if env == "byok":
-            semantic_executed = platform_semantic_executed or fast_context_count > 0
-        else:
-            semantic_executed = platform_semantic_executed
-    else:
-        semantic_executed = platform_semantic_executed or fast_context_count > 0
-
-    semantic_attempted = semantic_executed or fast_context_count > 0
-
-    misuse = (
-        plat == "cursor"
-        and fast_context_count > 0
-        and env != "byok"
-    )
-
+        classified = False
+        if _matches(name, EXACT_PATTERNS):
+            exact += 1
+            classified = True
+        if _matches(name, SEMANTIC_PATTERNS):
+            semantic += 1
+            classified = True
+        if _matches(name, STRUCTURAL_PATTERNS):
+            structural += 1
+            classified = True
+        if _matches(name, EXTERNAL_PATTERNS):
+            external += 1
+            classified = True
+        if _matches(name, READ_PATTERNS):
+            read += 1
+            classified = True
+        if _matches(name, GIT_PATTERNS):
+            git += 1
+            classified = True
+        if _matches(name, TEST_PATTERNS):
+            test += 1
+            classified = True
+        if _matches(name, ROUTER_PATTERNS):
+            router = True
+            classified = True
+        if not classified:
+            unclassified += 1
     return ClassifiedToolCalls(
-        tools_called=tools_called,
-        grep_count=grep_count,
-        read_count=read_count,
-        codegraph_attempted=codegraph_executed,
-        codegraph_executed=codegraph_executed,
-        semantic_attempted=semantic_attempted,
-        semantic_executed=semantic_executed,
-        router_cli_invoked=router_cli_invoked,
-        platform_semantic_executed=platform_semantic_executed,
-        fast_context_count=fast_context_count,
-        cursor_fast_context_misuse=misuse,
+        exact_count=exact,
+        semantic_count=semantic,
+        structural_count=structural,
+        external_count=external,
+        read_count=read,
+        git_count=git,
+        test_count=test,
+        router_cli_invoked=router,
+        unclassified_count=unclassified,
+        tools_called=list(raw),
+        grep_count=exact,
+        codegraph_attempted=structural > 0,
+        codegraph_executed=structural > 0,
+        semantic_attempted=semantic > 0,
+        semantic_executed=semantic > 0,
+        platform_semantic_executed=semantic > 0,
     )
 
 
-def structural_routes_in_plan(route_ids: list[str]) -> bool:
-    return any(
-        "codegraph" in rid or rid in STRUCTURAL_ROUTE_IDS for rid in route_ids
-    )
+def structural_routes_in_plan(intents: list[str]) -> bool:
+    return "structural" in intents
 
 
-def semantic_routes_in_plan(route_ids: list[str]) -> bool:
-    return any(rid in ("platform-semantic", "semantic-fast-context") for rid in route_ids)
+def semantic_routes_in_plan(intents: list[str]) -> bool:
+    return "semantic" in intents
 
 
-def platform_semantic_route_order(routes: list[dict]) -> int | None:
-    for route in routes:
-        if isinstance(route, dict) and route.get("id") == "platform-semantic":
-            order = route.get("order")
-            if isinstance(order, int):
-                return order
+def platform_semantic_route_order(steps: list[dict[str, object]]) -> int | None:
+    for step in steps:
+        if step.get("intent") == "semantic" and step.get("kind") == "provider-request":
+            order = step.get("order")
+            return order if isinstance(order, int) else None
     return None
+
+
+def observed_intent_count(classified: ClassifiedToolCalls, intent: str) -> int:
+    return {
+        "exact": classified.exact_count,
+        "semantic": classified.semantic_count,
+        "structural": classified.structural_count,
+        "external": classified.external_count,
+    }.get(intent, 0)

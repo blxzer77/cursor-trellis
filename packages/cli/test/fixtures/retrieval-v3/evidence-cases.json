@@ -1,0 +1,473 @@
+[
+  {
+    "name": "exact-valid-evidence",
+    "planIntent": "exact",
+    "minimumAssurance": "evidence-backed",
+    "requiredEvidenceKinds": ["source-reference"],
+    "candidateRefs": ["source://src/widget.ts/line12"],
+    "corroboration": [
+      { "kind": "source-reference", "ref": "source://src/widget.ts/line12" }
+    ],
+    "resolution": null,
+    "expected": {
+      "accepted": true,
+      "achievedAssurance": "evidence-backed",
+      "reasonCodes": []
+    }
+  },
+  {
+    "name": "semantic-valid-evidence",
+    "planIntent": "semantic",
+    "minimumAssurance": "evidence-backed",
+    "requiredEvidenceKinds": ["source-reference"],
+    "candidateRefs": ["source://src/candidate.ts/line1"],
+    "corroboration": [
+      { "kind": "source-reference", "ref": "source://src/candidate.ts/line10" }
+    ],
+    "resolution": "valid",
+    "expected": {
+      "accepted": true,
+      "achievedAssurance": "evidence-backed",
+      "reasonCodes": []
+    }
+  },
+  {
+    "name": "semantic-null-provider-id",
+    "planIntent": "semantic",
+    "minimumAssurance": "evidence-backed",
+    "requiredEvidenceKinds": ["source-reference"],
+    "candidateRefs": ["source://src/candidate.ts/line1"],
+    "corroboration": [
+      { "kind": "source-reference", "ref": "source://src/candidate.ts/line10" }
+    ],
+    "resolution": "valid",
+    "resolutionOverrides": { "providerId": null },
+    "expected": {
+      "accepted": false,
+      "achievedAssurance": null,
+      "reasonCodes": ["minimum-assurance-not-met"]
+    }
+  },
+  {
+    "name": "semantic-null-provider-version",
+    "planIntent": "semantic",
+    "minimumAssurance": "evidence-backed",
+    "requiredEvidenceKinds": ["source-reference"],
+    "candidateRefs": ["source://src/candidate.ts/line1"],
+    "corroboration": [
+      { "kind": "source-reference", "ref": "source://src/candidate.ts/line10" }
+    ],
+    "resolution": "valid",
+    "resolutionOverrides": { "providerVersion": null },
+    "expected": {
+      "accepted": false,
+      "achievedAssurance": null,
+      "reasonCodes": ["minimum-assurance-not-met"]
+    }
+  },
+  {
+    "name": "semantic-invalid-provider-version",
+    "planIntent": "semantic",
+    "minimumAssurance": "evidence-backed",
+    "requiredEvidenceKinds": ["source-reference"],
+    "candidateRefs": ["source://src/candidate.ts/line1"],
+    "corroboration": [
+      { "kind": "source-reference", "ref": "source://src/candidate.ts/line10" }
+    ],
+    "resolution": "valid",
+    "resolutionOverrides": { "providerVersion": "01.0.0" },
+    "expected": {
+      "accepted": false,
+      "achievedAssurance": null,
+      "reasonCodes": ["minimum-assurance-not-met"]
+    }
+  },
+  {
+    "name": "semantic-invalid-freshness",
+    "planIntent": "semantic",
+    "minimumAssurance": "evidence-backed",
+    "requiredEvidenceKinds": ["source-reference"],
+    "candidateRefs": ["source://src/candidate.ts/line1"],
+    "corroboration": [
+      { "kind": "source-reference", "ref": "source://src/candidate.ts/line10" }
+    ],
+    "resolution": "valid",
+    "resolutionOverrides": { "freshness": "recent" },
+    "expected": {
+      "accepted": false,
+      "achievedAssurance": null,
+      "reasonCodes": ["minimum-assurance-not-met"]
+    }
+  },
+  {
+    "name": "semantic-null-effective-policy",
+    "planIntent": "semantic",
+    "minimumAssurance": "evidence-backed",
+    "requiredEvidenceKinds": ["source-reference"],
+    "candidateRefs": ["source://src/candidate.ts/line1"],
+    "corroboration": [
+      { "kind": "source-reference", "ref": "source://src/candidate.ts/line10" }
+    ],
+    "resolution": "valid",
+    "resolutionOverrides": { "effectivePolicy": null },
+    "expected": {
+      "accepted": false,
+      "achievedAssurance": null,
+      "reasonCodes": ["minimum-assurance-not-met"]
+    }
+  },
+  {
+    "name": "semantic-self-fallback",
+    "planIntent": "semantic",
+    "minimumAssurance": "evidence-backed",
+    "requiredEvidenceKinds": ["source-reference"],
+    "candidateRefs": ["source://src/candidate.ts/line1"],
+    "corroboration": [
+      { "kind": "source-reference", "ref": "source://src/candidate.ts/line10" }
+    ],
+    "resolution": "valid",
+    "resolutionOverrides": { "fallbackFromProviderId": "fixture.provider" },
+    "expected": {
+      "accepted": false,
+      "achievedAssurance": null,
+      "reasonCodes": ["minimum-assurance-not-met"]
+    }
+  },
+  {
+    "name": "semantic-resolution-unknown-key",
+    "planIntent": "semantic",
+    "minimumAssurance": "evidence-backed",
+    "requiredEvidenceKinds": ["source-reference"],
+    "candidateRefs": ["source://src/candidate.ts/line1"],
+    "corroboration": [
+      { "kind": "source-reference", "ref": "source://src/candidate.ts/line10" }
+    ],
+    "resolution": "valid",
+    "resolutionExtra": { "TOKEN=resolution-unknown-canary": true },
+    "expected": {
+      "accepted": false,
+      "achievedAssurance": null,
+      "reasonCodes": ["minimum-assurance-not-met"]
+    },
+    "outputMustNotContain": ["TOKEN=resolution-unknown-canary"]
+  },
+  {
+    "name": "semantic-verified-valid",
+    "planIntent": "semantic",
+    "minimumAssurance": "verified",
+    "requiredEvidenceKinds": ["repeatable-test"],
+    "candidateRefs": ["source://src/candidate.ts/line1"],
+    "corroboration": [
+      { "kind": "repeatable-test", "ref": "test://retrieval/semantic" }
+    ],
+    "resolution": "valid",
+    "expected": {
+      "accepted": true,
+      "achievedAssurance": "verified",
+      "reasonCodes": []
+    }
+  },
+  {
+    "name": "semantic-verified-invalid-timestamp",
+    "planIntent": "semantic",
+    "minimumAssurance": "verified",
+    "requiredEvidenceKinds": ["repeatable-test"],
+    "candidateRefs": ["source://src/candidate.ts/line1"],
+    "corroboration": [
+      { "kind": "repeatable-test", "ref": "test://retrieval/semantic" }
+    ],
+    "resolution": "valid",
+    "resolutionOverrides": { "probedAt": "TOKEN=not-a-timestamp" },
+    "expected": {
+      "accepted": false,
+      "achievedAssurance": null,
+      "reasonCodes": [
+        "minimum-assurance-not-met",
+        "verified-provider-proof-required"
+      ]
+    },
+    "outputMustNotContain": ["TOKEN=not-a-timestamp"]
+  },
+  {
+    "name": "invalid-intent-no-echo",
+    "planIntent": "exact",
+    "inputIntent": "TOKEN=invalid-intent-canary",
+    "minimumAssurance": "evidence-backed",
+    "requiredEvidenceKinds": ["source-reference"],
+    "candidateRefs": ["source://src/widget.ts/line12"],
+    "corroboration": [
+      { "kind": "source-reference", "ref": "source://src/widget.ts/line12" }
+    ],
+    "resolution": null,
+    "expected": {
+      "accepted": false,
+      "achievedAssurance": null,
+      "reasonCodes": ["invalid-evidence"]
+    },
+    "outputMustNotContain": ["TOKEN=invalid-intent-canary"]
+  },
+  {
+    "name": "sensitive-reference-no-echo",
+    "planIntent": "exact",
+    "minimumAssurance": "evidence-backed",
+    "requiredEvidenceKinds": ["source-reference"],
+    "candidateRefs": ["source://token/secret-canary"],
+    "corroboration": [
+      { "kind": "source-reference", "ref": "source://token/secret-canary" }
+    ],
+    "resolution": null,
+    "expected": {
+      "accepted": false,
+      "achievedAssurance": null,
+      "reasonCodes": ["invalid-evidence"]
+    },
+    "outputMustNotContain": ["source://token/secret-canary"]
+  },
+  {
+    "name": "assessment-unknown-key-no-echo",
+    "planIntent": "exact",
+    "minimumAssurance": "evidence-backed",
+    "requiredEvidenceKinds": ["source-reference"],
+    "candidateRefs": ["source://src/widget.ts/line12"],
+    "corroboration": [
+      { "kind": "source-reference", "ref": "source://src/widget.ts/line12" }
+    ],
+    "resolution": null,
+    "inputExtra": { "TOKEN=assessment-unknown-canary": true },
+    "expected": {
+      "accepted": false,
+      "achievedAssurance": null,
+      "reasonCodes": ["invalid-evidence"]
+    },
+    "outputMustNotContain": ["TOKEN=assessment-unknown-canary"]
+  },
+  {
+    "name": "verified-valid-leap-day",
+    "planIntent": "semantic",
+    "minimumAssurance": "verified",
+    "requiredEvidenceKinds": ["repeatable-test"],
+    "candidateRefs": ["source://src/candidate.ts/line1"],
+    "corroboration": [
+      { "kind": "repeatable-test", "ref": "test://retrieval/semantic" }
+    ],
+    "resolution": "valid",
+    "resolutionOverrides": { "probedAt": "2024-02-29T23:59:59Z" },
+    "expected": {
+      "accepted": true,
+      "achievedAssurance": "verified",
+      "reasonCodes": []
+    }
+  },
+  {
+    "name": "verified-invalid-february-30",
+    "planIntent": "semantic",
+    "minimumAssurance": "verified",
+    "requiredEvidenceKinds": ["repeatable-test"],
+    "candidateRefs": ["source://src/candidate.ts/line1"],
+    "corroboration": [
+      { "kind": "repeatable-test", "ref": "test://retrieval/semantic" }
+    ],
+    "resolution": "valid",
+    "resolutionOverrides": { "probedAt": "2026-02-30T01:00:00Z" },
+    "expected": {
+      "accepted": false,
+      "achievedAssurance": null,
+      "reasonCodes": [
+        "minimum-assurance-not-met",
+        "verified-provider-proof-required"
+      ]
+    }
+  },
+  {
+    "name": "verified-invalid-april-31",
+    "planIntent": "semantic",
+    "minimumAssurance": "verified",
+    "requiredEvidenceKinds": ["repeatable-test"],
+    "candidateRefs": ["source://src/candidate.ts/line1"],
+    "corroboration": [
+      { "kind": "repeatable-test", "ref": "test://retrieval/semantic" }
+    ],
+    "resolution": "valid",
+    "resolutionOverrides": { "probedAt": "2026-04-31T01:00:00Z" },
+    "expected": {
+      "accepted": false,
+      "achievedAssurance": null,
+      "reasonCodes": [
+        "minimum-assurance-not-met",
+        "verified-provider-proof-required"
+      ]
+    }
+  },
+  {
+    "name": "verified-invalid-hour-24",
+    "planIntent": "semantic",
+    "minimumAssurance": "verified",
+    "requiredEvidenceKinds": ["repeatable-test"],
+    "candidateRefs": ["source://src/candidate.ts/line1"],
+    "corroboration": [
+      { "kind": "repeatable-test", "ref": "test://retrieval/semantic" }
+    ],
+    "resolution": "valid",
+    "resolutionOverrides": { "probedAt": "2026-09-09T24:00:00Z" },
+    "expected": {
+      "accepted": false,
+      "achievedAssurance": null,
+      "reasonCodes": [
+        "minimum-assurance-not-met",
+        "verified-provider-proof-required"
+      ]
+    }
+  },
+  {
+    "name": "verified-invalid-year-zero",
+    "planIntent": "semantic",
+    "minimumAssurance": "verified",
+    "requiredEvidenceKinds": ["repeatable-test"],
+    "candidateRefs": ["source://src/candidate.ts/line1"],
+    "corroboration": [
+      { "kind": "repeatable-test", "ref": "test://retrieval/semantic" }
+    ],
+    "resolution": "valid",
+    "resolutionOverrides": { "probedAt": "0000-01-01T00:00:00Z" },
+    "expected": {
+      "accepted": false,
+      "achievedAssurance": null,
+      "reasonCodes": [
+        "minimum-assurance-not-met",
+        "verified-provider-proof-required"
+      ]
+    }
+  },
+  {
+    "name": "verified-valid-positive-offset-boundary",
+    "planIntent": "semantic",
+    "minimumAssurance": "verified",
+    "requiredEvidenceKinds": ["repeatable-test"],
+    "candidateRefs": ["source://src/candidate.ts/line1"],
+    "corroboration": [
+      { "kind": "repeatable-test", "ref": "test://retrieval/semantic" }
+    ],
+    "resolution": "valid",
+    "resolutionOverrides": { "probedAt": "2026-09-09T01:00:00+23:59" },
+    "expected": {
+      "accepted": true,
+      "achievedAssurance": "verified",
+      "reasonCodes": []
+    }
+  },
+  {
+    "name": "verified-valid-negative-offset-boundary",
+    "planIntent": "semantic",
+    "minimumAssurance": "verified",
+    "requiredEvidenceKinds": ["repeatable-test"],
+    "candidateRefs": ["source://src/candidate.ts/line1"],
+    "corroboration": [
+      { "kind": "repeatable-test", "ref": "test://retrieval/semantic" }
+    ],
+    "resolution": "valid",
+    "resolutionOverrides": { "probedAt": "2026-09-09T01:00:00-23:59" },
+    "expected": {
+      "accepted": true,
+      "achievedAssurance": "verified",
+      "reasonCodes": []
+    }
+  },
+  {
+    "name": "verified-invalid-positive-offset",
+    "planIntent": "semantic",
+    "minimumAssurance": "verified",
+    "requiredEvidenceKinds": ["repeatable-test"],
+    "candidateRefs": ["source://src/candidate.ts/line1"],
+    "corroboration": [
+      { "kind": "repeatable-test", "ref": "test://retrieval/semantic" }
+    ],
+    "resolution": "valid",
+    "resolutionOverrides": { "probedAt": "2026-09-09T01:00:00+24:00" },
+    "expected": {
+      "accepted": false,
+      "achievedAssurance": null,
+      "reasonCodes": [
+        "minimum-assurance-not-met",
+        "verified-provider-proof-required"
+      ]
+    }
+  },
+  {
+    "name": "verified-invalid-negative-offset",
+    "planIntent": "semantic",
+    "minimumAssurance": "verified",
+    "requiredEvidenceKinds": ["repeatable-test"],
+    "candidateRefs": ["source://src/candidate.ts/line1"],
+    "corroboration": [
+      { "kind": "repeatable-test", "ref": "test://retrieval/semantic" }
+    ],
+    "resolution": "valid",
+    "resolutionOverrides": { "probedAt": "2026-09-09T01:00:00-24:00" },
+    "expected": {
+      "accepted": false,
+      "achievedAssurance": null,
+      "reasonCodes": [
+        "minimum-assurance-not-met",
+        "verified-provider-proof-required"
+      ]
+    }
+  },
+  {
+    "name": "verified-valid-one-fractional-digit",
+    "planIntent": "semantic",
+    "minimumAssurance": "verified",
+    "requiredEvidenceKinds": ["repeatable-test"],
+    "candidateRefs": ["source://src/candidate.ts/line1"],
+    "corroboration": [
+      { "kind": "repeatable-test", "ref": "test://retrieval/semantic" }
+    ],
+    "resolution": "valid",
+    "resolutionOverrides": { "probedAt": "2026-09-09T01:00:00.1Z" },
+    "expected": {
+      "accepted": true,
+      "achievedAssurance": "verified",
+      "reasonCodes": []
+    }
+  },
+  {
+    "name": "verified-valid-nine-fractional-digits",
+    "planIntent": "semantic",
+    "minimumAssurance": "verified",
+    "requiredEvidenceKinds": ["repeatable-test"],
+    "candidateRefs": ["source://src/candidate.ts/line1"],
+    "corroboration": [
+      { "kind": "repeatable-test", "ref": "test://retrieval/semantic" }
+    ],
+    "resolution": "valid",
+    "resolutionOverrides": {
+      "probedAt": "2026-09-09T01:00:00.123456789Z"
+    },
+    "expected": {
+      "accepted": true,
+      "achievedAssurance": "verified",
+      "reasonCodes": []
+    }
+  },
+  {
+    "name": "verified-invalid-ten-fractional-digits",
+    "planIntent": "semantic",
+    "minimumAssurance": "verified",
+    "requiredEvidenceKinds": ["repeatable-test"],
+    "candidateRefs": ["source://src/candidate.ts/line1"],
+    "corroboration": [
+      { "kind": "repeatable-test", "ref": "test://retrieval/semantic" }
+    ],
+    "resolution": "valid",
+    "resolutionOverrides": {
+      "probedAt": "2026-09-09T01:00:00.1234567890Z"
+    },
+    "expected": {
+      "accepted": false,
+      "achievedAssurance": null,
+      "reasonCodes": [
+        "minimum-assurance-not-met",
+        "verified-provider-proof-required"
+      ]
+    }
+  }
+]

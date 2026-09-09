@@ -64,7 +64,10 @@ export {
 } from "./provider.js";
 
 export * from "./tile.js";
+export * from "./tile-compiler-types.js";
 export * from "./capability.js";
 export * from "./projection.js";
 export * from "./lifecycle.js";
 export * from "./trace.js";
+export * from "./middleware/index.js";
+export * from "./trace-runtime/index.js";

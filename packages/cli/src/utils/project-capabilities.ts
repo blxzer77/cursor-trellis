@@ -4,6 +4,16 @@ import path from "node:path";
 import type { AITool } from "../types/ai-tools.js";
 import { ensureDir, writeFile } from "./file-writer.js";
 
+export type {
+  ProviderManifestLoadDiagnosticCodeV1,
+  ProviderManifestLoadDiagnosticV1,
+  ProviderManifestLoadResultV1,
+} from "../pactile/middleware/manifest-loader.js";
+export {
+  PROVIDER_MANIFEST_LOAD_DIAGNOSTIC_CODES_V1,
+  loadProviderManifestsV1,
+} from "../pactile/middleware/manifest-loader.js";
+
 export const PROJECT_CAPABILITY_IDS = [
   "codebase-retrieval",
   "github-mcp",
@@ -95,11 +105,11 @@ export const PROJECT_CAPABILITIES: readonly ProjectCapability[] = [
     ],
     title: "Codebase retrieval",
     description:
-      "Role-based local code retrieval through exact search, CodeGraph structure, definition/reference via codegraph on Cursor Agent, semantic recall by cursorEnv, and verification.",
+      "Role-based local code retrieval through exact search, optional structural and semantic adapters, and direct verification.",
     routing:
-      "Use for codebase questions by retrieval role: extract exact identifiers, path hints, and policy phrases, run rg first, apply intent-gated policy/document-first routing and other intent branches when matched, expand with CodeGraph for structure/callers/definitions (Cursor Agent does not expose GO_TO_DEFINITION — use codegraph_node/codegraph_search + Read). Semantic recall follows cursorEnv: Cursor Native → built-in platform-semantic; Cursor++ BYOK → fast-context MCP (fast_context_search) as platform-semantic Primary. Wide cross-cutting on BYOK may use Task explore when DEEP_SEARCH is absent. Do not use WebSearch for codebase questions. Promote only source/Git/test-backed findings to final claims.",
+      "Use for codebase questions by retrieval role: extract exact identifiers, path hints, and policy phrases, run rg first, apply intent-gated policy/document-first routing, then use only explicitly selected and readiness-verified project adapters. Do not use WebSearch for codebase questions. Promote only source/Git/test-backed findings to final claims.",
     readiness:
-      "Required exact search (`rg`) is available. CodeGraph and fast-context MCP are required for full BYOK retrieval on Cursor when this capability is selected; Native relies on built-in semantic when available. LSP/GO_TO_DEFINITION is not a guaranteed Agent tool — definition/reference via codegraph.",
+      "Required exact search (`rg`) is available. Optional structural or semantic adapters are usable only after project authorization and current readiness/freshness evidence; host identity alone never proves readiness.",
     fallback: [
       "Install or expose `rg` on PATH before claiming codebase retrieval readiness.",
       "Ensure `npx -y fast-context-mcp` and `npx -y @colbymchenry/codegraph serve --mcp` can launch before generated MCP adapter entries are claimed as usable.",
@@ -139,23 +149,23 @@ export const PROJECT_CAPABILITIES: readonly ProjectCapability[] = [
           "Structural navigation candidate until Read verifies file/range; do not claim LSP jump when only codegraph ran.",
       },
       semantic: {
-        provider: "platform-semantic",
+        provider: "resolver-selected",
         required: false,
         purpose:
-          "Conceptual recall: Cursor Native uses built-in codebase semantic; Cursor++ BYOK uses fast-context MCP per router cursorEnv.",
+          "Conceptual recall through a project-authorized semantic Provider selected by the host-neutral resolver.",
         readiness:
-          "Native: host exposes built-in semantic/@codebase. BYOK: `npx -y fast-context-mcp` enabled in MCP config when codebase-retrieval is selected.",
+          "A project manifest, explicit authorization, binding, and current runtime facts resolve successfully for semantic intent.",
         evidenceStatus:
-          "Semantic recall candidate only; convert hits into rg/Read before final claims. BYOK fast-context is compliant Primary, not misuse.",
+          "Semantic recall candidate only; convert hits into exact source reads before final claims.",
         mcpServer: "fast-context",
       },
       "platform-semantic-native": {
-        provider: "cursor-builtin",
+        provider: "resolver-selected",
         required: false,
         purpose:
-          "Cursor Native built-in semantic / @codebase when cursorEnv is native.",
+          "Optional host-native semantic capability represented by caller-supplied Provider facts.",
         readiness:
-          "Agent session tool table includes codebase semantic or equivalent.",
+          "Caller-supplied binding and runtime facts satisfy authorization, readiness, and policy checks.",
         evidenceStatus:
           "Log actual host tool name for semantic_exec telemetry.",
       },
@@ -530,9 +540,9 @@ function appendCodebaseRetrievalIntentBranches(lines: string[]): void {
     "",
     "- Use when the question has no named symbol, path, or protocol constant but asks how behavior works, spans modules/packages, or uses conceptual phrasing (for example English *how does* / *across packages*, or Chinese 如何 / 机制 / 跨).",
     "- The deterministic router emits intent `cross-cutting-discovery` and promotes semantic recall to plan order 1–2 (after `policy-docs-rg` when policy intent also matches); follow with exact `rg` on returned keywords and paths.",
-    "- **On Cursor (Native, `cursorEnv: native`)**: router `platform-semantic` — built-in codebase / semantic search (e.g. SemanticSearch); see on-demand retrieval docs.",
-    "- **On Cursor++ BYOK (`cursorEnv: byok`)**: concept recall Primary is **fast_context_search** (fast-context MCP); built-in semantic is often absent (Experiment D). Select **codebase-retrieval** at init to generate `.cursor/mcp.json` entries for fast-context and codegraph.",
-    "- **On Codex, Claude Code, and other non-Cursor hosts**: router `semantic-fast-context` — invoke `fast_context_search` when semantic recall is required after uncorroborated exact `rg`.",
+    "- Request semantic intent from the host-neutral resolver; only a project-authorized, bound, ready, fresh, policy-compliant Provider may be used.",
+    "- Host identity and user-global route files are not readiness evidence and do not choose the Provider.",
+    "- If no Provider resolves, continue with exact search and direct source reads while reporting semantic recall as unavailable.",
     "- When exact-symbol or F/G preserve intents match, keep exact `rg` primary; do not apply this branch.",
     "",
     "### Trap demotion and package boundary (E-class)",
@@ -572,7 +582,7 @@ function appendCodebaseRetrievalWorkflow(lines: string[]): void {
     "2. Run exact `rg` search first when exact signals exist and keep file/range candidates tied to source evidence.",
     "3. Classify intent (policy/document, caller-chain, trap/package, extension spread, env literal, protocol/platform) and apply **Policy and Document-First Routing** or the matching branch from **Query Intent Branches** when it fits; skip branches that do not match.",
     "4. Use AST/CodeGraph when available and fresh enough to resolve symbols, imports, callers, callees, impact, and affected files.",
-    "5. Use codegraph_node / codegraph_search for definition and reference on Cursor Agent; Read to verify line ranges (GO_TO_DEFINITION is not a guaranteed Agent tool).",
+    "5. Use an explicitly selected structural adapter for definition/reference only when its readiness is current; read returned line ranges to verify them.",
     "6. Use semantic recall for conceptual, poorly named, or cross-cutting areas, then turn returned files/ranges/keywords into exact follow-up checks; deprioritize semantic Top-1 for policy/storage-policy, env-literal, and extension-disambiguation questions until policy docs or `rg` narrow candidates.",
     "7. Fuse candidates by source proximity, tests, current Git state, and adapter freshness.",
     "8. Read files, inspect relevant Git evidence, and run task-appropriate validation before making final behavior, impact, or test-coverage claims.",
@@ -614,10 +624,10 @@ function appendCodebaseRetrievalWorkflow(lines: string[]): void {
     );
   }
 
-    lines.push(
-    "## Semantic recall (Cursor)",
+  lines.push(
+    "## Semantic recall",
     "",
-    "Semantic routing is **split by `cursorEnv`** (see `cursor_retrieval_env` / `~/.ccursor/routes.json` `byokMode`): **Native** → built-in `platform-semantic`; **BYOK** → **fast-context MCP** (`fast_context_search`) as Primary. **codebase-retrieval** is an **optional** init capability — when selected, init/update writes **fast-context** and **codegraph** into `.cursor/mcp.json`; BYOK local concept retrieval should select it.",
+    "Semantic routing consumes only caller-supplied project authorization, binding, readiness, freshness, assurance, and policy facts. It does not read a user-global route file or infer readiness from the current host.",
     "",
     "Prefer `retrieval-daily-guide.md` for tool names (no always-on retrieval rule).",
     "",
@@ -660,10 +670,9 @@ export function renderCapabilitiesMarkdown(
       const capability = capabilityById(id);
       const state = states?.[id];
       const status = capabilityStatusLabel(state?.readiness_status);
-      const detail =
-        state?.readiness_status_detail?.trim()
-          ? ` (${state.readiness_status_detail.trim()})`
-          : "";
+      const detail = state?.readiness_status_detail?.trim()
+        ? ` (${state.readiness_status_detail.trim()})`
+        : "";
       lines.push(
         `- ${capability.id} [${status}]: ${capability.description}${detail}`,
       );
@@ -676,14 +685,14 @@ export function renderCapabilitiesMarkdown(
     "",
     "- Unselected, unavailable, skipped, or uninvoked capabilities must not be reported as used.",
     "- Capability output that affects task decisions must be recorded in task research or verify evidence.",
-    "- `codebase-retrieval` routes by retrieval role, not by tool brand: exact search, intent-gated policy/document-first routing for C-class questions, other intent-gated branches when the question class matches, AST/structure, definition/reference via codegraph on Cursor Agent, semantic recall by cursorEnv, then verification.",
+    "- `codebase-retrieval` routes by retrieval role, not by tool brand: exact search, intent-gated policy/document-first routing, optional project-authorized structural or semantic resolution, then verification.",
     "- Policy, architecture, boundary, and storage-policy questions must inspect `AGENTS.md`, `.cstl/spec/**`, and README/contributing/architecture docs before semantic implementation search.",
     "- Intent-gated branches (policy/document, caller-chain, trap demotion, extension disambiguation, env/config literals) must not override exact-symbol or F/G protocol routes.",
     "- Exact `rg` search and direct source reads are the baseline for current-code claims.",
     "- CodeGraph output is structural guidance until index freshness and current source/Git evidence are confirmed.",
-    "- fast-context output is semantic recall only and must be converted into exact source checks before final claims; on Cursor BYOK it is the compliant Primary for concept recall.",
-    "- On **Cursor**, semantic recall follows **cursorEnv** (Native built-in vs BYOK fast-context). See **Semantic recall (Cursor)** under codebase-retrieval.",
-    "- On Cursor, per-query tool order lives in on-demand retrieval docs, not an always-on rule.",
+    "- Semantic output is recall-only and must be converted into exact source checks before final claims.",
+    "- Host identity or user-global routing state must not select a Provider or prove readiness.",
+    "- Per-query tool order lives in on-demand retrieval docs, not an always-on rule.",
     "- GitHub MCP uses the GitHub API server package; remote writes require explicit user intent and the host's credential/tool posture must be clear.",
     "- Playwright MCP should be used for rendered UI evidence only when browser verification is part of the task.",
     "",
@@ -951,11 +960,7 @@ export function buildProjectCapabilityTemplates(
     // Do not create an empty `.cursor/mcp.json` on fresh Cursor init with no
     // MCP capabilities selected — that leaves a useless file and breaks
     // uninstall "project is clean" expectations.
-    if (
-      desiredServers.length > 0 ||
-      existingKeys.length > 0 ||
-      mcpPathExists
-    ) {
+    if (desiredServers.length > 0 || existingKeys.length > 0 || mcpPathExists) {
       files.set(".cursor/mcp.json", renderMcpJson(selectedIds, existing));
     }
   }

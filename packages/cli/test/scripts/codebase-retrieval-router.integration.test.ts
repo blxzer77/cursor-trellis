@@ -19,7 +19,12 @@ function writeTrellisScripts(root: string): void {
 }
 
 function runRouter(root: string, query: string): Record<string, unknown> {
-  const scriptPath = path.join(root, ".cstl", "scripts", "route_codebase_retrieval.py");
+  const scriptPath = path.join(
+    root,
+    ".cstl",
+    "scripts",
+    "route_codebase_retrieval.py",
+  );
   const result = spawnSync(pythonCmd as string, [scriptPath, query, "--json"], {
     cwd: root,
     encoding: "utf-8",
@@ -40,13 +45,19 @@ describe.skipIf(pythonCmd === null)("codebase_retrieval_router.py", () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it("emits version 2 envelope with empty adapter slices", () => {
-    const plan = runRouter(tmpDir, "who calls the loader and list call sites");
-    expect(plan.version).toBe(CODEBASE_RETRIEVAL_ROUTER_VERSION);
-    expect(plan.adapterState).toEqual([]);
-    expect(plan.freshness).toEqual([]);
-    const intents = plan.intents as { id: string }[];
-    expect(intents.some((i) => i.id === "caller-chain")).toBe(true);
+  it("emits a neutral V3 plan through the installed Python launcher", () => {
+    const plan = runRouter(tmpDir, "find caller dependency impact");
+    expect(plan.schemaVersion).toBe(CODEBASE_RETRIEVAL_ROUTER_VERSION);
+    expect(plan.intents).toEqual(["structural"]);
+    expect(plan.steps).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          intent: "structural",
+          kind: "provider-request",
+        }),
+      ]),
+    );
+    expect(plan).toHaveProperty("fingerprint");
   });
 
   it("wires query into retrieval pack evidenceEnvelope intents", () => {
@@ -54,11 +65,16 @@ describe.skipIf(pythonCmd === null)("codebase_retrieval_router.py", () => {
     fs.writeFileSync(
       inputPath,
       JSON.stringify({
-        query: "storage policy sidecar SQLite only persistence",
+        query: "where is the storage policy file defined",
       }),
       "utf-8",
     );
-    const build = path.join(tmpDir, ".cstl", "scripts", "build_retrieval_pack.py");
+    const build = path.join(
+      tmpDir,
+      ".cstl",
+      "scripts",
+      "build_retrieval_pack.py",
+    );
     const result = spawnSync(
       pythonCmd as string,
       [build, "--input", inputPath, "--root", tmpDir, "--json"],
@@ -66,11 +82,9 @@ describe.skipIf(pythonCmd === null)("codebase_retrieval_router.py", () => {
     );
     expect(result.status).toBe(0);
     const payload = JSON.parse(result.stdout) as {
-      evidenceEnvelope: { intents: { id: string }[]; routes: unknown[] };
+      evidenceEnvelope: { intents: string[]; routes: unknown[] };
     };
-    expect(payload.evidenceEnvelope.intents.some((i) => i.id === "policy-document")).toBe(
-      true,
-    );
+    expect(payload.evidenceEnvelope.intents).toEqual(["exact"]);
     expect(payload.evidenceEnvelope.routes.length).toBeGreaterThan(0);
   });
 });

@@ -1,6 +1,5 @@
 /**
- * Stage 6 Cursor Adapter + Middleware (P27 Middleware, P29 Adapter/Profile,
- * P30 Stage 6).
+ * Stage 6 Adapter + Middleware compatibility facade.
  *
  * Pure helpers persisted through existing create extras / patch. Does not
  * write Kernel store or task.json. Field names here are an implementation
@@ -9,6 +8,22 @@
 
 import { KernelError } from "./kernel-contract.js";
 import { isPlainObject } from "./schema.js";
+import { safeEvidenceReferenceV1 } from "../pactile/middleware/redaction.js";
+
+export type {
+  ProviderRuntimeReadinessV1,
+  ProviderRuntimeFactV1,
+  ProviderResolutionInputV1,
+  ProviderCandidateRoleV1,
+  ProviderCandidateExplainV1,
+  ProviderExplainV1,
+  ProviderResolutionResultV1,
+  ProviderResolutionReasonCodeV1,
+} from "../pactile/middleware/resolver.js";
+export {
+  PROVIDER_RESOLUTION_REASON_CODES_V1,
+  resolveProviderV1,
+} from "../pactile/middleware/resolver.js";
 
 export const STAGE6_SOURCE = "stage6-adapter-middleware";
 export const STAGE6_SCHEMA_VERSION = 1 as const;
@@ -35,59 +50,31 @@ export type RetrievalIntent = (typeof RETRIEVAL_INTENTS)[number];
 
 export type MiddlewareProbeKind = "cli" | "mcp" | "host";
 
-export const SHIPPED_MIDDLEWARE_PROVIDERS = [
-  "smart-search",
-  "codegraph",
-  "fast-context",
-  "chrome-cdp",
-  "playwright",
-  "github",
-  "cursor-ide-browser",
-] as const;
+export const SHIPPED_MIDDLEWARE_PROVIDERS = [] as const;
 
-export type ShippedMiddlewareProvider =
-  (typeof SHIPPED_MIDDLEWARE_PROVIDERS)[number];
+/** @deprecated Provider identities are project-manifest data in Pactile v1. */
+export type ShippedMiddlewareProvider = string;
 
 /** Default `registered` catalog (Protocol v1 shipped table). */
 export const DEFAULT_MIDDLEWARE_PROVIDERS = SHIPPED_MIDDLEWARE_PROVIDERS;
 
-export const DEFAULT_REQUIRED_MIDDLEWARE_PROVIDERS = [
-  "smart-search",
-] as const;
+export const DEFAULT_REQUIRED_MIDDLEWARE_PROVIDERS = [] as const;
 
-export const OPTIONAL_CODE_INTEL_PROVIDERS = [
-  "codegraph",
-  "fast-context",
-] as const;
+export const OPTIONAL_CODE_INTEL_PROVIDERS = [] as const;
 
-export const SMART_SEARCH_PROVIDER = "smart-search";
+/** @deprecated Compatibility alias; no concrete Provider is auto-registered. */
+export const SMART_SEARCH_PROVIDER = "legacy.external";
 export const EXTERNAL_KNOWLEDGE_CAPABILITY = "external-knowledge";
 
 export const SHIPPED_PROVIDER_CAPABILITY: Record<
   ShippedMiddlewareProvider,
   string
-> = {
-  "smart-search": EXTERNAL_KNOWLEDGE_CAPABILITY,
-  codegraph: "structural",
-  "fast-context": "semantic",
-  "chrome-cdp": "browser-session",
-  playwright: "browser-automation",
-  github: "vcs-host",
-  "cursor-ide-browser": "ide-browser",
-};
+> = {};
 
 export const SHIPPED_PROVIDER_PROBE: Record<
   ShippedMiddlewareProvider,
   MiddlewareProbeKind
-> = {
-  "smart-search": "cli",
-  codegraph: "mcp",
-  "fast-context": "mcp",
-  "chrome-cdp": "cli",
-  playwright: "mcp",
-  github: "mcp",
-  "cursor-ide-browser": "host",
-};
+> = {};
 
 export type Stage6CommandPhase = "create" | "start" | "archive" | "patch";
 
@@ -200,7 +187,11 @@ export function subscribeEvent(
   const eventName = requireId(event, "event_bridge.subscriptions[].event");
   const module = requireId(moduleName, "event_bridge.subscriptions[].module");
   const subscriptions = [...current.subscriptions];
-  if (!subscriptions.some((item) => item.event === eventName && item.module === module)) {
+  if (
+    !subscriptions.some(
+      (item) => item.event === eventName && item.module === module,
+    )
+  ) {
     subscriptions.push({ event: eventName, module });
   }
   const next: EventBridgeState = { ...current, subscriptions };
@@ -229,13 +220,14 @@ export function recordHookEvent(
   }
   const lastEvent: EventBridgeLastEvent = {
     event,
-    at: typeof input.at === "string" && input.at.trim() !== ""
-      ? input.at
-      : new Date().toISOString(),
+    at:
+      typeof input.at === "string" && input.at.trim() !== ""
+        ? input.at
+        : new Date().toISOString(),
     source:
       typeof input.source === "string" && input.source.trim() !== ""
         ? input.source
-        : "cursor-hooks",
+        : "host-hooks",
     delivered,
     skipped,
   };
@@ -244,7 +236,7 @@ export function recordHookEvent(
 }
 
 export function shippedProviderCapability(id: string): string {
-  if (id in SHIPPED_PROVIDER_CAPABILITY) {
+  if (Object.hasOwn(SHIPPED_PROVIDER_CAPABILITY, id)) {
     return SHIPPED_PROVIDER_CAPABILITY[id as ShippedMiddlewareProvider];
   }
   return id === SMART_SEARCH_PROVIDER
@@ -252,8 +244,10 @@ export function shippedProviderCapability(id: string): string {
     : "unknown";
 }
 
-export function shippedProviderProbeKind(id: string): MiddlewareProbeKind | null {
-  if (id in SHIPPED_PROVIDER_PROBE) {
+export function shippedProviderProbeKind(
+  id: string,
+): MiddlewareProbeKind | null {
+  if (Object.hasOwn(SHIPPED_PROVIDER_PROBE, id)) {
     return SHIPPED_PROVIDER_PROBE[id as ShippedMiddlewareProvider];
   }
   return null;
@@ -273,19 +267,34 @@ export function classifyTransportProbe(input: {
     input.status === "failed" ||
     input.status === "unknown"
   ) {
-    return { status: input.status, evidence: input.evidence ?? null };
+    return {
+      status: input.status,
+      evidence: safeEvidenceReferenceV1(input.evidence),
+    };
   }
   const present = input.present ?? input.available;
   if (present === false) {
-    return { status: "missing", evidence: input.evidence ?? null };
+    return {
+      status: "missing",
+      evidence: safeEvidenceReferenceV1(input.evidence),
+    };
   }
   if (present === true && input.reachable === false) {
-    return { status: "failed", evidence: input.evidence ?? null };
+    return {
+      status: "failed",
+      evidence: safeEvidenceReferenceV1(input.evidence),
+    };
   }
   if (present === true) {
-    return { status: "ready", evidence: input.evidence ?? null };
+    return {
+      status: "ready",
+      evidence: safeEvidenceReferenceV1(input.evidence),
+    };
   }
-  return { status: "unknown", evidence: input.evidence ?? null };
+  return {
+    status: "unknown",
+    evidence: safeEvidenceReferenceV1(input.evidence),
+  };
 }
 
 export function mcpServerIdsFromConfig(raw: unknown): string[] {
@@ -312,6 +321,7 @@ export function probeShippedProviderReadiness(
     available?: boolean;
     status?: ProviderReadinessStatus;
     evidence?: string | null;
+    capability?: string;
   } = {},
 ): ProviderReadiness {
   const classified = classifyTransportProbe({
@@ -320,16 +330,21 @@ export function probeShippedProviderReadiness(
   });
   return {
     status: classified.status,
-    capability: shippedProviderCapability(id),
+    capability:
+      typeof input.capability === "string" && input.capability.trim() !== ""
+        ? input.capability.trim()
+        : shippedProviderCapability(id),
     evidence: classified.evidence ?? null,
   };
 }
 
-export function probeSmartSearchReadiness(input: {
-  available?: boolean;
-  status?: ProviderReadinessStatus;
-  evidence?: string | null;
-} = {}): ProviderReadiness {
+export function probeSmartSearchReadiness(
+  input: {
+    available?: boolean;
+    status?: ProviderReadinessStatus;
+    evidence?: string | null;
+  } = {},
+): ProviderReadiness {
   return probeShippedProviderReadiness(SMART_SEARCH_PROVIDER, input);
 }
 
@@ -349,7 +364,12 @@ export function applyShippedProviderReadiness(
       ...current.readiness,
       [id]: {
         ...readiness,
-        capability: shippedProviderCapability(id),
+        capability:
+          typeof readiness.capability === "string" &&
+          readiness.capability.trim() !== ""
+            ? readiness.capability.trim()
+            : shippedProviderCapability(id),
+        evidence: safeEvidenceReferenceV1(readiness.evidence),
       },
     },
   };
@@ -371,7 +391,10 @@ export function applySmartSearchReadiness(
 export function normalizeEventBridge(raw: unknown): EventBridgeState {
   if (raw === undefined || raw === null) return defaultEventBridge();
   if (!isPlainObject(raw)) {
-    throw new KernelError("INVALID_REQUEST", "event_bridge must be a JSON object");
+    throw new KernelError(
+      "INVALID_REQUEST",
+      "event_bridge must be a JSON object",
+    );
   }
   const subscriptionsIn = raw.subscriptions;
   const subscriptions: EventSubscription[] = [];
@@ -421,7 +444,7 @@ export function normalizeEventBridge(raw: unknown): EventBridgeState {
       source:
         typeof lastRaw.source === "string" && lastRaw.source.trim() !== ""
           ? lastRaw.source
-          : "cursor-hooks",
+          : "host-hooks",
       delivered: uniqueStrings(asStringArray(lastRaw.delivered)),
       skipped: uniqueStrings(asStringArray(lastRaw.skipped)),
     };
@@ -434,7 +457,9 @@ export function normalizeEventBridge(raw: unknown): EventBridgeState {
   };
 }
 
-export function normalizeMiddlewareProviders(raw: unknown): MiddlewareProviders {
+export function normalizeMiddlewareProviders(
+  raw: unknown,
+): MiddlewareProviders {
   if (raw === undefined || raw === null) return defaultMiddlewareProviders();
   if (!isPlainObject(raw)) {
     throw new KernelError(
@@ -443,10 +468,7 @@ export function normalizeMiddlewareProviders(raw: unknown): MiddlewareProviders 
     );
   }
   const defaults = defaultMiddlewareProviders();
-  const registered = uniqueStrings([
-    ...defaults.registered,
-    ...asStringArray(raw.registered),
-  ]);
+  const registered = uniqueStrings(asStringArray(raw.registered));
   const required = uniqueStrings(asStringArray(raw.required)).filter((name) =>
     registered.includes(name),
   );
@@ -459,18 +481,15 @@ export function normalizeMiddlewareProviders(raw: unknown): MiddlewareProviders 
   };
   if (isPlainObject(raw.readiness)) {
     for (const [name, value] of Object.entries(raw.readiness)) {
-      if (!isPlainObject(value)) continue;
+      if (!registered.includes(name) || !isPlainObject(value)) continue;
       const status = parseReadinessStatus(value.status);
       readiness[name] = {
         status,
         capability:
           typeof value.capability === "string" && value.capability.trim() !== ""
             ? value.capability
-            : name === SMART_SEARCH_PROVIDER
-              ? EXTERNAL_KNOWLEDGE_CAPABILITY
-              : "unknown",
-        evidence:
-          typeof value.evidence === "string" ? value.evidence : null,
+            : "unknown",
+        evidence: safeEvidenceReferenceV1(value.evidence),
       };
     }
   }
@@ -493,18 +512,12 @@ export function normalizeCapabilityRouter(raw: unknown): CapabilityRouter {
       "capability_router must be a JSON object",
     );
   }
-  const forbidden = [
-    ...OPTIONAL_CODE_INTEL_PROVIDERS,
-    "fast_context_search",
-    "codegraph_explore",
-    "codegraph_search",
-    "codegraph_callers",
-  ];
+  const allowed = new Set(["schema_version", "source", ...RETRIEVAL_INTENTS]);
   for (const key of Object.keys(raw)) {
-    if (forbidden.includes(key)) {
+    if (!allowed.has(key)) {
       throw new KernelError(
         "INVALID_REQUEST",
-        "capability_router must not bind Optional tool names",
+        "capability_router must contain only retrieval intent keys",
       );
     }
   }
@@ -520,7 +533,9 @@ export function normalizeCapabilityRouter(raw: unknown): CapabilityRouter {
   return next;
 }
 
-export function readEventBridge(extras: Record<string, unknown>): EventBridgeState {
+export function readEventBridge(
+  extras: Record<string, unknown>,
+): EventBridgeState {
   return normalizeEventBridge(extras.event_bridge);
 }
 
@@ -536,18 +551,29 @@ export function readCapabilityRouter(
   return normalizeCapabilityRouter(extras.capability_router);
 }
 
-export function requiredCapabilities(extras: Record<string, unknown>): string[] {
+export function requiredCapabilities(
+  extras: Record<string, unknown>,
+): string[] {
   return uniqueStrings(asStringArray(extras.required_capabilities));
 }
 
-export function externalKnowledgeReady(providers: MiddlewareProviders): boolean {
-  const readiness = providers.readiness[SMART_SEARCH_PROVIDER];
-  return readiness?.status === "ready";
+export function externalKnowledgeReady(
+  providers: MiddlewareProviders,
+): boolean {
+  return providers.registered.some((providerId) => {
+    const readiness = providers.readiness[providerId];
+    return (
+      readiness?.status === "ready" &&
+      readiness.capability === EXTERNAL_KNOWLEDGE_CAPABILITY
+    );
+  });
 }
 
 export function normalizeStage6InExtras(extras: Record<string, unknown>): void {
   extras.event_bridge = normalizeEventBridge(extras.event_bridge);
-  extras.capability_router = normalizeCapabilityRouter(extras.capability_router);
+  extras.capability_router = normalizeCapabilityRouter(
+    extras.capability_router,
+  );
   const incoming = extras.hook_event;
   if (isPlainObject(incoming) && typeof incoming.event === "string") {
     recordHookEvent(extras, {
@@ -564,30 +590,9 @@ export function normalizeStage6InExtras(extras: Record<string, unknown>): void {
     applyMiddlewareProbes(extras, extras.middleware_probes);
     delete extras.middleware_probes;
   }
-  if (isPlainObject(extras.smart_search_probe)) {
-    const probeStatus = extras.smart_search_probe.status;
-    applySmartSearchReadiness(
-      extras,
-      probeSmartSearchReadiness({
-        available:
-          extras.smart_search_probe.available === true
-            ? true
-            : extras.smart_search_probe.available === false
-              ? false
-              : undefined,
-        status:
-          probeStatus === "ready" ||
-          probeStatus === "missing" ||
-          probeStatus === "failed" ||
-          probeStatus === "unknown"
-            ? probeStatus
-            : undefined,
-        evidence:
-          typeof extras.smart_search_probe.evidence === "string"
-            ? extras.smart_search_probe.evidence
-            : null,
-      }),
-    );
+  if ("smart_search_probe" in extras) {
+    // Retired compatibility input. Provider facts are caller-supplied through
+    // the generic, project-authorized middleware projection.
     delete extras.smart_search_probe;
   }
   extras.middleware_providers = applyProviderHealth(
@@ -613,7 +618,7 @@ export function assertStage6ForPhase(
   }
   throw new KernelError(
     "INVALID_TRANSITION",
-    "external-knowledge required but smart-search Provider is not ready",
+    "required external capability has no ready authorized Provider",
   );
 }
 
@@ -662,8 +667,9 @@ function applyMiddlewareProbes(
           value.status === "unknown"
             ? value.status
             : undefined,
-        evidence:
-          typeof value.evidence === "string" ? value.evidence : null,
+        evidence: typeof value.evidence === "string" ? value.evidence : null,
+        capability:
+          typeof value.capability === "string" ? value.capability : undefined,
       }),
     );
   }
@@ -681,14 +687,10 @@ function applyProviderHealth(
       extras.profile_health = "degraded";
     }
   }
-  const missing = uniqueStrings(asStringArray(extras.ondemand_required_missing));
-  if (
-    missing.includes(EXTERNAL_KNOWLEDGE_CAPABILITY) ||
-    missing.includes(SMART_SEARCH_PROVIDER)
-  ) {
-    if (!degraded.includes(SMART_SEARCH_PROVIDER)) {
-      degraded.push(SMART_SEARCH_PROVIDER);
-    }
+  const missing = uniqueStrings(
+    asStringArray(extras.ondemand_required_missing),
+  );
+  if (missing.includes(EXTERNAL_KNOWLEDGE_CAPABILITY)) {
     extras.profile_health = "degraded";
   }
   return { ...providers, degraded };
@@ -724,7 +726,10 @@ function uniqueStrings(values: readonly unknown[]): string[] {
 
 function requireId(value: unknown, field: string): string {
   if (typeof value !== "string" || value.trim() === "") {
-    throw new KernelError("INVALID_REQUEST", `${field} must be a non-empty string`);
+    throw new KernelError(
+      "INVALID_REQUEST",
+      `${field} must be a non-empty string`,
+    );
   }
   return value.trim();
 }

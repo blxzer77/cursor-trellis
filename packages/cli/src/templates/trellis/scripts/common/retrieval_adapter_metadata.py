@@ -11,7 +11,6 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from common.cursor_retrieval_env import ENV_BYOK, detect_cursor_retrieval_env
 from common.retrieval_evidence import (
     SOURCE_ARTIFACT_SEARCH,
     SOURCE_CODEBASE_EVIDENCE,
@@ -105,11 +104,13 @@ def build_evidence_envelope(
     envelope = empty_evidence_envelope()
     router = dict_value(router_envelope)
     if router:
-        envelope["intents"] = normalize_envelope_list(router.get("intents"))
-        envelope["routes"] = normalize_envelope_list(router.get("routes"))
-        envelope["fallback"] = normalize_envelope_list(router.get("fallback"))
-        envelope["warnings"] = normalize_warning_list(router.get("warnings"))
-        envelope["verification"] = normalize_envelope_list(router.get("verification"))
+        envelope["intents"] = normalize_intent_list(router.get("intents"))
+        envelope["routes"] = normalize_envelope_list(router.get("steps"))
+        envelope["fallback"] = normalize_envelope_list(router.get("stopReasons"))
+        envelope["warnings"] = []
+        envelope["verification"] = normalize_envelope_list(
+            router.get("verificationChain")
+        )
 
     if arbitrated_evidence:
         envelope["conflictMetrics"] = arbitrated_evidence.get("metrics", {})
@@ -437,17 +438,6 @@ def codebase_adapter_state(
     )
 
 
-def resolve_cursor_env_for_adapter_metadata(
-    router: dict[str, Any] | None,
-) -> str:
-    """native | byok | unknown for retrieval-pack adapter reasons."""
-    router = router or {}
-    env = string_value(router.get("cursorEnv"))
-    if env in ("native", "byok", "unknown"):
-        return env
-    return detect_cursor_retrieval_env()
-
-
 def platform_semantic_adapter_state(
     *,
     router: dict[str, Any] | None,
@@ -462,31 +452,16 @@ def platform_semantic_adapter_state(
             invoked=bool(hint.get("invoked")),
             reason=string_value(hint.get("reason")) or "platform-semantic adapter hint",
         )
-    env = resolve_cursor_env_for_adapter_metadata(router)
-    if env == ENV_BYOK:
-        reason = (
-            "Cursor++ BYOK: built-in codebase semantic often absent (Experiment D); "
-            "concept recall Primary is fast-context MCP per router cursorEnv"
-        )
-        state = STATE_UNAVAILABLE
-    elif env == "native":
-        reason = (
-            "Cursor Native: built-in codebase semantic (e.g. SemanticSearch / @codebase) "
-            "is Primary for concept recall"
-        )
-        state = STATE_AVAILABLE
-    else:
-        reason = (
-            "Cursor platform-semantic: Native uses built-in search; BYOK uses fast-context "
-            "when cursorEnv is byok (see cursor_retrieval_env)"
-        )
-        state = STATE_UNVERIFIED
     return adapter_state_entry(
         adapter=ADAPTER_PLATFORM_SEMANTIC,
-        state=state,
+        state=STATE_UNVERIFIED if router else STATE_SKIPPED,
         required=False,
         invoked=False,
-        reason=reason,
+        reason=(
+            "provider-request is resolver-owned; no adapter hint supplied"
+            if router
+            else "no provider-request plan or adapter hint supplied"
+        ),
     )
 
 
@@ -504,31 +479,14 @@ def fast_context_adapter_state(
             invoked=bool(hint.get("invoked")),
             reason=string_value(hint.get("reason")) or "fast-context-mcp adapter hint",
         )
-    env = resolve_cursor_env_for_adapter_metadata(router)
-    if env == ENV_BYOK:
-        reason = (
-            "Cursor++ BYOK: fast_context_search is compliant Primary for concept recall "
-            "(select codebase-retrieval at init for .cursor/mcp.json fast-context entry)"
-        )
-        state = STATE_AVAILABLE
-    elif env == "native":
-        reason = (
-            "Cursor Native: prefer built-in platform-semantic; fast-context is optional "
-            "and misuse when plan requires native semantic"
-        )
-        state = STATE_SKIPPED
-    else:
-        reason = (
-            "fast-context MCP: required for BYOK concept recall on Cursor when "
-            "codebase-retrieval capability is selected"
-        )
-        state = STATE_UNVERIFIED
     return adapter_state_entry(
         adapter=ADAPTER_FAST_CONTEXT,
-        state=state,
+        state=STATE_SKIPPED,
         required=False,
         invoked=False,
-        reason=reason,
+        reason=(
+            "concrete adapter selection is resolver-owned; no adapter hint supplied"
+        ),
     )
 
 
@@ -929,6 +887,13 @@ def normalize_envelope_list(value: Any) -> list[dict[str, object]]:
     if not isinstance(value, list):
         return []
     return [item for item in value if isinstance(item, dict)]
+
+
+def normalize_intent_list(value: Any) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    allowed = {"exact", "semantic", "structural", "external"}
+    return [item for item in value if isinstance(item, str) and item in allowed]
 
 
 def normalize_warning_list(value: Any) -> list[str]:

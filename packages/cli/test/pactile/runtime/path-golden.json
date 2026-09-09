@@ -1,0 +1,108 @@
+[
+  {
+    "name": "Unicode 16 sequence remains uncomposed in pinned Unicode 15 fold",
+    "input": { "operation": "fold", "component": "\ud801\uddd2\u0307" },
+    "expected": { "ok": true, "result": "\ud801\uddd2\u0307" }
+  },
+  {
+    "name": "Unicode 16 sequence remains uncomposed in pinned Unicode 15 path",
+    "input": {
+      "operation": "normalize",
+      "path": ".pactile/\ud801\uddd2\u0307/state.json"
+    },
+    "expected": {
+      "ok": true,
+      "result": ".pactile/\ud801\uddd2\u0307/state.json"
+    }
+  },
+  {
+    "name": "NFC and portable separators",
+    "input": { "operation": "normalize", "path": ".pactile\\café\\state.json" },
+    "expected": { "ok": true, "result": ".pactile/café/state.json" }
+  },
+  {
+    "name": "full casefold is not lowercase",
+    "input": { "operation": "fold", "component": "Straße Σς ﬃ İ ı Ꭰ ꭰ" },
+    "expected": { "ok": true, "result": "strasse σσ ffi i̇ ı Ꭰ Ꭰ" }
+  },
+  {
+    "name": "NFC folds equivalent accent",
+    "input": { "operation": "fold", "component": "CAFÉ" },
+    "expected": { "ok": true, "result": "café" }
+  },
+  {
+    "name": "relative escape",
+    "input": { "operation": "normalize", "path": ".pactile/../../escape" },
+    "expected": { "ok": false, "error": { "code": "outside-project" } }
+  },
+  {
+    "name": "Windows drive-relative escape",
+    "input": { "operation": "normalize", "path": "C:escape" },
+    "expected": { "ok": false, "error": { "code": "outside-project" } }
+  },
+  {
+    "name": "UNC escape",
+    "input": { "operation": "normalize", "path": "\\\\server\\share" },
+    "expected": { "ok": false, "error": { "code": "outside-project" } }
+  },
+  {
+    "name": "empty path",
+    "input": { "operation": "normalize", "path": "" },
+    "expected": { "ok": false, "error": { "code": "outside-project" } }
+  },
+  {
+    "name": "dot component",
+    "input": { "operation": "normalize", "path": ".pactile/./state" },
+    "expected": { "ok": false, "error": { "code": "outside-project" } }
+  },
+  {
+    "name": "Windows ADS",
+    "input": { "operation": "normalize", "path": ".pactile/state:alternate" },
+    "expected": { "ok": false, "error": { "code": "outside-project" } }
+  },
+  {
+    "name": "device alias",
+    "input": { "operation": "normalize", "path": ".pactile/COM1.json" },
+    "expected": { "ok": false, "error": { "code": "outside-project" } }
+  },
+  {
+    "name": "superscript device alias",
+    "input": { "operation": "normalize", "path": ".pactile/LPT².log" },
+    "expected": { "ok": false, "error": { "code": "outside-project" } }
+  },
+  {
+    "name": "trailing space alias",
+    "input": { "operation": "normalize", "path": ".pactile/state " },
+    "expected": { "ok": false, "error": { "code": "outside-project" } }
+  },
+  {
+    "name": "control character",
+    "input": { "operation": "normalize", "path": ".pactile/\u0000state" },
+    "expected": { "ok": false, "error": { "code": "outside-project" } }
+  },
+  {
+    "name": "unknown operation",
+    "input": { "operation": "activate" },
+    "expected": { "ok": false, "error": { "code": "state-malformed" } }
+  },
+  {
+    "name": "force does not open an alternate writer",
+    "input": {
+      "operation": "guard",
+      "projectRoot": ".",
+      "target": ".cstl/file",
+      "force": "true"
+    },
+    "expected": { "ok": false, "error": { "code": "state-malformed" } }
+  },
+  {
+    "name": "non-object input",
+    "input": null,
+    "expected": { "ok": false, "error": { "code": "state-malformed" } }
+  },
+  {
+    "name": "non-string path",
+    "input": { "operation": "normalize", "path": 5 },
+    "expected": { "ok": false, "error": { "code": "state-malformed" } }
+  }
+]

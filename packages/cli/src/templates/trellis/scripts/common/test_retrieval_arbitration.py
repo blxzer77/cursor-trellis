@@ -5,9 +5,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Any
-
-import pytest
+from typing import Any, cast
 
 # Ensure the scripts directory is importable
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -178,7 +176,7 @@ class TestResolveCrossSourceConflictsBasic:
         assert result["total"] == 0
         assert result["metrics"]["conflictCount"] == 0
 
-    def test_intent_adjustment_policy_document(self):
+    def test_intent_adjustment_exact(self):
         items = [
             _scored(
                 source=SOURCE_ARTIFACT_SEARCH,
@@ -193,7 +191,7 @@ class TestResolveCrossSourceConflictsBasic:
                 source_authority=60,
             ),
         ]
-        result = resolve_cross_source_conflicts(items, query_intent="policy-document")
+        result = resolve_cross_source_conflicts(items, query_intent="exact")
         artifact_item = next(
             ae for ae in result["items"]
             if ae["source"] == SOURCE_ARTIFACT_SEARCH
@@ -216,7 +214,7 @@ class TestBuildRetrievalPackNoEnvelope:
             artifact_search_results=[_artifact_result()],
         )
         assert "arbitratedEvidence" in result
-        arb = result["arbitratedEvidence"]
+        arb = cast(dict[str, Any], result["arbitratedEvidence"])
         assert "items" in arb
         assert "conflicts" in arb
         assert "metrics" in arb
@@ -226,28 +224,28 @@ class TestBuildRetrievalPackNoEnvelope:
         result = build_retrieval_pack(
             artifact_search_results=[_artifact_result()],
         )
-        arb = result["arbitratedEvidence"]
+        arb = cast(dict[str, Any], result["arbitratedEvidence"])
         for item in arb["items"]:
             # Without intent, effectiveAuthority == sourceAuthority
             assert item["effectiveAuthority"] == item["sourceAuthority"]
 
 
 # ---------------------------------------------------------------------------
-# 3. Integration: router envelope with policy-document intent
+# 3. Integration: router envelope with exact intent
 # ---------------------------------------------------------------------------
 
-class TestBuildRetrievalPackPolicyIntent:
-    def test_policy_document_intent_boosts_artifact_search(self):
+class TestBuildRetrievalPackExactIntent:
+    def test_exact_intent_boosts_artifact_search(self):
         router_envelope = {
-            "intents": [{"id": "policy-document", "label": "policy"}],
-            "routes": [],
-            "fallback": [],
+            "intents": ["exact"],
+            "steps": [],
+            "stopReasons": [],
         }
         result = build_retrieval_pack(
             artifact_search_results=[_artifact_result()],
             router_envelope=router_envelope,
         )
-        arb = result["arbitratedEvidence"]
+        arb = cast(dict[str, Any], result["arbitratedEvidence"])
         artifact_items = [
             ae for ae in arb["items"]
             if ae["source"] == SOURCE_ARTIFACT_SEARCH
@@ -271,7 +269,7 @@ class TestBuildRetrievalPackConflicts:
                 _manifest(query="API design endpoint", status="ok"),
             ],
         )
-        arb = result["arbitratedEvidence"]
+        arb = cast(dict[str, Any], result["arbitratedEvidence"])
         # Even if no conflicts are detected due to title mismatch,
         # the arbitrated evidence must still exist and be well-formed
         assert "conflicts" in arb
@@ -289,7 +287,7 @@ class TestBackwardCompat:
             artifact_search_results=[_artifact_result()],
             session_memory_results=[_session_result()],
         )
-        scored = result["scoredEvidence"]
+        scored = cast(dict[str, Any], result["scoredEvidence"])
         # The scoredEvidence must have the original structure,
         # not the arbitrated items with extra keys
         assert "version" in scored
@@ -305,7 +303,7 @@ class TestBackwardCompat:
         result = build_retrieval_pack(
             artifact_search_results=[_artifact_result()],
         )
-        arb = result["arbitratedEvidence"]
+        arb = cast(dict[str, Any], result["arbitratedEvidence"])
         for item in arb["items"]:
             assert "effectiveAuthority" in item
             assert "conflictFlags" in item
@@ -315,9 +313,9 @@ class TestBackwardCompat:
         result = build_retrieval_pack(
             artifact_search_results=[_artifact_result()],
         )
-        envelope = result["evidenceEnvelope"]
+        envelope = cast(dict[str, Any], result["evidenceEnvelope"])
         assert "conflictMetrics" in envelope
-        metrics = envelope["conflictMetrics"]
+        metrics = cast(dict[str, Any], envelope["conflictMetrics"])
         assert "totalItems" in metrics
         assert "conflictCount" in metrics
 
@@ -326,7 +324,7 @@ class TestBackwardCompat:
             artifact_search_results=[_artifact_result(path="a.md", score=90)],
             session_memory_results=[_session_result(path="b.md", score=70)],
         )
-        pack = result["contextPack"]
+        pack = cast(dict[str, Any], result["contextPack"])
         # Context pack should be well-formed with selected items
         assert "selected" in pack
         assert "omitted" in pack

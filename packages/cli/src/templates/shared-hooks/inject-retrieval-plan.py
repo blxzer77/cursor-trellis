@@ -88,18 +88,6 @@ def _detect_platform(input_data: dict[str, Any]) -> str | None:
     return None
 
 
-def _load_capabilities(root: Path) -> dict[str, object] | None:
-    path = root / DIR_WORKFLOW / "capabilities.json"
-    if not path.is_file():
-        return None
-    try:
-        with path.open(encoding="utf-8") as handle:
-            parsed = json.load(handle)
-        return parsed if isinstance(parsed, dict) else None
-    except Exception:
-        return None
-
-
 def _retrieval_extended_active(root: Path, input_data: dict[str, Any]) -> bool:
     """Unactivated retrieval-extended → no telemetry and no plan injection."""
     scripts_dir = root / DIR_WORKFLOW / "scripts"
@@ -129,8 +117,9 @@ def _retrieval_extended_active(root: Path, input_data: dict[str, Any]) -> bool:
 def _write_telemetry_log(
     root: Path,
     query_preview: str,
-    cursor_env: str,
+    plan_fingerprint: str,
     intents: list[str],
+    minimum_assurance: str,
 ) -> None:
     """Write local telemetry / assurance. Never claims model delivery."""
     log_path = root / DIR_WORKFLOW / TELEMETRY_LOG
@@ -140,8 +129,9 @@ def _write_telemetry_log(
         "ts": datetime.now(timezone.utc).isoformat(),
         "event": "beforeSubmitPrompt",
         "query_preview": query_preview[:120],
-        "cursorEnv": cursor_env,
+        "planFingerprint": plan_fingerprint,
         "intents": intents,
+        "minimumAssurance": minimum_assurance,
         "action": "telemetry-only",
         "assurance": "local-telemetry-only",
         "promptInjected": False,
@@ -194,11 +184,7 @@ def main() -> int:
 
     try:
         from common.codebase_retrieval_router import (  # type: ignore[import-not-found]
-            codebase_retrieval_selected_from_capabilities,
             route_codebase_retrieval,
-        )
-        from common.project_file_stats import (  # type: ignore[import-not-found]
-            resolve_project_file_count_arg,
         )
         from common.retrieval_plan_gate import (  # type: ignore[import-not-found]
             extract_user_prompt,
@@ -211,22 +197,15 @@ def main() -> int:
     if not should_inject_retrieval_plan(query):
         return 0
 
-    try:
-        project_file_count = resolve_project_file_count_arg("auto", repo_root=root)
-    except ValueError:
-        project_file_count = None
-
-    caps = _load_capabilities(root)
-    selected = codebase_retrieval_selected_from_capabilities(caps)
-    plan = route_codebase_retrieval(
+    plan = route_codebase_retrieval(query)
+    intent_ids = [str(intent) for intent in plan.get("intents", [])]
+    _write_telemetry_log(
+        root,
         query,
-        codebase_retrieval_selected=selected,
-        project_file_count=project_file_count,
+        str(plan.get("fingerprint", "")),
+        intent_ids,
+        str(plan.get("minimumAssurance", "best-effort")),
     )
-
-    cursor_env = plan.get("cursorEnv", "unknown")
-    intent_ids = [i.get("id", "unknown") for i in plan.get("intents", [])]
-    _write_telemetry_log(root, query, cursor_env, intent_ids)
 
     # Channel unavailable: local telemetry only. No stdout. Never claim
     # additional_context reached the model. Do not emit PLAN_MARKER_*.

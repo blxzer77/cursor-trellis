@@ -25,6 +25,8 @@ import {
   applyKernelStart,
   applyKernelTransition,
   readKernel,
+  inspectTaskProjection,
+  repairTaskProjection,
   type KernelArchiveRequest,
   type KernelCommandResult,
   type KernelCreateRequest,
@@ -34,8 +36,11 @@ import {
   type KernelStartRequest,
   type KernelTransitionResult,
 } from "./kernel-store.js";
+import type { ProjectionInspection, ProjectionRepairReceipt } from "./kernel-surface.js";
 
 export type KernelCliSuccess =
+  | ({ ok: true; op: "inspect-projection" } & ProjectionInspection)
+  | ({ ok: true; op: "repair-projection" } & ProjectionRepairReceipt)
   | ({ ok: true; op: "read" } & KernelReadResult)
   | ({ ok: true; op: "transition" } & KernelTransitionResult)
   | ({
@@ -100,6 +105,20 @@ function dispatchKernelRequest(
     throw new KernelError("INVALID_REQUEST", "request must be a JSON object");
   }
   const op = input.op;
+  if (op === "inspect-projection") {
+    return { ok: true, op, ...inspectTaskProjection({ taskDir: requireTaskDir(input.taskDir), cwd: optionalCwd(input.cwd, cwd) }) };
+  }
+  if (op === "repair-projection") {
+    if (!isNonNegativeInt(input.expectedCanonicalRevision) ||
+        (input.expectedCurrentFingerprint !== null && typeof input.expectedCurrentFingerprint !== "string")) {
+      throw new KernelError("INVALID_REQUEST", "repair requires expectedCanonicalRevision and expectedCurrentFingerprint");
+    }
+    return { ok: true, op, ...repairTaskProjection({
+      taskDir: requireTaskDir(input.taskDir), cwd: optionalCwd(input.cwd, cwd),
+      expectedCanonicalRevision: input.expectedCanonicalRevision,
+      expectedCurrentFingerprint: input.expectedCurrentFingerprint,
+    }) };
+  }
   if (op === "read") {
     const taskDir = requireTaskDir(input.taskDir);
     const result = readKernel({

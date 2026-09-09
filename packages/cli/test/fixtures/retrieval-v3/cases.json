@@ -1,0 +1,193 @@
+[
+  {
+    "name": "exact-basic",
+    "request": {
+      "schemaVersion": 3,
+      "query": "  where   is Widget  defined ",
+      "intents": ["exact"],
+      "scopeHints": ["src/z", "src/a"],
+      "minimumAssurance": "best-effort",
+      "requestedPolicy": {
+        "filesystem": "read",
+        "process": "execute",
+        "network": "forbidden",
+        "credentials": "forbidden",
+        "privacy": "local-only",
+        "egressDestinations": [],
+        "telemetry": "local-only",
+        "cost": "free"
+      },
+      "requiredEvidenceKinds": [],
+      "budget": { "maxSteps": 16, "maxCandidatesPerStep": 50 }
+    },
+    "context": {}
+  },
+  {
+    "name": "semantic-ready",
+    "request": {
+      "schemaVersion": 3,
+      "query": "How does account behavior work?",
+      "intents": ["semantic"],
+      "scopeHints": ["packages/core"],
+      "minimumAssurance": "evidence-backed",
+      "requestedPolicy": {
+        "filesystem": "read",
+        "process": "execute",
+        "network": "forbidden",
+        "credentials": "forbidden",
+        "privacy": "local-only",
+        "egressDestinations": [],
+        "telemetry": "local-only",
+        "cost": "free"
+      },
+      "requiredEvidenceKinds": ["source-reference"],
+      "budget": { "maxSteps": 4, "maxCandidatesPerStep": 20 }
+    },
+    "context": {
+      "providerAvailability": [
+        { "intent": "semantic", "status": "ready", "readiness": "ready" }
+      ]
+    }
+  },
+  {
+    "name": "structural-degraded",
+    "request": {
+      "schemaVersion": 3,
+      "query": "Find the caller and dependency impact",
+      "intents": ["structural"],
+      "scopeHints": [],
+      "minimumAssurance": "evidence-backed",
+      "requestedPolicy": {
+        "filesystem": "read",
+        "process": "execute",
+        "network": "forbidden",
+        "credentials": "forbidden",
+        "privacy": "local-only",
+        "egressDestinations": [],
+        "telemetry": "local-only",
+        "cost": "free"
+      },
+      "requiredEvidenceKinds": ["git-evidence"],
+      "budget": { "maxSteps": 2, "maxCandidatesPerStep": 10 }
+    },
+    "context": {
+      "providerAvailability": [
+        {
+          "intent": "structural",
+          "status": "degraded",
+          "readiness": "degraded"
+        }
+      ]
+    }
+  },
+  {
+    "name": "external-unsupported",
+    "request": {
+      "schemaVersion": 3,
+      "query": "Read the latest official release note",
+      "intents": ["external"],
+      "scopeHints": ["docs"],
+      "minimumAssurance": "evidence-backed",
+      "requestedPolicy": {
+        "filesystem": "read",
+        "process": "execute",
+        "network": "project-authorized",
+        "credentials": "forbidden",
+        "privacy": "project-approved-egress",
+        "egressDestinations": ["docs.example.test"],
+        "telemetry": "local-only",
+        "cost": "low"
+      },
+      "requiredEvidenceKinds": ["source-reference"],
+      "budget": { "maxSteps": 4, "maxCandidatesPerStep": 25 }
+    },
+    "context": {
+      "providerAvailability": [
+        {
+          "intent": "external",
+          "status": "unsupported",
+          "readiness": "unavailable"
+        }
+      ]
+    }
+  },
+  {
+    "name": "multi-intent-unicode",
+    "request": {
+      "schemaVersion": 3,
+      "query": "Café 架构 caller latest behavior",
+      "intents": ["external", "structural", "semantic", "exact"],
+      "scopeHints": ["src/集成", "src/café"],
+      "minimumAssurance": "verified",
+      "requestedPolicy": {
+        "filesystem": "read",
+        "process": "execute",
+        "network": "project-authorized",
+        "credentials": "project-authorized",
+        "privacy": "project-approved-egress",
+        "egressDestinations": ["z.example.test", "a.example.test"],
+        "telemetry": "local-only",
+        "cost": "medium"
+      },
+      "requiredEvidenceKinds": ["repeatable-test", "git-evidence"],
+      "budget": { "maxSteps": 4, "maxCandidatesPerStep": 100 }
+    },
+    "context": {
+      "providerAvailability": [
+        {
+          "intent": "external",
+          "status": "unavailable",
+          "readiness": "unavailable"
+        },
+        { "intent": "semantic", "status": "ready", "readiness": "ready" },
+        { "intent": "structural", "status": "ready", "readiness": "ready" }
+      ]
+    }
+  },
+  {
+    "name": "malformed-context-null",
+    "request": {
+      "schemaVersion": 3,
+      "query": "where is Widget defined",
+      "intents": ["exact"],
+      "scopeHints": [],
+      "minimumAssurance": "best-effort",
+      "requestedPolicy": {
+        "filesystem": "read",
+        "process": "execute",
+        "network": "forbidden",
+        "credentials": "forbidden",
+        "privacy": "local-only",
+        "egressDestinations": [],
+        "telemetry": "local-only",
+        "cost": "free"
+      },
+      "requiredEvidenceKinds": [],
+      "budget": { "maxSteps": 16, "maxCandidatesPerStep": 50 }
+    },
+    "context": null
+  },
+  {
+    "name": "malformed-context-array",
+    "request": {
+      "schemaVersion": 3,
+      "query": "where is Widget defined",
+      "intents": ["exact"],
+      "scopeHints": [],
+      "minimumAssurance": "best-effort",
+      "requestedPolicy": {
+        "filesystem": "read",
+        "process": "execute",
+        "network": "forbidden",
+        "credentials": "forbidden",
+        "privacy": "local-only",
+        "egressDestinations": [],
+        "telemetry": "local-only",
+        "cost": "free"
+      },
+      "requiredEvidenceKinds": [],
+      "budget": { "maxSteps": 16, "maxCandidatesPerStep": 50 }
+    },
+    "context": []
+  }
+]

@@ -16,6 +16,34 @@ const CSTL_BLOCK = `${CSTL_BLOCK_START}\n# cursor-trellis managed\n${CSTL_BLOCK_
 const TRELLIS_BLOCK = `${LEGACY_TRELLIS_BLOCK_START}\n# upstream trellis managed\n${LEGACY_TRELLIS_BLOCK_END}`;
 const TEMPLATE_WITH_CSTL = `${CSTL_BLOCK_START}\n# cursor-trellis managed\n${CSTL_BLOCK_END}`;
 
+describe("conservative facade byte preservation", () => {
+  it("retains BOM, CRLF and all blank-line bytes outside an updated/removed span", () => {
+    const before = "\ufeff# user\r\n\r\n\r\n",
+      after = "\r\n\r\n\r\n# tail  \r\n";
+    expect(
+      insertCstlManagedBlock(before + CSTL_BLOCK + after, TEMPLATE_WITH_CSTL),
+    ).toBe(before + TEMPLATE_WITH_CSTL + after);
+    expect(removeCstlManagedBlock(before + CSTL_BLOCK + after)).toBe(
+      before + after,
+    );
+    expect(
+      insertCstlManagedBlock(before + CSTL_BLOCK + after, "bare fallback"),
+    ).toBe(before + "bare fallback" + after);
+  });
+  it("preserves duplicate/nested/broken marker conflicts without guessing", () => {
+    for (const content of [
+      CSTL_BLOCK + CSTL_BLOCK,
+      CSTL_BLOCK_START,
+      CSTL_BLOCK_END,
+      `${CSTL_BLOCK_START}${CSTL_BLOCK}${CSTL_BLOCK_END}`,
+    ]) {
+      expect(hasCstlBlock(content)).toBe(false);
+      expect(insertCstlManagedBlock(content, TEMPLATE_WITH_CSTL)).toBe(content);
+      expect(removeCstlManagedBlock(content)).toBe(content);
+    }
+  });
+});
+
 describe("AGENTS.md product template", () => {
   it("is only the managed CSTL pointer block", () => {
     const trimmed = agentsMdContent.trim();
@@ -24,7 +52,9 @@ describe("AGENTS.md product template", () => {
     expect(trimmed.match(new RegExp(CSTL_BLOCK_START, "g"))?.length).toBe(1);
     expect(trimmed).toContain("Working knowledge is pointers, not a playbook");
     expect(trimmed).toContain("`.cstl/framework/index.md`");
-    expect(trimmed).toContain("`.cstl/workflow.md` — interface card (not runtime SSOT)");
+    expect(trimmed).toContain(
+      "`.cstl/workflow.md` — interface card (not runtime SSOT)",
+    );
     expect(trimmed).toContain("`docs/` — harness docs");
     expect(trimmed).toContain("`cstl-continue`");
     expect(trimmed).not.toContain("## Command surface");

@@ -1,267 +1,124 @@
-export type RetrievalRankingIntent =
-  | "caller-chain"
-  | "trap-package-disambiguation"
-  | "env-config-literal"
-  | "exact-symbol-path"
-  | "protocol-platform-preserve"
-  | string;
+import { Buffer } from "node:buffer";
+
+import type { PactileIntentV1 } from "@blxzer/cursor-trellis-core";
+
+export type RetrievalRankingIntent = PactileIntentV1;
 
 export interface RetrievalResultCandidate {
-  path: string;
-  baseRank: number;
-  score?: number;
-  matchedIntents?: RetrievalRankingIntent[];
-  evidenceType?:
-    | "caller-callsite"
-    | "assembly"
-    | "trap"
-    | "env-script"
-    | "implementation"
-    | "protocol"
-    | "codegraph-symbol"
-    | "codegraph-caller"
-    | "platform-semantic"
-    | string;
-  sourceRole?: string;
-  corroborated?: boolean;
-  expectedHint?: boolean;
-  trapHint?: boolean;
-  exactPreserve?: boolean;
+  readonly path: string;
+  readonly line?: number;
+  readonly baseScore?: number;
+  readonly exactMatch?: boolean;
+  readonly semanticScore?: number;
+  readonly structuralMatch?: boolean;
+  readonly externalFreshness?: number;
+  readonly sourceReference?: string;
+  readonly assemblyOnly?: boolean;
 }
 
 export interface RankedRetrievalResultCandidate extends RetrievalResultCandidate {
-  adjustedScore: number;
-  rankingReasons: string[];
+  readonly score: number;
+  readonly reasons: readonly string[];
 }
 
 export interface RankRetrievalResultOptions {
-  intents: RetrievalRankingIntent[];
-  topK?: number;
-  expandedPoolSize?: number;
-  callerPoolExpansion?: {
-    enabled: boolean;
-    minConcreteCallers: number;
-  };
+  readonly intents: readonly RetrievalRankingIntent[];
+  readonly topK?: number;
 }
 
 export interface RankedRetrievalResult {
-  expandedPoolSize: number;
-  expandedPool: RankedRetrievalResultCandidate[];
-  topCandidates: RankedRetrievalResultCandidate[];
-  warnings: string[];
+  readonly ranked: readonly RankedRetrievalResultCandidate[];
+  readonly total: number;
 }
 
-function includesIntent(
-  intents: readonly RetrievalRankingIntent[],
-  target: RetrievalRankingIntent,
-): boolean {
-  return intents.includes(target);
+function clamp(value: number | undefined, min = 0, max = 1): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) return min;
+  return Math.max(min, Math.min(max, value));
 }
 
-function normalizedPath(candidatePath: string): string {
-  return candidatePath.replace(/\\/g, "/").toLowerCase();
-}
-
-function isAssemblyOnlyCandidate(candidate: RetrievalResultCandidate): boolean {
-  const path = normalizedPath(candidate.path);
-  return (
-    candidate.evidenceType === "assembly" ||
-    /(?:facade|loader|barrel|runtime|registry|snapshot)/i.test(candidate.sourceRole ?? "") ||
-    /(?:facade|loader|barrel|runtime|registry|snapshot)/i.test(path)
-  );
-}
-
-function isConcreteCallerCandidate(candidate: RetrievalResultCandidate): boolean {
-  return candidate.evidenceType === "caller-callsite" || /caller|callsite/i.test(candidate.sourceRole ?? "");
-}
-
-function isTrapCandidate(candidate: RetrievalResultCandidate): boolean {
-  const path = normalizedPath(candidate.path);
-  return (
-    candidate.trapHint === true ||
-    candidate.evidenceType === "trap" ||
-    /plugin-registry-snapshot|registry-snapshot|snapshot\.ts$/.test(path) ||
-    /\/src\/agents\//.test(path)
-  );
-}
-
-function isEnvPriorityPath(candidate: RetrievalResultCandidate): boolean {
-  const path = normalizedPath(candidate.path);
-  return /(^|\/)(scripts|e2e|bench|benches|\.github|ci|config|configs|test|tests)(\/|$)/.test(
-    path,
-  );
-}
-
-function isGenericEnvImplementationPath(candidate: RetrievalResultCandidate): boolean {
-  const path = normalizedPath(candidate.path);
-  return /(^|\/)src\/(auth|paths?|state|config)(\/|\.|$)/.test(path);
-}
-
-function baseScore(candidate: RetrievalResultCandidate): number {
-  return candidate.score ?? 1000 - candidate.baseRank;
+function normalizedPath(value: string): string {
+  return value.replace(/\\/g, "/").normalize("NFC").toLowerCase();
 }
 
 function scoreCandidate(
   candidate: RetrievalResultCandidate,
-  intents: readonly RetrievalRankingIntent[],
+  intents: ReadonlySet<RetrievalRankingIntent>,
 ): RankedRetrievalResultCandidate {
-  let adjustedScore = baseScore(candidate);
-  const rankingReasons: string[] = [];
-  const exactPreserve =
-    candidate.exactPreserve === true ||
-    includesIntent(candidate.matchedIntents ?? [], "protocol-platform-preserve") ||
-    includesIntent(candidate.matchedIntents ?? [], "exact-symbol-path");
-
-  if (exactPreserve) {
-    adjustedScore += 1000;
-    rankingReasons.push("exact-preserve-protected");
+  let score = clamp(candidate.baseScore, -1000, 1000);
+  const reasons: string[] = [];
+  if (intents.has("exact") && candidate.exactMatch) {
+    score += 100;
+    reasons.push("exact-match");
   }
-
-  if (!exactPreserve && includesIntent(intents, "caller-chain")) {
-    if (candidate.evidenceType === "codegraph-caller") {
-      adjustedScore += 30;
-      rankingReasons.push("codegraph-caller-boost");
-    }
-    if (isConcreteCallerCandidate(candidate)) {
-      adjustedScore += 150;
-      rankingReasons.push("concrete-caller-boost");
-    }
-    if (isAssemblyOnlyCandidate(candidate)) {
-      adjustedScore -= 120;
-      rankingReasons.push("assembly-only-demotion");
-    }
+  if (intents.has("semantic") && candidate.semanticScore !== undefined) {
+    score += clamp(candidate.semanticScore) * 40;
+    reasons.push("semantic-candidate");
   }
-
-  if (!exactPreserve && includesIntent(intents, "trap-package-disambiguation")) {
-    if (isTrapCandidate(candidate) && !candidate.expectedHint) {
-      adjustedScore -= 250;
-      rankingReasons.push("trap-demotion");
-    }
-    if (candidate.corroborated && !isTrapCandidate(candidate)) {
-      adjustedScore += 80;
-      rankingReasons.push("corroborated-non-trap-boost");
-    }
+  if (intents.has("structural") && candidate.structuralMatch) {
+    score += 60;
+    reasons.push("structural-match");
   }
-
-  if (!exactPreserve && includesIntent(intents, "env-config-literal")) {
-    if (isEnvPriorityPath(candidate)) {
-      adjustedScore += 140;
-      rankingReasons.push("env-script-priority");
-    }
-    if (isGenericEnvImplementationPath(candidate)) {
-      adjustedScore -= 100;
-      rankingReasons.push("generic-env-implementation-demotion");
-    }
+  if (intents.has("external") && candidate.externalFreshness !== undefined) {
+    score += clamp(candidate.externalFreshness) * 30;
+    reasons.push("external-freshness-candidate");
   }
-
-  return {
-    ...candidate,
-    adjustedScore,
-    rankingReasons,
-  };
+  if (candidate.sourceReference) {
+    score += 10;
+    reasons.push("source-reference-present");
+  }
+  if (candidate.assemblyOnly) {
+    score -= intents.has("structural") ? 30 : 10;
+    reasons.push("assembly-only-demotion");
+  }
+  return { ...candidate, score, reasons };
 }
 
 export function rankRetrievalResultCandidates(
   candidates: readonly RetrievalResultCandidate[],
   options: RankRetrievalResultOptions,
 ): RankedRetrievalResult {
-  const topK = options.topK ?? 5;
-  const expandedPoolSize = options.expandedPoolSize ?? Math.max(topK * 3, topK);
-  const warnings: string[] = [];
-
+  const intents = new Set(options.intents);
+  const topK = Math.max(
+    0,
+    Math.min(options.topK ?? candidates.length, candidates.length),
+  );
   const ranked = candidates
-    .map((candidate) => scoreCandidate(candidate, options.intents))
-    .sort((a, b) => {
-      if (b.adjustedScore !== a.adjustedScore) return b.adjustedScore - a.adjustedScore;
-      return a.baseRank - b.baseRank;
-    });
-
-  const expandedPool = ranked.slice(0, expandedPoolSize);
-
-  const callerExpansion = options.callerPoolExpansion;
-  if (callerExpansion?.enabled && includesIntent(options.intents, "caller-chain")) {
-    const concreteCallersInPool = expandedPool.filter((c) => isConcreteCallerCandidate(c));
-    const concreteCallerPaths = new Set(concreteCallersInPool.map((c) => normalizedPath(c.path)));
-
-    if (concreteCallersInPool.length < callerExpansion.minConcreteCallers) {
-      const outsidePool = ranked.slice(expandedPoolSize);
-      for (const candidate of outsidePool) {
-        if (
-          isConcreteCallerCandidate(candidate) &&
-          !concreteCallerPaths.has(normalizedPath(candidate.path))
-        ) {
-          expandedPool.push(candidate);
-          concreteCallerPaths.add(normalizedPath(candidate.path));
-          if (expandedPool.filter((c) => isConcreteCallerCandidate(c)).length >= callerExpansion.minConcreteCallers) {
-            break;
-          }
-        }
-      }
-    }
-
-    const finalConcreteCount = expandedPool.filter((c) => isConcreteCallerCandidate(c)).length;
-    if (finalConcreteCount < callerExpansion.minConcreteCallers) {
-      warnings.push(
-        `caller-pool-expansion: only ${finalConcreteCount} concrete callers found, below minConcreteCallers=${callerExpansion.minConcreteCallers}`,
+    .map((candidate) => scoreCandidate(candidate, intents))
+    .sort((left, right) => {
+      const byScore = right.score - left.score;
+      if (byScore !== 0) return byScore;
+      const byPath = Buffer.compare(
+        Buffer.from(normalizedPath(left.path), "utf8"),
+        Buffer.from(normalizedPath(right.path), "utf8"),
       );
-    }
-  }
-
-  return {
-    expandedPoolSize,
-    expandedPool,
-    topCandidates: expandedPool.slice(0, topK),
-    warnings,
-  };
+      if (byPath !== 0) return byPath;
+      return (left.line ?? 0) - (right.line ?? 0);
+    })
+    .slice(0, topK);
+  return { ranked, total: candidates.length };
 }
 
 export interface PagedCallerResult {
-  callers: RetrievalResultCandidate[];
-  pagesConsumed: number;
-  deduplicatedCount: number;
+  readonly page: number;
+  readonly candidates: readonly RetrievalResultCandidate[];
 }
 
 export function pagedCallerAggregation(
-  initialCallers: readonly RetrievalResultCandidate[],
-  maxPages: number,
-  fetchPage: (page: number) => RetrievalResultCandidate[],
-): PagedCallerResult {
-  const seen = new Map<string, RetrievalResultCandidate>();
-
-  for (const caller of initialCallers) {
-    const key = normalizedPath(caller.path);
-    const existing = seen.get(key);
-    if (existing) {
-      if (caller.sourceRole && !existing.sourceRole) {
-        seen.set(key, { ...existing, sourceRole: caller.sourceRole });
-      }
-    } else {
-      seen.set(key, { ...caller });
+  pages: readonly PagedCallerResult[],
+  options: Omit<RankRetrievalResultOptions, "intents"> & {
+    readonly intents?: readonly RetrievalRankingIntent[];
+  } = {},
+): RankedRetrievalResult {
+  const ordered = [...pages].sort((left, right) => left.page - right.page);
+  const unique = new Map<string, RetrievalResultCandidate>();
+  for (const page of ordered) {
+    for (const candidate of page.candidates) {
+      const key = `${normalizedPath(candidate.path)}:${candidate.line ?? 0}`;
+      if (!unique.has(key)) unique.set(key, candidate);
     }
   }
-
-  let pagesConsumed = 0;
-  for (let page = 1; page <= maxPages; page++) {
-    const pageResults = fetchPage(page);
-    pagesConsumed = page;
-    if (pageResults.length === 0) break;
-
-    for (const caller of pageResults) {
-      const key = normalizedPath(caller.path);
-      const existing = seen.get(key);
-      if (existing) {
-        if (caller.sourceRole && !existing.sourceRole) {
-          seen.set(key, { ...existing, sourceRole: caller.sourceRole });
-        }
-      } else {
-        seen.set(key, { ...caller });
-      }
-    }
-  }
-
-  const callers = Array.from(seen.values());
-  const deduplicatedCount = callers.length;
-
-  return { callers, pagesConsumed, deduplicatedCount };
+  return rankRetrievalResultCandidates([...unique.values()], {
+    intents: options.intents ?? ["structural"],
+    topK: options.topK,
+  });
 }
-

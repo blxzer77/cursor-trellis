@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "provider.beta",
+  "version": "1.0.0",
+  "origin": "provider",
+  "intents": ["semantic"],
+  "capabilityIds": ["search.semantic"],
+  "maximumAssurance": "evidence-backed",
+  "policyCeiling": {
+    "filesystem": "read",
+    "process": "none",
+    "network": "forbidden",
+    "credentials": "forbidden",
+    "privacy": "local-only",
+    "egressDestinations": [],
+    "telemetry": "local-only",
+    "cost": "free"
+  },
+  "evidenceKinds": ["source-reference"],
+  "probe": {
+    "supported": false,
+    "maxAgeSeconds": null
+  }
+}

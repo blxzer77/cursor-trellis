@@ -73,6 +73,15 @@ L1_GOLDEN_JSON = (
     / "retrieval-router-l1"
     / "cases.json"
 )
+EVIDENCE_GOLDEN_JSON = (
+    TRELLIS_ROOT
+    / "packages"
+    / "cli"
+    / "test"
+    / "fixtures"
+    / "retrieval-v3"
+    / "evidence-cases.json"
+)
 
 
 @dataclass
@@ -180,30 +189,23 @@ def golden_fixtures() -> list[dict[str, Any]]:
         query = case.get("query")
         if not isinstance(query, str) or not query.strip():
             continue
-        expect = case.get("expect") or {}
-        if not isinstance(expect, dict):
-            expect = {}
         fixtures.append(
             {
                 "label": case_id,
                 "query": query,
-                "cursorEnv": case.get("cursorEnv"),
-                "expect": expect,
+                "expectedIntents": case.get("expectedIntents", []),
+                "expectedStopCodes": case.get("expectedStopCodes", []),
             }
         )
     return fixtures
 
 
-def run_ts_router(
-    query: str, cursor_env: str | None = None
-) -> dict[str, Any] | None:
+def run_ts_router(query: str) -> dict[str, Any] | None:
     """Run the TS router via the built CLI dist and return the plan envelope."""
     dist_path = TRELLIS_ROOT / "packages" / "cli" / "dist" / "utils" / "codebase-retrieval-router.js"
     if not dist_path.is_file():
         return None
     input_obj: dict[str, Any] = {"query": query}
-    if cursor_env in ("native", "byok", "unknown"):
-        input_obj["cursorEnv"] = cursor_env
     wrapper = f"""
 import {{ routeCodebaseRetrieval }} from "./packages/cli/dist/utils/codebase-retrieval-router.js";
 const plan = routeCodebaseRetrieval({json.dumps(input_obj)});
@@ -224,22 +226,17 @@ console.log(JSON.stringify(plan));
         return None
 
 
-def run_py_router(
-    query: str, cursor_env: str | None = None
-) -> dict[str, Any] | None:
+def run_py_router(query: str) -> dict[str, Any] | None:
     """Run the Python router (workspace copy) and return the plan envelope."""
     if not WORKSPACE_PY.is_file():
         return None
     # Package import: common.* lives under .cstl/scripts/
     scripts_root = WORKSPACE_PY.parent.parent
-    kwargs = ""
-    if cursor_env in ("native", "byok", "unknown"):
-        kwargs = f", cursor_env={json.dumps(cursor_env)}"
     script = (
         "import json, sys; "
         f"sys.path.insert(0, r'{scripts_root}'); "
         "from common.codebase_retrieval_router import route_codebase_retrieval; "
-        f"print(json.dumps(route_codebase_retrieval({json.dumps(query)}{kwargs}), ensure_ascii=False))"
+        f"print(json.dumps(route_codebase_retrieval({json.dumps(query)}), ensure_ascii=False))"
     )
     python_cmds = ["python", "python3"] if sys.platform == "win32" else ["python3", "python"]
     for cmd in python_cmds:
@@ -263,68 +260,20 @@ def assert_fixture(
     """Check L1 expect block against one envelope; returns list of failures."""
     failures: list[str] = []
     label = fixture["label"]
-    expect = fixture.get("expect") or {}
-    if not isinstance(expect, dict):
-        return [f"[{label}] expect block missing or invalid"]
-
-    intent_ids = [i.get("id") for i in envelope.get("intents", [])]
-    routes = envelope.get("routes", [])
-    route_ids = [r.get("id") for r in routes]
-
-    for intent_id in expect.get("intentsInclude") or []:
-        if intent_id not in intent_ids:
-            failures.append(
-                f"[{label}] intentsInclude: expected '{intent_id}', got {intent_ids}"
-            )
-    for intent_id in expect.get("intentsExclude") or []:
-        if intent_id in intent_ids:
-            failures.append(
-                f"[{label}] intentsExclude: unexpected '{intent_id}' in {intent_ids}"
-            )
-    for route_id in expect.get("routeIdPresent") or []:
-        if route_id not in route_ids:
-            failures.append(
-                f"[{label}] routeIdPresent: expected '{route_id}', got {route_ids}"
-            )
-    for route_id in expect.get("routeIdAbsent") or []:
-        if route_id in route_ids:
-            failures.append(
-                f"[{label}] routeIdAbsent: unexpected '{route_id}' in {route_ids}"
-            )
-    prefix = expect.get("primaryRouteIdsPrefix") or []
-    if prefix:
-        got_prefix = route_ids[: len(prefix)]
-        if got_prefix != prefix:
-            failures.append(
-                f"[{label}] primaryRouteIdsPrefix: expected {prefix}, got {got_prefix}"
-            )
-    max_order = expect.get("maxOrder") or {}
-    if isinstance(max_order, dict):
-        for route_id, max_val in max_order.items():
-            match = next((r for r in routes if r.get("id") == route_id), None)
-            if match is None:
-                failures.append(f"[{label}] maxOrder: route '{route_id}' not found")
-            elif match.get("order", 999) > max_val:
-                failures.append(
-                    f"[{label}] maxOrder: '{route_id}' order={match.get('order')} "
-                    f"> max={max_val}"
-                )
-    semantic_backend = expect.get("semanticBackend")
-    if semantic_backend:
-        semantic = next((r for r in routes if r.get("id") == "platform-semantic"), None)
-        got = semantic.get("semanticBackend") if semantic else None
-        if got != semantic_backend:
-            failures.append(
-                f"[{label}] semanticBackend: expected '{semantic_backend}', got '{got}'"
-            )
-    fallback_sub = expect.get("fallbackSubstring")
-    if fallback_sub:
-        texts = [f.get("when", "") for f in envelope.get("fallback", [])]
-        if not any(fallback_sub in t for t in texts):
-            failures.append(
-                f"[{label}] fallbackSubstring: no fallback 'when' contains "
-                f"'{fallback_sub}'; fallbacks={texts}"
-            )
+    intent_ids = envelope.get("intents", [])
+    expected_intents = fixture.get("expectedIntents", [])
+    if intent_ids != expected_intents:
+        failures.append(
+            f"[{label}] intents: expected {expected_intents}, got {intent_ids}"
+        )
+    stop_codes = [reason.get("code") for reason in envelope.get("stopReasons", [])]
+    expected_stops = fixture.get("expectedStopCodes", [])
+    if stop_codes != expected_stops:
+        failures.append(
+            f"[{label}] stop reasons: expected {expected_stops}, got {stop_codes}"
+        )
+    if envelope.get("schemaVersion") != 3:
+        failures.append(f"[{label}] schemaVersion must equal 3")
     return failures
 
 
@@ -338,7 +287,7 @@ def check_ts_golden(report: SyncReport) -> None:
         return
     all_failures: list[str] = []
     for fixture in fixtures:
-        envelope = run_ts_router(fixture["query"], fixture.get("cursorEnv"))
+        envelope = run_ts_router(fixture["query"])
         if envelope is None:
             all_failures.append(f"[{fixture['label']}] TS router execution failed")
             continue
@@ -363,7 +312,7 @@ def check_py_golden(report: SyncReport) -> None:
         return
     all_failures: list[str] = []
     for fixture in fixtures:
-        envelope = run_py_router(fixture["query"], fixture.get("cursorEnv"))
+        envelope = run_py_router(fixture["query"])
         if envelope is None:
             all_failures.append(f"[{fixture['label']}] Python router execution failed")
             continue
@@ -379,26 +328,200 @@ def check_py_golden(report: SyncReport) -> None:
 
 
 def check_ts_py_parity(report: SyncReport) -> None:
-    """Check 5: TS and Python envelopes agree on intent ids for each fixture."""
+    """Check 5: TS and Python envelopes agree on the complete V3 plan."""
     fixtures = golden_fixtures()
     all_failures: list[str] = []
     for fixture in fixtures:
-        ts_env = run_ts_router(fixture["query"], fixture.get("cursorEnv"))
-        py_env = run_py_router(fixture["query"], fixture.get("cursorEnv"))
+        ts_env = run_ts_router(fixture["query"])
+        py_env = run_py_router(fixture["query"])
         if ts_env is None or py_env is None:
             all_failures.append(
                 f"[{fixture['label']}] parity: one or both routers failed to execute"
             )
             continue
-        ts_ids = sorted(i.get("id") for i in ts_env.get("intents", []))
-        py_ids = sorted(i.get("id") for i in py_env.get("intents", []))
-        if ts_ids != py_ids:
+        if ts_env != py_env:
             all_failures.append(
-                f"[{fixture['label']}] parity: TS intents={ts_ids} vs PY intents={py_ids}"
+                f"[{fixture['label']}] parity: complete TS/Python plans differ"
             )
     passed = len(all_failures) == 0
-    detail = "TS/Python intent parity confirmed" if passed else "\n".join(all_failures)
-    report.checks.append(CheckResult("ts-py-intent-parity", passed, detail))
+    detail = "TS/Python full-plan parity confirmed" if passed else "\n".join(all_failures)
+    report.checks.append(CheckResult("ts-py-full-plan-parity", passed, detail))
+
+
+def load_evidence_golden_cases() -> list[dict[str, Any]]:
+    """Load the shared V3 evidence ABI corpus used by Vitest and this guard."""
+    if not EVIDENCE_GOLDEN_JSON.is_file():
+        return []
+    payload = json.loads(EVIDENCE_GOLDEN_JSON.read_text(encoding="utf-8"))
+    if not isinstance(payload, list):
+        return []
+    return [case for case in payload if isinstance(case, dict)]
+
+
+def run_ts_evidence_fixture(
+    fixture: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any]] | None:
+    """Build and assess a corpus item through the compiled TS ABI."""
+    dist_path = (
+        TRELLIS_ROOT
+        / "packages"
+        / "cli"
+        / "dist"
+        / "pactile"
+        / "retrieval"
+        / "index.js"
+    )
+    if not dist_path.is_file():
+        return None
+    wrapper = """
+import { readFileSync } from "node:fs";
+import {
+  assessRetrievalClaimV3,
+  buildRetrievalRequestV3,
+  createRetrievalPlanV3,
+} from "./packages/cli/dist/pactile/retrieval/index.js";
+const fixture = JSON.parse(readFileSync(0, "utf8"));
+const plan = createRetrievalPlanV3(
+  buildRetrievalRequestV3({
+    query: `shared evidence fixture ${fixture.planIntent}`,
+    intents: [fixture.planIntent],
+    minimumAssurance: fixture.minimumAssurance,
+    requiredEvidenceKinds: fixture.requiredEvidenceKinds,
+  }),
+  fixture.planIntent === "exact"
+    ? {}
+    : { providerAvailability: [{
+        intent: fixture.planIntent,
+        status: "ready",
+        readiness: "ready",
+      }] },
+);
+const verified = plan.minimumAssurance === "verified";
+const input = {
+  plan,
+  intent: fixture.inputIntent ?? fixture.planIntent,
+  candidateRefs: fixture.candidateRefs,
+  corroboration: fixture.corroboration,
+};
+if (fixture.resolution === "valid" && fixture.planIntent !== "exact") {
+  input.resolution = {
+    schemaVersion: 1,
+    intent: fixture.planIntent,
+    minimumAssurance: plan.minimumAssurance,
+    origin: "provider",
+    providerId: "fixture.provider",
+    providerVersion: "1.0.0",
+    assurance: plan.minimumAssurance,
+    readiness: "ready",
+    requestedPolicy: plan.requestedPolicy,
+    effectivePolicy: plan.requestedPolicy,
+    evidenceRefs: ["evidence://provider/probe"],
+    freshness: verified ? "fresh" : "unknown",
+    probedAt: verified ? "2026-09-09T01:00:00.000Z" : null,
+    probeResult: verified ? "passed" : "not-run",
+    fallbackFromProviderId: null,
+    ...(fixture.resolutionOverrides ?? {}),
+    ...(fixture.resolutionExtra ?? {}),
+  };
+}
+Object.assign(input, fixture.inputExtra ?? {});
+console.log(JSON.stringify({ input, result: assessRetrievalClaimV3(input) }));
+"""
+    try:
+        completed = subprocess.run(
+            ["node", "--input-type=module", "-e", wrapper],
+            capture_output=True,
+            text=True,
+            input=json.dumps(fixture, ensure_ascii=False),
+            cwd=str(TRELLIS_ROOT),
+            timeout=30,
+        )
+        if completed.returncode != 0:
+            return None
+        envelope = json.loads(completed.stdout)
+        input_value = envelope.get("input")
+        result = envelope.get("result")
+        if not isinstance(input_value, dict) or not isinstance(result, dict):
+            return None
+        return input_value, result
+    except Exception:
+        return None
+
+
+def run_py_evidence(input_value: dict[str, Any]) -> dict[str, Any] | None:
+    """Assess a materialized TS corpus input through the Python mirror ABI."""
+    scripts_root = CLI_TEMPLATE_PY.parent.parent
+    script = (
+        "import json, sys; "
+        "sys.path.insert(0, sys.argv[1]); "
+        "from common.codebase_retrieval_router import assess_retrieval_claim_v3; "
+        "value = json.load(sys.stdin); "
+        "print(json.dumps(assess_retrieval_claim_v3(value), "
+        "ensure_ascii=False, separators=(',', ':')))"
+    )
+    python_cmds = ["python", "python3"] if sys.platform == "win32" else ["python3", "python"]
+    for command in python_cmds:
+        try:
+            completed = subprocess.run(
+                [command, "-c", script, str(scripts_root)],
+                capture_output=True,
+                text=True,
+                input=json.dumps(input_value, ensure_ascii=False),
+                timeout=30,
+            )
+            if completed.returncode == 0:
+                result = json.loads(completed.stdout)
+                return result if isinstance(result, dict) else None
+        except Exception:
+            continue
+    return None
+
+
+def check_ts_py_evidence_parity(report: SyncReport) -> None:
+    """Check 6: shared valid/malformed evidence corpus is ABI-identical."""
+    fixtures = load_evidence_golden_cases()
+    if not fixtures:
+        report.checks.append(
+            CheckResult(
+                "ts-py-evidence-parity",
+                False,
+                f"V3 evidence corpus missing: {EVIDENCE_GOLDEN_JSON}",
+            )
+        )
+        return
+    failures: list[str] = []
+    for fixture in fixtures:
+        label = str(fixture.get("name", "unknown"))
+        ts_execution = run_ts_evidence_fixture(fixture)
+        if ts_execution is None:
+            failures.append(f"[{label}] TS evidence execution failed")
+            continue
+        input_value, ts_result = ts_execution
+        py_result = run_py_evidence(input_value)
+        if py_result is None:
+            failures.append(f"[{label}] Python evidence execution failed")
+            continue
+        if ts_result != py_result:
+            failures.append(f"[{label}] complete TS/Python assessments differ")
+            continue
+        expected = fixture.get("expected")
+        if not isinstance(expected, dict) or any(
+            ts_result.get(key) != value for key, value in expected.items()
+        ):
+            failures.append(f"[{label}] shared expected assessment did not match")
+        serialized = json.dumps(ts_result, ensure_ascii=False, separators=(",", ":"))
+        canaries = fixture.get("outputMustNotContain", [])
+        if isinstance(canaries, list) and any(
+            isinstance(canary, str) and canary in serialized for canary in canaries
+        ):
+            failures.append(f"[{label}] output exposed a forbidden corpus canary")
+    passed = not failures
+    detail = (
+        f"all {len(fixtures)} valid/malformed evidence fixtures passed"
+        if passed
+        else "\n".join(failures)
+    )
+    report.checks.append(CheckResult("ts-py-evidence-parity", passed, detail))
 
 
 def check_extra_workspace_copies(report: SyncReport, extra_root: Path) -> None:
@@ -452,6 +575,7 @@ def main() -> int:
         check_ts_golden(report)
         check_py_golden(report)
         check_ts_py_parity(report)
+        check_ts_py_evidence_parity(report)
 
     if args.json:
         output = {

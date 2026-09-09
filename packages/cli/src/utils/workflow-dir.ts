@@ -1,7 +1,5 @@
-import fs from "node:fs";
 import path from "node:path";
-
-import { DIR_NAMES } from "../constants/paths.js";
+import { resolveLegacyWorkflowDirName } from "../pactile/runtime/paths.js";
 
 /** Pre-0.3.1 cursor-trellis runtime directory (upstream Trellis still uses this name). */
 export const LEGACY_WORKFLOW_DIR = ".trellis";
@@ -11,13 +9,9 @@ export const LEGACY_WORKFLOW_DIR = ".trellis";
  * Prefers `.cstl/`; falls back to legacy `.trellis/` for pre-migration trees.
  */
 export function resolveWorkflowDirName(cwd: string): string | null {
-  if (fs.existsSync(path.join(cwd, DIR_NAMES.WORKFLOW))) {
-    return DIR_NAMES.WORKFLOW;
-  }
-  if (fs.existsSync(path.join(cwd, LEGACY_WORKFLOW_DIR))) {
-    return LEGACY_WORKFLOW_DIR;
-  }
-  return null;
+  // Existing update/hash consumers still use legacy lifecycle semantics. New
+  // Runtime clients use resolveCanonicalPaths + assertCanonicalWriteTarget.
+  return resolveLegacyWorkflowDirName(cwd);
 }
 
 /** Absolute path to the active workflow root, or null when not initialized. */
@@ -31,7 +25,10 @@ export function isWorkflowInitialized(cwd: string): boolean {
 }
 
 /** Join a path segment under the active workflow dir (POSIX-style relative segments). */
-export function workflowPath(cwd: string, ...segments: string[]): string | null {
+export function workflowPath(
+  cwd: string,
+  ...segments: string[]
+): string | null {
   const root = workflowDirPath(cwd);
   if (!root) {
     return null;

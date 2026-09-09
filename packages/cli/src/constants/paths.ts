@@ -5,7 +5,12 @@
  * All paths should be relative to the project root.
  */
 
-// Directory names (can be renamed)
+import { DEFAULT_CANONICAL_PATHS_V1 } from "@blxzer/cursor-trellis-core";
+
+/** New Runtime SSOT; legacy lifecycle constants below stay unchanged until migration. */
+export const PACTILE_PATHS = DEFAULT_CANONICAL_PATHS_V1;
+
+// Legacy lifecycle directory names (do not switch init/update implicitly).
 export const DIR_NAMES = {
   /** Root workflow directory */
   WORKFLOW: ".cstl",

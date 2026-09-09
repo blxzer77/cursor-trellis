@@ -1,90 +1,66 @@
 import { describe, expect, it } from "vitest";
 
 import { routeCodebaseRetrieval } from "../../src/utils/codebase-retrieval-router.js";
-import { ENV_BYOK, ENV_NATIVE, ENV_UNKNOWN } from "../../src/utils/cursor-retrieval-env.js";
 import {
+  attachAgentInstructions,
   guessSymbolFromQuery,
   renderAgentInstructions,
 } from "../../src/utils/retrieval-agent-instructions.js";
 
-describe("retrieval agent instructions", () => {
-  it("extracts symbol from caller query", () => {
+describe("neutral retrieval agent instructions", () => {
+  it("extracts a likely exact symbol", () => {
     expect(
-      guessSymbolFromQuery(
-        "buildAgentRunTerminalOutcomeFromWaitResult 都被哪些文件调用了",
-      ),
-    ).toBe("buildAgentRunTerminalOutcomeFromWaitResult");
+      guessSymbolFromQuery("where is `routeCodebaseRetrieval` defined?"),
+    ).toBe("routeCodebaseRetrieval");
   });
 
-  it("renders caller-chain steps with codegraph_callers first on cursor", () => {
-    const plan = routeCodebaseRetrieval({
-      query: "Which modules invoke buildToolPlan and list call sites?",
-      cursorEnv: ENV_NATIVE,
-    });
-    const text = renderAgentInstructions(plan);
-    expect(text).toContain("## 代码库检索计划");
-    expect(text).toContain("codegraph_callers");
-    expect(text).toContain("Grep");
-    expect(text.indexOf("codegraph_callers")).toBeLessThan(text.indexOf("Grep"));
-    const stepsOnly = text.split("**降级**")[0] ?? text;
-    expect(stepsOnly).not.toContain("fast_context_search");
+  it("renders the local exact step with rg", () => {
+    const text = renderAgentInstructions(
+      routeCodebaseRetrieval({
+        query: "where is WidgetFactory defined",
+        intents: ["exact"],
+      }),
+      "en",
+    );
+    expect(text).toContain("Use `rg`");
+    expect(text).toContain("`WidgetFactory`");
+    expect(text).toContain("candidate -> corroborate");
   });
 
-  it("renders platform-semantic without fast-context on cursor conceptual query", () => {
-    const plan = routeCodebaseRetrieval({
-      query: "how does gateway protocol differ from plugin sdk responsibilities",
-      cursorEnv: ENV_NATIVE,
-    });
-    const text = renderAgentInstructions(plan);
-    expect(plan.routes.some((r) => r.id === "platform-semantic")).toBe(true);
-    expect(text).toContain("内置代码库语义搜索");
-    expect(text).toContain("target_directories");
-    const stepsOnly = text.split("**降级**")[0] ?? text;
-    expect(stepsOnly).not.toContain("fast_context_search");
-    expect(text).toContain("语义合规");
-    expect(text).toContain("计划门控");
+  it("renders provider requirements without choosing an implementation", () => {
+    const text = renderAgentInstructions(
+      routeCodebaseRetrieval({
+        query: "how does account behavior work",
+        intents: ["semantic"],
+      }),
+      "en",
+    );
+    expect(text).toContain("project resolver");
+    expect(text).toContain("resolution-required");
+    expect(text).toContain("Do not infer or choose an implementation");
+    expect(text.toLowerCase()).not.toMatch(
+      /codegraph|fast-context|smart-search|semanticsearch|@codebase/,
+    );
   });
 
-  it("renders BYOK platform-semantic with fast_context_search", () => {
-    const plan = routeCodebaseRetrieval({
-      query: "WPeLc8 子代理路由如何工作",
-      cursorEnv: ENV_BYOK,
-    });
-    const text = renderAgentInstructions(plan);
-    expect(text).toContain("cursorEnv）：byok");
-    expect(text).toContain("fast_context_search");
-    expect(text).not.toContain("内置代码库语义搜索");
-    expect(text).toContain("语义合规（BYOK env / cursorEnv=byok）");
+  it("renders Chinese evidence and assurance guidance", () => {
+    const text = renderAgentInstructions(
+      routeCodebaseRetrieval({
+        query: "分析调用链与影响面",
+        intents: ["structural"],
+        minimumAssurance: "verified",
+        requiredEvidenceKinds: ["repeatable-test"],
+      }),
+    );
+    expect(text).toContain("最低 assurance：verified");
+    expect(text).toContain("可重复测试");
+    expect(text).toContain("阻断原因：provider-resolution-required");
   });
 
-  it("renders trap intent with codegraph disambiguation", () => {
-    const plan = routeCodebaseRetrieval({
-      query: "trap demotion packages/foo-core vs src/agents overlay",
-    });
-    const text = renderAgentInstructions(plan);
-    expect(text).toMatch(/codegraph_search|codegraph_explore/);
-    expect(text).toContain("trap");
-    expect(text).toContain("结果层排序");
-  });
-
-  it("renders unknown cursorEnv with conservative fast_context_search", () => {
-    const plan = routeCodebaseRetrieval({
-      query: "how does gateway protocol differ from plugin sdk",
-      cursorEnv: ENV_UNKNOWN,
-    });
-    const text = renderAgentInstructions(plan);
-    expect(text).toContain("cursorEnv）：unknown");
-    expect(text).toContain("fast_context_search");
-    expect(text).toContain("保守");
-    expect(text).not.toContain("内置代码库语义搜索");
-  });
-
-  it("appends result-layer ranking hint for caller-chain intent", () => {
-    const plan = routeCodebaseRetrieval({
-      query: "Which modules invoke buildToolPlan and list call sites?",
-    });
-    const text = renderAgentInstructions(plan);
-    expect(text).toContain("结果层排序");
-    expect(text).toContain("调用链");
+  it("attaches instructions without changing the plan fingerprint", () => {
+    const plan = routeCodebaseRetrieval("caller dependency impact");
+    const attached = attachAgentInstructions(plan, "en");
+    expect(attached.fingerprint).toBe(plan.fingerprint);
+    expect(attached.agentInstructions).toContain("Retrieval plan V3");
   });
 });

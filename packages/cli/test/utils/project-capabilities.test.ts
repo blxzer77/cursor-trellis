@@ -194,13 +194,13 @@ describe("project capabilities", () => {
     );
     expect(retrieval?.adapters?.semantic).toEqual(
       expect.objectContaining({
-        provider: "platform-semantic",
+        provider: "resolver-selected",
         required: false,
-        evidence_status: expect.stringContaining("BYOK fast-context"),
+        evidence_status: expect.stringContaining("exact source reads"),
       }),
     );
     expect(retrieval?.adapters?.lsp?.provider).toBe("codegraph");
-    expect(retrieval?.routing).toContain("cursorEnv");
+    expect(retrieval?.routing).toContain("explicitly selected");
     expect(retrieval?.fallback).toContain(
       "Install or expose `rg` on PATH before claiming codebase retrieval readiness.",
     );
@@ -217,6 +217,9 @@ describe("project capabilities", () => {
     expect(JSON.stringify(parsed)).toContain("GITHUB_PERSONAL_ACCESS_TOKEN");
     expect(JSON.stringify(parsed)).not.toMatch(
       /gh[pousr]_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9_-]{20,}|test-token/i,
+    );
+    expect(JSON.stringify(parsed)).not.toMatch(
+      /BYOK|cursorEnv|\.ccursor\/routes\.json|byokMode/i,
     );
   });
 
@@ -342,12 +345,17 @@ describe("project capabilities", () => {
     expect(capabilitiesMd).toContain(">= 4/6");
     expect(capabilitiesMd).toContain("## Codebase Retrieval Workflow");
     expect(capabilitiesMd).toContain("## Query Intent Branches (intent-gated)");
-    expect(capabilitiesMd).toContain("Semantic recall (Cursor)");
-    expect(capabilitiesMd).toContain("cursorEnv");
-    expect(capabilitiesMd).toContain("fast_context_search");
+    expect(capabilitiesMd).toContain("## Semantic recall");
+    expect(capabilitiesMd).toContain("host-neutral resolver");
+    expect(capabilitiesMd).toContain("user-global route file");
+    expect(capabilitiesMd).not.toMatch(
+      /BYOK|cursorEnv|\.ccursor\/routes\.json|byokMode/i,
+    );
     expect(capabilitiesMd).not.toContain("do not substitute fast-context MCP");
-    expect(capabilitiesMd).toContain("platform-semantic");
-    expect(capabilitiesMd).toContain("### Cross-cutting / conceptual discovery");
+    expect(capabilitiesMd).toContain("resolver-selected");
+    expect(capabilitiesMd).toContain(
+      "### Cross-cutting / conceptual discovery",
+    );
     expect(capabilitiesMd).toContain("on-demand retrieval docs");
     expect(capabilitiesMd).toContain("### Caller and assembly chain (B-class)");
     expect(capabilitiesMd).toContain(
@@ -465,9 +473,7 @@ describe("project capabilities", () => {
       expect(
         parsed.capabilities["codebase-retrieval"]?.readiness_status_detail,
       ).toBe("smoke passed");
-      expect(capabilitiesMd).toContain(
-        "- codebase-retrieval [ready]:",
-      );
+      expect(capabilitiesMd).toContain("- codebase-retrieval [ready]:");
       expect(capabilitiesMd).toContain("(smoke passed)");
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });

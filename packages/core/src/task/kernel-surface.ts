@@ -7,6 +7,8 @@
  */
 
 import {
+  type KernelExtrasBoundary,
+  type KernelSnapshot,
   deriveStateForPhase,
   isKernelCondition,
   isKernelOutcome,
@@ -18,6 +20,74 @@ import {
   type KernelPhase,
   type KernelState,
 } from "./kernel-contract.js";
+import { normalizeStage5InExtrasAndAssert } from "./ondemand-topology.js";
+import { normalizeStage6InExtrasAndAssert } from "./adapter-middleware.js";
+import { isPlainObject, taskRecordSchema, TASK_RECORD_FIELD_ORDER } from "./schema.js";
+import { fingerprintPactileContractV1 } from "../pactile/validation.js";
+import { createHash } from "node:crypto";
+
+/**
+ * Legacy projection boundary only. Old module/provider catalogs must not leak
+ * into neutral validation or store business logic. This adapter normalizes an
+ * owned in-memory copy; it does not discover catalogs or write files.
+ */
+export const legacyKernelExtrasBoundary: KernelExtrasBoundary = (extras, record, phase) => {
+  normalizeStage5InExtrasAndAssert(extras, record, phase);
+  normalizeStage6InExtrasAndAssert(extras, phase);
+};
+
+export interface ProjectionInspection {
+  readonly status: "in-sync" | "missing" | "drifted" | "malformed";
+  readonly canonicalRevision: number;
+  readonly expectedFingerprint: string;
+  /** Exact observed bytes, including foreign keys and whitespace, for repair CAS. */
+  readonly currentFingerprint: string | null;
+}
+
+export interface ProjectionRepairReceipt {
+  readonly status: "repaired" | "in-sync" | "cas-mismatch";
+  readonly canonicalRevision: number;
+  readonly beforeFingerprint: string | null;
+  readonly afterFingerprint: string | null;
+}
+
+export interface TaskProjectionPort {
+  inspect(): ProjectionInspection;
+  repair(expected: { canonicalRevision: number; currentFingerprint: string | null }): ProjectionRepairReceipt;
+}
+
+export function projectionBytesFingerprint(raw: string | Uint8Array | null): string | null {
+  return raw === null ? null : `sha256:${createHash("sha256").update(raw).digest("hex")}`;
+}
+
+/** Canonical fields win even when an old extras object contains a duplicate. */
+export function expectedTaskProjection(canonical: KernelSnapshot): Record<string, unknown> {
+  if (!canonical.projection) throw new Error("PACTILE_PROJECTION_CANONICAL_MISSING");
+  return { ...canonical.projection.extras, ...canonical.projection.record, status: canonical.projection.status };
+}
+
+/** Pure read-only comparison. Foreign keys are preserved, not claimed by Kernel. */
+export function inspectProjection(canonical: KernelSnapshot, current: string | Uint8Array | null): ProjectionInspection {
+  const expected = expectedTaskProjection(canonical);
+  const base = {
+    canonicalRevision: canonical.revision,
+    expectedFingerprint: fingerprintPactileContractV1(expected),
+    currentFingerprint: projectionBytesFingerprint(current),
+  };
+  if (current === null) return { ...base, status: "missing" };
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(typeof current === "string" ? current : Buffer.from(current).toString("utf8"));
+    if (!isPlainObject(parsed)) return { ...base, status: "malformed" };
+    taskRecordSchema.parse(parsed);
+  } catch { return { ...base, status: "malformed" }; }
+  const owned: Record<string, unknown> = Object.fromEntries(
+    [...new Set([...TASK_RECORD_FIELD_ORDER, ...Object.keys(expected)])]
+      .filter((key) => Object.hasOwn(parsed, key))
+      .map((key) => [key, parsed[key]]),
+  );
+  return { ...base, status: fingerprintPactileContractV1(owned) === base.expectedFingerprint ? "in-sync" : "drifted" };
+}
 
 export type KernelSurfaceLocale = "en" | "zh";
 

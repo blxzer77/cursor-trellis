@@ -32,7 +32,9 @@ function runBuildEnvelope(
 ): EvidenceEnvelopePayload {
   const result = runBuildRetrievalPack(pythonCmd as string, root, input);
   expect(result.status).toBe(0);
-  const payload = JSON.parse(result.stdout) as { evidenceEnvelope: EvidenceEnvelopePayload };
+  const payload = JSON.parse(result.stdout) as {
+    evidenceEnvelope: EvidenceEnvelopePayload;
+  };
   return payload.evidenceEnvelope;
 }
 
@@ -59,7 +61,9 @@ describe.skipIf(pythonCmd === null)("retrieval_adapter_metadata.py", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-adapter-metadata-"));
+    tmpDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "trellis-adapter-metadata-"),
+    );
     writeTrellisScripts(tmpDir);
   });
 
@@ -86,10 +90,12 @@ describe.skipIf(pythonCmd === null)("retrieval_adapter_metadata.py", () => {
     expect(envelope.routes).toEqual([]);
     expect(envelope.adapterState.length).toBeGreaterThan(0);
     expect(envelope.freshness).toHaveLength(envelope.adapterState.length);
-    expect(envelope.fallback.some((item) => item.fromAdapter === "codegraph")).toBe(true);
-    expect(envelope.verification.some((item) => item.adapter === "source-git-tests")).toBe(
-      true,
-    );
+    expect(
+      envelope.fallback.some((item) => item.fromAdapter === "codegraph"),
+    ).toBe(true);
+    expect(
+      envelope.verification.some((item) => item.adapter === "source-git-tests"),
+    ).toBe(true);
     const rg = envelope.adapterState.find((item) => item.adapter === "rg");
     expect(rg?.state).toBe("available");
     expect(rg?.required).toBe(true);
@@ -101,7 +107,8 @@ describe.skipIf(pythonCmd === null)("retrieval_adapter_metadata.py", () => {
         smartSearchManifests: [
           {
             status: "failed",
-            manifestPath: ".cstl/tasks/x/research/smart-search/run/manifest.json",
+            manifestPath:
+              ".cstl/tasks/x/research/smart-search/run/manifest.json",
             error: "provider auth failed",
           },
         ],
@@ -128,22 +135,29 @@ describe.skipIf(pythonCmd === null)("retrieval_adapter_metadata.py", () => {
       orchestrator_warnings: [],
     });
 
-    const smartSearch = envelope.adapterState.find((item) => item.adapter === "smart-search");
+    const smartSearch = envelope.adapterState.find(
+      (item) => item.adapter === "smart-search",
+    );
     expect(smartSearch?.state).toBe("failed");
     expect(smartSearch?.invoked).toBe(true);
     expect(
       envelope.fallback.some(
-        (item) => item.fromAdapter === "smart-search" && item.toAdapter === "rg",
+        (item) =>
+          item.fromAdapter === "smart-search" && item.toAdapter === "rg",
       ),
     ).toBe(true);
     expect(
       envelope.fallback.some(
-        (item) => item.fromAdapter === "smart-search" && item.toAdapter === "task-artifacts",
+        (item) =>
+          item.fromAdapter === "smart-search" &&
+          item.toAdapter === "task-artifacts",
       ),
     ).toBe(true);
-    expect(envelope.warnings.some((warning) => warning.includes("smart-search failed"))).toBe(
-      true,
-    );
+    expect(
+      envelope.warnings.some((warning) =>
+        warning.includes("smart-search failed"),
+      ),
+    ).toBe(true);
   });
 
   it("passes through router intents without redefining them", () => {
@@ -159,37 +173,27 @@ describe.skipIf(pythonCmd === null)("retrieval_adapter_metadata.py", () => {
       },
       orchestrator_warnings: [],
       router_envelope: {
-        version: 1,
-        intents: [{ id: "policy-doc", confidence: "high" }],
-        routes: [{ adapter: "rg", priority: 1 }],
-        fallback: [
-          { when: "rg missing on PATH", action: "install rg" },
-          {
-            when: "semantic Top-1 is implementation-only",
-            action: "prefer policy docs",
-            replacesRole: "semantic",
-          },
-        ],
-        warnings: ["router confidence is low"],
+        schemaVersion: 3,
+        intents: ["exact"],
+        steps: [{ order: 1, intent: "exact", kind: "local-exact" }],
+        stopReasons: [],
+        verificationChain: [{ order: 1, stage: "candidate", required: true }],
       },
     });
 
-    expect(envelope.intents).toEqual([{ id: "policy-doc", confidence: "high" }]);
-    expect(envelope.routes).toEqual([{ adapter: "rg", priority: 1 }]);
-    expect(envelope.fallback).toEqual(
+    expect(envelope.intents).toEqual(["exact"]);
+    expect(envelope.routes).toEqual([
+      { order: 1, intent: "exact", kind: "local-exact" },
+    ]);
+    expect(envelope.verification).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ when: "rg missing on PATH", action: "install rg" }),
-        expect.objectContaining({
-          when: "semantic Top-1 is implementation-only",
-          action: "prefer policy docs",
-          replacesRole: "semantic",
-        }),
+        { order: 1, stage: "candidate", required: true },
       ]),
     );
-    expect(envelope.warnings).toContain("router confidence is low");
+    expect(envelope.warnings).not.toContain("router confidence is low");
   });
 
-  it("adapter reasons follow cursorEnv on router envelope (BYOK fast-context Primary)", () => {
+  it("defers concrete adapter selection to the resolver", () => {
     const envelope = runAdapterMetadataDirect(tmpDir, {
       bundle: {},
       scored_evidence: { version: 1, total: 0, items: [] },
@@ -201,7 +205,11 @@ describe.skipIf(pythonCmd === null)("retrieval_adapter_metadata.py", () => {
         codebaseCandidates: 0,
       },
       orchestrator_warnings: [],
-      router_envelope: { cursorEnv: "byok", version: 1 },
+      router_envelope: {
+        schemaVersion: 3,
+        intents: ["semantic"],
+        steps: [{ order: 1, intent: "semantic", kind: "provider-request" }],
+      },
     });
 
     const platform = envelope.adapterState.find(
@@ -210,9 +218,10 @@ describe.skipIf(pythonCmd === null)("retrieval_adapter_metadata.py", () => {
     const fastCtx = envelope.adapterState.find(
       (item) => item.adapter === "fast-context-mcp",
     );
-    expect(platform?.reason).toContain("Experiment D");
-    expect(fastCtx?.reason).toContain("compliant Primary");
-    expect(platform?.reason).not.toContain("supersedes fast-context");
+    expect(platform).toMatchObject({ state: "unverified", invoked: false });
+    expect(platform?.reason).toContain("resolver-owned");
+    expect(fastCtx).toMatchObject({ state: "skipped", invoked: false });
+    expect(fastCtx?.reason).toContain("resolver-owned");
   });
 
   it("exposes evidenceEnvelope on retrieval pack orchestrator output", () => {
@@ -228,10 +237,12 @@ describe.skipIf(pythonCmd === null)("retrieval_adapter_metadata.py", () => {
       codebaseCandidates: bundle.codebaseCandidates,
     });
 
-    expect(envelope.adapterState.some((item) => item.adapter === "artifact-search")).toBe(
+    expect(
+      envelope.adapterState.some((item) => item.adapter === "artifact-search"),
+    ).toBe(true);
+    expect(envelope.freshness.some((item) => item.freshnessScore > 0)).toBe(
       true,
     );
-    expect(envelope.freshness.some((item) => item.freshnessScore > 0)).toBe(true);
     expect(envelope.fallback.length).toBeGreaterThan(0);
   });
 
@@ -247,7 +258,9 @@ describe.skipIf(pythonCmd === null)("retrieval_adapter_metadata.py", () => {
       ],
     });
 
-    const codegraph = envelope.adapterState.find((item) => item.adapter === "codegraph");
+    const codegraph = envelope.adapterState.find(
+      (item) => item.adapter === "codegraph",
+    );
     expect(codegraph?.state).toBe("stale");
     expect(codegraph?.invoked).toBe(false);
     expect(

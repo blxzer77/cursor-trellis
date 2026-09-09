@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -18,6 +19,7 @@ from common.adapter_middleware import (
     AdapterMiddlewareError,
     apply_middleware_probes,
     assert_external_knowledge,
+    classify_transport_probe,
     default_event_bridge,
     default_middleware_providers,
     dispatch_hook_event,
@@ -25,6 +27,7 @@ from common.adapter_middleware import (
     mcp_server_ids_from_config,
     normalize_capability_router,
     probe_smart_search_readiness,
+    resolve_provider_v1,
     select_registered_mcp_servers,
     sync_event_bridge_subscriptions,
 )
@@ -79,8 +82,10 @@ def test_missing_smart_search_is_not_ready() -> None:
     readiness = probe_smart_search_readiness(available=False)
     assert readiness["status"] == "missing"
     assert readiness["capability"] == EXTERNAL_KNOWLEDGE_CAPABILITY
-    extras = {"required_capabilities": [EXTERNAL_KNOWLEDGE_CAPABILITY]}
-    with pytest.raises(AdapterMiddlewareError, match="not ready"):
+    extras: dict[str, Any] = {
+        "required_capabilities": [EXTERNAL_KNOWLEDGE_CAPABILITY]
+    }
+    with pytest.raises(AdapterMiddlewareError, match="no ready authorized Provider"):
         assert_external_knowledge(extras, readiness, phase="start")
     extras["external_knowledge_policy"] = "degrade"
     assert_external_knowledge(extras, readiness, phase="start")
@@ -91,35 +96,104 @@ def test_missing_smart_search_is_not_ready() -> None:
 def test_capability_router_rejects_optional_tool_names() -> None:
     router = normalize_capability_router(None)
     assert tuple(key for key in RETRIEVAL_INTENTS if router.get(key)) == RETRIEVAL_INTENTS
-    with pytest.raises(AdapterMiddlewareError, match="Optional tool"):
+    with pytest.raises(AdapterMiddlewareError, match="retrieval intent keys"):
         normalize_capability_router({"codegraph": True})
 
 
-def test_default_catalog_is_seven_providers_with_smart_search_required() -> None:
+def test_default_catalog_is_empty_and_does_not_claim_a_concrete_provider() -> None:
     providers = default_middleware_providers()
     assert providers["registered"] == list(SHIPPED_MIDDLEWARE_PROVIDERS)
-    assert providers["required"] == ["smart-search"]
+    assert providers["registered"] == []
+    assert providers["required"] == []
     assert set(SHIPPED_PROVIDER_PROBE) == set(SHIPPED_MIDDLEWARE_PROVIDERS)
     assert set(SHIPPED_PROVIDER_PROBE.values()) <= {"cli", "mcp", "host"}
 
 
 def test_optional_mcp_missing_does_not_block_unrelated_assert() -> None:
     providers = apply_middleware_probes(
-        default_middleware_providers(),
         {
-            "codegraph": {"present": False},
+            **default_middleware_providers(),
+            "registered": ["provider.alpha"],
+        },
+        {
+            "provider.alpha": {
+                "present": False,
+                "capability": EXTERNAL_KNOWLEDGE_CAPABILITY,
+            },
             "random-extra-mcp": {"present": True},
         },
     )
-    assert providers["readiness"]["codegraph"]["status"] == "missing"
+    assert providers["readiness"]["provider.alpha"]["status"] == "missing"
     assert "random-extra-mcp" not in providers["readiness"]
     extras: dict = {}
     assert_external_knowledge(
         extras,
-        providers["readiness"]["smart-search"],
+        providers["readiness"]["provider.alpha"],
         phase="archive",
     )
     configured = mcp_server_ids_from_config(
         {"mcpServers": {"codegraph": {}, "random-extra-mcp": {}, "playwright": {}}},
     )
-    assert select_registered_mcp_servers(configured) == ["codegraph", "playwright"]
+    assert select_registered_mcp_servers(configured) == []
+    assert select_registered_mcp_servers(
+        configured,
+        registered=["random-extra-mcp"],
+    ) == ["random-extra-mcp"]
+
+
+def test_probe_evidence_is_logical_and_secret_safe() -> None:
+    safe = "evidence://probe/provider.alpha/1"
+    assert classify_transport_probe(present=True, evidence=safe)["evidence"] == safe
+    canary = "TOKEN=do-not-print"
+    result = classify_transport_probe(present=True, evidence=canary)
+    assert result["evidence"] is None
+    assert canary not in str(result)
+
+
+def test_resolver_rejects_non_plain_mapping_containers_without_reading_them() -> None:
+    canary = "TOKEN=hostile-mapping-canary"
+
+    class ThrowingDict(dict[str, Any]):
+        def get(self, key: str, default: Any = None) -> Any:
+            raise RuntimeError(canary)
+
+    keys = {
+        "schemaVersion",
+        "intent",
+        "capabilityId",
+        "minimumAssurance",
+        "requestedPolicy",
+        "authorizedProviderIds",
+        "activeProviderIds",
+        "standbyProviderIds",
+        "fallbackAllowed",
+        "manifests",
+        "bindings",
+        "runtimeFacts",
+        "now",
+    }
+    top_level = ThrowingDict({key: None for key in keys})
+    nested: dict[str, Any] = {key: None for key in keys}
+    nested["schemaVersion"] = 1
+    nested["requestedPolicy"] = ThrowingDict()
+
+    expected = {
+        "schemaVersion": 1,
+        "status": "invalid",
+        "resolution": None,
+        "fingerprint": None,
+        "explain": {
+            "schemaVersion": 1,
+            "decision": "invalid",
+            "reasonCode": "provider-input-invalid",
+            "selectedProviderId": None,
+            "fallbackFromProviderId": None,
+            "effectivePolicy": None,
+            "evidenceRefs": [],
+            "candidates": [],
+        },
+    }
+    for value in (top_level, nested):
+        result = resolve_provider_v1(value)
+        assert result == expected
+        assert canary not in str(result)

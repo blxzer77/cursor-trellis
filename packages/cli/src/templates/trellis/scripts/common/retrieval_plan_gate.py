@@ -6,12 +6,6 @@ from __future__ import annotations
 import re
 
 from .codebase_retrieval_router import (
-    INTENT_CALLER,
-    INTENT_CONCEPTUAL,
-    INTENT_ENV,
-    INTENT_EXTENSION,
-    INTENT_POLICY,
-    INTENT_TRAP,
     classify_codebase_retrieval_intents,
 )
 
@@ -59,17 +53,8 @@ def should_inject_retrieval_plan(query: str) -> bool:
     if len(text) < 8 and not re.search(r"[\u4e00-\u9fff]", text):
         return False
 
-    intents = classify_codebase_retrieval_intents(text)
-    intent_ids = {str(item.get("id", "")) for item in intents}
-    structural = {
-        INTENT_CALLER,
-        INTENT_TRAP,
-        INTENT_EXTENSION,
-        INTENT_ENV,
-        INTENT_POLICY,
-        INTENT_CONCEPTUAL,
-    }
-    if intent_ids & structural:
+    intents = set(classify_codebase_retrieval_intents(text))
+    if intents & {"semantic", "structural", "external"}:
         return True
     if len(text) >= 12:
         return True

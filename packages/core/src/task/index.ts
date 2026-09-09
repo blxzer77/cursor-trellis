@@ -44,6 +44,14 @@ export type {
   KernelCommandOp,
   TransitionRequest,
   LegacyTaskProjection,
+  KernelExtrasBoundary,
+  ProviderResolutionFact,
+  EvidenceFact,
+  EvidenceFactPort,
+  CompositionValidationInput,
+  CompositionReasonCode,
+  CompositionValidationOutcome,
+  CompositionValidationPort,
 } from "./kernel-contract.js";
 
 export {
@@ -62,12 +70,18 @@ export {
   kernelPhaseToLegacyStatus,
   hopsToExecute,
   hopsToClose,
+  neutralKernelExtrasBoundary,
+  validateComposition,
+  compositionValidationPort,
 } from "./kernel-contract.js";
 
 export type {
   KernelSurfaceLocale,
   KernelSurfaceInput,
   KernelSurfaceProjection,
+  ProjectionInspection,
+  ProjectionRepairReceipt,
+  TaskProjectionPort,
 } from "./kernel-surface.js";
 
 export {
@@ -76,6 +90,10 @@ export {
   kernelPhaseHumanTitle,
   topologyNeedsIntegrate,
   projectKernelSurface,
+  legacyKernelExtrasBoundary,
+  projectionBytesFingerprint,
+  expectedTaskProjection,
+  inspectProjection,
 } from "./kernel-surface.js";
 
 export type {
@@ -256,6 +274,7 @@ export type {
   KernelRecordGateRequest,
   KernelArchiveRequest,
   KernelPatchRequest,
+  KernelProjectionRepairRequest,
 } from "./kernel-store.js";
 
 export {
@@ -269,6 +288,9 @@ export {
   resolveTaskDir,
   kernelJsonPath,
   setKernelAfterWriteHook,
+  inspectTaskProjection,
+  repairTaskProjection,
+  createTaskProjectionPort,
 } from "./kernel-store.js";
 
 export type {

@@ -1,0 +1,203 @@
+{
+  "base": {
+    "schemaVersion": 1,
+    "intent": "semantic",
+    "capabilityId": "search.semantic",
+    "minimumAssurance": "evidence-backed",
+    "requestedPolicy": {
+      "filesystem": "read",
+      "process": "none",
+      "network": "forbidden",
+      "credentials": "forbidden",
+      "privacy": "local-only",
+      "egressDestinations": [],
+      "telemetry": "local-only",
+      "cost": "free"
+    },
+    "authorizedProviderIds": ["provider.beta", "provider.alpha"],
+    "activeProviderIds": ["provider.alpha"],
+    "standbyProviderIds": ["provider.beta"],
+    "fallbackAllowed": true,
+    "manifests": [
+      {
+        "schemaVersion": 1,
+        "id": "provider.alpha",
+        "version": "1.0.0",
+        "origin": "provider",
+        "intents": ["semantic"],
+        "capabilityIds": ["search.semantic"],
+        "maximumAssurance": "verified",
+        "policyCeiling": {
+          "filesystem": "read",
+          "process": "none",
+          "network": "forbidden",
+          "credentials": "forbidden",
+          "privacy": "local-only",
+          "egressDestinations": [],
+          "telemetry": "local-only",
+          "cost": "free"
+        },
+        "evidenceKinds": ["probe-result"],
+        "probe": { "supported": true, "maxAgeSeconds": 300 }
+      },
+      {
+        "schemaVersion": 1,
+        "id": "provider.beta",
+        "version": "1.0.0",
+        "origin": "provider",
+        "intents": ["semantic"],
+        "capabilityIds": ["search.semantic"],
+        "maximumAssurance": "evidence-backed",
+        "policyCeiling": {
+          "filesystem": "read",
+          "process": "none",
+          "network": "forbidden",
+          "credentials": "forbidden",
+          "privacy": "local-only",
+          "egressDestinations": [],
+          "telemetry": "local-only",
+          "cost": "free"
+        },
+        "evidenceKinds": ["source-reference"],
+        "probe": { "supported": false, "maxAgeSeconds": null }
+      }
+    ],
+    "bindings": [
+      {
+        "schemaVersion": 1,
+        "id": "binding.alpha",
+        "capabilityId": "search.semantic",
+        "mode": "adopted",
+        "control": "borrowed",
+        "deleteBoundary": "preserve",
+        "asset": {
+          "schemaVersion": 1,
+          "id": "asset.alpha",
+          "kind": "mcp",
+          "source": "user-installed",
+          "scope": "project",
+          "owner": { "kind": "user", "id": null },
+          "locator": "user-installed://provider.alpha",
+          "fingerprint": null,
+          "readiness": "ready",
+          "installHint": null
+        },
+        "intents": ["semantic"],
+        "providerId": "provider.alpha"
+      },
+      {
+        "schemaVersion": 1,
+        "id": "binding.beta",
+        "capabilityId": "search.semantic",
+        "mode": "adopted",
+        "control": "borrowed",
+        "deleteBoundary": "preserve",
+        "asset": {
+          "schemaVersion": 1,
+          "id": "asset.beta",
+          "kind": "mcp",
+          "source": "user-installed",
+          "scope": "project",
+          "owner": { "kind": "user", "id": null },
+          "locator": "user-installed://provider.beta",
+          "fingerprint": null,
+          "readiness": "ready",
+          "installHint": null
+        },
+        "intents": ["semantic"],
+        "providerId": "provider.beta"
+      }
+    ],
+    "runtimeFacts": [
+      {
+        "providerId": "provider.alpha",
+        "providerVersion": "1.0.0",
+        "readiness": "ready",
+        "assurance": "verified",
+        "freshness": "fresh",
+        "probedAt": "2026-09-09T10:00:00Z",
+        "probeResult": "passed",
+        "evidenceRefs": ["evidence://probe/provider.alpha/1"]
+      },
+      {
+        "providerId": "provider.beta",
+        "providerVersion": "1.0.0",
+        "readiness": "ready",
+        "assurance": "evidence-backed",
+        "freshness": "not-applicable",
+        "probedAt": null,
+        "probeResult": "not-run",
+        "evidenceRefs": ["evidence://source/provider.beta/1"]
+      }
+    ],
+    "now": "2026-09-09T10:01:00Z"
+  },
+  "cases": [
+    {
+      "name": "active",
+      "expectedStatus": "supported",
+      "expectedProviderId": "provider.alpha",
+      "expectedReasonCode": "provider-selected"
+    },
+    {
+      "name": "fallback",
+      "runtimeOverrides": {
+        "provider.alpha": {
+          "readiness": "unavailable",
+          "assurance": null,
+          "freshness": "not-applicable",
+          "probedAt": null,
+          "probeResult": "not-run",
+          "evidenceRefs": []
+        }
+      },
+      "expectedStatus": "supported",
+      "expectedProviderId": "provider.beta",
+      "expectedReasonCode": "provider-selected"
+    },
+    {
+      "name": "fallback-disabled",
+      "fallbackAllowed": false,
+      "runtimeOverrides": {
+        "provider.alpha": {
+          "readiness": "unavailable",
+          "assurance": null,
+          "freshness": "not-applicable",
+          "probedAt": null,
+          "probeResult": "not-run",
+          "evidenceRefs": []
+        }
+      },
+      "expectedStatus": "unsupported",
+      "expectedProviderId": null,
+      "expectedReasonCode": "provider-fallback-disabled"
+    },
+    {
+      "name": "stale",
+      "fallbackAllowed": false,
+      "runtimeOverrides": {
+        "provider.alpha": { "freshness": "stale" }
+      },
+      "expectedStatus": "unsupported",
+      "expectedProviderId": null,
+      "expectedReasonCode": "provider-fallback-disabled"
+    },
+    {
+      "name": "policy-ceiling",
+      "requestedPolicyOverrides": { "filesystem": "write" },
+      "expectedStatus": "unsupported",
+      "expectedProviderId": null,
+      "expectedReasonCode": "provider-policy-filesystem-exceeded"
+    },
+    {
+      "name": "unknown-readiness",
+      "fallbackAllowed": false,
+      "runtimeOverrides": {
+        "provider.alpha": { "readiness": "unknown" }
+      },
+      "expectedStatus": "unsupported",
+      "expectedProviderId": null,
+      "expectedReasonCode": "provider-fallback-disabled"
+    }
+  ]
+}

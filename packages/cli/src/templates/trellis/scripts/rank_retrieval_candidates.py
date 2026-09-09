@@ -31,7 +31,7 @@ INPUT_ROLE = "collected-evidence"
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Rank retrieval path candidates (caller / trap / env intents).",
+        description="Rank already-collected candidates for neutral V3 intents.",
     )
     parser.add_argument(
         "--candidates",
@@ -40,14 +40,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--intents",
         required=True,
-        help="Comma-separated intent ids (e.g. caller-chain,env-config-literal).",
+        help="Comma-separated intent ids: exact,semantic,structural,external.",
     )
     parser.add_argument("--top-k", type=int, default=5)
     parser.add_argument("--expanded-pool-size", type=int, default=None)
     parser.add_argument(
         "--caller-pool-expansion",
         action="store_true",
-        help="Enable caller pool expansion (caller-chain intent).",
+        help="Deprecated compatibility option; ignored by the V3 ranker.",
     )
     parser.add_argument("--min-concrete-callers", type=int, default=3)
     parser.add_argument("--json", action="store_true", help="Emit JSON (default).")

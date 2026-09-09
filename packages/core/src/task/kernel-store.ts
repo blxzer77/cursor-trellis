@@ -15,8 +15,10 @@ import {
   assertIndependentCheckGateRecord,
   normalizeRequiredControlsInExtras,
 } from "./full-quality.js";
-import { normalizeStage6InExtrasAndAssert } from "./adapter-middleware.js";
-import { normalizeStage5InExtrasAndAssert } from "./ondemand-topology.js";
+import {
+  legacyKernelExtrasBoundary, inspectProjection, projectionBytesFingerprint,
+  type ProjectionInspection, type ProjectionRepairReceipt, type TaskProjectionPort,
+} from "./kernel-surface.js";
 import { stripRetiredExtras, stripRetiredMeta } from "./contract-migrate.js";
 import { loadTaskRecord, writeTaskRecord } from "./records.js";
 import {
@@ -48,6 +50,7 @@ import {
   type KernelState,
   type LegacyTaskProjection,
   type TransitionRequest,
+  type KernelExtrasBoundary,
 } from "./kernel-contract.js";
 
 const LOCK_BASENAME = "kernel.json.lock";
@@ -72,6 +75,7 @@ export interface KernelCommandResult extends KernelReadResult {
 }
 
 export interface KernelCreateRequest {
+  extrasBoundary?: KernelExtrasBoundary;
   taskDir: string;
   actor: string;
   idempotencyKey: string;
@@ -84,6 +88,7 @@ export interface KernelCreateRequest {
 }
 
 export interface KernelStartRequest {
+  extrasBoundary?: KernelExtrasBoundary;
   taskDir: string;
   expectedRevision: number;
   actor: string;
@@ -97,6 +102,7 @@ export interface KernelStartRequest {
 }
 
 export interface KernelRecordGateRequest {
+  extrasBoundary?: KernelExtrasBoundary;
   taskDir: string;
   expectedRevision: number;
   actor: string;
@@ -110,6 +116,7 @@ export interface KernelRecordGateRequest {
 }
 
 export interface KernelArchiveRequest {
+  extrasBoundary?: KernelExtrasBoundary;
   taskDir: string;
   expectedRevision: number;
   actor: string;
@@ -123,6 +130,7 @@ export interface KernelArchiveRequest {
 }
 
 export interface KernelPatchRequest {
+  extrasBoundary?: KernelExtrasBoundary;
   taskDir: string;
   expectedRevision: number;
   actor: string;
@@ -159,6 +167,152 @@ export function readKernel(options: {
   const dir = resolveTaskDir(options.taskDir, options.cwd);
   assertTaskJson(dir);
   return withKernelLock(dir, () => readKernelUnlocked(dir));
+}
+
+function readProjectionBytes(dir: string): Buffer | null {
+  try { return fs.readFileSync(path.join(dir, "task.json")); }
+  catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+    throw error;
+  }
+}
+
+/** No lock creation, fallback migration, projection write, or directory creation. */
+export function inspectTaskProjection(options: { taskDir: string; cwd?: string }): ProjectionInspection {
+  const dir = resolveTaskDir(options.taskDir, options.cwd);
+  const canonical = loadKernelFile(kernelJsonPath(dir));
+  return inspectProjection(canonical, readProjectionBytes(dir));
+}
+
+export interface KernelProjectionRepairRequest {
+  taskDir: string;
+  cwd?: string;
+  expectedCanonicalRevision: number;
+  expectedCurrentFingerprint: string | null;
+}
+
+/** Conservative namespace guard for the new repair entrypoint only. */
+function assertSafeProjectionPath(target: string, kind: "file" | "directory"): void {
+  const resolved = path.resolve(target);
+  let current = resolved;
+  while (true) {
+    try {
+      const stat = fs.lstatSync(current);
+      const expectedDirectory = current !== resolved || kind === "directory";
+      if (stat.isSymbolicLink() || (expectedDirectory ? !stat.isDirectory() : !stat.isFile()) ||
+          (stat.isFile() && stat.nlink !== 1)) {
+        throw new KernelError("INVALID_REQUEST", "projection repair refuses unsafe projection path");
+      }
+      // Node exposes Windows junctions as symlinks; realpath additionally fails
+      // closed on redirected names it can resolve but lstat does not classify.
+      const actual = fs.realpathSync.native(current);
+      const normalized = (value: string): string => process.platform === "win32" ? value.toLowerCase() : value;
+      if (normalized(path.resolve(actual)) !== normalized(current)) {
+        throw new KernelError("INVALID_REQUEST", "projection repair refuses unsafe projection path");
+      }
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
+    const parent = path.dirname(current);
+    if (parent === current) return;
+    current = parent;
+  }
+}
+
+function assertProjectionRepairNamespace(dir: string): void {
+  assertSafeProjectionPath(dir, "directory");
+  for (const name of [KERNEL_JSON_BASENAME, "task.json", LOCK_BASENAME]) {
+    assertSafeProjectionPath(path.join(dir, name), "file");
+  }
+}
+
+/**
+ * Explicit repair under the same cooperative writer lock as lifecycle writes.
+ * The existing records primitive writes a private staging file; an atomic rename
+ * installs it only after canonical revision and exact current-byte CAS checks.
+ * Unknown user keys survive valid JSON repairs except unsafe __proto__, which
+ * fails closed. Malformed bytes are replaced only when the caller supplies their
+ * exact observed fingerprint. Symlink/junction ancestors and hardlinked storage
+ * files are rejected before lock/staging writes and checked again before rename.
+ */
+export function repairTaskProjection(request: KernelProjectionRepairRequest): ProjectionRepairReceipt {
+  const dir = path.resolve(resolveTaskDir(request.taskDir, request.cwd));
+  if (!isNonNegativeInt(request.expectedCanonicalRevision) ||
+      (request.expectedCurrentFingerprint !== null && !/^sha256:[0-9a-f]{64}$/.test(request.expectedCurrentFingerprint))) {
+    throw new KernelError("INVALID_REQUEST", "projection repair requires revision and exact observed fingerprint");
+  }
+  assertProjectionRepairNamespace(dir);
+  // Never manufacture a task when canonical state is absent.
+  loadKernelFile(kernelJsonPath(dir));
+  return withKernelLock(dir, () => {
+    assertProjectionRepairNamespace(dir);
+    const canonical = loadKernelFile(kernelJsonPath(dir));
+    const before = readProjectionBytes(dir);
+    const inspection = inspectProjection(canonical, before);
+    const receipt = (status: ProjectionRepairReceipt["status"], after = inspection.currentFingerprint): ProjectionRepairReceipt => ({
+      status, canonicalRevision: canonical.revision,
+      beforeFingerprint: inspection.currentFingerprint, afterFingerprint: after,
+    });
+    if (inspection.canonicalRevision !== request.expectedCanonicalRevision || inspection.currentFingerprint !== request.expectedCurrentFingerprint) {
+      return receipt("cas-mismatch");
+    }
+    if (inspection.status === "in-sync") return receipt("in-sync");
+    const projection = canonical.projection;
+    if (!projection) throw new KernelError("CORRUPT_STATE", "canonical projection is missing");
+    let foreign: Record<string, unknown> = {};
+    if (before !== null) {
+      try { const value: unknown = JSON.parse(before.toString("utf8")); if (isPlainObject(value)) foreign = value; }
+      catch { /* Malformed projection was explicitly fingerprint-approved. */ }
+    }
+    // records.ts intentionally remains the sole writer primitive. Its ordinary
+    // object assignment cannot faithfully project a top-level __proto__ key;
+    // reject at this explicit repair boundary instead of losing user content.
+    if (Object.hasOwn(foreign, "__proto__") || Object.hasOwn(projection.extras, "__proto__")) {
+      throw new KernelError("INVALID_REQUEST", "projection repair refuses unsafe projection key");
+    }
+    const target = path.join(dir, "task.json");
+    assertProjectionRepairNamespace(dir);
+    const staging = fs.mkdtempSync(path.join(dir, ".projection-repair-"));
+    const stagedFile = path.join(staging, "task.json");
+    try {
+      assertSafeProjectionPath(staging, "directory");
+      writeTaskRecord({ taskDir: staging, record: { ...projection.record, status: projection.status }, extra: { ...foreign, ...projection.extras } });
+      const fd = fs.openSync(stagedFile, fs.constants.O_RDWR | (fs.constants.O_NOFOLLOW ?? 0));
+      try {
+        assertSafeProjectionPath(stagedFile, "file");
+        const opened = fs.fstatSync(fd);
+        const named = fs.lstatSync(stagedFile);
+        if (!opened.isFile() || opened.nlink !== 1 || opened.dev !== named.dev || opened.ino !== named.ino) {
+          throw new KernelError("INVALID_REQUEST", "projection repair refuses unsafe projection path");
+        }
+        fs.fsyncSync(fd);
+      } finally { fs.closeSync(fd); }
+      // Recheck immediately before replacement, including non-cooperative writers.
+      assertProjectionRepairNamespace(dir);
+      assertSafeProjectionPath(stagedFile, "file");
+      const finalCurrentFingerprint = projectionBytesFingerprint(readProjectionBytes(dir));
+      if (loadKernelFile(kernelJsonPath(dir)).revision !== canonical.revision || finalCurrentFingerprint !== inspection.currentFingerprint) {
+        return receipt("cas-mismatch", finalCurrentFingerprint);
+      }
+      fs.renameSync(stagedFile, target); // No non-atomic Windows copy fallback.
+      return receipt("repaired", projectionBytesFingerprint(readProjectionBytes(dir)));
+    } finally {
+      // Never follow a redirected staging namespace while handling a failure.
+      assertSafeProjectionPath(staging, "directory");
+      if (fs.existsSync(stagedFile)) {
+        assertSafeProjectionPath(stagedFile, "file");
+        fs.unlinkSync(stagedFile);
+      }
+      fs.rmdirSync(staging);
+    }
+  });
+}
+
+export function createTaskProjectionPort(options: { taskDir: string; cwd?: string }): TaskProjectionPort {
+  return {
+    inspect: () => inspectTaskProjection(options),
+    repair: (expected) => repairTaskProjection({ ...options, expectedCanonicalRevision: expected.canonicalRevision, expectedCurrentFingerprint: expected.currentFingerprint }),
+  };
 }
 
 export function applyKernelTransition(
@@ -247,10 +401,7 @@ export function applyKernelTransition(
       gates: current.kernel.gates,
       projection: current.kernel.projection,
     };
-    atomicWriteFile(
-      kernelJsonPath(dir),
-      `${JSON.stringify(next, null, 2)}\n`,
-    );
+    persistKernelSnapshot(dir, next);
     const legacy = current.legacy;
     return {
       kernel: next,
@@ -477,14 +628,14 @@ function mergeExtras(
   incoming: Record<string, unknown> | undefined,
   record?: { id?: string; parent?: string | null; children?: string[] },
   phase: "create" | "start" | "archive" | "patch" = "patch",
+  boundary: KernelExtrasBoundary = legacyKernelExtrasBoundary,
 ): Record<string, unknown> {
   const merged = stripRetiredExtras({
     ...cloneJsonObject(current),
     ...(incoming === undefined ? {} : cloneJsonObject(incoming)),
   });
   normalizeRequiredControlsInExtras(merged);
-  normalizeStage5InExtrasAndAssert(merged, record ?? {}, phase);
-  normalizeStage6InExtrasAndAssert(merged, phase);
+  boundary(merged, record ?? {}, phase);
   return merged;
 }
 
@@ -497,10 +648,27 @@ function requireEvidence(
 }
 
 function persistKernelSnapshot(dir: string, snapshot: KernelSnapshot): void {
+  // Reject unprojectable own keys before canonical state can advance. This also
+  // protects the state-only transition route, which carries an old projection.
+  if (snapshot.projection) lifecycleProjectionExtras(dir, snapshot.projection.extras);
   atomicWriteFile(
     kernelJsonPath(dir),
     `${JSON.stringify(snapshot, null, 2)}\n`,
   );
+}
+
+/** Supply foreign own keys explicitly: the legacy writer's fallback uses `in`. */
+function lifecycleProjectionExtras(dir: string, extras: Record<string, unknown>): Record<string, unknown> {
+  const raw = readProjectionBytes(dir);
+  let foreign: Record<string, unknown> = {};
+  if (raw !== null) {
+    try { const parsed: unknown = JSON.parse(raw.toString("utf8")); if (isPlainObject(parsed)) foreign = parsed; }
+    catch { /* The established writer retains its corrupt-projection rejection. */ }
+  }
+  if (Object.hasOwn(foreign, "__proto__") || Object.hasOwn(extras, "__proto__")) {
+    throw new KernelError("INVALID_REQUEST", "lifecycle refuses unsafe projection key");
+  }
+  return { ...foreign, ...extras };
 }
 
 function commitKernelAndProject(
@@ -521,7 +689,7 @@ function commitKernelAndProject(
     writeTaskRecord({
       taskDir: dir,
       record: snapshot.projection.record,
-      extra: snapshot.projection.extras,
+      extra: lifecycleProjectionExtras(dir, snapshot.projection.extras),
     });
   } catch (err) {
     if (err instanceof KernelError && err.code === "HALF_CONVERSION") {
@@ -702,7 +870,7 @@ export function applyKernelCreate(
     ...request.record,
     status: request.record.status || "planning",
   });
-  const extras = mergeExtras({}, request.extras, record, "create");
+  const extras = mergeExtras({}, request.extras, record, "create", request.extrasBoundary);
   const evidence = requireEvidence(request.evidence, "evidence");
 
   fs.mkdirSync(dir, { recursive: true });
@@ -798,6 +966,7 @@ export function applyKernelStart(
       request.extras,
       record,
       "start",
+      request.extrasBoundary,
     );
     assertFullQualityForPhase(dir, extras, "start");
     const hops = hopsToExecute(current.kernel.phase);
@@ -867,7 +1036,7 @@ export function applyKernelRecordGate(
       transitions: {
         ...current.kernel.gates.transitions,
         [transition]: {
-          ...(current.kernel.gates.transitions[transition] ?? {}),
+          ...(Object.hasOwn(current.kernel.gates.transitions, transition) ? current.kernel.gates.transitions[transition] : {}),
           [gateName]: cloneJsonObject(request.record),
         },
       },
@@ -885,6 +1054,7 @@ export function applyKernelRecordGate(
       request.extras,
       baseRecord,
       "patch",
+      request.extrasBoundary,
     );
     extras.quality_gate_results =
       extras.quality_gate_results ??
@@ -955,6 +1125,7 @@ export function applyKernelArchive(
       request.extras,
       record,
       "archive",
+      request.extrasBoundary,
     );
     assertFullQualityForPhase(dir, extras, "archive");
     const hops = hopsToClose(current.kernel.phase);
@@ -984,7 +1155,7 @@ function mergeCanonicalRecord(
   }
   const merged: Record<string, unknown> = { ...base };
   for (const field of TASK_RECORD_FIELD_ORDER) {
-    if (!(field in patch)) continue;
+    if (!Object.hasOwn(patch, field)) continue;
     if (field === "meta" && isPlainObject(patch.meta) && isPlainObject(base.meta)) {
       merged.meta = { ...base.meta, ...patch.meta };
       continue;
@@ -1073,8 +1244,7 @@ export function applyKernelPatch(
     const extras =
       extrasPatch === undefined ? baseExtras : { ...baseExtras, ...extrasPatch };
     normalizeRequiredControlsInExtras(extras);
-    normalizeStage5InExtrasAndAssert(extras, nextRecord, "patch");
-    normalizeStage6InExtrasAndAssert(extras, "patch");
+    (request.extrasBoundary ?? legacyKernelExtrasBoundary)(extras, nextRecord, "patch");
 
     const hopped = hopKernelSnapshot(current.kernel, [], {
       actor,

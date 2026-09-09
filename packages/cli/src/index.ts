@@ -7,3 +7,4 @@
 
 export { VERSION } from "./constants/version.js";
 export { init } from "./commands/init.js";
+export * from "./pactile/index.js";

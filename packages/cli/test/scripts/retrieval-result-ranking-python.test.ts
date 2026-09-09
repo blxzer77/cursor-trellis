@@ -10,41 +10,44 @@ const cliRoot = path.resolve(
 const scriptsDir = path.join(cliRoot, "src/templates/trellis/scripts");
 
 function pythonExe(): string {
-  for (const exe of ["python", "py", "python3"]) {
-    if (spawnSync(exe, ["--version"], { encoding: "utf-8" }).status === 0) {
-      return exe;
+  for (const executable of ["python", "py", "python3"]) {
+    if (
+      spawnSync(executable, ["--version"], { encoding: "utf8" }).status === 0
+    ) {
+      return executable;
     }
   }
   return "python";
 }
 
-describe("retrieval_result_ranking.py (Python mirror of TS)", () => {
-  it("B05 trap demotion orders corroborated implementation first", () => {
+describe("retrieval_result_ranking.py V3 mirror", () => {
+  it("orders semantic candidates exactly like the neutral score model", () => {
     const snippet = `
 import json, sys
 sys.path.insert(0, ".")
 from common.retrieval_result_ranking import rank_retrieval_result_candidates
 candidates = [
-    {"path": "src/agents/plugin-registry-snapshot.ts", "baseRank": 1, "trapHint": True, "evidenceType": "trap"},
-    {"path": "packages/plugin-core/src/plugin-registry.ts", "baseRank": 2, "corroborated": True, "evidenceType": "implementation"},
+    {"path": "b.ts", "semanticScore": 0.8},
+    {"path": "a.ts", "semanticScore": 0.8, "sourceReference": "source://a.ts:1"},
 ]
-out = rank_retrieval_result_candidates(candidates, intents=["trap-package-disambiguation"], top_k=2)
-print(out["topCandidates"][0]["path"])
+print(json.dumps(rank_retrieval_result_candidates(candidates, intents=["semantic"], top_k=2)))
 `;
     const result = spawnSync(pythonExe(), ["-c", snippet], {
       cwd: scriptsDir,
-      encoding: "utf-8",
+      encoding: "utf8",
     });
     expect(result.status).toBe(0);
-    expect((result.stdout || "").trim()).toBe(
-      "packages/plugin-core/src/plugin-registry.ts",
-    );
+    const parsed = JSON.parse(result.stdout) as { ranked: { path: string }[] };
+    expect(parsed.ranked.map((candidate) => candidate.path)).toEqual([
+      "a.ts",
+      "b.ts",
+    ]);
   });
 
-  it("rank_retrieval_candidates.py CLI accepts stdin JSON", () => {
+  it("rank_retrieval_candidates.py CLI accepts the four V3 intents", () => {
     const payload = JSON.stringify([
-      { path: "src/paths.ts", baseRank: 1 },
-      { path: "scripts/e2e/env.ts", baseRank: 2, evidenceType: "env-script" },
+      { path: "older", externalFreshness: 0.1 },
+      { path: "newer", externalFreshness: 0.9 },
     ]);
     const result = spawnSync(
       pythonExe(),
@@ -53,16 +56,14 @@ print(out["topCandidates"][0]["path"])
         "--candidates",
         "-",
         "--intents",
-        "env-config-literal",
+        "external",
         "--top-k",
         "2",
       ],
-      { cwd: scriptsDir, encoding: "utf-8", input: payload },
+      { cwd: scriptsDir, encoding: "utf8", input: payload },
     );
     expect(result.status).toBe(0);
-    const parsed = JSON.parse(result.stdout || "{}") as {
-      topCandidates?: { path: string }[];
-    };
-    expect(parsed.topCandidates?.[0]?.path).toBe("scripts/e2e/env.ts");
+    const parsed = JSON.parse(result.stdout) as { ranked?: { path: string }[] };
+    expect(parsed.ranked?.[0]?.path).toBe("newer");
   });
 });

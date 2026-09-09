@@ -3,7 +3,7 @@
   "contractId": "pactile.brand-inventory/v1",
   "status": "batch-0-baseline",
   "generatedFromCommit": "e8c05a1f7e7f3f49f605cc4f056be5a4eb44af73",
-  "capturedAtUtc": "2026-09-08T20:38:56Z",
+  "capturedAtUtc": "2026-09-09T13:33:48Z",
   "enforcement": {
     "current": "inventory",
     "stableRelease": "deny-live",
@@ -150,25 +150,25 @@
     "^scripts/"
   ],
   "baselineSnapshot": {
-    "sha256": "9137168955101ce56ce12f1934fa86b5c5f018343319675cf13f5814b944a274",
-    "occurrences": 13847,
-    "files": 725,
+    "sha256": "de0f1093a3cdea8e8dff090427b6364e9cda05e47edee81b9493c897bb677bab",
+    "occurrences": 13877,
+    "files": 757,
     "byClassification": {
       "attribution": 1,
       "compat": 142,
       "history": 3337,
-      "live": 10367
+      "live": 10397
     },
     "byToken": {
-      "cursor-plus-plus": 488,
-      "legacy-cstl-token": 4800,
-      "legacy-environment-name": 373,
-      "legacy-managed-marker": 77,
-      "legacy-package-name": 401,
-      "legacy-product-name": 525,
-      "legacy-runtime-path": 2556,
-      "legacy-trellis-token": 4118,
-      "upstream-runtime-path": 509
+      "cursor-plus-plus": 451,
+      "legacy-cstl-token": 4786,
+      "legacy-environment-name": 360,
+      "legacy-managed-marker": 73,
+      "legacy-package-name": 430,
+      "legacy-product-name": 550,
+      "legacy-runtime-path": 2546,
+      "legacy-trellis-token": 4153,
+      "upstream-runtime-path": 528
     }
   }
 }

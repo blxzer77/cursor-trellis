@@ -2,69 +2,56 @@ import { describe, expect, it } from "vitest";
 
 import {
   classifyToolCalls,
-  executedSemanticToolName,
+  observedIntentCount,
+  semanticRoutesInPlan,
   structuralRoutesInPlan,
 } from "../../src/utils/retrieval-tool-classification.js";
 
-describe("retrieval tool classification", () => {
-  it("detects Cursor Grep, Read, and codegraph MCP tools", () => {
+describe("retrieval tool observation classification", () => {
+  it("classifies all four neutral intent families", () => {
     const result = classifyToolCalls([
-      "Grep",
-      "Read",
-      "project-0-MyHarness-codegraph-codegraph_explore",
+      "rg",
+      "semantic_lookup",
+      "call_graph",
+      "web_fetch",
+      "read_file",
+      "git diff",
+      "vitest",
+      "route_codebase_retrieval",
+      "unknown_tool",
     ]);
-
-    expect(result.grep_count).toBe(1);
-    expect(result.read_count).toBe(1);
-    expect(result.codegraph_executed).toBe(true);
-    expect(result.semantic_executed).toBe(false);
-  });
-
-  it("detects platform semantic tool names when present in logs", () => {
-    const result = classifyToolCalls(["Grep", "codebase_search", "Read"], {
-      platform: "cursor",
+    expect(result).toEqual({
+      exact_count: 1,
+      semantic_count: 1,
+      structural_count: 1,
+      external_count: 1,
+      read_count: 1,
+      git_count: 1,
+      test_count: 1,
+      router_cli_invoked: true,
+      unclassified_count: 1,
     });
-    expect(result.semantic_executed).toBe(true);
-    expect(result.platform_semantic_executed).toBe(true);
-    expect(result.fast_context_count).toBe(0);
   });
 
-  it("REC-06: on cursor native, fast-context does not count as semantic_exec", () => {
-    const result = classifyToolCalls(["Grep", "fast_context_search", "Read"], {
-      platform: "cursor",
-      cursor_env: "native",
-    });
-    expect(result.semantic_executed).toBe(false);
-    expect(result.fast_context_count).toBe(1);
-    expect(result.cursor_fast_context_misuse).toBe(true);
+  it("does not reinterpret blank or unknown tools as execution", () => {
+    expect(classifyToolCalls(["", "  ", "opaque"]).unclassified_count).toBe(3);
   });
 
-  it("BYOK: fast-context counts as semantic_exec, not misuse", () => {
-    const result = classifyToolCalls(["fast_context_search"], {
-      platform: "cursor",
-      cursor_env: "byok",
-    });
-    expect(result.semantic_executed).toBe(true);
-    expect(result.cursor_fast_context_misuse).toBe(false);
+  it("detects structural and semantic plan intents", () => {
+    expect(structuralRoutesInPlan(["exact", "structural"])).toBe(true);
+    expect(structuralRoutesInPlan(["exact", "external"])).toBe(false);
+    expect(semanticRoutesInPlan(["semantic"])).toBe(true);
   });
 
-  it("extracts first executed semantic tool name from log", () => {
-    expect(
-      executedSemanticToolName(["Grep", "SemanticSearch", "Read"]),
-    ).toBe("SemanticSearch");
-    expect(
-      executedSemanticToolName(["Grep", "fast_context_search"]),
-    ).toBe("fast_context_search");
-    expect(executedSemanticToolName(["Grep", "Read"])).toBeNull();
-  });
-
-  it("flags structural routes in plan", () => {
-    expect(
-      structuralRoutesInPlan([
-        "exact-rg-primary",
-        "caller-chain-ast",
-        "platform-semantic",
-      ]),
-    ).toBe(true);
+  it("reads observation counts through the shared intent vocabulary", () => {
+    const result = classifyToolCalls([
+      "rg",
+      "semantic_lookup",
+      "semantic_concept",
+    ]);
+    expect(observedIntentCount(result, "exact")).toBe(1);
+    expect(observedIntentCount(result, "semantic")).toBe(2);
+    expect(observedIntentCount(result, "structural")).toBe(0);
+    expect(observedIntentCount(result, "external")).toBe(0);
   });
 });

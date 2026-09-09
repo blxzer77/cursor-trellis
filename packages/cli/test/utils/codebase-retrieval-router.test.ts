@@ -2,337 +2,210 @@ import { describe, expect, it } from "vitest";
 
 import {
   CODEBASE_RETRIEVAL_ROUTER_VERSION,
+  emptyCodebaseRetrievalPlan,
   routeCodebaseRetrieval,
 } from "../../src/utils/codebase-retrieval-router.js";
-import { ENV_BYOK, ENV_NATIVE, ENV_UNKNOWN } from "../../src/utils/cursor-retrieval-env.js";
 
-describe("codebase retrieval router", () => {
-  it("returns version 2 envelope with empty adapterState and freshness", () => {
-    const plan = routeCodebaseRetrieval({
-      query: "who calls deliverPayload in server-runtime",
-    });
-    expect(plan.version).toBe(CODEBASE_RETRIEVAL_ROUTER_VERSION);
-    expect(plan.adapterState).toEqual([]);
-    expect(plan.freshness).toEqual([]);
-    expect(plan.routes.length).toBeGreaterThan(0);
-    expect(plan.verification.length).toBeGreaterThan(0);
-  });
-
-  it("classifies caller-chain intent with caller verification", () => {
-    const plan = routeCodebaseRetrieval({
-      query: "Which modules invoke the facade loader and list call sites?",
-    });
-    expect(plan.intents.map((i) => i.id)).toContain("caller-chain");
-    expect(plan.verification.some((v) => v.id === "caller-sites")).toBe(true);
-    expect(plan.routes.some((r) => r.id === "caller-chain-ast")).toBe(true);
-  });
-
-  it("classifies policy-document without demoting exact-symbol when both match", () => {
-    const plan = routeCodebaseRetrieval({
-      query:
-        "routeCodebaseRetrieval storage policy sidecar forbidden in AGENTS.md",
-    });
-    expect(plan.intents.map((i) => i.id)).toContain("policy-document");
-    expect(plan.intents.map((i) => i.id)).toContain("exact-symbol-path");
-    const first = plan.routes[0];
-    expect(first?.id).toBe("exact-rg-primary");
-    expect(plan.routes.some((r) => r.id === "policy-docs-rg")).toBe(true);
-    expect(plan.verification.some((v) => v.id === "policy-doc-top1")).toBe(
-      true,
+describe("codebase retrieval router V3 compatibility entrypoint", () => {
+  it("emits the neutral V3 envelope", () => {
+    const plan = routeCodebaseRetrieval(
+      "who calls the loader and lists dependencies",
     );
+    expect(plan.schemaVersion).toBe(CODEBASE_RETRIEVAL_ROUTER_VERSION);
+    expect(plan.intents).toEqual(["structural"]);
+    expect(plan.steps).toHaveLength(1);
+    expect(plan.steps[0]).toMatchObject({
+      intent: "structural",
+      kind: "provider-request",
+      localToolHint: null,
+    });
+    expect(plan.stopReasons).toEqual([
+      {
+        code: "provider-resolution-required",
+        intent: "structural",
+        blocking: true,
+      },
+    ]);
   });
 
-  it("policy-only query leads with policy-docs before optional semantic", () => {
+  it("uses only rg as the exact local hint", () => {
     const plan = routeCodebaseRetrieval({
-      query: "storage policy sidecar SQLite only persistence boundaries",
+      query: "where is routeCodebaseRetrieval defined",
+      intents: ["exact"],
     });
-    expect(plan.intents.map((i) => i.id)).toContain("policy-document");
-    const policyIndex = plan.routes.findIndex((r) => r.id === "policy-docs-rg");
-    const semanticIndex = plan.routes.findIndex(
-      (r) => r.id === "platform-semantic",
-    );
-    expect(policyIndex).toBeGreaterThanOrEqual(0);
-    if (semanticIndex >= 0) {
-      expect(policyIndex).toBeLessThan(semanticIndex);
-    }
+    expect(plan.steps).toEqual([
+      {
+        order: 1,
+        intent: "exact",
+        kind: "local-exact",
+        localToolHint: "rg",
+        providerRequirement: null,
+        outputRole: "candidate",
+      },
+    ]);
   });
 
-  it("preserves F/G protocol route with exact primary and skips policy-first", () => {
+  it("honors neutral readiness without emitting an identity", () => {
     const plan = routeCodebaseRetrieval({
-      query: "packages/gateway-protocol schema contract constant",
+      query: "how does account behavior work",
+      intents: ["semantic"],
+      providerAvailability: [
+        { intent: "semantic", status: "ready", readiness: "ready" },
+      ],
     });
-    expect(plan.intents.map((i) => i.id)).toContain(
-      "protocol-platform-preserve",
-    );
-    expect(plan.routes[0]?.id).toBe("exact-rg-primary");
-    expect(plan.routes.some((r) => r.id === "policy-docs-rg")).toBe(false);
+    expect(plan.stopReasons).toEqual([]);
+    expect(plan.steps[0]?.providerRequirement?.status).toBe("ready");
+    expect(JSON.stringify(plan)).not.toMatch(/providerId|hostId|adapterId/);
   });
 
-  it("classifies trap-package disambiguation", () => {
+  it.each([
+    ["degraded", "provider-degraded"],
+    ["unavailable", "provider-unavailable"],
+    ["unsupported", "provider-unsupported"],
+  ] as const)("maps %s to a generic stop reason", (status, code) => {
     const plan = routeCodebaseRetrieval({
-      query: "trap demotion packages/foo-core vs src/agents overlay",
+      query: "latest release note",
+      intents: ["external"],
+      providerAvailability: [
+        {
+          intent: "external",
+          status,
+          readiness: status === "unsupported" ? "unavailable" : status,
+        },
+      ],
     });
-    expect(plan.intents.map((i) => i.id)).toContain(
-      "trap-package-disambiguation",
-    );
-    expect(plan.routes.some((r) => r.id === "trap-demote-rg")).toBe(true);
+    expect(plan.stopReasons).toEqual([
+      { code, intent: "external", blocking: true },
+    ]);
   });
 
-  it("classifies extension shared-symbol branch", () => {
-    const plan = routeCodebaseRetrieval({
-      query: "legacyConfigRules across extensions/ trees",
-    });
-    expect(plan.intents.map((i) => i.id)).toContain(
-      "extension-shared-symbol",
-    );
-    expect(plan.routes.some((r) => r.id === "extension-rg")).toBe(true);
-  });
-
-  it("classifies env-config literal branch", () => {
-    const plan = routeCodebaseRetrieval({
-      query: "OPENCLAW_E2E env var in e2e bench startup script",
-    });
-    expect(plan.intents.map((i) => i.id)).toContain("env-config-literal");
-    expect(plan.routes.some((r) => r.id === "env-scripts-rg")).toBe(true);
-  });
-
-  it("omits optional adapter routes when capability not selected", () => {
-    const plan = routeCodebaseRetrieval({
-      query: "storage policy architecture",
-      codebaseRetrievalSelected: false,
-    });
-    expect(plan.routes.some((r) => r.role === "semantic")).toBe(false);
-    expect(plan.routes.some((r) => r.role === "ast")).toBe(false);
-    expect(plan.fallback.some((f) => f.when.includes("not selected"))).toBe(
-      true,
-    );
-  });
-
-  it("is deterministic for the same query", () => {
-    const query = "caller chain who calls MyFacade in packages/cli/src/foo.ts";
-    const a = routeCodebaseRetrieval({ query });
-    const b = routeCodebaseRetrieval({ query });
-    expect(JSON.stringify(a)).toBe(JSON.stringify(b));
-  });
-
-  it("classifies policy-document for Chinese 不能 and 规则 signals", () => {
-    const planCannot = routeCodebaseRetrieval({
-      query: "为什么不能把 sidecar 当默认存储",
-    });
-    expect(planCannot.intents.map((i) => i.id)).toContain("policy-document");
-
-    const planRule = routeCodebaseRetrieval({
-      query: "项目规则里对持久化有什么要求",
-    });
-    expect(planRule.intents.map((i) => i.id)).toContain("policy-document");
-  });
-
-  it("classifies cross-cutting-discovery without default exact baseline", () => {
-    const plan = routeCodebaseRetrieval({
-      query: "how does retry work across modules",
-    });
-    expect(plan.intents.map((i) => i.id)).toContain("cross-cutting-discovery");
-    expect(plan.intents.map((i) => i.id)).not.toContain("exact-symbol-path");
-    const semantic = plan.routes.find(
-      (r) => r.id === "platform-semantic",
-    );
-    expect(semantic?.order).toBeLessThanOrEqual(2);
-    expect(
-      plan.routes.filter(
-        (r) => r.id === "platform-semantic",
-      ).length,
-    ).toBe(1);
-  });
-
-  it("conceptual plus policy keeps policy-docs before semantic at order 2", () => {
-    const plan = routeCodebaseRetrieval({
-      query: "storage policy 如何跨模块生效",
-    });
-    expect(plan.intents.map((i) => i.id)).toContain("policy-document");
-    expect(plan.intents.map((i) => i.id)).toContain("cross-cutting-discovery");
-    const policyIndex = plan.routes.findIndex((r) => r.id === "policy-docs-rg");
-    const semanticIndex = plan.routes.findIndex(
-      (r) => r.id === "platform-semantic",
-    );
-    expect(policyIndex).toBe(0);
-    expect(semanticIndex).toBe(1);
-    expect(plan.routes[semanticIndex]?.order).toBeLessThanOrEqual(2);
-  });
-
-  it("O2: adds rg-empty semantic fallback when semantic is late in plan", () => {
-    const plan = routeCodebaseRetrieval({
-      query: "routeCodebaseRetrieval storage policy sidecar forbidden in AGENTS.md",
-      cursorEnv: ENV_NATIVE,
-    });
-    const rgEmptyHint = plan.fallback.find((f) =>
-      f.when.includes("no corroborated file/range candidates"),
-    );
-    expect(rgEmptyHint?.replacesRole).toBe("semantic");
-    expect(rgEmptyHint?.action).toMatch(/@codebase|semantic search/i);
-  });
-
-  it("O2: conceptual warning mentions rg follow-up", () => {
-    const plan = routeCodebaseRetrieval({
-      query: "how does retry work across modules",
+  it("ignores pre-V3 route metadata", () => {
+    const baseline = routeCodebaseRetrieval({
+      query: "how does behavior work",
     });
     expect(
-      plan.warnings.some((w) => w.includes("Convert semantic hits to exact rg")),
-    ).toBe(true);
-    expect(
-      plan.fallback.some((f) =>
-        f.when.includes("no corroborated file/range candidates"),
-      ),
-    ).toBe(true);
+      routeCodebaseRetrieval({
+        query: "how does behavior work",
+        platformLabel: "anything",
+        projectFileCount: 999_999,
+        codebaseRetrievalSelected: false,
+      }),
+    ).toEqual(baseline);
   });
 
-  it("RB-006: new English policy signals trigger policy-document intent — where is X defined", () => {
-    const plan = routeCodebaseRetrieval({
-      query: "where is storage defined",
-    });
-    expect(plan.intents.map((i) => i.id)).toContain("policy-document");
+  it("is deterministic and exposes a stable fingerprint", () => {
+    const first = routeCodebaseRetrieval("caller dependency impact");
+    const second = routeCodebaseRetrieval("caller dependency impact");
+    expect(second).toEqual(first);
+    expect(first.fingerprint).toMatch(/^sha256:[a-f0-9]{64}$/);
   });
 
-  it("RB-006: new English policy signals trigger policy-document intent — who is responsible for", () => {
-    const plan = routeCodebaseRetrieval({
-      query: "who is responsible for persistence",
+  it("retains an explicit best-effort empty-plan helper", () => {
+    expect(emptyCodebaseRetrievalPlan()).toMatchObject({
+      schemaVersion: 3,
+      intents: ["exact"],
+      minimumAssurance: "best-effort",
+      requiredEvidenceKinds: [],
     });
-    expect(plan.intents.map((i) => i.id)).toContain("policy-document");
   });
 
-  it("RB-006: new English policy signals trigger policy-document intent — module boundary", () => {
-    const plan = routeCodebaseRetrieval({
-      query: "module boundary between core and plugins",
+  it("rejects accessors and throwing proxies without reading or echoing canaries", () => {
+    const getterCanary = "TOKEN=router-getter-canary";
+    let reads = 0;
+    const accessor = { intents: ["exact"] } as Record<string, unknown>;
+    Object.defineProperty(accessor, "query", {
+      enumerable: true,
+      get() {
+        reads += 1;
+        throw new Error(getterCanary);
+      },
     });
-    expect(plan.intents.map((i) => i.id)).toContain("policy-document");
-  });
-
-  it("RB-006: new English policy signals trigger policy-document intent — must not", () => {
-    const plan = routeCodebaseRetrieval({
-      query: "must not import from internal",
-    });
-    expect(plan.intents.map((i) => i.id)).toContain("policy-document");
-  });
-
-  it("RB-006: new English policy signals trigger policy-document intent — code boundary", () => {
-    const plan = routeCodebaseRetrieval({
-      query: "code boundary enforcement",
-    });
-    expect(plan.intents.map((i) => i.id)).toContain("policy-document");
-  });
-
-  it("RB-006: policy intent produces AGENTS-neighborhood verification step", () => {
-    const plan = routeCodebaseRetrieval({
-      query: "storage policy sidecar",
-    });
-    expect(plan.intents.map((i) => i.id)).toContain("policy-document");
-    expect(plan.verification.some((v) => v.id === "agents-neighborhood")).toBe(
-      true,
+    const proxyCanary = "TOKEN=router-proxy-canary";
+    const proxy = new Proxy(
+      { query: "where is Widget defined", intents: ["exact"] },
+      {
+        get() {
+          throw new Error(proxyCanary);
+        },
+      },
     );
-  });
 
-  it("R-CR-013: large projectFileCount promotes ast routes before exact rg", () => {
-    const small = routeCodebaseRetrieval({
-      query: "how does retry work across modules",
-      projectFileCount: 100,
-    });
-    const large = routeCodebaseRetrieval({
-      query: "how does retry work across modules",
-      projectFileCount: 5000,
-    });
-    expect(large.projectFileCount).toBe(5000);
-    const astIndex = (routes: typeof small.routes) =>
-      routes.findIndex((r) => r.role === "ast");
-    const rgIndex = (routes: typeof small.routes) =>
-      routes.findIndex((r) => r.id === "exact-rg-primary");
-    expect(astIndex(large.routes)).toBeGreaterThanOrEqual(0);
-    expect(rgIndex(large.routes)).toBeGreaterThanOrEqual(0);
-    expect(astIndex(large.routes)).toBeLessThan(rgIndex(large.routes));
-    expect(astIndex(small.routes)).toBeGreaterThan(rgIndex(small.routes));
-  });
-
-  it("BYOK: platform-semantic uses fast-context backend and envelope cursorEnv", () => {
-    const plan = routeCodebaseRetrieval({
-      query: "WPeLc8 子代理路由如何工作",
-      cursorEnv: ENV_BYOK,
-    });
-    expect(plan.cursorEnv).toBe(ENV_BYOK);
-    const semantic = plan.routes.find((r) => r.id === "platform-semantic");
-    expect(semantic?.semanticBackend).toBe("fast-context-mcp");
-    expect(semantic?.commands.join(" ")).toMatch(/fast_context_search/);
-    expect(
-      plan.fallback.some((f) =>
-        f.when.includes("built-in @codebase / SemanticSearch"),
-      ),
-    ).toBe(true);
-  });
-
-  it("Native: platform-semantic uses cursor-builtin backend", () => {
-    const plan = routeCodebaseRetrieval({
-      query: "how does gateway protocol differ from plugin sdk",
-      cursorEnv: ENV_NATIVE,
-    });
-    expect(plan.cursorEnv).toBe(ENV_NATIVE);
-    const semantic = plan.routes.find((r) => r.id === "platform-semantic");
-    expect(semantic?.semanticBackend).toBe("cursor-builtin");
-    expect(semantic?.platformNative).toBe(true);
-  });
-
-  it("lsp-navigation route is codegraph ast, not language-server lsp", () => {
-    const plan = routeCodebaseRetrieval({
-      query: "routeCodebaseRetrieval",
-      cursorEnv: ENV_NATIVE,
-    });
-    const lsp = plan.routes.find((r) => r.id === "lsp-navigation");
-    expect(lsp?.role).toBe("ast");
-    expect(lsp?.sourceFamily).toBe("codegraph");
-    expect(lsp?.commands.join(" ")).toMatch(/codegraph_node/);
-    expect(lsp?.rationale).toMatch(/codegraph|GO_TO_DEFINITION/i);
-    expect(lsp?.rationale).not.toMatch(/LSP tool/i);
-  });
-
-  describe("Native/BYOK/unknown plan compliance (OC-03)", () => {
-    const conceptualQuery = "how does retry work across modules";
-
-    function semanticCommands(plan: ReturnType<typeof routeCodebaseRetrieval>): string {
-      return (
-        plan.routes.find((r) => r.id === "platform-semantic")?.commands.join(" ") ?? ""
+    for (const candidate of [accessor, proxy]) {
+      let rendered = "";
+      try {
+        routeCodebaseRetrieval(candidate as never);
+      } catch (error) {
+        rendered = String(error);
+      }
+      expect(rendered).toBe(
+        "RetrievalRequestValidationError: PACTILE_RETRIEVAL_REQUEST_INVALID",
       );
+      expect(rendered).not.toContain("TOKEN=");
     }
-
-    it("BYOK fixture: plan includes fast_context_search, excludes built-in semantic", () => {
-      const plan = routeCodebaseRetrieval({
-        query: conceptualQuery,
-        cursorEnv: ENV_BYOK,
-      });
-      const cmds = semanticCommands(plan);
-      expect(cmds).toMatch(/fast_context_search/);
-      expect(cmds).not.toMatch(/@codebase|built-in semantic/i);
-    });
-
-    it("Native fixture: plan includes built-in semantic, excludes fast_context_search", () => {
-      const plan = routeCodebaseRetrieval({
-        query: conceptualQuery,
-        cursorEnv: ENV_NATIVE,
-      });
-      const cmds = semanticCommands(plan);
-      expect(cmds).toMatch(/@codebase|built-in semantic/i);
-      expect(cmds).not.toMatch(/fast_context_search/);
-    });
-
-    it("unknown fixture: conservative BYOK fast-context route", () => {
-      const plan = routeCodebaseRetrieval({
-        query: conceptualQuery,
-        cursorEnv: ENV_UNKNOWN,
-      });
-      expect(plan.cursorEnv).toBe(ENV_UNKNOWN);
-      const semantic = plan.routes.find((r) => r.id === "platform-semantic");
-      expect(semantic?.semanticBackend).toBe("fast-context-mcp");
-      expect(semanticCommands(plan)).toMatch(/fast_context_search/);
-      expect(
-        plan.fallback.some((f) =>
-          f.when.includes("built-in @codebase / SemanticSearch"),
-        ),
-      ).toBe(true);
-    });
+    expect(reads).toBe(0);
   });
+
+  it("rejects unknown compatibility fields without echoing their names", () => {
+    const canary = "TOKEN=router-unknown-canary";
+    let thrown: unknown;
+    try {
+      routeCodebaseRetrieval({
+        query: "where is Widget defined",
+        [canary]: true,
+      } as never);
+    } catch (error) {
+      thrown = error;
+    }
+    expect(String(thrown)).toBe(
+      "RetrievalRequestValidationError: PACTILE_RETRIEVAL_REQUEST_INVALID",
+    );
+    expect(JSON.stringify(thrown)).not.toContain(canary);
+  });
+
+  it.each([
+    {
+      field: "query",
+      input: { intents: ["exact"] },
+      expectedError:
+        "RetrievalRequestValidationError: PACTILE_RETRIEVAL_REQUEST_INVALID",
+    },
+    {
+      field: "scopeHints",
+      input: { query: "where is Widget defined", intents: ["exact"] },
+      expectedError: null,
+    },
+  ] as const)(
+    "does not read an inherited $field getter when the own field is missing",
+    ({ field, input, expectedError }) => {
+      const canary = `TOKEN=prototype-${field}-canary`;
+      let reads = 0;
+      let thrown: unknown;
+      let result: unknown;
+      Object.defineProperty(Object.prototype, field, {
+        configurable: true,
+        get() {
+          reads += 1;
+          throw new Error(canary);
+        },
+      });
+      try {
+        try {
+          result = routeCodebaseRetrieval(input as never);
+        } catch (error) {
+          thrown = error;
+        }
+      } finally {
+        Reflect.deleteProperty(Object.prototype, field);
+      }
+
+      expect(reads).toBe(0);
+      expect(String(thrown ?? "")).toBe(expectedError ?? "");
+      expect(
+        JSON.stringify({ result, error: String(thrown ?? "") }),
+      ).not.toContain(canary);
+      if (expectedError === null) {
+        expect(result).toMatchObject({ schemaVersion: 3, intents: ["exact"] });
+      }
+    },
+  );
 });

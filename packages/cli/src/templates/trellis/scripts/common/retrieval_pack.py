@@ -84,7 +84,10 @@ def build_retrieval_pack(
     query_intent = None
     if router_envelope and isinstance(router_envelope, dict):
         intents = router_envelope.get("intents", [])
-        if intents and isinstance(intents[0], dict):
+        if intents and isinstance(intents[0], str):
+            query_intent = intents[0]
+        elif intents and isinstance(intents[0], dict):
+            # Read-only compatibility for archived V2 evidence bundles.
             query_intent = intents[0].get("id")
 
     scored_items = _reconstruct_scored_items(scored_evidence)

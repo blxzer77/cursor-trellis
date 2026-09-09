@@ -1,0 +1,28 @@
+/** Public host-neutral Pactile foundation APIs. Host adapters opt in separately. */
+
+export * from "./runtime/index.js";
+
+export * from "./tiles/loader.js";
+export * from "./tiles/catalog.js";
+export * from "./tiles/compiler.js";
+
+export * from "./projection/managed-block.js";
+export * from "./projection/structured-merge.js";
+export * from "./projection/planner.js";
+export * from "./projection/store.js";
+
+export type { AdoptionDiagnostic } from "./adoption/safety.js";
+export type {
+  DiscoveryContext,
+  InventoryResult,
+} from "./adoption/inventory.js";
+export { buildInventory, discoverSnapshot } from "./adoption/inventory.js";
+export { discoverSkillEntries } from "./adoption/discovery.js";
+export type {
+  InstallHintResult,
+  BindingProposal,
+} from "./adoption/bindings.js";
+export { createInstallHint, planBinding } from "./adoption/bindings.js";
+
+export * from "./middleware/index.js";
+export * from "./retrieval/index.js";
