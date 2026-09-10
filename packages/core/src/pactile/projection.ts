@@ -322,13 +322,11 @@ function decodeProjectionOperationV1(
         "remove operations do not carry desired content",
       );
     }
-    if (action === "remove" && expectedCurrentFingerprint === null) {
-      decoder.issue(
-        "required",
-        childPathV1(path, "expectedCurrentFingerprint"),
-        "is required so removal can be guarded by the observed current content",
-      );
-    }
+    // `null` is an explicit compare-and-swap expectation that the target is
+    // absent.  This is important for an idempotent release after a user (or a
+    // previous transaction) has already removed the generated file.  The
+    // planner still compares the value against the observed fingerprint, so a
+    // present target cannot be removed under an absent expectation.
     if (
       action === "merge" &&
       format !== "json" &&

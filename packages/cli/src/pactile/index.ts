@@ -11,6 +11,11 @@ export * from "./projection/structured-merge.js";
 export * from "./projection/planner.js";
 export * from "./projection/store.js";
 
+export * from "./adapters/index.js";
+export * from "./providers/index.js";
+export * from "./tiles/content/index.js";
+export * from "./registry.js";
+
 export type { AdoptionDiagnostic } from "./adoption/safety.js";
 export type {
   DiscoveryContext,
@@ -23,6 +28,13 @@ export type {
   BindingProposal,
 } from "./adoption/bindings.js";
 export { createInstallHint, planBinding } from "./adoption/bindings.js";
+export type {
+  AdoptionWorkflowDiagnosticCode,
+  AdoptionWorkflowPhase,
+  AdoptionWorkflowResult,
+  AdoptionWorkflowStep,
+} from "./adoption/workflow.js";
+export { runAdoptionWorkflow } from "./adoption/workflow.js";
 
 export * from "./middleware/index.js";
 export * from "./retrieval/index.js";

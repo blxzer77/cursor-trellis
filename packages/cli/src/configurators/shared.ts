@@ -816,3 +816,24 @@ export function applyPullBasedPreludeToml(
     };
   });
 }
+
+/**
+ * Build the only project-level Pactile instructions region.  The caller passes
+ * already validated public Tile metadata; Skill bodies and host details never
+ * enter AGENTS.md.
+ */
+export function buildPactileAgentsBlock(
+  tiles: readonly { readonly id: string; readonly summary: string }[],
+): string {
+  const lines = [...tiles]
+    .sort((left, right) => left.id.localeCompare(right.id, "en"))
+    .map(({ id, summary }) => `- \`${id}\` — ${summary.trim()}`);
+  return [
+    "<!-- PACTILE:START -->",
+    "# Pactile capabilities",
+    "",
+    "Use the smallest applicable capability and honor its declared policy, evidence, and stop conditions.",
+    ...(lines.length ? ["", ...lines] : []),
+    "<!-- PACTILE:END -->",
+  ].join("\n");
+}

@@ -195,7 +195,8 @@ describe("canonical ownership planner", () => {
               resolveContent,
             });
             if (observed === "missing") {
-              expect(result.status).not.toBe("ready");
+              expect(result.status).toBe("ready");
+              if (result.status === "ready") expect(result.mutations).toEqual([]);
               continue;
             }
             const preview = ready(result),
@@ -389,6 +390,53 @@ describe("canonical ownership planner", () => {
     expect(planProjection({ ...input, ledger: {} })).toMatchObject({
       status: "review",
     });
+  });
+  it("uses null as an absent-target CAS for idempotent removal", () => {
+    const initial = ready(
+      planProjection({
+        plan: plan(operation()),
+        ledger: null,
+        canonicalFingerprint: canonical,
+        updatedAt: timestamp,
+        observe: () => null,
+        resolveContent,
+      }),
+    );
+    const entry = initial.ledger.entries[0];
+    const absentLedger: OwnershipLedgerV1 = {
+      ...initial.ledger,
+      entries: [
+        {
+          ...entry,
+          current: { state: "absent", fingerprint: null, contentRef: null },
+        },
+      ],
+    };
+    const remove = operation({
+      action: "remove",
+      contentRef: null,
+      desiredFingerprint: null,
+      expectedCurrentFingerprint: null,
+    });
+    const absent = planProjection({
+      plan: plan(remove, canonicalOwnershipLedger(absentLedger).fingerprint),
+      ledger: absentLedger,
+      canonicalFingerprint: canonical,
+      updatedAt: timestamp,
+      observe: () => null,
+      resolveContent,
+    });
+    expect(absent).toMatchObject({ status: "ready", mutations: [] });
+    expect(
+      planProjection({
+        plan: plan(remove, canonicalOwnershipLedger(absentLedger).fingerprint),
+        ledger: absentLedger,
+        canonicalFingerprint: canonical,
+        updatedAt: timestamp,
+        observe: () => Buffer.from("unexpected\n"),
+        resolveContent,
+      }),
+    ).toEqual({ status: "conflict", reason: "target-cas-mismatch" });
   });
 });
 describe("memory-only external binding claim reducer", () => {

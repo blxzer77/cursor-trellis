@@ -257,7 +257,7 @@ describe("ProjectionPlanV1", () => {
     }
   });
 
-  it("rejects unguarded removal", () => {
+  it("accepts an explicit absent-target removal expectation", () => {
     const invalid = validProjectionPlan();
     const operation = {
       ...itemAt(invalid.operations, 0),
@@ -268,15 +268,7 @@ describe("ProjectionPlanV1", () => {
     };
     invalid.operations = [operation];
     const parsed = parseProjectionPlanV1(invalid);
-    expect(parsed.success).toBe(false);
-    if (!parsed.success) {
-      expect(parsed.issues).toContainEqual(
-        expect.objectContaining({
-          path: "$.operations[0].expectedCurrentFingerprint",
-          code: "required",
-        }),
-      );
-    }
+    expect(parsed.success).toBe(true);
   });
 
   it("rejects two resource ids writing the same physical target", () => {
