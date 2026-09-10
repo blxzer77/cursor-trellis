@@ -10,7 +10,7 @@ import {
   executionStrategyRulesJson,
   contextMdTemplate,
   adrReadmeTemplate,
-} from "../templates/trellis/index.js";
+} from "../templates/pactile/index.js";
 
 // Import markdown templates
 import {
@@ -58,10 +58,10 @@ interface DocDefinition {
 }
 
 /**
- * Root-level files written by the workflow configurator (outside `.cstl/`).
+ * Root-level files written by the workflow configurator (outside `.pactile/`).
  * Shared by createWorkflowStructure (init), update.ts collectTemplateFiles
  * (update hash tracking), and manifest-prune buildKnownKeys (so uninstall
- * recognizes them as trellis-written and removes them).
+ * recognizes them as Pactile-written and removes them).
  */
 export function getWorkflowRootTemplateFiles(): Map<string, string> {
   const files = new Map<string, string>();
@@ -83,10 +83,10 @@ export interface WorkflowOptions {
   /** Package names that use remote templates (skip blank spec for these) */
   remoteSpecPackages?: Set<string>;
   /**
-   * Optional override for `.cstl/workflow.md` content. When omitted the
+   * Optional override for `.pactile/workflow.md` content. When omitted the
    * bundled native template is written. Set by `init --workflow` (or
    * `--workflow-source`) after the resolver has fetched marketplace content.
-   * Caller is still responsible for removing the `.cstl/workflow.md` hash
+   * Caller is still responsible for removing the `.pactile/workflow.md` hash
    * entry for non-native workflows so update.ts treats them as user-managed.
    */
   workflowMdOverride?: string;
@@ -95,7 +95,7 @@ export interface WorkflowOptions {
 /**
  * Create workflow structure based on project type
  *
- * This function creates the .cstl/ directory structure by:
+ * This function creates the .pactile/ directory structure by:
  * 1. Writing scripts/ from getAllScripts() (user-shipped subset only)
  * 2. Copying workflow.md and .gitignore (dogfooding)
  * 3. Writing modules/ (index.json + <id>/contract.md; never catalog.ts)
@@ -116,10 +116,10 @@ export async function createWorkflowStructure(
   const remoteSpecPackages = options?.remoteSpecPackages;
   const workflowMd = options?.workflowMdOverride ?? workflowMdTemplate;
 
-  // Create base .trellis directory
+  // Create the canonical Pactile directory.
   ensureDir(path.join(cwd, DIR_NAMES.WORKFLOW));
 
-  // Write user-shipped Python scripts (same source of truth as trellis update)
+  // Write user-shipped Python scripts (same source of truth as pactile update).
   await writeScriptTemplates(path.join(cwd, PATHS.SCRIPTS));
 
   // Review-pool skeleton (mechanism docs only; no sample items)
@@ -129,7 +129,7 @@ export async function createWorkflowStructure(
   // Walk skips catalog.ts / any .ts; not registered in getAllScripts().
   await writeUserModuleContracts(path.join(cwd, PATHS.MODULES));
 
-  // Do not create or write `.cstl/middleware/`. Users drop Manifests there;
+  // Do not create or write `.pactile/middleware/`. Users drop Manifests there;
   // init/update never write, delete, or hash that overlay.
 
   // Copy workflow.md (native bundled template or selected marketplace variant)
@@ -340,7 +340,7 @@ async function createSpecTemplates(
     await writeFile(path.join(guidesDir, doc.name), doc.content);
   }
 
-  // Framework docs (.cstl/framework/) — framework-owned, refreshed by update.
+  // Framework docs (.pactile/framework/) — framework-owned, refreshed by update.
   // Apply the same platform command rewrite as update.ts collectTemplateFiles
   // so init-written content matches the hash update expects (no-op on
   // same-version update instead of a spurious rewrite).

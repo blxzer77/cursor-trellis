@@ -55,7 +55,7 @@ describe("Stage 5 On-demand and Topology", () => {
   let taskDir: string;
 
   beforeEach(() => {
-    tmp = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-stage5-"));
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-stage5-"));
     taskDir = path.join(tmp, "08-28-stage5");
   });
 

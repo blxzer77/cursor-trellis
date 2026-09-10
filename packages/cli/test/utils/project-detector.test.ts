@@ -66,7 +66,7 @@ describe("detectProjectType", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-detect-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-detect-"));
   });
 
   afterEach(() => {
@@ -186,7 +186,7 @@ describe("detectMonorepo", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-monorepo-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-monorepo-"));
   });
 
   afterEach(() => {
@@ -434,7 +434,7 @@ describe("detectMonorepo", () => {
       path.join(tmpDir, ".gitmodules"),
       '[submodule "docs-site"]\n\tpath = docs-site\n\turl = https://example.com\n',
     );
-    mkPkg("packages/cli", "@trellis/cli");
+    mkPkg("packages/cli", "@example/cli");
     mkPkg("docs-site", "docs-site");
 
     const result = assertPackages(detectMonorepo(tmpDir));
@@ -473,7 +473,7 @@ describe("detectMonorepo polyrepo fallback", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-poly-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-poly-"));
   });
 
   afterEach(() => {

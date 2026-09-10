@@ -1,24 +1,24 @@
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import {
-  getTrellisTemplatePath,
-  getTrellisSourcePath,
-  readTrellisFile,
+  getPactileTemplatePath,
+  getPactileSourcePath,
+  readPactileFile,
   readTemplate,
   readScript,
   readMarkdown,
   collectUserModuleTemplates,
   isUserShippedModuleFile,
 } from "../../src/templates/extract.js";
-import { listModuleCatalog } from "../../src/templates/trellis/modules/catalog.js";
+import { listModuleCatalog } from "../../src/templates/pactile/modules/catalog.js";
 
 // =============================================================================
 // getXxxTemplatePath — returns existing directory paths
 // =============================================================================
 
 describe("template path functions", () => {
-  it("getTrellisTemplatePath returns existing directory", () => {
-    const p = getTrellisTemplatePath();
+  it("getPactileTemplatePath returns existing directory", () => {
+    const p = getPactileTemplatePath();
     expect(fs.existsSync(p)).toBe(true);
     expect(fs.statSync(p).isDirectory()).toBe(true);
   });
@@ -29,31 +29,31 @@ describe("template path functions", () => {
 // =============================================================================
 
 describe("deprecated source path aliases", () => {
-  it("getTrellisSourcePath equals getTrellisTemplatePath", () => {
-    expect(getTrellisSourcePath()).toBe(getTrellisTemplatePath());
+  it("getPactileSourcePath equals getPactileTemplatePath", () => {
+    expect(getPactileSourcePath()).toBe(getPactileTemplatePath());
   });
 });
 
 // =============================================================================
-// readTrellisFile — reads files from trellis template directory
+// readPactileFile — reads files from the Pactile template directory
 // =============================================================================
 
-describe("readTrellisFile", () => {
-  it("reads workflow.md from trellis templates", () => {
-    const content = readTrellisFile("workflow.md");
+describe("readPactileFile", () => {
+  it("reads workflow.md from Pactile templates", () => {
+    const content = readPactileFile("workflow.md");
     expect(typeof content).toBe("string");
     expect(content.length).toBeGreaterThan(0);
     expect(content).toContain("#");
   });
 
   it("reads a script file", () => {
-    const content = readTrellisFile("scripts/task.py");
+    const content = readPactileFile("scripts/task.py");
     expect(typeof content).toBe("string");
     expect(content.length).toBeGreaterThan(0);
   });
 
   it("throws for nonexistent file", () => {
-    expect(() => readTrellisFile("nonexistent.txt")).toThrow();
+    expect(() => readPactileFile("nonexistent.txt")).toThrow();
   });
 });
 

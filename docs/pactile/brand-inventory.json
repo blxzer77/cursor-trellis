@@ -3,7 +3,7 @@
   "contractId": "pactile.brand-inventory/v1",
   "status": "batch-0-baseline",
   "generatedFromCommit": "e8c05a1f7e7f3f49f605cc4f056be5a4eb44af73",
-  "capturedAtUtc": "2026-09-09T13:33:48Z",
+  "capturedAtUtc": "2026-09-10T11:21:23Z",
   "enforcement": {
     "current": "inventory",
     "stableRelease": "deny-live",
@@ -108,6 +108,12 @@
     },
     {
       "classification": "history",
+      "pathRegex": "^packages/cli/test/scripts/retrieval-dogfood-fixtures\\.ts$",
+      "reason": "The archive-backed fixture router must address the exact frozen historical task slug without rewriting it.",
+      "exitCondition": "Retain while the corresponding archived fixture remains versioned evidence."
+    },
+    {
+      "classification": "history",
       "pathRegex": "^(?:PERSONAL_SKILLS_TRELLIS_INTEGRATION_RESEARCH\\.md|docs/campaign-ui\\.md|docs/community/linux-do-release\\.md)$",
       "reason": "These are frozen research, removed experiments, or released community narratives.",
       "exitCondition": "Move under the history IA without rewriting the historical claims."
@@ -120,15 +126,57 @@
     },
     {
       "classification": "compat",
+      "pathRegex": "^(?:\\.gitignore|pnpm-lock\\.yaml)$",
+      "reason": "Repository metadata must keep ignoring legacy roots and resolve the two 0.5.x shim packages.",
+      "exitCondition": "Remove legacy root ignores and shim lock entries when the 0.5.x compatibility window closes."
+    },
+    {
+      "classification": "compat",
+      "pathRegex": "^packages/cli/(?:package\\.json|bin/(?:cstl|compat-warning)\\.js|scripts/(?:bump-versions|check-release-pack-contents|publish-packages|release-preflight|release-validation|release)\\.js)$",
+      "reason": "These exact package, bin, and release-plan surfaces carry the supported 0.5.x alias and legacy shim graph.",
+      "exitCondition": "Delete the cstl alias and two legacy package edges after the 0.5.x compatibility window."
+    },
+    {
+      "classification": "compat",
+      "pathRegex": "^packages/cli/src/(?:pactile/compat/|pactile/lifecycle/(?:command-runner|legacy-import|orchestrator)\\.ts$|pactile/(?:migration/transaction|projection/store|runtime/paths)\\.ts$|templates/pactile/scripts/common/paths\\.py$|utils/(?:agents-md|manifest-prune|p36-upgrade|workflow-dir)\\.ts$)",
+      "reason": "These narrowly named readers import, reject, detach, or migrate legacy state while emitting canonical Pactile state.",
+      "exitCondition": "Retire each legacy reader when its 0.5.x migration or ownership obligation expires."
+    },
+    {
+      "classification": "compat",
       "pathRegex": "^packages/cli/src/(?:migrations/|utils/cursor2plus-residue-cleanup\\.ts$)",
       "reason": "Migration and residue code must recognize legacy state during the compatibility window.",
       "exitCondition": "Retire individual readers only after their documented 0.5.x exit conditions are met."
     },
     {
       "classification": "compat",
+      "pathRegex": "^packages/cli/test/(?:commands/(?:init-joiner\\.integration|init\\.integration|uninstall\\.integration|update-internals|update-p36\\.integration|update\\.integration)\\.test\\.ts$|fixture-integrity/pactile-fixtures\\.test\\.ts$|fixtures/pactile/|helpers/legacy-migrations\\.ts$|pactile/(?:compat/|integration/foundation\\.test\\.ts$|lifecycle/(?:command-runner|orchestrator)\\.test\\.ts$|migration/transaction\\.test\\.ts$|package-shim\\.test\\.ts$|retrieval/(?:guard|planner)\\.test\\.ts$|runtime/(?:parity\\.test\\.ts|path-golden\\.json|paths\\.test\\.ts|stores\\.test\\.ts)$|tiles/baseline-tiles\\.test\\.ts$)|registry-invariants\\.test\\.ts$|release-guard\\.test\\.ts$|templates/(?:modules-catalog|rename-session-hook|shared-hooks)\\.test\\.ts$|utils/(?:agents-md|mirror-check|p36-upgrade|project-capabilities|uninstall-scrubbers|workflow-resolver)\\.test\\.ts$)",
+      "reason": "These exact tests and fixtures prove legacy reads, aliases, ownership preservation, negative brand guards, and canonical-only outputs.",
+      "exitCondition": "Remove each case together with the 0.5.x compatibility behavior or frozen negative guard it covers."
+    },
+    {
+      "classification": "compat",
       "pathRegex": "^packages/cli/test/(?:migrations/|utils/cursor2plus-residue-cleanup\\.test\\.ts$|docs/migration-readme\\.test\\.ts$)",
       "reason": "These tests preserve compatibility and history boundaries.",
       "exitCondition": "Keep while the corresponding compatibility behavior is supported."
+    },
+    {
+      "classification": "compat",
+      "pathRegex": "^packages/core/src/(?:compat/environment|pactile/(?:lifecycle|runtime))\\.ts$",
+      "reason": "Core contract readers model read-only legacy roots and environment aliases alongside the canonical Pactile root.",
+      "exitCondition": "Drop the legacy variants after the 0.5.x compatibility window and a contract-version transition."
+    },
+    {
+      "classification": "compat",
+      "pathRegex": "^packages/core/test/(?:compat/|pactile/(?:capability-projection\\.test|lifecycle-trace\\.test|samples|validation-runtime\\.test)\\.ts$)",
+      "reason": "These exact Core fixtures prove strict legacy parsing and canonical output behavior.",
+      "exitCondition": "Remove legacy cases only when the matching 0.5.x reader is retired."
+    },
+    {
+      "classification": "compat",
+      "pathRegex": "^packages/cursor-trellis(?:-core)?-shim/",
+      "reason": "The two legacy package directories are intentionally thin 0.5.x redirects to canonical Pactile packages.",
+      "exitCondition": "Delete both shim packages after the 0.5.x compatibility window."
     },
     {
       "classification": "compat",
@@ -150,25 +198,25 @@
     "^scripts/"
   ],
   "baselineSnapshot": {
-    "sha256": "de0f1093a3cdea8e8dff090427b6364e9cda05e47edee81b9493c897bb677bab",
-    "occurrences": 13877,
-    "files": 757,
+    "sha256": "6d1d36902a566143b89e4c9951df180d2e302207a3e8708da4904568941d1e80",
+    "occurrences": 6653,
+    "files": 331,
     "byClassification": {
       "attribution": 1,
-      "compat": 142,
-      "history": 3337,
-      "live": 10397
+      "compat": 995,
+      "history": 3340,
+      "live": 2317
     },
     "byToken": {
-      "cursor-plus-plus": 451,
-      "legacy-cstl-token": 4786,
-      "legacy-environment-name": 360,
-      "legacy-managed-marker": 73,
-      "legacy-package-name": 430,
-      "legacy-product-name": 550,
-      "legacy-runtime-path": 2546,
-      "legacy-trellis-token": 4153,
-      "upstream-runtime-path": 528
+      "cursor-plus-plus": 352,
+      "legacy-cstl-token": 1742,
+      "legacy-environment-name": 86,
+      "legacy-managed-marker": 32,
+      "legacy-package-name": 298,
+      "legacy-product-name": 380,
+      "legacy-runtime-path": 635,
+      "legacy-trellis-token": 2690,
+      "upstream-runtime-path": 438
     }
   }
 }

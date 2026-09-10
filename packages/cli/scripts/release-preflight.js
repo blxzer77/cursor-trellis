@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /** Shared, fail-closed release and publish preflight. */
 import fs from "node:fs";
 import os from "node:os";
@@ -17,7 +16,16 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "../../..");
 const CORE_PKG = path.join(REPO_ROOT, "packages/core/package.json");
 const CLI_PKG = path.join(REPO_ROOT, "packages/cli/package.json");
-const CORE_DEPENDENCY = "@blxzer/cursor-trellis-core";
+const LEGACY_CORE_PKG = path.join(
+  REPO_ROOT,
+  "packages/cursor-trellis-core-shim/package.json",
+);
+const LEGACY_CLI_PKG = path.join(
+  REPO_ROOT,
+  "packages/cursor-trellis-shim/package.json",
+);
+const CORE_DEPENDENCY = "@blxzer/pactile-core";
+const CLI_DEPENDENCY = "@blxzer/pactile";
 
 function readJSON(file) {
   return JSON.parse(fs.readFileSync(file, "utf-8"));
@@ -26,12 +34,35 @@ function readJSON(file) {
 export function readVersions() {
   const core = readJSON(CORE_PKG);
   const cli = readJSON(CLI_PKG);
+  const legacyCore = readJSON(LEGACY_CORE_PKG);
+  const legacyCli = readJSON(LEGACY_CLI_PKG);
   return {
     coreName: core.name,
     coreVersion: core.version,
     cliName: cli.name,
     cliVersion: cli.version,
+    legacyCoreName: legacyCore.name,
+    legacyCoreVersion: legacyCore.version,
+    legacyCliName: legacyCli.name,
+    legacyCliVersion: legacyCli.version,
   };
+}
+
+export function releasePackageDefinitions(versions) {
+  return [
+    { key: "core", name: versions.coreName, version: versions.coreVersion },
+    { key: "cli", name: versions.cliName, version: versions.cliVersion },
+    {
+      key: "legacyCore",
+      name: versions.legacyCoreName,
+      version: versions.legacyCoreVersion,
+    },
+    {
+      key: "legacyCli",
+      name: versions.legacyCliName,
+      version: versions.legacyCliVersion,
+    },
+  ];
 }
 
 export function computeNpmTag(version) {
@@ -114,7 +145,7 @@ function inferredTag({ explicitTag, env }) {
   if (explicitTag) return candidate;
   if (env.GITHUB_REF?.startsWith("refs/tags/")) return candidate;
   if (env.GITHUB_REF_TYPE === "tag") return candidate;
-  if (candidate.startsWith("cstl-v")) return candidate;
+  if (candidate.startsWith("pactile-v")) return candidate;
   return "";
 }
 
@@ -131,7 +162,7 @@ export function checkVersions({
   if (tag) tagVersion = parseReleaseTag(tag).version;
   if (requireTag && !tag) {
     throw new Error(
-      `Expected an exact cstl-v${versions.cliVersion} tag, but no release tag was provided.`,
+      `Expected an exact pactile-v${versions.cliVersion} tag, but no release tag was provided.`,
     );
   }
   if (tagVersion !== null && tagVersion !== versions.cliVersion) {
@@ -181,22 +212,19 @@ export function checkPublishProvenance({
 export function createPublishPlan({ versions, exists = npmVersionExists }) {
   assertMatchingVersions(versions);
   const tag = computeNpmTag(versions.cliVersion);
-  const coreExists = exists(versions.coreName, versions.coreVersion);
-  const cliExists = exists(versions.cliName, versions.cliVersion);
-  return {
+  const plan = {
     version: versions.cliVersion,
     tag,
-    core: {
-      name: versions.coreName,
-      publish: !coreExists,
-      alreadyOnNpm: coreExists,
-    },
-    cli: {
-      name: versions.cliName,
-      publish: !cliExists,
-      alreadyOnNpm: cliExists,
-    },
   };
+  for (const definition of releasePackageDefinitions(versions)) {
+    const alreadyOnNpm = exists(definition.name, definition.version);
+    plan[definition.key] = {
+      name: definition.name,
+      publish: !alreadyOnNpm,
+      alreadyOnNpm,
+    };
+  }
+  return plan;
 }
 
 function publishPlan({ output, runner = createCommandRunner() }) {
@@ -219,8 +247,12 @@ function publishPlan({ output, runner = createCommandRunner() }) {
         `tag=${plan.tag}`,
         `core_publish=${plan.core.publish}`,
         `cli_publish=${plan.cli.publish}`,
+        `legacy_core_publish=${plan.legacyCore.publish}`,
+        `legacy_cli_publish=${plan.legacyCli.publish}`,
         `core_already_on_npm=${plan.core.alreadyOnNpm}`,
         `cli_already_on_npm=${plan.cli.alreadyOnNpm}`,
+        `legacy_core_already_on_npm=${plan.legacyCore.alreadyOnNpm}`,
+        `legacy_cli_already_on_npm=${plan.legacyCli.alreadyOnNpm}`,
       ].join("\n") + "\n",
     );
   }
@@ -228,7 +260,9 @@ function publishPlan({ output, runner = createCommandRunner() }) {
   console.log(
     `plan for ${plan.version} -> npm tag "${plan.tag}":\n` +
       `  ${plan.core.name}@${plan.version}: ${status(plan.core)}\n` +
-      `  ${plan.cli.name}@${plan.version}: ${status(plan.cli)}`,
+      `  ${plan.cli.name}@${plan.version}: ${status(plan.cli)}\n` +
+      `  ${plan.legacyCore.name}@${plan.version}: ${status(plan.legacyCore)}\n` +
+      `  ${plan.legacyCli.name}@${plan.version}: ${status(plan.legacyCli)}`,
   );
   return plan;
 }
@@ -238,7 +272,7 @@ function packWorkspacePackage(packageDir, destinationDir, runner) {
     runner("pnpm", ["pack", "--pack-destination", destinationDir], {
       cwd: packageDir,
       capture: true,
-      env: { TRELLIS_SKIP_SMART_SEARCH_POSTINSTALL: "1" },
+      env: { PACTILE_SKIP_SMART_SEARCH_POSTINSTALL: "1" },
     }),
   );
   const filename = out.trim().split(/\r?\n/).filter(Boolean).pop() ?? "";
@@ -265,8 +299,26 @@ function normalizeBin(value) {
   return typeof value === "string" ? value.replace(/^\.\//, "") : value;
 }
 
+function hasWorkspaceProtocol(value) {
+  if (typeof value === "string") return value.startsWith("workspace:");
+  if (Array.isArray(value)) return value.some(hasWorkspaceProtocol);
+  if (value && typeof value === "object") {
+    return Object.values(value).some(hasWorkspaceProtocol);
+  }
+  return false;
+}
+
+export function assertPackedManifestUsesSemver(packedPackage) {
+  if (hasWorkspaceProtocol(packedPackage)) {
+    throw new Error(
+      `packed ${packedPackage.name ?? "package"} contains a workspace: protocol`,
+    );
+  }
+}
+
 export function validatePackedCliPackage(packedPackage, expectedVersion) {
   const errors = [];
+  assertPackedManifestUsesSemver(packedPackage);
   const dependency = packedPackage.dependencies?.[CORE_DEPENDENCY];
   if (dependency !== expectedVersion) {
     errors.push(
@@ -274,6 +326,9 @@ export function validatePackedCliPackage(packedPackage, expectedVersion) {
     );
   }
   const bins = packedPackage.bin ?? {};
+  if (normalizeBin(bins.pactile) !== "bin/pactile.js") {
+    errors.push(`packed CLI bin "pactile" does not resolve to bin/pactile.js`);
+  }
   if (normalizeBin(bins.cstl) !== "bin/cstl.js") {
     errors.push(`packed CLI bin "cstl" does not resolve to bin/cstl.js`);
   }
@@ -285,12 +340,40 @@ export function validatePackedCliPackage(packedPackage, expectedVersion) {
   if (errors.length > 0) throw new Error(errors.join("\n"));
 }
 
+export function validatePackedShimPackage(
+  packedPackage,
+  { key, expectedVersion },
+) {
+  assertPackedManifestUsesSemver(packedPackage);
+  const dependencyName =
+    key === "legacyCore"
+      ? CORE_DEPENDENCY
+      : key === "legacyCli"
+        ? CLI_DEPENDENCY
+        : null;
+  if (!dependencyName) throw new Error(`Unknown shim package key "${key}".`);
+  const dependency = packedPackage.dependencies?.[dependencyName];
+  if (dependency !== expectedVersion) {
+    throw new Error(
+      `packed ${key} dependency ${dependencyName} is "${dependency ?? "missing"}"; expected exact "${expectedVersion}"`,
+    );
+  }
+  if (
+    key === "legacyCli" &&
+    normalizeBin(packedPackage.bin?.cstl) !== "bin/cstl.js"
+  ) {
+    throw new Error(
+      `packed legacy CLI bin "cstl" does not resolve to bin/cstl.js`,
+    );
+  }
+}
+
 export function verifyPackedCli({
   runner = createCommandRunner(),
   versions = readVersions(),
 } = {}) {
   assertMatchingVersions(versions);
-  const temporary = fs.mkdtempSync(path.join(os.tmpdir(), "cstl-pack-verify-"));
+  const temporary = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-pack-verify-"));
   try {
     const packed = packWorkspacePackage(
       path.join(REPO_ROOT, "packages/cli"),
@@ -307,7 +390,7 @@ export function verifyPackedCli({
     );
     validatePackedCliPackage(packedPackage, versions.cliVersion);
     console.log(
-      `ok packed CLI pins ${CORE_DEPENDENCY} to ${versions.cliVersion} and exposes both bins.`,
+      `ok packed CLI pins ${CORE_DEPENDENCY} to ${versions.cliVersion} and exposes canonical plus compatibility bins.`,
     );
   } finally {
     fs.rmSync(temporary, { recursive: true, force: true });
@@ -317,10 +400,9 @@ export function verifyPackedCli({
 async function verifyNpm({ packageFilter, runner = createCommandRunner() }) {
   const versions = checkVersions();
   const tag = computeNpmTag(versions.cliVersion);
-  const packages = [
-    { key: "core", name: versions.coreName },
-    { key: "cli", name: versions.cliName },
-  ].filter((pkg) => packageFilter === "all" || pkg.key === packageFilter);
+  const packages = releasePackageDefinitions(versions).filter(
+    (pkg) => packageFilter === "all" || pkg.key === packageFilter,
+  );
 
   for (const pkg of packages) {
     await retry(`${pkg.name}@${versions.cliVersion}`, () => {
@@ -361,12 +443,12 @@ async function main() {
     console.log(
       "release-preflight <command>\n\n" +
         "commands:\n" +
-        "  check-versions [--require-tag] [--tag cstl-vX.Y.Z]\n" +
-        "  check-provenance [--tag cstl-vX.Y.Z] [--remote origin]\n" +
+        "  check-versions [--require-tag] [--tag pactile-vX.Y.Z]\n" +
+        "  check-provenance [--tag pactile-vX.Y.Z] [--remote origin]\n" +
         "  npm-tag\n" +
         "  publish-plan [--json|--github]\n" +
         "  verify-packed-cli\n" +
-        "  verify-npm [--package all|core|cli]",
+        "  verify-npm [--package all|core|cli|legacyCore|legacyCli]",
     );
     return;
   }
@@ -406,8 +488,14 @@ async function main() {
   }
   if (command === "verify-npm") {
     const packageFilter = optionValue(args, "--package", "all");
-    if (!["all", "core", "cli"].includes(packageFilter)) {
-      throw new Error("--package must be one of: all, core, cli.");
+    if (
+      !["all", "core", "cli", "legacyCore", "legacyCli"].includes(
+        packageFilter,
+      )
+    ) {
+      throw new Error(
+        "--package must be one of: all, core, cli, legacyCore, legacyCli.",
+      );
     }
     await verifyNpm({ packageFilter, runner });
     return;

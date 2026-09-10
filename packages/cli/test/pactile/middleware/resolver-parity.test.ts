@@ -21,7 +21,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = path.resolve(here, "../../../../..");
 const pythonModule = path.join(
   repositoryRoot,
-  "packages/cli/src/templates/trellis/scripts/common/adapter_middleware.py",
+  "packages/cli/src/templates/pactile/scripts/common/adapter_middleware.py",
 );
 
 interface GoldenCase {

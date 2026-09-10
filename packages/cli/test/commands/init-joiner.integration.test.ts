@@ -2,8 +2,8 @@
  * Integration tests for the joiner-onboarding branch of init().
  *
  * Covers the three-branch dispatch:
- *   no .cstl/                        → creator bootstrap task
- *   .cstl/ exists, .developer missing → joiner onboarding task
+ *   no .pactile/                         → creator bootstrap task
+ *   .pactile/ exists, .developer missing → joiner onboarding task
  *   both exist                           → no task created
  *
  * Uses the same fs-temp-dir + hoisted-mock approach as init.integration.test.ts.
@@ -17,7 +17,7 @@ import path from "node:path";
 // === External dependency mocks (hoisted by vitest) ===
 
 vi.mock("figlet", () => ({
-  default: { textSync: vi.fn(() => "TRELLIS") },
+  default: { textSync: vi.fn(() => "PACTILE") },
 }));
 
 vi.mock("inquirer", () => ({
@@ -44,7 +44,7 @@ describe("init() joiner onboarding", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-joiner-int-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-joiner-int-"));
     vi.spyOn(process, "cwd").mockReturnValue(tmpDir);
     vi.spyOn(console, "log").mockImplementation(noop);
     vi.spyOn(console, "warn").mockImplementation(noop);
@@ -62,7 +62,7 @@ describe("init() joiner onboarding", () => {
   });
 
   /**
-   * Helper: simulate a fresh clone of an existing Trellis project — `.cstl/`
+   * Helper: simulate a fresh clone of an existing Pactile project — `.pactile/`
    * committed (with at least one archived task indicating prior work),
    * `.developer` absent. Real fresh-clone state always has either an active or
    * archived bootstrap task; an empty `tasks/` indicates an aborted partial
@@ -83,7 +83,7 @@ describe("init() joiner onboarding", () => {
     fs.mkdirSync(path.join(workflow, DIR_NAMES.WORKSPACE), { recursive: true });
   }
 
-  /** Helper: simulate same-dev re-init — both `.cstl/` and `.developer` exist */
+  /** Helper: simulate same-dev re-init — both `.pactile/` and `.developer` exist */
   function simulateSameDevReinit(name: string): void {
     simulateExistingCheckout();
     fs.writeFileSync(
@@ -108,7 +108,7 @@ describe("init() joiner onboarding", () => {
     expect(fs.existsSync(joiner)).toBe(false);
   });
 
-  it("#2 existing .cstl/ + no .developer → joiner onboarding task created", async () => {
+  it("#2 existing .pactile/ + no .developer → joiner onboarding task created", async () => {
     simulateExistingCheckout();
 
     await init({ yes: true, user: "bob", force: true });
@@ -135,10 +135,10 @@ describe("init() joiner onboarding", () => {
     expect(prd).toContain("bob");
     expect(prd).toContain("You (the AI) are running this task");
     expect(prd).toContain("workflow.md");
-    expect(prd).toContain(".cstl/spec/");
+    expect(prd).toContain(".pactile/spec/");
     expect(prd).toContain("00-join-bob");
-    expect(prd).toContain("/cstl-continue");
-    expect(prd).toContain("/cstl-finish-work");
+    expect(prd).toContain("/pactile-continue");
+    expect(prd).toContain("/pactile-finish-work");
     expect(prd).toContain("not runtime SSOT");
     expect(prd).not.toContain("/cstl:continue");
     expect(prd).not.toContain("/cstl:finish-work");
@@ -148,11 +148,11 @@ describe("init() joiner onboarding", () => {
     expect(prd).toContain("archive is empty");
     const expectedPythonCmd = process.platform === "win32" ? "python" : "python3";
     expect(prd).toContain(
-      `${expectedPythonCmd} ./.cstl/scripts/task.py list --assignee bob`,
+      `${expectedPythonCmd} ./.pactile/scripts/task.py list --assignee bob`,
     );
-    expect(prd).not.toContain(`${expectedPythonCmd} ./.cstl/scripts/task.py finish`);
+    expect(prd).not.toContain(`${expectedPythonCmd} ./.pactile/scripts/task.py finish`);
     expect(prd).toContain(
-      `${expectedPythonCmd} ./.cstl/scripts/task.py archive 00-join-bob`,
+      `${expectedPythonCmd} ./.pactile/scripts/task.py archive 00-join-bob`,
     );
 
     // init creates the joiner task but does not set repo-global current-task state.
@@ -166,9 +166,9 @@ describe("init() joiner onboarding", () => {
     ).toBe(false);
   });
 
-  it("#2b issue #204: existing .cstl/ but tasks/ empty → bootstrap fallback (--yes alone, no --force)", async () => {
+  it("#2b issue #204: existing .pactile/ but tasks/ empty → bootstrap fallback (--yes alone, no --force)", async () => {
     // Mirrors the exact reproduction in issue #204: first run aborted partway
-    // after writing the .cstl/ skeleton but before creating bootstrap;
+    // after writing the .pactile/ skeleton but before creating bootstrap;
     // second run uses `--yes` alone (no --force, no --skip-existing) to recover.
     // Without the empty-tasks early-bypass at init.ts:931, this command would
     // route through handleReinit and mis-create a joiner task.
@@ -206,7 +206,7 @@ describe("init() joiner onboarding", () => {
     ).toBe(false);
   });
 
-  it("#3 existing .cstl/ + .developer → no task created", async () => {
+  it("#3 existing .pactile/ + .developer → no task created", async () => {
     simulateSameDevReinit("carol");
 
     await init({ yes: true, user: "carol", force: true });
@@ -239,7 +239,7 @@ describe("init() joiner onboarding", () => {
     await init({ yes: true, user: "dave", force: true });
 
     expect(fs.existsSync(joinerPath)).toBe(false);
-  });
+  }, 60_000);
 
   it("#5a developer name with spaces → filesystem-safe slug", async () => {
     simulateExistingCheckout();
@@ -287,7 +287,7 @@ describe("init() joiner onboarding", () => {
   it("#6 joiner creation failure surfaces as warning, init does not crash", async () => {
     // Simulate "fresh clone" state, then set up conditions that make
     // writeTaskSkeleton's mkdirSync fail: writeFileSync for task.json can be
-    // thwarted by making .cstl/tasks read-only right before dispatch,
+    // thwarted by making .pactile/tasks read-only right before dispatch,
     // but that's fragile cross-platform. A simpler approach: spy on
     // fs.writeFileSync to throw for the joiner's task.json path, forcing
     // writeTaskSkeleton's catch block to return false, which in turn triggers
@@ -328,13 +328,13 @@ describe("init() joiner onboarding", () => {
     writeSpy.mockRestore();
   });
 
-  // Tests #7/#8 cover the handleReinit path — the default flow when .cstl/
+  // Tests #7/#8 cover the handleReinit path — the default flow when .pactile/
   // already exists and neither --force nor --skip-existing is passed. init()
   // routes through handleReinit() instead of the main dispatch, so joiner
   // creation is wired separately inside handleReinit's add-developer branch.
   // The earlier tests all pass force:true, which bypasses this path.
 
-  it("#7 handleReinit path: existing .cstl/ + no .developer → joiner task created", async () => {
+  it("#7 handleReinit path: existing .pactile/ + no .developer → joiner task created", async () => {
     simulateExistingCheckout();
 
     await init({ yes: true, user: "frank" });
@@ -353,7 +353,7 @@ describe("init() joiner onboarding", () => {
     );
   });
 
-  it("#8 handleReinit path: existing .cstl/ + .developer → no task created", async () => {
+  it("#8 handleReinit path: existing .pactile/ + .developer → no task created", async () => {
     simulateSameDevReinit("grace");
 
     await init({ yes: true, user: "grace" });

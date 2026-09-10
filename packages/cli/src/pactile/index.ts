@@ -1,6 +1,8 @@
 /** Public host-neutral Pactile foundation APIs. Host adapters opt in separately. */
 
 export * from "./runtime/index.js";
+export * from "./lifecycle/index.js";
+export * from "./exit/index.js";
 
 export * from "./tiles/loader.js";
 export * from "./tiles/catalog.js";

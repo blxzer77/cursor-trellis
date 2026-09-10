@@ -927,7 +927,6 @@
     "canonicalTargetPage": "history.cursor-plus-plus",
     "disposition": "Remove operational Cursor++ guidance from live prose and link to the canonical history page only when useful.",
     "routes": [
-      { "sourcePath": "AGENTS.md", "targetPage": "history.cursor-plus-plus" },
       { "sourcePath": "README.md", "targetPage": "history.cursor-plus-plus" },
       {
         "sourcePath": "README.zh-CN.md",

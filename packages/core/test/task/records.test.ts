@@ -15,7 +15,7 @@ describe("loadTaskRecord / writeTaskRecord", () => {
   let tmp: string;
 
   beforeEach(() => {
-    tmp = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-core-task-"));
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-core-task-"));
   });
   afterEach(() => {
     fs.rmSync(tmp, { recursive: true, force: true });

@@ -31,7 +31,7 @@ function retrievalProductFiles(root = cliRoot): string[] {
   const direct = [
     path.join(root, "src/pactile/retrieval"),
     path.join(root, "src/utils"),
-    path.join(root, "src/templates/trellis/scripts"),
+    path.join(root, "src/templates/pactile/scripts"),
     path.join(root, "src/templates/shared-hooks"),
   ];
   return direct.flatMap(walk).filter((file) => {
@@ -73,7 +73,7 @@ describe("Pactile retrieval V3 live-symbol guard", () => {
       const directories = [
         "src/pactile/retrieval",
         "src/utils",
-        "src/templates/trellis/scripts/__pycache__",
+        "src/templates/pactile/scripts/__pycache__",
         "src/templates/shared-hooks",
       ];
       for (const directory of directories) {
@@ -81,8 +81,8 @@ describe("Pactile retrieval V3 live-symbol guard", () => {
       }
       const realSources = [
         "src/pactile/retrieval/fixture.ts",
-        "src/templates/trellis/scripts/fixture_retrieval.py",
-        "src/templates/trellis/scripts/fixture_retrieval.md",
+        "src/templates/pactile/scripts/fixture_retrieval.py",
+        "src/templates/pactile/scripts/fixture_retrieval.md",
         "src/templates/shared-hooks/fixture-retrieval.json",
       ];
       for (const relative of realSources) {
@@ -91,7 +91,7 @@ describe("Pactile retrieval V3 live-symbol guard", () => {
       writeFileSync(
         path.join(
           fixtureRoot,
-          "src/templates/trellis/scripts/__pycache__/cursor_retrieval_env.cpython-312.pyc",
+          "src/templates/pactile/scripts/__pycache__/cursor_retrieval_env.cpython-312.pyc",
         ),
         "generated-bytecode-BYOK",
         "utf8",
@@ -119,7 +119,7 @@ describe("Pactile retrieval V3 live-symbol guard", () => {
     const python = readFileSync(
       path.join(
         cliRoot,
-        "src/templates/trellis/scripts/common/codebase_retrieval_router.py",
+        "src/templates/pactile/scripts/common/codebase_retrieval_router.py",
       ),
       "utf8",
     );

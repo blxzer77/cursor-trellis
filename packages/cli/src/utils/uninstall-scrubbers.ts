@@ -1,10 +1,10 @@
 /**
- * Scrubbers for structured config files during `trellis uninstall`.
+ * Compatibility scrubbers for structured config files during detach.
  *
  * Each scrubber takes the file content (and any context it needs) and returns
  * `{ content, fullyEmpty }`:
  * - `content` is the post-scrub text to write back if the file should remain.
- * - `fullyEmpty` is true when, after stripping every trellis-managed value,
+ * - `fullyEmpty` is true when, after stripping every Pactile-managed value,
  *   nothing meaningful is left. The caller deletes the file in that case.
  *
  * Manifest path matching (for hooks.json scrubbers) uses substring containment
@@ -20,7 +20,7 @@ export interface ScrubResult {
 /**
  * Test whether a hook command string references any of the given manifest paths.
  *
- * Trellis-emitted hook commands have the shape
+ * Pactile-emitted hook commands have the shape
  *   `<python-cmd> [interpreter-flags] <manifest-path> [hook-args…]`
  * e.g. `python .cursor/hooks/event-bridge.py --event sessionStart`.
  * The invoked script is the first non-flag token after the interpreter, not
@@ -163,7 +163,7 @@ export function scrubHooksJson(
       if (mode === "flat") {
         const cmd = getEntryCommand(entry);
         if (cmd !== null && commandMatchesDeletedPath(cmd, deletedPaths)) {
-          continue; // drop trellis entry
+          continue; // drop Pactile entry
         }
         filteredEvent.push(entry);
       } else {

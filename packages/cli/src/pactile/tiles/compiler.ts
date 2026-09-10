@@ -19,7 +19,7 @@ import {
   type TileEvidenceKindV1,
   type TileManifestV1,
   type TileStopConditionV1,
-} from "@blxzer/cursor-trellis-core";
+} from "@blxzer/pactile-core";
 import {
   buildTileCatalog,
   compareTileRefs,

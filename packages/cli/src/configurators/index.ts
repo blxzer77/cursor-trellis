@@ -85,18 +85,18 @@ const PLATFORM_FUNCTIONS: Record<AITool, PlatformFunctions> = {
       const ctx = AI_TOOLS.cursor.templateContext;
       const files = new Map<string, string>();
       // commands-only policy: ship common commands (continue, finish-work) as
-      // .cursor/commands/cstl-*.md. Cursor-only extras (if any) come from
+      // .cursor/commands/pactile-*.md. Cursor-only extras (if any) come from
       // getCursorCommands(). No .cursor/skills/ are shipped on Cursor —
       // internal workflow skills reach the agent via .cursor/rules + AGENTS.md.
       for (const cmd of resolveCommands(ctx)) {
         files.set(
-          `.cursor/commands/cstl-${cmd.name}.md`,
+          `.cursor/commands/pactile-${cmd.name}.md`,
           resolvePlaceholders(cmd.content, ctx),
         );
       }
       for (const cmd of getCursorCommands()) {
         files.set(
-          `.cursor/commands/cstl-${cmd.name}.md`,
+          `.cursor/commands/pactile-${cmd.name}.md`,
           resolvePlaceholders(cmd.content, ctx),
         );
       }
@@ -148,8 +148,8 @@ export const PLATFORM_MANAGED_DIRS = PLATFORM_IDS.flatMap((id) =>
   getManagedPaths(id),
 );
 
-/** All directories managed by Trellis (including .trellis itself) */
-export const ALL_MANAGED_DIRS = [".cstl", ...new Set(PLATFORM_MANAGED_DIRS)];
+/** All directories managed by the canonical Pactile template path. */
+export const ALL_MANAGED_DIRS = [".pactile", ...new Set(PLATFORM_MANAGED_DIRS)];
 
 /**
  * Detect which platforms are configured by checking for configDir existence.

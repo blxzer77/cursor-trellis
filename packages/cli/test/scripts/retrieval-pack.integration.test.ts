@@ -6,7 +6,7 @@ import os from "node:os";
 
 import path from "node:path";
 
-import { getAllScriptsForTests } from "../../src/templates/trellis/index.js";
+import { getAllScriptsForTests } from "../../src/templates/pactile/index.js";
 
 import {
 
@@ -60,9 +60,9 @@ describe.skipIf(pythonCmd === null)("retrieval_pack.py", () => {
 
   beforeEach(() => {
 
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-retrieval-pack-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-retrieval-pack-"));
 
-    const scriptsDir = path.join(tmpDir, ".cstl", "scripts");
+    const scriptsDir = path.join(tmpDir, ".pactile", "scripts");
 
     for (const [rel, content] of getAllScriptsForTests()) {
 
@@ -255,7 +255,7 @@ describe.skipIf(pythonCmd === null)("retrieval_pack.py", () => {
   });
 
   it("does not discover manifests outside repoRoot through selected task paths", () => {
-    const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-retrieval-outside-"));
+    const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-retrieval-outside-"));
     try {
       const outsideManifest = path.join(
         outsideDir,

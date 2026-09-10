@@ -9,14 +9,14 @@ import {
   runGetContext,
   writeFile,
   writeJson,
-  writeTrellisScripts,
+  writePactileScripts,
   type RetrievalPackPayload,
 } from "./retrieval-eval-fixtures.js";
 
-export const DOGFOOD_TASK_PATH = ".cstl/tasks/06-13-dogfood-retrieval";
+export const DOGFOOD_TASK_PATH = ".pactile/tasks/06-13-dogfood-retrieval";
 export const DOGFOOD_DEVELOPER = "dogfood-dev";
 export const DOGFOOD_SESSION_ID = "retrieval-dogfood-test";
-export const DOGFOOD_ARCHIVE_TASK_PREFIX = ".cstl/tasks/archive-fixtures";
+export const DOGFOOD_ARCHIVE_TASK_PREFIX = ".pactile/tasks/archive-fixtures";
 
 const fixtureRoot = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -111,9 +111,9 @@ function readBundledFixture(slug: string, file: string): string {
 }
 
 export function seedDogfoodProject(root: string): void {
-  writeTrellisScripts(root);
-  writeFile(root, ".cstl/.developer", `name=${DOGFOOD_DEVELOPER}\n`);
-  writeJson(root, `.cstl/.runtime/sessions/${DOGFOOD_SESSION_ID}.json`, {
+  writePactileScripts(root);
+  writeFile(root, ".pactile/.developer", `name=${DOGFOOD_DEVELOPER}\n`);
+  writeJson(root, `.pactile/.runtime/sessions/${DOGFOOD_SESSION_ID}.json`, {
     selected_task: DOGFOOD_TASK_PATH,
   });
 
@@ -132,7 +132,7 @@ export function seedDogfoodProject(root: string): void {
     createdAt: "2026-06-13",
     children: [],
     parent: null,
-    package: "trellis",
+    package: "pactile",
   });
   writeFile(
     root,
@@ -177,7 +177,7 @@ export function seedDogfoodProject(root: string): void {
   );
   writeFile(
     root,
-    ".cstl/spec/Trellis/framework/retrieval-evidence-scoring.md",
+    ".pactile/spec/Pactile/framework/retrieval-evidence-scoring.md",
     [
       "# Retrieval Evidence Scoring",
       "",
@@ -187,7 +187,7 @@ export function seedDogfoodProject(root: string): void {
   );
   writeFile(
     root,
-    `.cstl/workspace/${DOGFOOD_DEVELOPER}/journal-1.md`,
+    `.pactile/workspace/${DOGFOOD_DEVELOPER}/journal-1.md`,
     [
       "# Journal - dogfood-dev (Part 1)",
       "",
@@ -195,7 +195,7 @@ export function seedDogfoodProject(root: string): void {
       "",
       "**Date**: 2026-06-13",
       "**Task**: Retrieval Dogfood And Real Fixtures",
-      "**Package**: Trellis",
+      "**Package**: Pactile",
       "**Branch**: `feature/retrieval-dogfood`",
       "",
       "### Summary",
@@ -245,7 +245,7 @@ export function runSearchArtifacts(
 ): { status: number | null; stdout: string; stderr: string; results: Record<string, unknown>[] } {
   const result = spawnSync(
     pythonCmd,
-    [path.join(root, ".cstl", "scripts", "search_artifacts.py"), "--query", query, "--json"],
+    [path.join(root, ".pactile", "scripts", "search_artifacts.py"), "--query", query, "--json"],
     { cwd: root, encoding: "utf-8" },
   );
   const payload = result.stdout ? (JSON.parse(result.stdout) as { results?: Record<string, unknown>[] }) : {};
@@ -264,7 +264,7 @@ export function runSearchMemory(
 ): { status: number | null; stdout: string; stderr: string; results: Record<string, unknown>[] } {
   const result = spawnSync(
     pythonCmd,
-    [path.join(root, ".cstl", "scripts", "search_memory.py"), "--query", query, "--json"],
+    [path.join(root, ".pactile", "scripts", "search_memory.py"), "--query", query, "--json"],
     { cwd: root, encoding: "utf-8" },
   );
   const payload = result.stdout ? (JSON.parse(result.stdout) as { results?: Record<string, unknown>[] }) : {};

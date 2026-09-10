@@ -8,7 +8,7 @@ import {
   type AssuranceLevelV1,
   type PactileIntentV1,
   type ResolvedProviderV1,
-} from "@blxzer/cursor-trellis-core";
+} from "@blxzer/pactile-core";
 
 import {
   RETRIEVAL_ABI_VERSION,

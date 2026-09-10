@@ -1,4 +1,4 @@
-import type { PactileIntentV1 } from "@blxzer/cursor-trellis-core";
+import type { PactileIntentV1 } from "@blxzer/pactile-core";
 
 export interface ClassifiedToolCalls {
   readonly exact_count: number;

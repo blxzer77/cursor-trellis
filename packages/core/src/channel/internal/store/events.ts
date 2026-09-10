@@ -403,7 +403,7 @@ export interface AppendablePartial {
  * the legacy full-scan path. Sidecar repair happens automatically on
  * corruption, missing file, or sidecar drift in either direction.
  *
- * @internal Trellis CLI-internal write primitive — downstream consumers
+ * @internal Pactile CLI-internal write primitive — downstream consumers
  *   must go through the typed mutation APIs (`createChannel`,
  *   `sendMessage`, etc.).
  */

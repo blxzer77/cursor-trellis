@@ -49,27 +49,27 @@ jobs:
         # means Linux and Windows execute the same test fixture.
         shell: bash
         run: |
-          rm -rf .cursor/rules .cursor/agents .cstl/scripts
-          mkdir -p .cursor/rules .cursor/agents .cstl/scripts
+          rm -rf .cursor/rules .cursor/agents .pactile/scripts
+          mkdir -p .cursor/rules .cursor/agents .pactile/scripts
           cp packages/cli/src/templates/cursor/rules/* .cursor/rules/
           cp packages/cli/src/templates/cursor/agents/* .cursor/agents/
-          cp -r packages/cli/src/templates/trellis/scripts/* .cstl/scripts/
+          cp -r packages/cli/src/templates/pactile/scripts/* .pactile/scripts/
 
       - name: Test
         env:
-          # task.py archive/create/start-execution need `cstl kernel --json`.
-          # A clean runner has no global `cstl`; point at this checkout's bin.
-          TRELLIS_KERNEL_CLI: node ${{ github.workspace }}/packages/cli/bin/cstl.js kernel --json
+          # task.py archive/create/start-execution need `pactile kernel --json`.
+          # A clean runner has no global CLI; point at this checkout's bin.
+          PACTILE_KERNEL_CLI: node ${{ github.workspace }}/packages/cli/bin/pactile.js kernel --json
         run: pnpm test
 
       - name: Mirror-check
         run: pnpm mirror-check
 
       - name: Verify package file contract
-        run: pnpm --filter @blxzer/cursor-trellis check:pack-files
+        run: pnpm --filter @blxzer/pactile check:pack-files
 
       - name: Verify release tarball contents
-        run: pnpm --filter @blxzer/cursor-trellis check:release-pack
+        run: pnpm --filter @blxzer/pactile check:release-pack
 
       - name: Verify packed dependency and bins
         run: node packages/cli/scripts/release-preflight.js verify-packed-cli

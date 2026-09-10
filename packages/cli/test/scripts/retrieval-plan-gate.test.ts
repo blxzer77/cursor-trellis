@@ -7,7 +7,7 @@ const cliRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../..",
 );
-const scriptsDir = path.join(cliRoot, "src/templates/trellis/scripts");
+const scriptsDir = path.join(cliRoot, "src/templates/pactile/scripts");
 
 function pythonExe(): string {
   for (const exe of ["python", "py", "python3"]) {

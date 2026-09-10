@@ -7,11 +7,11 @@ import {
 
 describe("validateTaskDirName", () => {
   it("accepts canonical MM-DD-slug names", () => {
-    expect(validateTaskDirName("05-13-trellis-core-sdk-package")).toEqual({
+    expect(validateTaskDirName("05-13-pactile-core-sdk-package")).toEqual({
       prefix: "05-13",
       month: "05",
       day: "13",
-      slug: "trellis-core-sdk-package",
+      slug: "pactile-core-sdk-package",
     });
     expect(validateTaskDirName("01-01-x")).toEqual({
       prefix: "01-01",
@@ -21,7 +21,7 @@ describe("validateTaskDirName", () => {
     });
   });
 
-  it("accepts Trellis system onboarding task names", () => {
+  it("accepts Pactile system onboarding task names", () => {
     expect(validateTaskDirName("00-bootstrap-guidelines")).toEqual({
       prefix: "00",
       month: null,

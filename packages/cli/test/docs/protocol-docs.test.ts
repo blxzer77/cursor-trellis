@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import { frameworkDocs } from "../../src/templates/markdown/index.js";
-import { poolPlanTemplate, workflowMdTemplate } from "../../src/templates/trellis/index.js";
+import { poolPlanTemplate, workflowMdTemplate } from "../../src/templates/pactile/index.js";
 
 const testDir = path.dirname(fileURLToPath(import.meta.url));
 const cliRoot = path.resolve(testDir, "../..");

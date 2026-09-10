@@ -1,14 +1,14 @@
-<!-- CSTL:START -->
-# Cursor-Trellis (cstl)
+<!-- PACTILE:START -->
+# Pactile (pactile)
 
-This project is managed by cursor-trellis. Working knowledge is pointers, not a playbook:
+This project is managed by pactile. Working knowledge is pointers, not a playbook:
 
-- `.cstl/framework/index.md` — framework docs (gates, parallel-first, retrieval, skills)
-- `.cstl/workflow.md` — interface card (not runtime SSOT)
+- `.pactile/framework/index.md` — framework docs (gates, parallel-first, retrieval, skills)
+- `.pactile/workflow.md` — interface card (not runtime SSOT)
 - `docs/` — harness docs
 
-User commands: `cstl-continue`, `cstl-finish-work`, `cstl-handoff` (and `cstl-start` when needed).
+User commands: `pactile-continue`, `pactile-finish-work`, `pactile-handoff` (and `pactile-start` when needed).
 
-Managed by cursor-trellis. Edits outside this block are preserved; edits inside may be overwritten by a future `cstl update`.
+Managed by pactile. Edits outside this block are preserved; edits inside may be overwritten by a future `pactile update`.
 
-<!-- CSTL:END -->
+<!-- PACTILE:END -->

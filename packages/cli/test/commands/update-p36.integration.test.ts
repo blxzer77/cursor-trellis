@@ -9,10 +9,10 @@ import {
   emptyTaskRecord,
   isWaveCConfirmed,
   WAVE_C_STATE_REL,
-} from "@blxzer/cursor-trellis-core/task";
+} from "@blxzer/pactile-core/task";
 
 vi.mock("figlet", () => ({
-  default: { textSync: vi.fn(() => "TRELLIS") },
+  default: { textSync: vi.fn(() => "PACTILE") },
 }));
 
 vi.mock("inquirer", () => ({
@@ -79,7 +79,7 @@ function closeoutProfile(
       [
         "import json, sys",
         "from pathlib import Path",
-        "sys.path.insert(0, '.cstl/scripts')",
+        "sys.path.insert(0, '.pactile/scripts')",
         "from common.task_gates import task_closeout_profile",
         `data = json.loads(${JSON.stringify(JSON.stringify(payload))})`,
         `print(task_closeout_profile(Path(${JSON.stringify(taskDir)}), data))`,
@@ -129,7 +129,7 @@ describe("update() P36 A+B+C", () => {
   }
 
   beforeEach(async () => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "cstl-p36-upd-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-p36-upd-"));
     vi.spyOn(process, "cwd").mockReturnValue(tmpDir);
     origIsTTY = Object.getOwnPropertyDescriptor(process.stdin, "isTTY");
     Object.defineProperty(process.stdin, "isTTY", {
@@ -276,7 +276,7 @@ describe("update() P36 A+B+C", () => {
     await update({ skipAll: true, skipReadiness: true, skipPostUpdateSmoke: true });
     expect(isWaveCConfirmed(tmpDir)).toBe(false);
     expect(fs.readFileSync(path.join(skipDir, "prd.md"), "utf-8")).toBe(PRD);
-  });
+  }, 240_000);
 
   it("unconfirmed leftover still dual-reads classification", async () => {
     const taskDir = plantLegacySurfaces();

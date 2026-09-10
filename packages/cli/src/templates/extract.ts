@@ -10,29 +10,29 @@ const __dirname = path.dirname(__filename);
 type TemplateCategory = "scripts" | "markdown" | "commands";
 
 /**
- * Get the path to the trellis templates directory (.cstl/ scaffolding).
+ * Get the path to the pactile templates directory (.pactile/ scaffolding).
  */
-export function getTrellisTemplatePath(): string {
-  const templatePath = path.join(__dirname, "trellis");
+export function getPactileTemplatePath(): string {
+  const templatePath = path.join(__dirname, "pactile");
   if (fs.existsSync(templatePath)) {
     return templatePath;
   }
   throw new Error(
-    "Could not find trellis templates directory. Expected at templates/trellis/",
+    "Could not find pactile templates directory. Expected at templates/pactile/",
   );
 }
 
-/** @deprecated Use getTrellisTemplatePath() instead. */
-export function getTrellisSourcePath(): string {
-  return getTrellisTemplatePath();
+/** @deprecated Use getPactileTemplatePath() instead. */
+export function getPactileSourcePath(): string {
+  return getPactileTemplatePath();
 }
 
 /**
- * Read a file from the trellis template directory.
+ * Read a file from the pactile template directory.
  */
-export function readTrellisFile(relativePath: string): string {
-  const trellisPath = getTrellisSourcePath();
-  const filePath = path.join(trellisPath, relativePath);
+export function readPactileFile(relativePath: string): string {
+  const pactilePath = getPactileSourcePath();
+  const filePath = path.join(pactilePath, relativePath);
   return fs.readFileSync(filePath, "utf-8");
 }
 
@@ -48,11 +48,11 @@ export function readTemplate(
 }
 
 export function readScript(relativePath: string): string {
-  return readTrellisFile(`scripts/${relativePath}`);
+  return readPactileFile(`scripts/${relativePath}`);
 }
 
 export function readMarkdown(relativePath: string): string {
-  return readTrellisFile(relativePath);
+  return readPactileFile(relativePath);
 }
 
 export function readCommand(filename: string): string {
@@ -60,15 +60,15 @@ export function readCommand(filename: string): string {
 }
 
 /**
- * Copy a directory from trellis templates to target, making scripts executable.
+ * Copy a directory from pactile templates to target, making scripts executable.
  */
-export async function copyTrellisDir(
+export async function copyPactileDir(
   srcRelativePath: string,
   destPath: string,
   options?: { executable?: boolean },
 ): Promise<void> {
-  const trellisPath = getTrellisSourcePath();
-  const srcPath = path.join(trellisPath, srcRelativePath);
+  const pactilePath = getPactileSourcePath();
+  const srcPath = path.join(pactilePath, srcRelativePath);
   await copyDirRecursive(srcPath, destPath, options);
 }
 
@@ -101,7 +101,7 @@ const USER_MODULE_INDEX = "index.json";
 const USER_MODULE_CONTRACT = "contract.md";
 
 /**
- * User `.cstl/modules/` may only contain the catalog index and each module's
+ * User `.pactile/modules/` may only contain the catalog index and each module's
  * short contract. CLI source next to the templates (`catalog.ts`, any `.ts`)
  * must not be copied, hashed, or written into the user tree.
  */
@@ -144,12 +144,12 @@ function walkUserModuleFiles(
 }
 
 /**
- * Walk `templates/trellis/modules/` and return the user-shipped subset.
+ * Walk `templates/pactile/modules/` and return the user-shipped subset.
  * Keys are POSIX paths relative to `modules/` (`index.json`, `<id>/contract.md`).
  * Shared by init (`createWorkflowStructure`) and update (`collectTemplateFiles`).
  */
 export function collectUserModuleTemplates(): Map<string, string> {
-  const modulesRoot = path.join(getTrellisTemplatePath(), "modules");
+  const modulesRoot = path.join(getPactileTemplatePath(), "modules");
   const files = new Map<string, string>();
   walkUserModuleFiles(modulesRoot, "", files);
   return files;

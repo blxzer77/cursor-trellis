@@ -1,5 +1,5 @@
 /**
- * Remote template fetcher for Trellis CLI
+ * Remote template fetcher for the Pactile CLI
  *
  * Fetches spec templates from the official marketplace:
  * https://github.com/mindfold-ai/marketplace
@@ -21,7 +21,7 @@ const TEMPLATE_REPO = "gh:mindfold-ai/marketplace";
 
 /** Map template type to installation path */
 const INSTALL_PATHS: Record<string, string> = {
-  spec: ".cstl/spec",
+  spec: ".pactile/spec",
   skill: ".agents/skills",
   command: ".claude/commands",
   full: ".", // Entire project root
@@ -712,7 +712,7 @@ async function cloneRegistryRef(
   registry: RegistrySource,
 ): Promise<GitCheckout> {
   const dir = await fs.promises.mkdtemp(
-    path.join(os.tmpdir(), "trellis-registry-"),
+    path.join(os.tmpdir(), "pactile-registry-"),
   );
   try {
     try {
@@ -900,7 +900,7 @@ export async function downloadWithStrategy(
 
   // append: Download to temp dir, then merge missing files
   if (strategy === "append" && exists) {
-    const tempDir = path.join(os.tmpdir(), `trellis-template-${Date.now()}`);
+    const tempDir = path.join(os.tmpdir(), `pactile-template-${Date.now()}`);
     try {
       await withTimeout(
         downloadTemplate(gigetSource, {

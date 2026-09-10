@@ -55,10 +55,10 @@ const CONTRACT_IDS = {
   documentationMap: "pactile.documentation-map/v1",
 };
 const CANONICAL_POLICY_DIGESTS = {
-  inventory: "886e1ffe9976530c969b8c96b53a50d4d6841b185541395bf480950257183da2",
+  inventory: "11d1adf6efbfd8218c5b1ece7106550e5245b0673df962b6624e9012d8542a79",
   renameMap: "e7e3a0eeb7ba5c97b5ed614b13c8ac628e9e3781d57ec763be06f405bb1b91aa",
   documentationMap:
-    "3d2c61ab1c72219d05f546c8748a746df02cff2b881a49c64ac75543d48b316d",
+    "61a6585655fb79d6c763afea4dee6a81e1f54e6766906d3ba4298ea15acd8742",
 };
 const REQUIRED_TOKEN_IDS = [
   "legacy-product-name",
@@ -216,7 +216,6 @@ const REQUIRED_TARGET_PAGE_IDS = [
 ];
 const P23_HISTORY_PAGE = "history.cursor-plus-plus";
 const REQUIRED_P23_SOURCE_PATHS = [
-  "AGENTS.md",
   "README.md",
   "README.zh-CN.md",
   "packages/cli/README.md",
@@ -304,12 +303,16 @@ function exactSetErrors(label, expected, actual) {
   return errors;
 }
 
-function gitTrackedFiles(repoRoot) {
-  const raw = execFileSync("git", ["ls-files", "-z"], {
+function gitInventoryFiles(repoRoot) {
+  const raw = execFileSync(
+    "git",
+    ["ls-files", "--cached", "--others", "--exclude-standard", "-z"],
+    {
     cwd: repoRoot,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
-  });
+    },
+  );
   return raw
     .split("\0")
     .filter(Boolean)
@@ -335,8 +338,8 @@ function walkFiles(rootDir, relativeDir) {
 }
 
 /**
- * Include the new Batch 0 control files before they are committed so the
- * baseline generated in an isolated child worktree remains stable after merge.
+ * Include every tracked and non-ignored untracked file. Brand-sensitive files
+ * must not escape the guard merely because Batch 3 work is still uncommitted.
  */
 function inventoryFiles(repoRoot, trackedFiles) {
   const controlFiles = [
@@ -346,7 +349,10 @@ function inventoryFiles(repoRoot, trackedFiles) {
   ].filter((relativePath) =>
     fs.existsSync(path.join(repoRoot, ...relativePath.split("/"))),
   );
-  return sortedUnique([...trackedFiles, ...controlFiles]);
+  return sortedUnique([...trackedFiles, ...controlFiles]).filter(
+    (relativePath) =>
+      fs.existsSync(path.join(repoRoot, ...relativePath.split("/"))),
+  );
 }
 
 function compileRegex(pattern, flags, label) {
@@ -1177,7 +1183,7 @@ function loadContracts(repoRoot) {
 
 function auditBrandSurface(repoRoot, options = {}) {
   const contracts = loadContracts(repoRoot);
-  const trackedFiles = gitTrackedFiles(repoRoot);
+  const trackedFiles = gitInventoryFiles(repoRoot);
   const files = inventoryFiles(repoRoot, trackedFiles);
   const scan = scanLegacyTokens(repoRoot, files, contracts.inventory);
   const snapshot = buildSnapshot(scan.occurrences);

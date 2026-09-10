@@ -44,16 +44,16 @@ export function parseTileYaml(text: string): unknown {
   if (!lines.length) throw new TileYamlError("yaml-empty", 1);
   if (lines[0].indent !== 0)
     throw new TileYamlError("yaml-indentation", lines[0].number);
-  let cursor = 0;
+  let position = 0;
 
   function block(indent: number, depth: number): unknown {
     if (depth > 64)
-      throw new TileYamlError("yaml-depth-limit", lines[cursor].number);
-    const list = /^-(?: |$)/.test(lines[cursor].text);
+      throw new TileYamlError("yaml-depth-limit", lines[position].number);
+    const list = /^-(?: |$)/.test(lines[position].text);
     const array: unknown[] = [];
     const object: Record<string, unknown> = {};
-    while (cursor < lines.length && lines[cursor].indent === indent) {
-      const line = lines[cursor++];
+    while (position < lines.length && lines[position].indent === indent) {
+      const line = lines[position++];
       if (list) {
         if (!/^-(?: |$)/.test(line.text))
           throw new TileYamlError("yaml-mixed-collection", line.number);
@@ -62,8 +62,11 @@ export function parseTileYaml(text: string): unknown {
         else if (mappingSplit(item) >= 0) {
           const record: Record<string, unknown> = {};
           member(record, item, indent + 2, depth + 1, line.number);
-          while (cursor < lines.length && lines[cursor].indent > indent) {
-            const continuation = lines[cursor++];
+          while (
+            position < lines.length &&
+            lines[position].indent > indent
+          ) {
+            const continuation = lines[position++];
             if (continuation.indent !== indent + 2)
               throw new TileYamlError("yaml-indentation", continuation.number);
             member(
@@ -81,16 +84,16 @@ export function parseTileYaml(text: string): unknown {
       } else {
         member(object, line.text, indent, depth, line.number);
       }
-      if (cursor < lines.length && lines[cursor].indent > indent)
-        throw new TileYamlError("yaml-indentation", lines[cursor].number);
+      if (position < lines.length && lines[position].indent > indent)
+        throw new TileYamlError("yaml-indentation", lines[position].number);
     }
     return list ? array : object;
   }
 
   function nested(indent: number, depth: number, line: number): unknown {
-    if (cursor >= lines.length || lines[cursor].indent <= indent)
+    if (position >= lines.length || lines[position].indent <= indent)
       throw new TileYamlError("yaml-missing-value", line);
-    return block(lines[cursor].indent, depth + 1);
+    return block(lines[position].indent, depth + 1);
   }
 
   function member(
@@ -122,8 +125,8 @@ export function parseTileYaml(text: string): unknown {
   }
 
   const result = block(0, 0);
-  if (cursor !== lines.length)
-    throw new TileYamlError("yaml-indentation", lines[cursor].number);
+  if (position !== lines.length)
+    throw new TileYamlError("yaml-indentation", lines[position].number);
   return result;
 }
 

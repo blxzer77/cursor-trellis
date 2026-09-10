@@ -22,8 +22,7 @@ export const MIGRATION_SOURCE_KINDS_V1 = [
   "canonical",
   "legacy",
 ] as const;
-export type MigrationSourceKindV1 =
-  (typeof MIGRATION_SOURCE_KINDS_V1)[number];
+export type MigrationSourceKindV1 = (typeof MIGRATION_SOURCE_KINDS_V1)[number];
 
 export interface MigrationSourceV1 {
   readonly kind: MigrationSourceKindV1;
@@ -62,8 +61,7 @@ export const MIGRATION_ACTION_KINDS_V1 = [
   "reconcile-projection",
   "doctor",
 ] as const;
-export type MigrationActionKindV1 =
-  (typeof MIGRATION_ACTION_KINDS_V1)[number];
+export type MigrationActionKindV1 = (typeof MIGRATION_ACTION_KINDS_V1)[number];
 
 export const MIGRATION_ACTION_DOMAINS_V1 = ["canonical", "projection"] as const;
 export type MigrationActionDomainV1 =
@@ -281,7 +279,10 @@ function decodeMigrationSourceV1(
   );
   if (
     kind === "fresh" &&
-    (root !== null || access !== "none" || runtimeVersion !== null || schemaVersion !== null)
+    (root !== null ||
+      access !== "none" ||
+      runtimeVersion !== null ||
+      schemaVersion !== null)
   ) {
     decoder.issue(
       "conflict",
@@ -392,7 +393,11 @@ function decodeMigrationActionV1(
     );
   }
   if (kind === "reconcile-projection") {
-    if (domain !== "projection" || phase !== "reconcile" || adapterId === null) {
+    if (
+      domain !== "projection" ||
+      phase !== "reconcile" ||
+      adapterId === null
+    ) {
       decoder.issue(
         "conflict",
         path,
@@ -434,7 +439,10 @@ function decodeMigrationActionV1(
       "projection doctor actions must use kind 'doctor'",
     );
   }
-  if (kind === "activate-generation" && (phase !== "commit" || domain !== "canonical")) {
+  if (
+    kind === "activate-generation" &&
+    (phase !== "commit" || domain !== "canonical")
+  ) {
     decoder.issue(
       "conflict",
       path,
@@ -473,7 +481,10 @@ function decodeMigrationPreservationV1(
   decoder: ContractDecoderV1,
   path: string,
 ): MigrationPreservationV1 {
-  const record = decoder.object(value, path, ["bytePreservedRefs", "transformedRefs"]);
+  const record = decoder.object(value, path, [
+    "bytePreservedRefs",
+    "transformedRefs",
+  ]);
   const bytePreservedRefs = decoder.stringArray(
     decoder.required(record, "bytePreservedRefs", path),
     childPathV1(path, "bytePreservedRefs"),
@@ -501,7 +512,10 @@ function decodeMigrationRecoveryV1(
   decoder: ContractDecoderV1,
   path: string,
 ): MigrationRecoveryV1 {
-  const record = decoder.object(value, path, ["backupRef", "preserveNewerData"]);
+  const record = decoder.object(value, path, [
+    "backupRef",
+    "preserveNewerData",
+  ]);
   return {
     backupRef: decoder.string(
       decoder.required(record, "backupRef", path),
@@ -537,7 +551,12 @@ function decodeMigrationPlanV1(
     childPathV1(path, "actions"),
     (item, itemPath) => decodeMigrationActionV1(item, decoder, itemPath),
   );
-  decoder.unique(actions, (action) => action.id, childPathV1(path, "actions"), "action id");
+  decoder.unique(
+    actions,
+    (action) => action.id,
+    childPathV1(path, "actions"),
+    "action id",
+  );
   let previousPhaseRank = -1;
   actions.forEach((action, index) => {
     const phaseRank = MIGRATION_PHASES_V1.indexOf(action.phase);
@@ -707,7 +726,10 @@ function decodeCanonicalCommitV1(
       "pending canonical commit cannot claim a generation or commit timestamp",
     );
   }
-  if (status === "committed" && (generationId === null || committedAt === null)) {
+  if (
+    status === "committed" &&
+    (generationId === null || committedAt === null)
+  ) {
     decoder.issue(
       "required",
       path,
@@ -731,7 +753,12 @@ function decodeMigrationRecoveryStateV1(
   decoder: ContractDecoderV1,
   path: string,
 ): MigrationRecoveryStateRecordV1 {
-  const record = decoder.object(value, path, ["status", "backupRef", "updatedAt", "error"]);
+  const record = decoder.object(value, path, [
+    "status",
+    "backupRef",
+    "updatedAt",
+    "error",
+  ]);
   const status = decoder.enumValue(
     decoder.required(record, "status", path),
     MIGRATION_RECOVERY_STATES_V1,
@@ -743,10 +770,18 @@ function decodeMigrationRecoveryStateV1(
     childPathV1(path, "error"),
   );
   if (status === "failed" && error === null) {
-    decoder.issue("required", childPathV1(path, "error"), "is required after recovery failure");
+    decoder.issue(
+      "required",
+      childPathV1(path, "error"),
+      "is required after recovery failure",
+    );
   }
   if (status !== "failed" && error !== null) {
-    decoder.issue("conflict", childPathV1(path, "error"), "is only valid after recovery failure");
+    decoder.issue(
+      "conflict",
+      childPathV1(path, "error"),
+      "is only valid after recovery failure",
+    );
   }
   return {
     status,
@@ -797,7 +832,10 @@ function decodeAdapterReconcileJournalV1(
     decoder,
     childPathV1(path, "lastError"),
   );
-  if (status === "pending" && (attempts !== 0 || lastAttemptAt !== null || lastError !== null)) {
+  if (
+    status === "pending" &&
+    (attempts !== 0 || lastAttemptAt !== null || lastError !== null)
+  ) {
     decoder.issue(
       "conflict",
       path,
@@ -812,10 +850,18 @@ function decodeAdapterReconcileJournalV1(
     );
   }
   if (status === "failed" && lastError === null) {
-    decoder.issue("required", childPathV1(path, "lastError"), "is required after reconcile failure");
+    decoder.issue(
+      "required",
+      childPathV1(path, "lastError"),
+      "is required after reconcile failure",
+    );
   }
   if (status !== "failed" && lastError !== null) {
-    decoder.issue("conflict", childPathV1(path, "lastError"), "is only valid after reconcile failure");
+    decoder.issue(
+      "conflict",
+      childPathV1(path, "lastError"),
+      "is only valid after reconcile failure",
+    );
   }
   return {
     adapterId: decodeLogicalIdV1(
@@ -935,7 +981,8 @@ function decodeMigrationJournalV1(
   const adapterReconciliations = decoder.array(
     decoder.required(record, "adapterReconciliations", path),
     childPathV1(path, "adapterReconciliations"),
-    (item, itemPath) => decodeAdapterReconcileJournalV1(item, decoder, itemPath),
+    (item, itemPath) =>
+      decodeAdapterReconcileJournalV1(item, decoder, itemPath),
   );
   decoder.unique(
     adapterReconciliations,
@@ -964,21 +1011,30 @@ function decodeMigrationJournalV1(
       );
     }
   });
-  const forwardEventRank: Partial<Record<MigrationJournalEventKindV1, number>> = {
-    planned: 0,
-    "backup-completed": 1,
-    "stage-completed": 2,
-    "validation-completed": 3,
-    "canonical-committed": 4,
-    "adapter-reconcile-started": 5,
-    "adapter-reconcile-succeeded": 5,
-    "adapter-reconcile-failed": 5,
-    "doctor-completed": 6,
-  };
+  const forwardEventRank: Partial<Record<MigrationJournalEventKindV1, number>> =
+    {
+      planned: 0,
+      "backup-completed": 1,
+      "stage-completed": 2,
+      "validation-completed": 3,
+      "canonical-committed": 4,
+      "adapter-reconcile-started": 5,
+      "adapter-reconcile-succeeded": 5,
+      "adapter-reconcile-failed": 5,
+      "doctor-completed": 6,
+    };
   let previousEventRank = -1;
   events.forEach((event, index) => {
     const eventRank = forwardEventRank[event.event];
     if (eventRank === undefined) return;
+    // A committed generation may be reconciled and doctored more than once.
+    // The immutable pre-commit prefix still stays strictly forward-only, but
+    // Adapter/doctor cycles after the commit point are append-only retries,
+    // not a second canonical migration.
+    if (previousEventRank >= 4 && eventRank >= 5) {
+      previousEventRank = Math.max(previousEventRank, eventRank);
+      return;
+    }
     if (eventRank < previousEventRank) {
       decoder.issue(
         "conflict",
@@ -988,8 +1044,12 @@ function decodeMigrationJournalV1(
     }
     previousEventRank = Math.max(previousEventRank, eventRank);
   });
-  const commitEventIndex = events.findIndex((event) => event.event === "canonical-committed");
-  const commitEvents = events.filter((event) => event.event === "canonical-committed");
+  const commitEventIndex = events.findIndex(
+    (event) => event.event === "canonical-committed",
+  );
+  const commitEvents = events.filter(
+    (event) => event.event === "canonical-committed",
+  );
   if (commitEvents.length > 1) {
     decoder.issue(
       "duplicate",
@@ -1022,7 +1082,10 @@ function decodeMigrationJournalV1(
     );
   }
   events.forEach((event, index) => {
-    if (event.event.startsWith("adapter-reconcile-") && (commitEventIndex < 0 || index < commitEventIndex)) {
+    if (
+      event.event.startsWith("adapter-reconcile-") &&
+      (commitEventIndex < 0 || index < commitEventIndex)
+    ) {
       decoder.issue(
         "policy-violation",
         `${childPathV1(path, "events")}[${index}]`,
@@ -1138,10 +1201,7 @@ function decodeMigrationJournalV1(
         `In-progress Adapter '${reconciliation.adapterId}' requires one unmatched started event`,
       );
     }
-    if (
-      reconciliation.status !== "in-progress" &&
-      attemptOpen
-    ) {
+    if (reconciliation.status !== "in-progress" && attemptOpen) {
       decoder.issue(
         "conflict",
         childPathV1(path, "adapterReconciliations"),
@@ -1212,7 +1272,10 @@ function decodeMigrationJournalV1(
       "an in-progress Adapter requires the migration state to be reconciling",
     );
   }
-  if (["committed", "reconciling", "completed", "degraded"].includes(state) && canonicalCommit.status !== "committed") {
+  if (
+    ["committed", "reconciling", "completed", "degraded"].includes(state) &&
+    canonicalCommit.status !== "committed"
+  ) {
     decoder.issue(
       "conflict",
       `${childPathV1(path, "canonicalCommit")}.status`,

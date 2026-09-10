@@ -60,7 +60,7 @@ describe("Stage 6 Adapter and Middleware", () => {
   let taskDir: string;
 
   beforeEach(() => {
-    tmp = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-stage6-"));
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-stage6-"));
     taskDir = path.join(tmp, "08-28-stage6");
   });
 
@@ -307,9 +307,9 @@ describe("Stage 6 Adapter and Middleware", () => {
     ]);
   });
 
-  it("default templates do not force codegraph/fast-context or revive Cursor++ / cstl-byok live entries", () => {
+  it("default templates do not force codegraph/fast-context or revive retired alternate client / pactile-byok live entries", () => {
     const bootstrap = fs.readFileSync(
-      path.join(cliTemplates, "cursor/rules/cstl-bootstrap.mdc"),
+      path.join(cliTemplates, "cursor/rules/pactile-bootstrap.mdc"),
       "utf-8",
     );
     expect(bootstrap).toContain("exact");
@@ -322,23 +322,23 @@ describe("Stage 6 Adapter and Middleware", () => {
     const ruleNames = fs
       .readdirSync(path.join(cliTemplates, "cursor/rules"))
       .filter((name) => name.endsWith(".mdc"));
-    expect(ruleNames).toEqual(["cstl-bootstrap.mdc"]);
+    expect(ruleNames).toEqual(["pactile-bootstrap.mdc"]);
 
     const commandsDir = path.join(cliTemplates, "cursor/commands");
     const commandFiles = fs.existsSync(commandsDir)
       ? fs.readdirSync(commandsDir)
       : [];
-    expect(commandFiles).not.toContain("cstl-cursor2plus-setup.md");
-    expect(commandFiles.some((name) => name.includes("cstl-byok"))).toBe(false);
+    expect(commandFiles).not.toContain("pactile-retired-alternate-client-setup.md");
+    expect(commandFiles.some((name) => name.includes("pactile-byok"))).toBe(false);
 
     const workflow = fs.readFileSync(
-      path.join(cliTemplates, "trellis/workflow.md"),
+      path.join(cliTemplates, "pactile/workflow.md"),
       "utf-8",
     );
     expect(workflow).not.toMatch(/compatible v0\.0\.11\+/);
-    expect(workflow).not.toMatch(/\.cstl\/local\/cursor2plus\//);
+    expect(workflow).not.toMatch(/\.pactile\/local\/retired-alternate-client\//);
     expect(workflow).toContain("not runtime SSOT");
-    expect(workflow).toContain(".cstl/framework/index.md");
+    expect(workflow).toContain(".pactile/framework/index.md");
   });
 
   it("keeps the facade host-neutral and accepts only caller-supplied registrations", () => {

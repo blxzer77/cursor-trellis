@@ -15,7 +15,7 @@ import type { TemplateContext } from "../../src/types/ai-tools.js";
 // ---------------------------------------------------------------------------
 
 const claudeCtx: TemplateContext = {
-  cmdRefPrefix: "/cstl:",
+  cmdRefPrefix: "/pactile:",
   executorAI: "Bash scripts or Task calls",
   userActionLabel: "Slash commands",
   agentCapable: true,
@@ -33,7 +33,7 @@ const codexCtx: TemplateContext = {
 };
 
 const cursorCtx: TemplateContext = {
-  cmdRefPrefix: "/cstl-",
+  cmdRefPrefix: "/pactile-",
   executorAI: "Bash scripts or file reads",
   userActionLabel: "Slash commands",
   agentCapable: false,
@@ -121,13 +121,13 @@ describe("replacePythonCommandLiterals", () => {
       "#!/usr/bin/env python3",
       "# comment about python3",
       "exec python3 \"$0\" \"$@\"",
-      "python3 ./.cstl/scripts/task.py",
+      "python3 ./.pactile/scripts/task.py",
     ].join("\n");
     const expected = [
       "#!/usr/bin/env python3",
       "# comment about python",
       "exec python \"$0\" \"$@\"",
-      "python ./.cstl/scripts/task.py",
+      "python ./.pactile/scripts/task.py",
     ].join("\n");
     expect(replacePythonCommandLiterals(input)).toBe(expected);
   });
@@ -172,12 +172,12 @@ describe("resolvePlaceholders", () => {
   // -----------------------------------------------------------------------
 
   describe("{{CMD_REF:name}}", () => {
-    it("resolves with /cstl: prefix (Claude)", () => {
+    it("resolves with /pactile: prefix (Claude)", () => {
       const result = resolvePlaceholders(
         "See {{CMD_REF:brainstorm}} for details",
         claudeCtx,
       );
-      expect(result).toBe("See /cstl:brainstorm for details");
+      expect(result).toBe("See /pactile:brainstorm for details");
     });
 
     it("resolves with $ prefix (Codex)", () => {
@@ -188,26 +188,26 @@ describe("resolvePlaceholders", () => {
       expect(result).toBe("Run $check after coding");
     });
 
-    it("resolves with /cstl- prefix (Cursor)", () => {
+    it("resolves with /pactile- prefix (Cursor)", () => {
       const result = resolvePlaceholders(
         "Use {{CMD_REF:finish-work}} when done",
         cursorCtx,
       );
-      expect(result).toBe("Use /cstl-finish-work when done");
+      expect(result).toBe("Use /pactile-finish-work when done");
     });
 
     it("handles multiple CMD_REF in one template", () => {
       const input =
         "{{CMD_REF:start}} then {{CMD_REF:brainstorm}} then {{CMD_REF:check}}";
       expect(resolvePlaceholders(input, claudeCtx)).toBe(
-        "/cstl:start then /cstl:brainstorm then /cstl:check",
+        "/pactile:start then /pactile:brainstorm then /pactile:check",
       );
     });
 
     it("handles hyphenated command names", () => {
       expect(
         resolvePlaceholders("{{CMD_REF:finish-work}}", claudeCtx),
-      ).toBe("/cstl:finish-work");
+      ).toBe("/pactile:finish-work");
       expect(
         resolvePlaceholders("{{CMD_REF:check-cross-layer}}", codexCtx),
       ).toBe("$check-cross-layer");
@@ -239,12 +239,12 @@ describe("resolvePlaceholders", () => {
 
     it("resolves {{PYTHON_CMD}} alongside context placeholders", () => {
       const result = resolvePlaceholders(
-        "{{PYTHON_CMD}} ./.cstl/scripts/task.py and {{CMD_REF:start}}",
+        "{{PYTHON_CMD}} ./.pactile/scripts/task.py and {{CMD_REF:start}}",
         claudeCtx,
       );
       const py = process.platform === "win32" ? "python" : "python3";
       expect(result).toBe(
-        `${py} ./.cstl/scripts/task.py and /cstl:start`,
+        `${py} ./.pactile/scripts/task.py and /pactile:start`,
       );
     });
   });
@@ -402,10 +402,10 @@ describe("resolvePlaceholders", () => {
 
     it("works alongside {{PYTHON_CMD}} in a realistic init-context invocation", () => {
       const input =
-        '{{PYTHON_CMD}} ./.cstl/scripts/task.py init-context "$TASK_DIR" <type> --platform {{CLI_FLAG}}';
+        '{{PYTHON_CMD}} ./.pactile/scripts/task.py init-context "$TASK_DIR" <type> --platform {{CLI_FLAG}}';
       const py = process.platform === "win32" ? "python" : "python3";
       expect(resolvePlaceholders(input, codexCtx)).toBe(
-        `${py} ./.cstl/scripts/task.py init-context "$TASK_DIR" <type> --platform codex`,
+        `${py} ./.pactile/scripts/task.py init-context "$TASK_DIR" <type> --platform codex`,
       );
     });
   });
@@ -433,13 +433,13 @@ describe("resolvePlaceholders", () => {
 // ---------------------------------------------------------------------------
 
 describe("resolvePlaceholdersNeutral", () => {
-  it("renders {{CMD_REF:name}} as `name` (Trellis command) — platform-neutral", () => {
+  it("renders {{CMD_REF:name}} as `name` (Pactile command) — platform-neutral", () => {
     expect(
       resolvePlaceholdersNeutral("See {{CMD_REF:brainstorm}}", claudeCtx),
-    ).toBe("See `brainstorm` (Trellis command)");
+    ).toBe("See `brainstorm` (Pactile command)");
     expect(
       resolvePlaceholdersNeutral("See {{CMD_REF:brainstorm}}", codexCtx),
-    ).toBe("See `brainstorm` (Trellis command)");
+    ).toBe("See `brainstorm` (Pactile command)");
   });
 
   it("produces byte-identical CMD_REF output across platforms", () => {
@@ -498,7 +498,7 @@ describe("resolvePlaceholdersNeutral", () => {
     );
   });
 
-  it("returns content unchanged when no context is provided (legacy parity)", () => {
+  it("returns content unchanged when no context is provided", () => {
     const input = "See {{CMD_REF:brainstorm}}";
     expect(resolvePlaceholdersNeutral(input)).toBe(input);
   });
@@ -517,7 +517,7 @@ describe("resolveSkillsNeutral / resolveAllAsSkillsNeutral", () => {
   it("resolveSkillsNeutral produces stable shared skill set for Cursor context", () => {
     const cursorSkills = resolveSkillsNeutral(AI_TOOLS.cursor.templateContext);
     expect(cursorSkills.length).toBeGreaterThan(0);
-    expect(cursorSkills.map((s) => s.name)).toContain("cstl-before-dev");
+    expect(cursorSkills.map((s) => s.name)).toContain("pactile-before-dev");
   });
 
   it("resolveSkillsNeutral renders CMD_REF without platform-specific prefix", () => {
@@ -539,11 +539,11 @@ describe("resolveSkillsNeutral / resolveAllAsSkillsNeutral", () => {
         expect(
           skill.content,
           `${skill.name} leaks Claude prefix for ${name}`,
-        ).not.toContain(`/cstl:${name}`);
+        ).not.toContain(`/pactile:${name}`);
         expect(
           skill.content,
           `${skill.name} leaks Cursor prefix for ${name}`,
-        ).not.toContain(`/cstl-${name}`);
+        ).not.toContain(`/pactile-${name}`);
       }
     }
   });

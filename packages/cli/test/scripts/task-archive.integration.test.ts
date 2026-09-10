@@ -2,7 +2,7 @@
  * Integration tests for `task.py archive` auto-commit behavior.
  *
  * The python script lives under
- * `src/templates/trellis/scripts/common/task_store.py`; this test stamps
+ * `src/templates/pactile/scripts/common/task_store.py`; this test stamps
  * the templates into a fresh git repo and exercises the real
  * `task.py archive` path. Two scenarios:
  *
@@ -23,7 +23,7 @@ import path from "node:path";
 
 const TEMPLATE_SCRIPTS = path.resolve(
   __dirname,
-  "../../src/templates/trellis/scripts",
+  "../../src/templates/pactile/scripts",
 );
 
 function pythonExe(): string | null {
@@ -55,13 +55,13 @@ function setupRepo(tmp: string): void {
   git(tmp, "config", "user.name", "Test");
 
   // Stamp the real templates into the test repo.
-  const scriptsDest = path.join(tmp, ".cstl", "scripts");
+  const scriptsDest = path.join(tmp, ".pactile", "scripts");
   fs.mkdirSync(scriptsDest, { recursive: true });
   fs.cpSync(TEMPLATE_SCRIPTS, scriptsDest, { recursive: true });
 
   // session_auto_commit must be enabled for the archive to commit.
   fs.writeFileSync(
-    path.join(tmp, ".cstl", "config.yaml"),
+    path.join(tmp, ".pactile", "config.yaml"),
     "session_auto_commit: true\n",
   );
 }
@@ -77,7 +77,7 @@ function minimalVerifyMd(): string {
 }
 
 function makeTask(repo: string, name: string, prdBody: string): void {
-  const dir = path.join(repo, ".cstl", "tasks", name);
+  const dir = path.join(repo, ".pactile", "tasks", name);
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, "prd.md"), prdBody);
   fs.writeFileSync(path.join(dir, "verify.md"), minimalVerifyMd());
@@ -112,14 +112,14 @@ function makeTask(repo: string, name: string, prdBody: string): void {
   );
 }
 
-const CLI_BIN = path.resolve(__dirname, "../../bin/cstl.js");
+const CLI_BIN = path.resolve(__dirname, "../../bin/pactile.js");
 
 /** Full argv for `kernel_command.py` (not just the binary path). */
 function kernelCliEnv(): NodeJS.ProcessEnv {
   const quoted = /\s/.test(CLI_BIN) ? `"${CLI_BIN}"` : CLI_BIN;
   return {
     ...process.env,
-    TRELLIS_KERNEL_CLI: `node ${quoted} kernel --json`,
+    PACTILE_KERNEL_CLI: `node ${quoted} kernel --json`,
   };
 }
 
@@ -129,7 +129,7 @@ function runArchive(repo: string, taskName: string): void {
   }
   const r = spawnSync(
     PY,
-    [".cstl/scripts/task.py", "archive", taskName],
+    [".pactile/scripts/task.py", "archive", taskName],
     { cwd: repo, encoding: "utf-8", env: kernelCliEnv() },
   );
   if (r.status !== 0) {
@@ -143,7 +143,7 @@ describe.skipIf(!PY)(
     let tmp: string;
 
     beforeEach(() => {
-      tmp = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-archive-test-"));
+      tmp = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-archive-test-"));
       setupRepo(tmp);
     });
 
@@ -159,7 +159,7 @@ describe.skipIf(!PY)(
 
       // Dirty edit in task-b BEFORE archiving task-a.
       fs.appendFileSync(
-        path.join(tmp, ".cstl", "tasks", "task-b", "prd.md"),
+        path.join(tmp, ".pactile", "tasks", "task-b", "prd.md"),
         "DIRTY EDIT IN TASK-B SHOULD NOT BE COMMITTED\n",
       );
 
@@ -183,7 +183,7 @@ describe.skipIf(!PY)(
 
       // task-b dirty change still in working tree.
       const status = git(tmp, "status", "--porcelain");
-      expect(status).toMatch(/M\s+\.cstl\/tasks\/task-b\/prd\.md/);
+      expect(status).toMatch(/M\s+\.pactile\/tasks\/task-b\/prd\.md/);
     });
 
     it(
@@ -194,7 +194,7 @@ describe.skipIf(!PY)(
         // surfaced the bug.
         const researchDir = path.join(
           tmp,
-          ".cstl",
+          ".pactile",
           "tasks",
           "big",
           "research",
@@ -234,7 +234,7 @@ describe.skipIf(!PY)(
           .filter(Boolean);
         expect(deletes.length).toBeGreaterThan(0);
         expect(
-          deletes.every((p) => p.startsWith(".cstl/tasks/big/")),
+          deletes.every((p) => p.startsWith(".pactile/tasks/big/")),
         ).toBe(true);
       },
       30_000, // python startup + 100-file ops can be slow
@@ -259,7 +259,7 @@ describe.skipIf(!PY)(
       }
       const r = spawnSync(
         PY,
-        [".cstl/scripts/task.py", "archive", "tracked"],
+        [".pactile/scripts/task.py", "archive", "tracked"],
         { cwd: tmp, encoding: "utf-8", env: kernelCliEnv() },
       );
 
@@ -267,7 +267,7 @@ describe.skipIf(!PY)(
       expect(r.stderr).toMatch(/Auto-commit failed|Lite Close Outcome stands/);
 
       const status = git(tmp, "status", "--porcelain");
-      expect(status).toContain(".cstl/tasks/archive/");
+      expect(status).toContain(".pactile/tasks/archive/");
     });
   },
 );

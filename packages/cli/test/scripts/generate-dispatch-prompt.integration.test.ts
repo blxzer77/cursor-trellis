@@ -10,7 +10,7 @@ import path from "node:path";
 
 const TEMPLATE_SCRIPTS = path.resolve(
   __dirname,
-  "../../src/templates/trellis/scripts",
+  "../../src/templates/pactile/scripts",
 );
 const TEMPLATE_HOOK = path.resolve(
   __dirname,
@@ -52,7 +52,7 @@ function runPython(cwd: string, script: string, args: string[] = []): {
 
 function stampRepo(tmp: string): void {
   fs.mkdirSync(tmp, { recursive: true });
-  fs.cpSync(TEMPLATE_SCRIPTS, path.join(tmp, ".cstl", "scripts"), {
+  fs.cpSync(TEMPLATE_SCRIPTS, path.join(tmp, ".pactile", "scripts"), {
     recursive: true,
   });
   fs.mkdirSync(path.join(tmp, ".cursor", "hooks"), { recursive: true });
@@ -67,7 +67,7 @@ describe("generate-dispatch-prompt integration", () => {
 
   beforeEach(() => {
     if (!hasPython()) return;
-    tmp = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-dispatch-"));
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-dispatch-"));
     stampRepo(tmp);
   });
 
@@ -80,7 +80,7 @@ describe("generate-dispatch-prompt integration", () => {
   it("stdout includes marker and prd title for in_progress implement task", () => {
     if (!hasPython()) return;
 
-    const taskDir = path.join(tmp, ".cstl", "tasks", "06-22-fixture");
+    const taskDir = path.join(tmp, ".pactile", "tasks", "06-22-fixture");
     fs.mkdirSync(taskDir, { recursive: true });
     fs.writeFileSync(
       path.join(taskDir, "task.json"),
@@ -95,8 +95,8 @@ describe("generate-dispatch-prompt integration", () => {
       '{"_example": "seed"}\n',
     );
 
-    const relTask = ".cstl/tasks/06-22-fixture";
-    const { status, stdout, stderr } = runPython(tmp, ".cstl/scripts/task.py", [
+    const relTask = ".pactile/tasks/06-22-fixture";
+    const { status, stdout, stderr } = runPython(tmp, ".pactile/scripts/task.py", [
       "generate-dispatch-prompt",
       relTask,
       "implement",
@@ -105,7 +105,7 @@ describe("generate-dispatch-prompt integration", () => {
     ]);
 
     expect(status).toBe(0);
-    expect(stdout).toContain("<!-- cstl-hook-injected -->");
+    expect(stdout).toContain("<!-- pactile-hook-injected -->");
     expect(stdout).toContain("Fixture PRD Title");
     expect(stdout).toContain(`Selected task: ${relTask}`);
     expect(stderr).toMatch(/no curated entries/i);
@@ -114,7 +114,7 @@ describe("generate-dispatch-prompt integration", () => {
   it("fails implement when task is not in_progress", () => {
     if (!hasPython()) return;
 
-    const taskDir = path.join(tmp, ".cstl", "tasks", "06-22-planning");
+    const taskDir = path.join(tmp, ".pactile", "tasks", "06-22-planning");
     fs.mkdirSync(taskDir, { recursive: true });
     fs.writeFileSync(
       path.join(taskDir, "task.json"),
@@ -122,9 +122,9 @@ describe("generate-dispatch-prompt integration", () => {
     );
     fs.writeFileSync(path.join(taskDir, "prd.md"), "# Planning\n");
 
-    const { status, stderr } = runPython(tmp, ".cstl/scripts/task.py", [
+    const { status, stderr } = runPython(tmp, ".pactile/scripts/task.py", [
       "generate-dispatch-prompt",
-      ".cstl/tasks/06-22-planning",
+      ".pactile/tasks/06-22-planning",
       "implement",
     ]);
 
@@ -139,8 +139,8 @@ describe("generate-dispatch-prompt integration", () => {
       tool_name: "Task",
       cwd: tmp,
       tool_input: {
-        subagent_type: "cstl-implement",
-        prompt: "<!-- cstl-hook-injected -->\nAlready embedded",
+        subagent_type: "pactile-implement",
+        prompt: "<!-- pactile-hook-injected -->\nAlready embedded",
       },
     };
 
@@ -157,7 +157,7 @@ describe("generate-dispatch-prompt integration", () => {
   it("hook and CLI share the same builder output shape", () => {
     if (!hasPython()) return;
 
-    const taskDir = path.join(tmp, ".cstl", "tasks", "06-22-shared");
+    const taskDir = path.join(tmp, ".pactile", "tasks", "06-22-shared");
     fs.mkdirSync(taskDir, { recursive: true });
     fs.writeFileSync(
       path.join(taskDir, "task.json"),
@@ -173,8 +173,8 @@ describe("generate-dispatch-prompt integration", () => {
     fs.writeFileSync(path.join(taskDir, "prd.md"), "# Shared Builder\n");
     fs.writeFileSync(path.join(taskDir, "implement.jsonl"), '{"_example": "seed"}\n');
 
-    const relTask = ".cstl/tasks/06-22-shared";
-    const cli = runPython(tmp, ".cstl/scripts/task.py", [
+    const relTask = ".pactile/tasks/06-22-shared";
+    const cli = runPython(tmp, ".pactile/scripts/task.py", [
       "generate-dispatch-prompt",
       relTask,
       "implement",
@@ -185,7 +185,7 @@ describe("generate-dispatch-prompt integration", () => {
       tool_name: "Task",
       cwd: tmp,
       tool_input: {
-        subagent_type: "cstl-implement",
+        subagent_type: "pactile-implement",
         prompt: `Selected task: ${relTask}\n\nDo the work.`,
       },
     };
@@ -201,7 +201,7 @@ describe("generate-dispatch-prompt integration", () => {
     expect(hook.status).toBe(0);
     const payload = JSON.parse(hook.stdout ?? "{}");
     const hookPrompt = payload.updated_input?.prompt ?? "";
-    expect(hookPrompt).toContain("<!-- cstl-hook-injected -->");
+    expect(hookPrompt).toContain("<!-- pactile-hook-injected -->");
     expect(hookPrompt).toContain("Shared Builder");
     expect(hookPrompt).toContain("# Implement Agent Task");
     expect(cli.stdout).toContain("# Implement Agent Task");
@@ -210,7 +210,7 @@ describe("generate-dispatch-prompt integration", () => {
   it("hook exits 0 without mutating prompt when worker-orchestration is unactivated", () => {
     if (!hasPython()) return;
 
-    const taskDir = path.join(tmp, ".cstl", "tasks", "06-22-no-worker");
+    const taskDir = path.join(tmp, ".pactile", "tasks", "06-22-no-worker");
     fs.mkdirSync(taskDir, { recursive: true });
     fs.writeFileSync(
       path.join(taskDir, "task.json"),
@@ -219,12 +219,12 @@ describe("generate-dispatch-prompt integration", () => {
     fs.writeFileSync(path.join(taskDir, "prd.md"), "# No Worker\n");
     fs.writeFileSync(path.join(taskDir, "implement.jsonl"), '{"_example": "seed"}\n');
 
-    const relTask = ".cstl/tasks/06-22-no-worker";
+    const relTask = ".pactile/tasks/06-22-no-worker";
     const hookInput = {
       tool_name: "Task",
       cwd: tmp,
       tool_input: {
-        subagent_type: "cstl-implement",
+        subagent_type: "pactile-implement",
         prompt: `Selected task: ${relTask}\n\nDo the work.`,
       },
     };

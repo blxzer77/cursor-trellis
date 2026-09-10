@@ -18,7 +18,7 @@ import {
 /**
  * Configure Cursor (commands-only default policy):
  *
- * Trellis's default Cursor adaptation is commands-only: the `/` palette shows
+ * Pactile's Cursor adaptation is commands-only: the `/` palette shows
  * only the user-facing slash commands, keeping the surface controlled and the
  * entrypoints unambiguous. Internal workflow skills are NOT shipped to
  * `.cursor/skills/` on Cursor (they remain available to Claude/Codex/Gemini
@@ -26,13 +26,13 @@ import {
  * through `.cursor/rules` + `AGENTS.md` instead). This is a policy choice for
  * palette hygiene and workflow reliability, not a statement about Agent Skills.
  *
- * - commands/cstl-{continue,finish-work}.md — common command templates
+ * - commands/pactile-{continue,finish-work}.md — common command templates
  * - rules/*.mdc — always-apply / glob-scoped Cursor rules (Triage hard gate etc.)
  * - agents/{name}.md — sub-agent definitions
  * - hooks/*.py — shared hook scripts
  * - hooks.json — hook configuration (separate file, not settings.json)
  *
- * Cursor++ setup command/skill/local bundle are retired and no longer shipped.
+ * Retired alternate-client setup assets are no longer shipped.
  */
 export async function configureCursor(cwd: string): Promise<void> {
   const config = AI_TOOLS.cursor;
@@ -41,18 +41,18 @@ export async function configureCursor(cwd: string): Promise<void> {
 
   // .cursor/commands/ — user-facing slash commands (commands-only policy).
   // Common commands (continue, finish-work). Cursor-only extras come from
-  // getCursorCommands() when present (none required for Cursor++).
+  // getCursorCommands() when present (no retired alternate-client assets).
   const commandsDir = path.join(configRoot, "commands");
   ensureDir(commandsDir);
   for (const cmd of resolveCommands(ctx)) {
     await writeFile(
-      path.join(commandsDir, `cstl-${cmd.name}.md`),
+      path.join(commandsDir, `pactile-${cmd.name}.md`),
       resolvePlaceholders(cmd.content, ctx),
     );
   }
   for (const cmd of getCursorCommands()) {
     await writeFile(
-      path.join(commandsDir, `cstl-${cmd.name}.md`),
+      path.join(commandsDir, `pactile-${cmd.name}.md`),
       resolvePlaceholders(cmd.content, ctx),
     );
   }

@@ -10,7 +10,7 @@ importers:
 
   packages/cli:
     dependencies:
-      '@blxzer/cursor-trellis-core':
+      '@blxzer/pactile-core':
         specifier: workspace:*
         version: link:../core
       chalk:
@@ -93,6 +93,18 @@ importers:
       vitest:
         specifier: ^4.0.18
         version: 4.0.18(@types/node@20.19.28)(yaml@2.8.2)
+
+  packages/cursor-trellis-core-shim:
+    dependencies:
+      '@blxzer/pactile-core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/cursor-trellis-shim:
+    dependencies:
+      '@blxzer/pactile':
+        specifier: workspace:*
+        version: link:../cli
 
 packages:
 

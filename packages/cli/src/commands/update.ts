@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import chalk from "chalk";
 import inquirer from "inquirer";
@@ -25,7 +26,6 @@ import type {
   MigrationAction,
   TemplateHashes,
 } from "../types/migration.js";
-import { assessCstlDirectoryMigrate } from "../utils/workflow-ownership.js";
 import {
   isWorkflowInitialized,
   resolveWorkflowDirName,
@@ -58,7 +58,7 @@ import {
   planWaveC,
   scanContractMigration,
   writeWaveCConfirmed,
-} from "@blxzer/cursor-trellis-core/task";
+} from "@blxzer/pactile-core/task";
 import { emptyTaskJson } from "../utils/task-json.js";
 import {
   applyOfficialRetire,
@@ -80,14 +80,13 @@ import {
   gitignoreTemplate,
   workflowMdTemplate,
   executionStrategyRulesJson,
-} from "../templates/trellis/index.js";
+} from "../templates/pactile/index.js";
 import { collectUserModuleTemplates } from "../templates/extract.js";
-import { agentsMdContent, frameworkDocs } from "../templates/markdown/index.js";
+import { frameworkDocs } from "../templates/markdown/index.js";
 
 import {
   ALL_MANAGED_DIRS,
   getConfiguredPlatforms,
-  collectPlatformTemplates,
   isManagedPath,
   isManagedRootDir,
 } from "../configurators/index.js";
@@ -95,37 +94,36 @@ import { getWorkflowRootTemplateFiles } from "../configurators/workflow.js";
 import { replacePythonCommandLiterals } from "../configurators/shared.js";
 import { pruneOrphanManifestKeys } from "../utils/manifest-prune.js";
 import { runPostUpdateSmoke } from "../utils/post-update-smoke.js";
-import { assertCursorRulesValid } from "../utils/validate-rules.js";
-import {
-  cleanupCursor2plusResidue,
-  hasCursor2plusBundleResidue,
-} from "../utils/cursor2plus-residue-cleanup.js";
+import { cleanupRetiredAlternateClientResidue } from "../pactile/compat/retired-alternate-client.js";
 import {
   buildFilePlanFromChanges,
   createBaseRolloutReport,
   emitRolloutReport,
+  lifecycleResultToSummary,
   migrationResultToSummary,
   summarizeMigrationPlan,
   type UpdateReadinessSnapshot,
   type UpdateReleaseBlocker,
   type UpdateRolloutReport,
 } from "../utils/update-rollout-report.js";
-
-function logCursor2plusRetiredResidueNotice(cwd: string): void {
-  if (!hasCursor2plusBundleResidue(cwd)) {
-    return;
-  }
-  console.log(
-    chalk.yellow(
-      "\nCursor++ path retired: leftover `.cstl/local/cursor2plus/` (or `.trellis/…`) is not an install surface.",
-    ),
-  );
-  console.log(
-    chalk.gray(
-      "  Do not run patch scripts. Unmodified managed residue is removed by update hash-safe cleanup; review and manually delete any user-modified leftover files if unused.",
-    ),
-  );
-}
+import {
+  collectCanonicalGenerationFiles,
+  discoverCanonicalGenerationPaths,
+  installedPactilePlatforms,
+  isCanonicalGenerationPath,
+  materializeCanonicalGeneration,
+  seedCanonicalBuildRoot,
+  runLifecycleCommand,
+  type LifecycleGenerationFile,
+  type LifecycleResult,
+} from "../pactile/lifecycle/index.js";
+import { InstallStateStore } from "../pactile/runtime/stores.js";
+import { filterReadOnlyLegacyMigrationItems } from "../pactile/compat/legacy-migrations.js";
+import {
+  printLegacyCursorSkillResidueNotice,
+  printRetiredAlternateClientNotice,
+} from "../pactile/compat/update-residue.js";
+import { LEGACY_UPDATE_BLOCK_MESSAGE } from "../pactile/compat/cli-options.js";
 
 export interface UpdateOptions {
   dryRun?: boolean;
@@ -140,16 +138,11 @@ export interface UpdateOptions {
   /** Skip post-apply Python script smoke checks (apply mode only). */
   skipPostUpdateSmoke?: boolean;
   /**
-   * F5 escape hatch: force the `.trellis/` → `.cstl/` rename-dir migration
-   * even when upstream Trellis signals are detected. Requires `--migrate`.
-   */
-  forceCstlMigrate?: boolean;
-  /**
    * Maintainer / harness: after one confirm, write artifact B projections.
    * User default stays dual-read only.
    */
   writeArtifacts?: boolean;
-  /** Filled on completion for `cstl rollout` aggregation. */
+  /** Filled on completion for `pactile rollout` aggregation. */
   lastReport?: UpdateRolloutReport;
 }
 
@@ -171,14 +164,6 @@ interface ChangeAnalysis {
 
 type ConflictAction = "overwrite" | "skip" | "create-new";
 
-const CSTL_BLOCK_START = "<!-- CSTL:START -->";
-const CSTL_BLOCK_END = "<!-- CSTL:END -->";
-const LEGACY_TRELLIS_BLOCK_START = "<!-- TRELLIS:START -->";
-const LEGACY_TRELLIS_BLOCK_END = "<!-- TRELLIS:END -->";
-const LEGACY_UNTRACKED_AGENTS_MD_BLOCK_HASHES = new Set<string>([
-  "c1f511b1cfc1902f2147da159f09cc51f380b0c9e341cdb3ac5dea5233f3e307",
-]);
-
 // Paths that should never be touched (true user data)
 // spec/ is user-customized content created during init; update should never modify it
 const PROTECTED_PATHS = [
@@ -189,135 +174,6 @@ const PROTECTED_PATHS = [
   `${DIR_NAMES.WORKFLOW}/.developer`,
   `${DIR_NAMES.WORKFLOW}/.current-task`,
 ];
-
-function getAgentsBlockMarkers(
-  content: string,
-): { start: string; end: string } | null {
-  if (content.includes(CSTL_BLOCK_START)) {
-    return { start: CSTL_BLOCK_START, end: CSTL_BLOCK_END };
-  }
-  if (content.includes(LEGACY_TRELLIS_BLOCK_START)) {
-    return {
-      start: LEGACY_TRELLIS_BLOCK_START,
-      end: LEGACY_TRELLIS_BLOCK_END,
-    };
-  }
-  return null;
-}
-
-function getTrellisManagedBlock(content: string): string | null {
-  const markers = getAgentsBlockMarkers(content);
-  if (!markers) {
-    return null;
-  }
-
-  const start = content.indexOf(markers.start);
-  const end = content.indexOf(markers.end, start);
-  if (end === -1) {
-    return null;
-  }
-
-  return content.slice(start, end + markers.end.length);
-}
-
-function replaceTrellisManagedBlock(
-  existingContent: string,
-  templateContent: string,
-): string | null {
-  const existingMarkers = getAgentsBlockMarkers(existingContent);
-  if (!existingMarkers) {
-    return null;
-  }
-
-  const existingStart = existingContent.indexOf(existingMarkers.start);
-  const existingEnd = existingContent.indexOf(
-    existingMarkers.end,
-    existingStart,
-  );
-  if (existingEnd === -1) {
-    return null;
-  }
-
-  const templateBlock = getTrellisManagedBlock(templateContent);
-  if (!templateBlock) {
-    return null;
-  }
-
-  return (
-    existingContent.slice(0, existingStart) +
-    templateBlock +
-    existingContent.slice(existingEnd + existingMarkers.end.length)
-  );
-}
-
-function includesCstlRuntimeDirRename(migrations: MigrationItem[]): boolean {
-  return migrations.some(
-    (item) =>
-      item.type === "rename-dir" &&
-      item.from === ".trellis" &&
-      item.to === ".cstl",
-  );
-}
-
-function upgradeAgentsMdToCstlMarkers(cwd: string): void {
-  const agentsPath = path.join(cwd, FILE_NAMES.AGENTS);
-  if (!fs.existsSync(agentsPath)) {
-    return;
-  }
-  const content = fs.readFileSync(agentsPath, "utf-8");
-  if (!content.includes(LEGACY_TRELLIS_BLOCK_START)) {
-    return;
-  }
-  const upgraded = content
-    .replace(LEGACY_TRELLIS_BLOCK_START, CSTL_BLOCK_START)
-    .replace(LEGACY_TRELLIS_BLOCK_END, CSTL_BLOCK_END)
-    .replace(/\.\/\.trellis\//g, "./.cstl/")
-    .replace(/(?<![A-Za-z0-9_])\.trellis\//g, ".cstl/");
-  fs.writeFileSync(agentsPath, upgraded, "utf-8");
-}
-
-function buildAgentsMdTemplate(cwd: string): string {
-  const fullPath = path.join(cwd, FILE_NAMES.AGENTS);
-  if (!fs.existsSync(fullPath)) {
-    return agentsMdContent;
-  }
-
-  const existingContent = fs.readFileSync(fullPath, "utf-8");
-
-  // Existing file already has TRELLIS:START/END markers — replace just the
-  // managed block, preserving everything outside it.
-  const replaced = replaceTrellisManagedBlock(existingContent, agentsMdContent);
-  if (replaced !== null) {
-    return replaced;
-  }
-
-  // Existing file has no managed-block markers (pre-0.5.0-beta.18 project, or
-  // user hand-wrote AGENTS.md without ever running through Trellis). Append
-  // the template's managed block at the end so user content is preserved
-  // instead of clobbered.
-  const templateBlock = getTrellisManagedBlock(agentsMdContent);
-  if (!templateBlock) {
-    return agentsMdContent;
-  }
-  const trimmed = existingContent.replace(/\s+$/, "");
-  return `${trimmed}\n\n${templateBlock}\n`;
-}
-
-function isKnownUntrackedTemplate(
-  relativePath: string,
-  existingContent: string,
-): boolean {
-  if (relativePath !== FILE_NAMES.AGENTS) {
-    return false;
-  }
-
-  const managedBlock = getTrellisManagedBlock(existingContent);
-  if (!managedBlock) {
-    return false;
-  }
-
-  return LEGACY_UNTRACKED_AGENTS_MD_BLOCK_HASHES.has(computeHash(managedBlock));
-}
 
 /**
  * Check if a path is blocked by PROTECTED_PATHS
@@ -461,85 +317,6 @@ function printSafeFileDeleteSummary(
 }
 
 /**
- * Commands-only policy residue notice. Cursor's configurator stopped shipping
- * `.cursor/skills/` (commit acd41a92, v0.2.8); projects initialized before
- * that carry stale skill directories that pollute the `/` palette with
- * internal auto-triggered skills and create command+skill double entries for
- * `finish-work`.
- *
- * Safe-file-delete migrations (added in v0.2.10) remove pristine copies
- * automatically; this notice surfaces residue that survives (user-modified
- * files, or dry-run preview) so the user knows what remains and why.
- */
-const CURSOR_SKILL_RESIDUE_DIRS = [
-  // Current cstl-* names (post-0.3.0)
-  "cstl-brainstorm",
-  "cstl-before-dev",
-  "cstl-check",
-  "cstl-break-loop",
-  "cstl-update-spec",
-  "cstl-finish-work",
-  "cstl-micro-grill",
-  "cstl-meta",
-  "cstl-skill-creator",
-  "cstl-spec-bootstrap",
-  "cstl-cursor2plus-setup",
-  "smart-search-cli",
-  // Legacy trellis-* names also checked for residue detection (pre-0.3.0 projects)
-  "trellis-brainstorm",
-  "trellis-before-dev",
-  "trellis-check",
-  "trellis-break-loop",
-  "trellis-update-spec",
-  "trellis-finish-work",
-  "trellis-micro-grill",
-  "trellis-meta",
-  "trellis-skill-creator",
-  "trellis-spec-bootstrap",
-  "trellis-cursor2plus-setup",
-];
-
-function printCursorSkillResidueNotice(cwd: string): void {
-  const skillsRoot = path.join(cwd, ".cursor", "skills");
-  if (!fs.existsSync(skillsRoot)) return;
-
-  const foundResidues: string[] = [];
-  for (const dir of CURSOR_SKILL_RESIDUE_DIRS) {
-    if (fs.existsSync(path.join(skillsRoot, dir))) {
-      foundResidues.push(dir);
-    }
-  }
-  if (foundResidues.length === 0) return;
-
-  const hasFinishWorkCmd = fs.existsSync(
-    path.join(cwd, ".cursor", "commands", "cstl-finish-work.md"),
-  );
-  const hasFinishWorkSkill =
-    foundResidues.includes("cstl-finish-work") ||
-    foundResidues.includes("trellis-finish-work");
-
-  console.log(chalk.cyan("  Cursor commands-only skill residue notice:"));
-  console.log(
-    chalk.yellow(
-      `    Found ${foundResidues.length} stale skill director${foundResidues.length === 1 ? "y" : "ies"} under .cursor/skills/ from before the commands-only policy.`,
-    ),
-  );
-  console.log(
-    chalk.gray(
-      `    Pristine copies are auto-removed by safe-file-delete; user-modified files are kept (review manually).`,
-    ),
-  );
-  if (hasFinishWorkCmd && hasFinishWorkSkill) {
-    console.log(
-      chalk.gray(
-        "    trellis-finish-work appears as BOTH command and skill — safe-file-delete resolves the duplicate when the skill copy is pristine.",
-      ),
-    );
-  }
-  console.log("");
-}
-
-/**
  * Execute safe-file-delete items (delete files + clean up empty dirs)
  */
 function executeSafeFileDeletes(
@@ -552,6 +329,11 @@ function executeSafeFileDeletes(
   for (const c of toDelete) {
     const fullPath = path.join(cwd, c.item.from);
     try {
+      // Re-check after staging. Adapter reconciliation may have touched the
+      // same host path since classification; never delete bytes whose current
+      // hash no longer matches the manifest allow-list.
+      const current = fs.readFileSync(fullPath, "utf-8");
+      if (!c.item.allowed_hashes?.includes(computeHash(current))) continue;
       fs.unlinkSync(fullPath);
       removeHash(cwd, c.item.from);
       cleanupEmptyDirs(cwd, path.dirname(c.item.from));
@@ -565,7 +347,7 @@ function executeSafeFileDeletes(
 }
 
 /**
- * Load update.skip paths from .cstl/config.yaml
+ * Load update.skip paths from the canonical config file.
  *
  * Parses simple YAML structure:
  *   update:
@@ -662,7 +444,11 @@ export function collectStaleUpdateSkipPaths(
 ): string[] {
   const stale: string[] = [];
   for (const skip of skipPaths) {
-    if (!skip || skip.endsWith("/") || skip === `${DIR_NAMES.WORKFLOW}/config.yaml`) {
+    if (
+      !skip ||
+      skip.endsWith("/") ||
+      skip === `${DIR_NAMES.WORKFLOW}/config.yaml`
+    ) {
       continue;
     }
     const official = officialTemplates.get(skip);
@@ -678,7 +464,7 @@ export function collectStaleUpdateSkipPaths(
 }
 
 /**
- * Drop listed paths from `.cstl/config.yaml` `update.skip`. If the skip list
+ * Drop listed paths from canonical `config.yaml` `update.skip`. If the skip list
  * becomes empty, remove `skip:` and a now-empty `update:` key. Does not touch
  * surrounding comments.
  *
@@ -898,8 +684,8 @@ export function applyConfigSectionsAdded(
 /**
  * Collect all template files that should be managed by update.
  * Only collects templates for platforms that are already configured (have directories).
- * Exported so tests can assert the hash set includes `.cstl/modules/` and never
- * `.cstl/middleware/`.
+ * Exported so tests can assert the hash set includes canonical modules and
+ * never user middleware.
  */
 export function collectTemplateFiles(
   cwd: string,
@@ -914,8 +700,6 @@ export function collectTemplateFiles(
   bypassUpdateSkip = false,
 ): Map<string, string> {
   const files = new Map<string, string>();
-  const platforms = getConfiguredPlatforms(cwd);
-
   // Python scripts (single source of truth: getAllScripts())
   for (const [scriptPath, content] of getAllScripts()) {
     files.set(`${PATHS.SCRIPTS}/${scriptPath}`, content);
@@ -938,8 +722,8 @@ export function collectTemplateFiles(
     executionStrategyRulesJson,
   );
   files.set(`${DIR_NAMES.WORKFLOW}/.gitignore`, gitignoreTemplate);
-  // Cursor++ local bundle is retired — never refresh or inject
-  // `.cstl/local/cursor2plus/` (or sibling example files) on update.
+  // Retired alternate-client files are handled only by the explicit
+  // compatibility residue cleaner and are never refreshed or injected.
   // workflow.md is included here because it is runtime-parsed by
   // get_context.py and shared hooks. Keep it on the normal template update
   // path: if the installed file still matches the tracked hash, update the
@@ -948,9 +732,9 @@ export function collectTemplateFiles(
   // platform routing markers outside [workflow-state:*] blocks are also
   // script-consumed.
   files.set(`${DIR_NAMES.WORKFLOW}/workflow.md`, workflowMdTemplate);
-  // Framework docs (.cstl/framework/) — framework-owned, refreshed by update.
+  // Framework docs are framework-owned and refreshed by update.
   // New files flow through the standard new/auto-update/hash-conflict
-  // analysis; .cstl/spec/ stays fully protected.
+  // analysis; canonical spec content stays fully protected.
   for (const doc of frameworkDocs) {
     files.set(`${PATHS.FRAMEWORK}/${doc.name}`, doc.content);
   }
@@ -961,21 +745,9 @@ export function collectTemplateFiles(
   }
   // workspace/index.md stays excluded — it's runtime-appended by add_session.py
   // (journal index) and has no script-parsed structure.
-  files.set(FILE_NAMES.AGENTS, buildAgentsMdTemplate(cwd));
-
-  // Platform-specific templates (only for configured platforms)
-  for (const platformId of platforms) {
-    const platformFiles = collectPlatformTemplates(platformId);
-    if (platformFiles) {
-      for (const [filePath, content] of platformFiles) {
-        files.set(filePath, content);
-      }
-    }
-  }
-
   for (const [filePath, content] of collectProjectCapabilityTemplates(
     cwd,
-    platforms,
+    [],
   )) {
     files.set(filePath, content);
   }
@@ -1004,7 +776,7 @@ export function collectTemplateFiles(
   }
 
   // User overlay is never a template — strip even if a future collector
-  // accidentally adds it. Cursor++ residue cleanup is a separate allow-list
+  // accidentally adds it. Retired alternate-client cleanup is a separate allow-list
   // and must not target this directory.
   for (const [filePath] of [...files]) {
     if (isUserMiddlewareOverlayPath(filePath)) {
@@ -1068,11 +840,7 @@ function analyzeChanges(
         const storedHash = hashes[relativePath];
         const currentHash = computeHash(existingContent);
 
-        if (
-          (storedHash && storedHash === currentHash) ||
-          (!storedHash &&
-            isKnownUntrackedTemplate(relativePath, existingContent))
-        ) {
+        if (storedHash && storedHash === currentHash) {
           // Either the tracked hash matches, or this is a known pristine template
           // from before the path was hash-tracked. Safe to auto-update.
           change.status = "changed";
@@ -1092,7 +860,7 @@ function analyzeChanges(
 
 /**
  * Unchanged templates with no stored hash (canary hand-copy, first hash
- * tracking, or a newly shipped path such as `.cstl/modules/`). Record the
+ * tracking, or a newly shipped canonical module path). Record the
  * hash so the next real template edit auto-updates instead of prompting
  * "Modified by you" or listing the path as new.
  */
@@ -1538,7 +1306,7 @@ function classifyMigrations(
       continue;
     }
     // For non-rename types, also block writing TO protected paths
-    // rename/rename-dir are allowed to target protected paths (e.g., 0.2.0 renames into .cstl/workspace)
+    // Historical rename operations may target paths now protected as user data.
     if (
       item.to &&
       isProtectedPath(item.to) &&
@@ -1727,7 +1495,7 @@ async function promptMigrationAction(
           .join("\n"),
       )
     : chalk.gray(
-        `  Why prompted: file content doesn't match the Trellis template hash\n` +
+        `  Why prompted: file content doesn't match the Pactile template hash\n` +
           `  for this path — usually local customization. If unsure, pick [b].`,
       );
 
@@ -1759,7 +1527,7 @@ async function promptMigrationAction(
 
 /**
  * Clean up empty directories after file migration
- * Recursively removes empty parent directories up to .trellis root
+ * Recursively remove empty parent directories up to the managed root.
  */
 /** @internal Exported for testing only */
 export function cleanupEmptyDirs(cwd: string, dirPath: string): void {
@@ -1770,7 +1538,7 @@ export function cleanupEmptyDirs(cwd: string, dirPath: string): void {
     return;
   }
 
-  // Safety: never delete managed root directories themselves (e.g., .cursor, .trellis)
+  // Safety: never delete managed root directories themselves.
   if (isManagedRootDir(dirPath)) {
     return;
   }
@@ -1939,7 +1707,7 @@ async function executeMigrations(
 
     // For `backup-rename`, leave an inline .backup copy of the user's modified
     // original next to the new location (for rename) or in place (for delete).
-    // This is in addition to the full project snapshot at .cstl/.backup-*/;
+    // This is in addition to the full canonical project snapshot backup.
     // the inline copy is more discoverable when the user wants to diff or merge
     // their customizations against the new template.
     if (item.type === "rename" && item.to) {
@@ -1970,7 +1738,7 @@ async function executeMigrations(
 
       if (action === "backup-rename") {
         // Keep a .backup copy in place before deletion so the user can recover
-        // inline without digging through .cstl/.backup-*/.
+        // inline without digging through the full snapshot backup.
         fs.copyFileSync(filePath, filePath + ".backup");
       }
 
@@ -2052,7 +1820,7 @@ function releaseBlockersFromReadiness(
     blockers.push({
       code: "cli_behind_npm",
       message: `CLI ${cliVersion} is behind npm ${latestNpmVersion}`,
-      recovery: ["cstl upgrade"],
+      recovery: ["pactile upgrade"],
     });
   }
   if (!readiness.skipped && !readiness.smartSearch.ok) {
@@ -2085,6 +1853,139 @@ function finishRollout(
 ): void {
   options.lastReport = report;
   emitRolloutReport(report, options.json);
+}
+
+function candidatePath(
+  projectRoot: string,
+  canonicalBuildRoot: string,
+  relativePath: string,
+): string {
+  const root = isCanonicalGenerationPath(relativePath)
+    ? canonicalBuildRoot
+    : projectRoot;
+  return path.join(root, ...relativePath.replace(/\\/g, "/").split("/"));
+}
+
+interface DeferredLiveWrite {
+  readonly content: string;
+  readonly executable: boolean;
+}
+
+/**
+ * Apply template writes that are outside the canonical generation only after
+ * lifecycle commit. Canonical paths are staged in the OS temporary root; live
+ * paths are kept as bytes in memory until ProjectionStore/lifecycle succeeds.
+ */
+function applyDeferredLiveWrites(
+  cwd: string,
+  writes: ReadonlyMap<string, DeferredLiveWrite>,
+): void {
+  for (const [relativePath, write] of writes) {
+    const target = path.join(cwd, ...relativePath.replace(/\\/g, "/").split("/"));
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, write.content);
+    if (write.executable) fs.chmodSync(target, 0o755);
+  }
+}
+
+function migrationRoot(item: MigrationItem): "canonical" | "live" {
+  const paths = [item.from, item.to].filter(
+    (value): value is string => typeof value === "string" && value.length > 0,
+  );
+  const canonical = paths.map(isCanonicalGenerationPath);
+  if (canonical.some(Boolean) && !canonical.every(Boolean))
+    throw new Error("canonical-migration-cross-boundary");
+  return canonical.length > 0 && canonical.every(Boolean)
+    ? "canonical"
+    : "live";
+}
+
+function partitionMigrations(classified: ClassifiedMigrations): {
+  canonical: ClassifiedMigrations;
+  live: ClassifiedMigrations;
+} {
+  const empty = (): ClassifiedMigrations => ({
+    auto: [],
+    confirm: [],
+    conflict: [],
+    skip: [],
+  });
+  const result = { canonical: empty(), live: empty() };
+  for (const key of ["auto", "confirm", "conflict", "skip"] as const) {
+    for (const item of classified[key])
+      result[migrationRoot(item)][key].push(item);
+  }
+  return result;
+}
+
+function mergeMigrationResults(
+  left: MigrationResult,
+  right: MigrationResult,
+): MigrationResult {
+  return {
+    renamed: left.renamed + right.renamed,
+    deleted: left.deleted + right.deleted,
+    skipped: left.skipped + right.skipped,
+    conflicts: left.conflicts + right.conflicts,
+  };
+}
+
+function reportUpdateLifecycle(result: LifecycleResult): void {
+  if (result.status === "review" || result.status === "interrupted") {
+    throw new Error(`Pactile lifecycle update stopped: ${result.reason}`);
+  }
+  if (result.status === "degraded") {
+    const failures = result.adapters
+      .filter((adapter) => adapter.status !== "succeeded")
+      .map(
+        (adapter) =>
+          `${adapter.adapterId}: ${adapter.reason ?? "pending"}${
+            adapter.retryable ? " (retryable)" : ""
+          }`,
+      );
+    console.warn(
+      chalk.yellow(
+        `Canonical update committed; Adapter reconciliation is degraded: ${failures.join(", ")}`,
+      ),
+    );
+    return;
+  }
+  console.log(
+    chalk.green("✓ Canonical generation and Adapter projections reconciled"),
+  );
+}
+
+async function runUpdateLifecycle(
+  cwd: string,
+  operation: "update" | "reconcile",
+  candidateFiles?: readonly LifecycleGenerationFile[],
+): Promise<LifecycleResult> {
+  const installed = new InstallStateStore(cwd).read();
+  if (!installed)
+    throw new Error(
+      "Missing .pactile install state. Re-run `pactile init` to recover before update.",
+    );
+  const platforms = installedPactilePlatforms(installed.state);
+  const files =
+    candidateFiles ??
+    collectCanonicalGenerationFiles(
+      cwd,
+      discoverCanonicalGenerationPaths(cwd),
+      platforms,
+      VERSION,
+    );
+  const result = await runLifecycleCommand({
+    projectRoot: cwd,
+    operation,
+    runtimeVersion: VERSION,
+    files,
+    platforms,
+    materializeCanonical: candidateFiles
+      ? (context) => materializeCanonicalGeneration(cwd, context)
+      : undefined,
+  });
+  reportUpdateLifecycle(result);
+  return result;
 }
 
 /**
@@ -2129,7 +2030,10 @@ export async function update(options: UpdateOptions): Promise<void> {
       cliBehindNpm: cliVsNpm < 0 && latestNpmVersion !== null,
       options: rolloutOpts,
       readiness,
-      upgradeDirection: upgradeDirectionFromCompare(cliVsProject, projectVersion),
+      upgradeDirection: upgradeDirectionFromCompare(
+        cliVsProject,
+        projectVersion,
+      ),
       files:
         extra?.files ??
         buildFilePlanFromChanges({
@@ -2140,10 +2044,9 @@ export async function update(options: UpdateOptions): Promise<void> {
           userDeletedFiles: [],
         }),
       conflictsPending: extra?.conflictsPending ?? [],
-      migrations:
-        extra?.migrations ??
-        summarizeMigrationPlan(null, 0),
-      breakingMigrationGateRequired: extra?.breakingMigrationGateRequired ?? false,
+      migrations: extra?.migrations ?? summarizeMigrationPlan(null, 0),
+      breakingMigrationGateRequired:
+        extra?.breakingMigrationGateRequired ?? false,
       apply: extra?.apply,
       postUpdateSmoke: extra?.postUpdateSmoke,
       releaseBlockers: releaseBlockersFromReadiness(
@@ -2156,15 +2059,20 @@ export async function update(options: UpdateOptions): Promise<void> {
     finishRollout(options, report);
   };
 
-  // Check if cursor-trellis is initialized (.cstl/ or legacy .trellis/)
+  // Resolve canonical state first; legacy-only projects receive import guidance.
   if (!isWorkflowInitialized(cwd)) {
-    console.log(chalk.red("Error: Trellis not initialized in this directory."));
-    console.log(chalk.gray("Run 'cstl init' first."));
+    console.log(chalk.red("Error: Pactile not initialized in this directory."));
+    console.log(chalk.gray("Run 'pactile init' first."));
+    emitEarly("blocked_not_initialized");
+    return;
+  }
+  if (resolveWorkflowDirName(cwd) !== DIR_NAMES.WORKFLOW) {
+    console.log(chalk.red(LEGACY_UPDATE_BLOCK_MESSAGE));
     emitEarly("blocked_not_initialized");
     return;
   }
 
-  console.log(chalk.cyan("\nTrellis Update"));
+  console.log(chalk.cyan("\nPactile Update"));
   console.log(chalk.cyan("══════════════\n"));
 
   // Set up proxy before any network calls (npm version check)
@@ -2205,7 +2113,7 @@ export async function update(options: UpdateOptions): Promise<void> {
         `⚠️  Your CLI (${cliVersion}) is behind npm (${latestNpmVersion}).`,
       ),
     );
-    console.log(chalk.yellow(`   Run: cstl upgrade\n`));
+    console.log(chalk.yellow(`   Run: pactile upgrade\n`));
   }
 
   // Check for downgrade situation
@@ -2219,9 +2127,9 @@ export async function update(options: UpdateOptions): Promise<void> {
 
     if (!options.allowDowngrade) {
       console.log(chalk.gray("Solutions:"));
-      console.log(chalk.gray(`  1. Update your CLI: cstl upgrade`));
+      console.log(chalk.gray(`  1. Update your CLI: pactile upgrade`));
       console.log(
-        chalk.gray(`  2. Force downgrade: cstl update --allow-downgrade\n`),
+        chalk.gray(`  2. Force downgrade: pactile update --allow-downgrade\n`),
       );
       emitEarly("blocked_downgrade");
       return;
@@ -2245,7 +2153,7 @@ export async function update(options: UpdateOptions): Promise<void> {
   if (isUnknownVersion) {
     console.log(
       chalk.yellow(
-        "⚠️  No version file found. Skipping migrations — run cstl init to fix.",
+        "⚠️  No version file found. Skipping migrations — run pactile init to fix.",
       ),
     );
     console.log(chalk.gray("   Template updates will still be applied."));
@@ -2256,13 +2164,15 @@ export async function update(options: UpdateOptions): Promise<void> {
 
   // Self-heal poisoned manifests: prune entries that no current platform
   // configurator owns. This silently removes user-owned paths that early
-  // buggy versions of `cstl init` over-hashed (e.g. legacy session dirs).
+  // Older init versions over-hashed some user-owned session directories.
+  let prunedManifest = false;
   {
     const configuredPlatforms = new Set<AITool>(getConfiguredPlatforms(cwd));
     const prune = pruneOrphanManifestKeys(
       cwd,
       [...configuredPlatforms],
       hashes,
+      { persist: false },
     );
     if (prune.pruned.length > 0) {
       console.log(
@@ -2271,6 +2181,7 @@ export async function update(options: UpdateOptions): Promise<void> {
         ),
       );
       hashes = prune.hashes;
+      prunedManifest = true;
     }
   }
 
@@ -2296,7 +2207,7 @@ export async function update(options: UpdateOptions): Promise<void> {
   // match the shipped template (dogfood pin absorbed by this release).
   const officialTemplates = collectTemplateFiles(cwd, true);
   const templates = collectTemplateFiles(cwd, breakingBypass);
-  printCursorSkillResidueNotice(cwd);
+  printLegacyCursorSkillResidueNotice(cwd);
 
   // Load update.skip paths (used for both safe-file-delete and template collection)
   const skipPaths = loadUpdateSkipPaths(cwd);
@@ -2321,7 +2232,9 @@ export async function update(options: UpdateOptions): Promise<void> {
   // Check for pending regular migrations (skip if unknown version)
   let pendingMigrations = isUnknownVersion
     ? []
-    : getMigrationsForVersion(projectVersion, cliVersion);
+    : filterReadOnlyLegacyMigrationItems(
+        getMigrationsForVersion(projectVersion, cliVersion),
+      );
 
   // Also check for "orphaned" migrations - where source still exists but version says we shouldn't migrate
   // This handles cases where version was updated but migrations weren't applied
@@ -2353,7 +2266,10 @@ export async function update(options: UpdateOptions): Promise<void> {
       console.log(chalk.yellow(`    ${item.from} → ${item.to}`));
     }
     console.log("");
-    pendingMigrations = [...pendingMigrations, ...orphanedMigrations];
+    pendingMigrations = filterReadOnlyLegacyMigrationItems([
+      ...pendingMigrations,
+      ...orphanedMigrations,
+    ]);
   }
 
   const hasMigrations = pendingMigrations.length > 0;
@@ -2398,7 +2314,7 @@ export async function update(options: UpdateOptions): Promise<void> {
             ),
         );
         console.log("");
-        console.log(chalk.yellow(`  Run: cstl update --migrate`));
+        console.log(chalk.yellow(`  Run: pactile update --migrate`));
         console.log("");
         console.log(
           chalk.gray(
@@ -2450,20 +2366,23 @@ export async function update(options: UpdateOptions): Promise<void> {
     printSafeFileDeleteSummary(safeFileDeletes);
   }
 
-  // Preview Cursor++ residue cleanup (hash-safe; always considered)
-  const cursor2plusResiduePreview = cleanupCursor2plusResidue(cwd, {
-    dryRun: true,
-  });
-  if (cursor2plusResiduePreview.deleted.length > 0) {
-    console.log(chalk.cyan("\nCursor++ residue cleanup (hash-safe):"));
-    for (const rel of cursor2plusResiduePreview.deleted) {
+  // Preview retired alternate-client cleanup (hash-safe; always considered).
+  const alternateClientResiduePreview = cleanupRetiredAlternateClientResidue(
+    cwd,
+    {
+      dryRun: true,
+    },
+  );
+  if (alternateClientResiduePreview.deleted.length > 0) {
+    console.log(chalk.cyan("\nRetired alternate-client cleanup (hash-safe):"));
+    for (const rel of alternateClientResiduePreview.deleted) {
       console.log(chalk.gray(`  would delete: ${rel}`));
     }
   }
-  if (cursor2plusResiduePreview.preservedModified.length > 0) {
+  if (alternateClientResiduePreview.preservedModified.length > 0) {
     console.log(
       chalk.yellow(
-        `  preserve (user-modified): ${cursor2plusResiduePreview.preservedModified.join(", ")}`,
+        `  preserve (user-modified): ${alternateClientResiduePreview.preservedModified.join(", ")}`,
       ),
     );
   }
@@ -2496,6 +2415,7 @@ export async function update(options: UpdateOptions): Promise<void> {
     });
 
   const p36State: { report?: UpdateRolloutReport["p36"] } = {};
+  let lifecycleResult: LifecycleResult | null = null;
 
   const emitRollout = (
     outcome: UpdateRolloutReport["outcome"],
@@ -2507,6 +2427,7 @@ export async function update(options: UpdateOptions): Promise<void> {
       breakingMigrationGateRequired: boolean;
       backupPath: string | null;
       p36: UpdateRolloutReport["p36"];
+      lifecycle: UpdateRolloutReport["lifecycle"];
     }>,
   ): void => {
     const readiness =
@@ -2526,7 +2447,10 @@ export async function update(options: UpdateOptions): Promise<void> {
       cliBehindNpm: cliVsNpm < 0 && latestNpmVersion !== null,
       options: rolloutOpts,
       readiness,
-      upgradeDirection: upgradeDirectionFromCompare(cliVsProject, projectVersion),
+      upgradeDirection: upgradeDirectionFromCompare(
+        cliVsProject,
+        projectVersion,
+      ),
       files: extra?.files ?? buildRolloutFilePlan(),
       conflictsPending,
       migrations: migrationPlanSummary,
@@ -2535,6 +2459,7 @@ export async function update(options: UpdateOptions): Promise<void> {
       backupPath: extra?.backupPath ?? null,
       apply: extra?.apply,
       postUpdateSmoke: extra?.postUpdateSmoke,
+      lifecycle: extra?.lifecycle ?? lifecycleResultToSummary(lifecycleResult),
       releaseBlockers: releaseBlockersFromReadiness(
         readiness,
         cliVsNpm < 0 && latestNpmVersion !== null,
@@ -2615,15 +2540,39 @@ export async function update(options: UpdateOptions): Promise<void> {
     !hasMaintainerArtifactWrites &&
     !hasWaveCPending
   ) {
-    if (!options.dryRun && missingTemplateHashes.size > 0) {
-      updateHashes(cwd, missingTemplateHashes);
+    if (!options.dryRun) {
+      const canonicalBuildRoot = fs.mkdtempSync(
+        path.join(os.tmpdir(), "pactile-update-"),
+      );
+      try {
+        seedCanonicalBuildRoot(cwd, canonicalBuildRoot);
+        if (prunedManifest) saveHashes(canonicalBuildRoot, hashes);
+        if (missingTemplateHashes.size > 0) {
+          updateHashes(canonicalBuildRoot, missingTemplateHashes);
+        }
+        if (!isSameVersion) updateVersionFile(canonicalBuildRoot);
+        const activePlatforms = installedPactilePlatforms(
+          new InstallStateStore(cwd).read()?.state ?? null,
+        );
+        const candidate = collectCanonicalGenerationFiles(
+          canonicalBuildRoot,
+          discoverCanonicalGenerationPaths(canonicalBuildRoot),
+          activePlatforms,
+          VERSION,
+        );
+        lifecycleResult = await runUpdateLifecycle(
+          cwd,
+          isSameVersion ? "reconcile" : "update",
+          candidate,
+        );
+      } finally {
+        fs.rmSync(canonicalBuildRoot, { recursive: true, force: true });
+      }
     }
 
     if (isSameVersion) {
       console.log(chalk.green("✓ Already up to date!"));
     } else {
-      // Version changed but no file changes needed — still update the version stamp
-      updateVersionFile(cwd);
       if (isUpgrade) {
         console.log(
           chalk.green(
@@ -2639,10 +2588,15 @@ export async function update(options: UpdateOptions): Promise<void> {
       }
     }
     const afterVersion = getInstalledVersion(cwd);
-    emitRollout("no_changes", {
-      projectVersionAfter: afterVersion,
-      files: buildRolloutFilePlan(),
-    });
+    emitRollout(
+      lifecycleResult?.status === "degraded"
+        ? "applied_degraded"
+        : "no_changes",
+      {
+        projectVersionAfter: afterVersion,
+        files: buildRolloutFilePlan(),
+      },
+    );
     return;
   }
 
@@ -2699,7 +2653,7 @@ export async function update(options: UpdateOptions): Promise<void> {
           );
           console.log(
             chalk.gray(
-              "  Hash-verified: only files matching known Trellis templates are deleted. Your local customizations (hash mismatch) are still preserved.",
+              "  Hash-verified: only files matching known Pactile templates are deleted. Your local customizations (hash mismatch) are still preserved.",
             ),
           );
         }
@@ -2718,7 +2672,7 @@ export async function update(options: UpdateOptions): Promise<void> {
 
   // File-conflict flags (--force / --skip-all / --create-new) consent to apply
   // official A writes. They are not Wave C stop-read confirm. Only interactive
-  // Proceed? yes writes `.cstl/.p36-wave-c.json`.
+  // Proceed? yes writes the canonical Wave C decision artifact.
   let waveCInteractivelyConfirmed = false;
 
   // Batch-resolution flags are explicit consent for non-interactive runs.
@@ -2731,7 +2685,7 @@ export async function update(options: UpdateOptions): Promise<void> {
     // explicit consent flag or a dry-run first.
     if (!process.stdin.isTTY) {
       throw new Error(
-        "Non-interactive `cstl update` requires an explicit consent flag. " +
+        "Non-interactive `pactile update` requires an explicit consent flag. " +
           "Re-run with --force (apply all), --skip-all (preserve modified), --create-new (.new copies), or --dry-run (preview only).",
       );
     }
@@ -2753,8 +2707,45 @@ export async function update(options: UpdateOptions): Promise<void> {
   }
 
   // Create complete backup of all managed platform/workflow directories
+  const canonicalBuildRoot = fs.mkdtempSync(
+    path.join(os.tmpdir(), "pactile-update-"),
+  );
+  seedCanonicalBuildRoot(cwd, canonicalBuildRoot);
+  if (prunedManifest) saveHashes(canonicalBuildRoot, hashes);
   const backupDir = createFullBackup(cwd);
   let migrationApplyResult: MigrationResult | null = null;
+  let officialRetired = 0;
+  let safeDeleted = 0;
+  let liveMigrationApplyResult: MigrationResult | null = null;
+  let deferredLiveSafeDeletes: SafeFileDeleteClassified[] = [];
+  let deferredLiveMigrations: ClassifiedMigrations | null = null;
+  let added = 0;
+  let autoUpdated = 0;
+  let updated = 0;
+  let skipped = 0;
+  let createdNew = 0;
+  let configSectionsAppended = 0;
+  let deferredLiveConfigSections: ConfigSectionAdded[] = [];
+  let artifactApply: ReturnType<typeof applyArtifactMigration> | null = null;
+  const overwrittenPaths: string[] = [];
+  const skippedConflictPaths: string[] = [];
+  const createdNewPaths: string[] = [];
+  const deferredLiveWrites = new Map<string, DeferredLiveWrite>();
+  const stageTemplateWrite = (
+    relativePath: string,
+    content: string,
+  ): void => {
+    const executable =
+      relativePath.endsWith(".sh") || relativePath.endsWith(".py");
+    if (!isCanonicalGenerationPath(relativePath)) {
+      deferredLiveWrites.set(relativePath, { content, executable });
+      return;
+    }
+    const target = candidatePath(cwd, canonicalBuildRoot, relativePath);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, content);
+    if (executable) fs.chmodSync(target, 0o755);
+  };
 
   if (backupDir) {
     console.log(
@@ -2762,7 +2753,173 @@ export async function update(options: UpdateOptions): Promise<void> {
     );
   }
 
-  const officialRetired = applyOfficialRetire(cwd, officialPlan);
+  try {
+    // Build all canonical changes in the isolated generation root first.
+    // Legacy host mutations are intentionally deferred until lifecycle has
+    // durably activated that generation below.
+    if (options.migrate && classifiedMigrations) {
+      const migrations = partitionMigrations(classifiedMigrations);
+      const canonicalResult = await executeMigrations(
+        migrations.canonical,
+        canonicalBuildRoot,
+        { force: options.force, skipAll: options.skipAll },
+      );
+      migrationApplyResult = canonicalResult;
+      deferredLiveMigrations = migrations.live;
+    }
+
+    // Canonical safe deletes are staged with the candidate. Host deletes are
+    // held until after the canonical lifecycle commit.
+    if (hasSafeDeletes) {
+      const canonicalSafeDeletes = safeFileDeletes.filter((item) =>
+        isCanonicalGenerationPath(item.item.from),
+      );
+      deferredLiveSafeDeletes = safeFileDeletes.filter(
+        (item) => !isCanonicalGenerationPath(item.item.from),
+      );
+      safeDeleted = executeSafeFileDeletes(
+        canonicalSafeDeletes,
+        canonicalBuildRoot,
+      );
+      if (safeDeleted > 0) {
+        console.log(
+          chalk.cyan(`\nCleaned up ${safeDeleted} deprecated command file(s)`),
+        );
+      }
+    }
+
+    // Add new files
+    if (changes.newFiles.length > 0) {
+      console.log(chalk.blue("\nAdding new files..."));
+      for (const file of changes.newFiles) {
+        stageTemplateWrite(file.relativePath, file.newContent);
+
+        console.log(chalk.green(`  + ${file.relativePath}`));
+        added++;
+      }
+    }
+
+    // Auto-update files (template updated, user didn't modify)
+    if (changes.autoUpdateFiles.length > 0) {
+      console.log(chalk.blue("\nAuto-updating template files..."));
+      for (const file of changes.autoUpdateFiles) {
+        stageTemplateWrite(file.relativePath, file.newContent);
+
+        console.log(chalk.cyan(`  ↑ ${file.relativePath}`));
+        autoUpdated++;
+      }
+    }
+
+    // Handle changed files
+    if (changes.changedFiles.length > 0) {
+      console.log(chalk.blue("\n--- Resolving conflicts ---\n"));
+
+      const applyToAll: { action: ConflictAction | null } = { action: null };
+
+      for (const file of changes.changedFiles) {
+        const action = await promptConflictResolution(
+          file,
+          options,
+          applyToAll,
+        );
+
+        if (action === "overwrite") {
+          stageTemplateWrite(file.relativePath, file.newContent);
+          console.log(chalk.yellow(`  ✓ Overwritten: ${file.relativePath}`));
+          updated++;
+          overwrittenPaths.push(file.relativePath);
+        } else if (action === "create-new") {
+          stageTemplateWrite(`${file.relativePath}.new`, file.newContent);
+          console.log(chalk.blue(`  ✓ Created: ${file.relativePath}.new`));
+          createdNew++;
+          createdNewPaths.push(`${file.relativePath}.new`);
+        } else {
+          console.log(chalk.gray(`  ○ Skipped: ${file.relativePath}`));
+          skipped++;
+          skippedConflictPaths.push(file.relativePath);
+        }
+      }
+    }
+
+    // Append additive config.yaml sections introduced between versions.
+    // Sentinel-gated, so users keep their customizations and re-running update
+    // on already-migrated files is a no-op. Skipped on unknown / downgrade.
+    if (cliVsProject > 0 && projectVersion !== "unknown") {
+      const sectionEntries = getConfigSectionsAddedBetween(
+        projectVersion,
+        cliVersion,
+      );
+      if (sectionEntries.length > 0) {
+        const canonicalSections = sectionEntries.filter((entry) =>
+          isCanonicalGenerationPath(entry.file),
+        );
+        const liveSections = sectionEntries.filter(
+          (entry) => !isCanonicalGenerationPath(entry.file),
+        );
+        configSectionsAppended = applyConfigSectionsAdded(
+          canonicalSections,
+          canonicalBuildRoot,
+          templates,
+        ).appended;
+        deferredLiveConfigSections = liveSections;
+      }
+    }
+
+    // Update version file
+    updateVersionFile(canonicalBuildRoot);
+
+    // Update template hashes for new, auto-updated, and overwritten files
+    const filesToHash = new Map<string, string>(missingTemplateHashes);
+    for (const file of changes.newFiles) {
+      filesToHash.set(file.relativePath, file.newContent);
+    }
+    // Auto-updated files always get new hash
+    for (const file of changes.autoUpdateFiles) {
+      filesToHash.set(file.relativePath, file.newContent);
+    }
+    // Only hash overwritten files (not skipped or .new copies)
+    for (const file of changes.changedFiles) {
+      const staged = isCanonicalGenerationPath(file.relativePath)
+        ? (() => {
+            const fullPath = candidatePath(
+              cwd,
+              canonicalBuildRoot,
+              file.relativePath,
+            );
+            return fs.existsSync(fullPath)
+              ? fs.readFileSync(fullPath, "utf-8")
+              : null;
+          })()
+        : deferredLiveWrites.get(file.relativePath)?.content ?? null;
+      if (staged === file.newContent)
+        filesToHash.set(file.relativePath, file.newContent);
+    }
+    if (filesToHash.size > 0) {
+      updateHashes(canonicalBuildRoot, filesToHash);
+    }
+
+    const activePlatforms = installedPactilePlatforms(
+      new InstallStateStore(cwd).read()?.state ?? null,
+    );
+    const canonicalCandidate = collectCanonicalGenerationFiles(
+      canonicalBuildRoot,
+      discoverCanonicalGenerationPaths(canonicalBuildRoot),
+      activePlatforms,
+      VERSION,
+    );
+    lifecycleResult = await runUpdateLifecycle(
+      cwd,
+      "update",
+      canonicalCandidate,
+    );
+  } finally {
+    fs.rmSync(canonicalBuildRoot, { recursive: true, force: true });
+  }
+
+  // The canonical lifecycle (including Adapter ProjectionStore writes) is now
+  // committed. Only at this point may legacy host cleanup, live migrations,
+  // noncanonical template bytes, and optional artifact projections touch cwd.
+  officialRetired = applyOfficialRetire(cwd, officialPlan);
   if (officialRetired > 0) {
     console.log(
       chalk.cyan(
@@ -2771,38 +2928,17 @@ export async function update(options: UpdateOptions): Promise<void> {
     );
   }
 
-  // Execute migrations if --migrate flag is set
-  if (options.migrate && classifiedMigrations) {
-    const pendingRenameItems = [
-      ...classifiedMigrations.auto,
-      ...classifiedMigrations.confirm,
-      ...classifiedMigrations.conflict,
-    ];
-    if (includesCstlRuntimeDirRename(pendingRenameItems)) {
-      const assessment = assessCstlDirectoryMigrate(cwd, {
-        forceCstlMigrate: options.forceCstlMigrate,
-      });
-      if (!assessment.ok) {
-        console.error(chalk.red("Error:"), assessment.reason);
-        process.exit(1);
-      }
-    }
+  if (deferredLiveMigrations) {
+    liveMigrationApplyResult = await executeMigrations(
+      deferredLiveMigrations,
+      cwd,
+      { force: options.force, skipAll: options.skipAll },
+    );
 
-    migrationApplyResult = await executeMigrations(classifiedMigrations, cwd, {
-      force: options.force,
-      skipAll: options.skipAll,
-    });
-    printMigrationResult(migrationApplyResult);
-
-    if (includesCstlRuntimeDirRename(pendingRenameItems)) {
-      upgradeAgentsMdToCstlMarkers(cwd);
-    }
-
-    // Hardcoded: Rename traces-*.md to journal-*.md in workspace directories
-    // Why hardcoded: The migration system only supports fixed path renames, not pattern-based.
-    // traces-*.md files are in .cstl/workspace/{developer}/ with variable developer names
-    // and variable file numbers (traces-1.md, traces-2.md, etc.), so we can't enumerate them
-    // in the migration manifest. This is a one-time migration for the 0.2.0 naming redesign.
+    // Hardcoded: Rename traces-*.md to journal-*.md in workspace directories.
+    // Trace file names are variable and therefore cannot be represented by the
+    // fixed-path migration manifest. This remains a post-commit user-state
+    // migration and never runs before the canonical generation is active.
     const workspaceDir = path.join(cwd, PATHS.WORKSPACE);
     if (fs.existsSync(workspaceDir)) {
       let journalRenamed = 0;
@@ -2813,13 +2949,14 @@ export async function update(options: UpdateOptions): Promise<void> {
 
         const files = fs.readdirSync(devPath);
         for (const file of files) {
-          if (file.startsWith("traces-") && file.endsWith(".md")) {
-            const oldPath = path.join(devPath, file);
-            const newFile = file.replace("traces-", "journal-");
-            const newPath = path.join(devPath, newFile);
-            fs.renameSync(oldPath, newPath);
-            journalRenamed++;
-          }
+          if (!file.startsWith("traces-") || !file.endsWith(".md")) continue;
+          const oldPath = path.join(devPath, file);
+          const newPath = path.join(
+            devPath,
+            file.replace("traces-", "journal-"),
+          );
+          fs.renameSync(oldPath, newPath);
+          journalRenamed++;
         }
       }
       if (journalRenamed > 0) {
@@ -2830,166 +2967,37 @@ export async function update(options: UpdateOptions): Promise<void> {
     }
   }
 
-  // Execute safe-file-delete (after backup, before template writes)
-  let safeDeleted = 0;
-  if (hasSafeDeletes) {
-    safeDeleted = executeSafeFileDeletes(safeFileDeletes, cwd);
-    if (safeDeleted > 0) {
-      console.log(
-        chalk.cyan(`\nCleaned up ${safeDeleted} deprecated command file(s)`),
-      );
-    }
+  if (deferredLiveSafeDeletes.length > 0) {
+    const deleted = executeSafeFileDeletes(deferredLiveSafeDeletes, cwd);
+    safeDeleted += deleted;
   }
 
-  // Hash-safe Cursor++ residue cleanup (retired product surfaces)
-  const cursor2plusCleanup = cleanupCursor2plusResidue(cwd);
-  if (cursor2plusCleanup.deleted.length > 0) {
-    safeDeleted += cursor2plusCleanup.deleted.length;
+  const alternateClientCleanup = cleanupRetiredAlternateClientResidue(cwd);
+  if (alternateClientCleanup.deleted.length > 0) {
+    safeDeleted += alternateClientCleanup.deleted.length;
     console.log(
       chalk.cyan(
-        `\nCleaned up ${cursor2plusCleanup.deleted.length} retired Cursor++ file(s)`,
+        `\nCleaned up ${alternateClientCleanup.deleted.length} retired alternate-client file(s)`,
       ),
     );
   }
-  if (cursor2plusCleanup.preservedModified.length > 0) {
+  if (alternateClientCleanup.preservedModified.length > 0) {
     console.log(
       chalk.yellow(
-        `Preserved user-modified Cursor++ residue: ${cursor2plusCleanup.preservedModified.join(", ")}`,
+        `Preserved user-modified alternate-client residue: ${alternateClientCleanup.preservedModified.join(", ")}`,
       ),
     );
   }
 
-  // Track results
-  let added = 0;
-  let autoUpdated = 0;
-  let updated = 0;
-  let skipped = 0;
-  let createdNew = 0;
-
-  // Add new files
-  if (changes.newFiles.length > 0) {
-    console.log(chalk.blue("\nAdding new files..."));
-    for (const file of changes.newFiles) {
-      const dir = path.dirname(file.path);
-      fs.mkdirSync(dir, { recursive: true });
-      fs.writeFileSync(file.path, file.newContent);
-
-      // Make scripts executable
-      if (
-        file.relativePath.endsWith(".sh") ||
-        file.relativePath.endsWith(".py")
-      ) {
-        fs.chmodSync(file.path, "755");
-      }
-
-      console.log(chalk.green(`  + ${file.relativePath}`));
-      added++;
-    }
+  applyDeferredLiveWrites(cwd, deferredLiveWrites);
+  if (deferredLiveConfigSections.length > 0) {
+    configSectionsAppended += applyConfigSectionsAdded(
+      deferredLiveConfigSections,
+      cwd,
+      templates,
+    ).appended;
   }
 
-  // Auto-update files (template updated, user didn't modify)
-  if (changes.autoUpdateFiles.length > 0) {
-    console.log(chalk.blue("\nAuto-updating template files..."));
-    for (const file of changes.autoUpdateFiles) {
-      fs.writeFileSync(file.path, file.newContent);
-
-      // Make scripts executable
-      if (
-        file.relativePath.endsWith(".sh") ||
-        file.relativePath.endsWith(".py")
-      ) {
-        fs.chmodSync(file.path, "755");
-      }
-
-      console.log(chalk.cyan(`  ↑ ${file.relativePath}`));
-      autoUpdated++;
-    }
-  }
-
-  const overwrittenPaths: string[] = [];
-  const skippedConflictPaths: string[] = [];
-  const createdNewPaths: string[] = [];
-
-  // Handle changed files
-  if (changes.changedFiles.length > 0) {
-    console.log(chalk.blue("\n--- Resolving conflicts ---\n"));
-
-    const applyToAll: { action: ConflictAction | null } = { action: null };
-
-    for (const file of changes.changedFiles) {
-      const action = await promptConflictResolution(file, options, applyToAll);
-
-      if (action === "overwrite") {
-        fs.writeFileSync(file.path, file.newContent);
-        if (
-          file.relativePath.endsWith(".sh") ||
-          file.relativePath.endsWith(".py")
-        ) {
-          fs.chmodSync(file.path, "755");
-        }
-        console.log(chalk.yellow(`  ✓ Overwritten: ${file.relativePath}`));
-        updated++;
-        overwrittenPaths.push(file.relativePath);
-      } else if (action === "create-new") {
-        const newPath = file.path + ".new";
-        fs.writeFileSync(newPath, file.newContent);
-        console.log(chalk.blue(`  ✓ Created: ${file.relativePath}.new`));
-        createdNew++;
-        createdNewPaths.push(`${file.relativePath}.new`);
-      } else {
-        console.log(chalk.gray(`  ○ Skipped: ${file.relativePath}`));
-        skipped++;
-        skippedConflictPaths.push(file.relativePath);
-      }
-    }
-  }
-
-  // Append additive config.yaml sections introduced between versions.
-  // Sentinel-gated, so users keep their customizations and re-running update
-  // on already-migrated files is a no-op. Skipped on unknown / downgrade.
-  let configSectionsAppended = 0;
-  if (cliVsProject > 0 && projectVersion !== "unknown") {
-    const sectionEntries = getConfigSectionsAddedBetween(
-      projectVersion,
-      cliVersion,
-    );
-    if (sectionEntries.length > 0) {
-      const { appended } = applyConfigSectionsAdded(
-        sectionEntries,
-        cwd,
-        templates,
-      );
-      configSectionsAppended = appended;
-    }
-  }
-
-  // Update version file
-  updateVersionFile(cwd);
-
-  // Update template hashes for new, auto-updated, and overwritten files
-  const filesToHash = new Map<string, string>(missingTemplateHashes);
-  for (const file of changes.newFiles) {
-    filesToHash.set(file.relativePath, file.newContent);
-  }
-  // Auto-updated files always get new hash
-  for (const file of changes.autoUpdateFiles) {
-    filesToHash.set(file.relativePath, file.newContent);
-  }
-  // Only hash overwritten files (not skipped or .new copies)
-  for (const file of changes.changedFiles) {
-    const fullPath = path.join(cwd, file.relativePath);
-    if (fs.existsSync(fullPath)) {
-      const content = fs.readFileSync(fullPath, "utf-8");
-      if (content === file.newContent) {
-        filesToHash.set(file.relativePath, file.newContent);
-      }
-    }
-  }
-  if (filesToHash.size > 0) {
-    updateHashes(cwd, filesToHash);
-  }
-
-  let artifactApply: ReturnType<typeof applyArtifactMigration> | null = null;
   if (options.writeArtifacts && artifactPlan.writable.length > 0) {
     artifactApply = applyArtifactMigration({
       root: cwd,
@@ -3003,14 +3011,28 @@ export async function update(options: UpdateOptions): Promise<void> {
       );
     } else {
       console.log(
-        chalk.yellow(
-          "产物写入失败，已回到双读。项目仍可用，可再跑 update。",
-        ),
+        chalk.yellow("产物写入失败，已回到双读。项目仍可用，可再跑 update。"),
       );
-      if (artifactApply.error) {
-        console.log(chalk.gray(`  ${artifactApply.error}`));
-      }
+      if (artifactApply.error) console.log(chalk.gray(`  ${artifactApply.error}`));
     }
+  }
+
+  if (migrationApplyResult || liveMigrationApplyResult) {
+    migrationApplyResult = mergeMigrationResults(
+      migrationApplyResult ?? {
+        renamed: 0,
+        deleted: 0,
+        skipped: 0,
+        conflicts: 0,
+      },
+      liveMigrationApplyResult ?? {
+        renamed: 0,
+        deleted: 0,
+        skipped: 0,
+        conflicts: 0,
+      },
+    );
+    printMigrationResult(migrationApplyResult);
   }
 
   // Print summary
@@ -3064,7 +3086,7 @@ export async function update(options: UpdateOptions): Promise<void> {
   } else if (hasWaveCPending) {
     console.log(
       chalk.yellow(
-        "  旧字段仍双读。停读需要再跑一次交互式 `cstl update` 并确认 Proceed?（--force / --skip-all / --create-new 不算停读确认）。",
+        "  旧字段仍双读。停读需要再跑一次交互式 `pactile update` 并确认 Proceed?（--force / --skip-all / --create-new 不算停读确认）。",
       ),
     );
   }
@@ -3089,7 +3111,7 @@ export async function update(options: UpdateOptions): Promise<void> {
       `\n✅ ${actionWord} complete! (${projectVersion} → ${cliVersion})`,
     ),
   );
-  logCursor2plusRetiredResidueNotice(cwd);
+  printRetiredAlternateClientNotice(cwd);
 
   if (createdNew > 0) {
     console.log(
@@ -3146,17 +3168,17 @@ export async function update(options: UpdateOptions): Promise<void> {
           status: "planning",
           scope: "migration",
           priority: "P1",
-          creator: "trellis-update",
+          creator: "pactile-update",
           assignee: currentDeveloper,
           createdAt: todayStr,
         });
 
         applyKernelCreate({
           taskDir,
-          actor: "cstl update",
+          actor: "pactile update",
           idempotencyKey: `update:${taskSlug}`,
           record: taskJson,
-          evidence: "cstl update migration skeleton",
+          evidence: "pactile update migration skeleton",
         });
 
         // Build PRD content
@@ -3165,7 +3187,7 @@ export async function update(options: UpdateOptions): Promise<void> {
         prdContent += `**From Version**: ${projectVersion}\n`;
         prdContent += `**To Version**: ${cliVersion}\n`;
         prdContent += `**Assignee**: ${currentDeveloper}\n\n`;
-        prdContent += `## Status\n\n- [ ] Review migration guide\n- [ ] Update custom files\n- [ ] Run \`cstl update --migrate\`\n- [ ] Test workflows\n\n`;
+        prdContent += `## Status\n\n- [ ] Review migration guide\n- [ ] Update custom files\n- [ ] Run \`pactile update --migrate\`\n- [ ] Test workflows\n\n`;
 
         for (const {
           version,
@@ -3263,26 +3285,23 @@ export async function update(options: UpdateOptions): Promise<void> {
       .map((c) => c.item.from);
   }
 
-  const postSmoke = options.skipPostUpdateSmoke
-    ? []
-    : runPostUpdateSmoke(cwd);
-
-  if (getConfiguredPlatforms(cwd).has("cursor")) {
-    assertCursorRulesValid(cwd);
-  }
+  const postSmoke = options.skipPostUpdateSmoke ? [] : runPostUpdateSmoke(cwd);
 
   const relBackup = backupDir ? path.relative(cwd, backupDir) : null;
 
-  emitRollout("applied", {
-    projectVersionAfter: getInstalledVersion(cwd),
-    files: appliedFilePlan,
-    backupPath: relBackup,
-    apply: {
+  emitRollout(
+    lifecycleResult?.status === "degraded" ? "applied_degraded" : "applied",
+    {
+      projectVersionAfter: getInstalledVersion(cwd),
+      files: appliedFilePlan,
       backupPath: relBackup,
-      migrations: migrationResultToSummary(migrationApplyResult),
-      safeDeleted,
-      configSectionsAppended,
+      apply: {
+        backupPath: relBackup,
+        migrations: migrationResultToSummary(migrationApplyResult),
+        safeDeleted,
+        configSectionsAppended,
+      },
+      postUpdateSmoke: postSmoke,
     },
-    postUpdateSmoke: postSmoke,
-  });
+  );
 }

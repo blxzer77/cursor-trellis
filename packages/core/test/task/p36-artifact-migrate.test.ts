@@ -21,7 +21,7 @@ describe("P36 artifact B migrator", () => {
   let tmp: string;
 
   beforeEach(() => {
-    tmp = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-p36-"));
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-p36-"));
   });
 
   afterEach(() => {
@@ -29,7 +29,7 @@ describe("P36 artifact B migrator", () => {
   });
 
   it("dry-run / plan writes nothing and keeps Continue on old tasks", () => {
-    const taskDir = path.join(tmp, ".cstl", "tasks", "old-lite");
+    const taskDir = path.join(tmp, ".pactile", "tasks", "old-lite");
     const record = {
       ...emptyTaskRecord({
         id: "old-lite",
@@ -70,7 +70,7 @@ describe("P36 artifact B migrator", () => {
   });
 
   it("maintainer write adds projections and keeps business fields", () => {
-    const taskDir = path.join(tmp, ".cstl", "tasks", "old-full");
+    const taskDir = path.join(tmp, ".pactile", "tasks", "old-full");
     writeJson(path.join(taskDir, "task.json"), {
       ...emptyTaskRecord({
         id: "old-full",
@@ -85,8 +85,8 @@ describe("P36 artifact B migrator", () => {
       depends_on: ["dep-1"],
     });
     fs.writeFileSync(path.join(taskDir, "prd.md"), "PRD-BODY\n", "utf-8");
-    fs.mkdirSync(path.join(tmp, ".cstl", "pool", "items"), { recursive: true });
-    fs.writeFileSync(path.join(tmp, ".cstl", "pool", "items", "P99.md"), [
+    fs.mkdirSync(path.join(tmp, ".pactile", "pool", "items"), { recursive: true });
+    fs.writeFileSync(path.join(tmp, ".pactile", "pool", "items", "P99.md"), [
       "---",
       "id: P99",
       "title: Keep intent",
@@ -121,7 +121,7 @@ describe("P36 artifact B migrator", () => {
       "PRD-BODY\n",
     );
     const pool = fs.readFileSync(
-      path.join(tmp, ".cstl", "pool", "items", "P99.md"),
+      path.join(tmp, ".pactile", "pool", "items", "P99.md"),
       "utf-8",
     );
     expect(pool).toMatch(/^---\npriority: P2\n/m);
@@ -129,7 +129,7 @@ describe("P36 artifact B migrator", () => {
   });
 
   it("writes a Child with parent and empty children as single", () => {
-    const taskDir = path.join(tmp, ".cstl", "tasks", "old-child");
+    const taskDir = path.join(tmp, ".pactile", "tasks", "old-child");
     writeJson(path.join(taskDir, "task.json"), {
       ...emptyTaskRecord({
         id: "old-child",
@@ -157,7 +157,7 @@ describe("P36 artifact B migrator", () => {
   });
 
   it("repairs a written Child that was misclassified as parent-child", () => {
-    const taskDir = path.join(tmp, ".cstl", "tasks", "mis-child");
+    const taskDir = path.join(tmp, ".pactile", "tasks", "mis-child");
     writeJson(path.join(taskDir, "task.json"), {
       ...emptyTaskRecord({
         id: "mis-child",
@@ -209,8 +209,8 @@ describe("P36 artifact B migrator", () => {
   });
 
   it("does not write archive tasks and rolls back on failure", () => {
-    const live = path.join(tmp, ".cstl", "tasks", "live");
-    const archived = path.join(tmp, ".cstl", "tasks", "archive", "old");
+    const live = path.join(tmp, ".pactile", "tasks", "live");
+    const archived = path.join(tmp, ".pactile", "tasks", "archive", "old");
     writeJson(path.join(live, "task.json"), {
       ...emptyTaskRecord({
         id: "live",
@@ -253,7 +253,7 @@ describe("P36 artifact B migrator", () => {
       archiveBefore,
     );
 
-    writeJson(path.join(tmp, ".cstl", "tasks", "second", "task.json"), {
+    writeJson(path.join(tmp, ".pactile", "tasks", "second", "task.json"), {
       ...emptyTaskRecord({ id: "second", name: "second", status: "planning" }),
     });
     const two = planArtifactMigration({ root: tmp });

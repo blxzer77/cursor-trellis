@@ -8,7 +8,7 @@ import {
   type OwnershipLedgerV1,
   type OwnershipSnapshotV1,
   type ProjectionOperationV1,
-} from "@blxzer/cursor-trellis-core";
+} from "@blxzer/pactile-core";
 import { mergeManagedBlock } from "./managed-block.js";
 import {
   mergeJsonPointers,
@@ -44,6 +44,8 @@ export interface ProjectionDecision {
 }
 export interface ProjectionPreview {
   readonly status: "ready";
+  /** Adapter identity carried from the validated plan for adapter-scoped receipts. */
+  readonly adapterId: string;
   readonly planFingerprint: string;
   readonly expectedLedgerFingerprint: string | null;
   readonly ledger: OwnershipLedgerV1;
@@ -53,7 +55,7 @@ export interface ProjectionPreview {
     fingerprint: string | null;
   }[];
   readonly decisions: readonly ProjectionDecision[];
-  /** Caller-owned, memory-only state: B2 decides canonical binding persistence. */
+  /** Pure-plan state; ProjectionStore persists only claim identities, never bodies. */
   readonly externalClaims: readonly ExternalBindingClaim[];
 }
 export type ProjectionPreviewResult =
@@ -285,7 +287,10 @@ export function planProjection(
             format: op.format,
             origin: currentBytes === null ? "created" : "adopted",
             control: "pactile-owned",
-            owner: { kind: "pactile", id: plan.adapterId },
+            // Ownership belongs to the Pactile projection layer; Adapter
+            // participation is represented separately by claimants. Keeping
+            // this identity stable makes Cursor/Codex install order semantic.
+            owner: { kind: "pactile", id: "pactile" },
             claimants: [...claimants.values()],
             preimage: current,
             generated: absent,
@@ -459,6 +464,7 @@ export function planProjection(
       ledger = previous.ledger;
     return {
       status: "ready",
+      adapterId: plan.adapterId,
       planFingerprint: parsed.fingerprint,
       expectedLedgerFingerprint: previous?.fingerprint ?? null,
       ledger,

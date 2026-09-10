@@ -6,7 +6,7 @@ import {
   fingerprintPactileContractV1,
   parseInstallStateV1,
   type InstallStateV1,
-} from "@blxzer/cursor-trellis-core";
+} from "@blxzer/pactile-core";
 import {
   RuntimeError,
   assertCanonicalWriteTarget,
@@ -358,18 +358,35 @@ export class GenerationStore {
   }
 
   readFile(id: string, relativePath: string): Buffer {
-    const relative = normalizeRuntimeRelativePath(relativePath);
-    const seal = this.verify(id);
-    if (!seal.files.some((file) => file.path === relative))
+    return this.readFiles(id, [relativePath]).get(
+      normalizeRuntimeRelativePath(relativePath),
+    ) as Buffer;
+  }
+
+  /** Verify the immutable inventory once, then read an exact requested set. */
+  readFiles(id: string, relativePaths: readonly string[]): Map<string, Buffer> {
+    const normalized = relativePaths.map(normalizeRuntimeRelativePath);
+    if (new Set(normalized).size !== normalized.length)
       throw new RuntimeError("generation-invalid");
-    const target = assertCanonicalWriteTarget(
-      this.projectRoot,
-      path.join(this.directory(id), "files", relative),
-      this.io,
-    );
-    return runtimeBoundary("generation-unsealed", () =>
-      this.io.readFileSync(target),
-    );
+    const seal = this.verify(id);
+    const allowed = new Set(seal.files.map((file) => file.path));
+    if (normalized.some((relative) => !allowed.has(relative)))
+      throw new RuntimeError("generation-invalid");
+    const result = new Map<string, Buffer>();
+    for (const relative of normalized) {
+      const target = assertCanonicalWriteTarget(
+        this.projectRoot,
+        path.join(this.directory(id), "files", relative),
+        this.io,
+      );
+      result.set(
+        relative,
+        runtimeBoundary("generation-unsealed", () =>
+          this.io.readFileSync(target),
+        ),
+      );
+    }
+    return result;
   }
 }
 

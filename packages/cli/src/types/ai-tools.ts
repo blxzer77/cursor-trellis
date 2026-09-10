@@ -3,9 +3,8 @@
  *
  * Defines supported AI coding tools and which command templates they can use.
  *
- * Cursor-only fork: this registry targets Cursor exclusively. The platform
- * extension hooks below remain structurally valid, but only the Cursor entry
- * is populated.
+ * The legacy template registry remains Cursor-scoped; the Pactile Adapter
+ * registry owns current Cursor and Codex projection.
  */
 
 /**
@@ -38,7 +37,7 @@ export type PlatformTier = "first-class" | "legacy";
  */
 export interface TemplateContext {
   /** Prefix for cross-referencing other commands/skills */
-  cmdRefPrefix: "/cstl:" | "/cstl-" | "$" | "/";
+  cmdRefPrefix: "/pactile:" | "/pactile-" | "$" | "/";
   /** Description of AI executor actions shown in role tables */
   executorAI:
     | "Bash scripts or Task calls"
@@ -107,7 +106,7 @@ export const AI_TOOLS: Record<AITool, AIToolConfig> = {
     defaultChecked: true,
     hasPythonHooks: true,
     templateContext: {
-      cmdRefPrefix: "/cstl-",
+      cmdRefPrefix: "/pactile-",
       executorAI: "Bash scripts or Task calls",
       userActionLabel: "Slash commands",
       agentCapable: true,

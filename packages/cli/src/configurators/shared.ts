@@ -160,20 +160,20 @@ export function resolvePlaceholders(
  * `.agents/skills/` workspace alias — Codex, Gemini CLI 0.40+, etc.).
  *
  * Identical to {@link resolvePlaceholders} except that {@link CMD_REF} is
- * rendered in a platform-neutral form (`` `name` (Trellis command) ``)
+ * rendered in a platform-neutral form (`` `name` (Pactile command) ``)
  * instead of substituting a platform-specific prefix. This is the only
  * placeholder that varies between platforms in the 5 shared workflow skills
  * (`brainstorm`, `before-dev`, `check`, `break-loop`, `update-spec`), so
  * neutralizing it makes the rendered SKILL.md files byte-identical regardless
- * of which Trellis configurator wrote them — eliminating the
+ * of which Pactile Adapter wrote them — eliminating the
  * "last-writer-wins" collision when both Codex and Gemini target
  * `.agents/skills/`.
  *
  * `{{CLI_FLAG}}`, `{{EXECUTOR_AI}}`, `{{USER_ACTION_LABEL}}`, conditionals,
  * and `{{PYTHON_CMD}}` are still resolved from the platform context. The 5
  * shared skills do not use those placeholders, so they remain platform-
- * neutral. Codex-only skill files (e.g. `cstl-continue/SKILL.md`,
- * `cstl-finish-work/SKILL.md` written via `resolveAllAsSkillsNeutral`) DO
+ * neutral. Host-specific skill files (e.g. `pactile-continue/SKILL.md`,
+ * `pactile-finish-work/SKILL.md` written via `resolveAllAsSkillsNeutral`) do
  * use `{{CLI_FLAG}}` / `{{PYTHON_CMD}}` and resolve to Codex-correct values
  * — no other platform writes those files, so byte-identity is not required.
  */
@@ -190,7 +190,7 @@ export function resolvePlaceholdersNeutral(
   // Neutral form for the only collision-causing placeholder
   result = result.replace(
     RE_CMD_REF,
-    (_match, name: string) => `\`${name}\` (Trellis command)`,
+    (_match, name: string) => `\`${name}\` (Pactile command)`,
   );
   result = result.replace(RE_EXECUTOR_AI, context.executorAI);
   result = result.replace(RE_USER_ACTION_LABEL, context.userActionLabel);
@@ -224,13 +224,13 @@ export function resolvePlaceholdersNeutral(
 /** Skill description registry — maps template name to auto-trigger description. */
 const SKILL_DESCRIPTIONS: Record<string, string> = {
   start:
-    "Initializes an AI development session by reading Kernel/Dashboard, developer identity, git status, active tasks, and project guidelines from .cstl/. Dashboard entry only — does not select or resume a task. Use when beginning a new coding session or re-establishing project context.",
+    "Initializes an AI development session by reading Kernel/Dashboard, developer identity, git status, active tasks, and project guidelines from .pactile/. Dashboard entry only — does not select or resume a task. Use when beginning a new coding session or re-establishing project context.",
   continue:
     "Resume work on the selected task. Loads Kernel/Dashboard (and a compiled session pack if present). Do not treat get_context.py --mode phase as runtime SSOT. Use when coming back to an in-progress task and you need to know what to do next.",
   "finish-work":
     "Wrap up the current session using Close: confirm Verify evidence, remind user to Finalize commits, archive completed tasks, and record session progress to the developer journal. Use when done coding and ready to end the session.",
   "before-dev":
-    "Discovers and injects project-specific coding guidelines from .cstl/spec/ before implementation begins. Reads spec indexes, pre-development checklists, and shared thinking guides for the target package. Use when starting a new coding task, before writing any code, switching to a different package, or needing to refresh project conventions and standards.",
+    "Discovers and injects project-specific coding guidelines from .pactile/spec/ before implementation begins. Reads spec indexes, pre-development checklists, and shared thinking guides for the target package. Use when starting a new coding task, before writing any code, switching to a different package, or needing to refresh project conventions and standards.",
   brainstorm:
     "Guides collaborative requirements discovery before implementation. Two-phase Cursor planning: Discovery Before Questions, PRD draft, then PRD Grill (document pass + micro-grill for blocking business questions). Use when requirements are unclear, multiple valid approaches exist, or the user describes a new feature or complex task.",
   check:
@@ -238,7 +238,7 @@ const SKILL_DESCRIPTIONS: Record<string, string> = {
   "break-loop":
     "Deep bug analysis to break the fix-forget-repeat cycle. Analyzes root cause category, why fixes failed, prevention mechanisms, and captures knowledge into specs. Use after fixing a bug to prevent the same class of bugs.",
   "update-spec":
-    "Captures executable contracts and coding conventions into .cstl/spec/ documents. Use when learning something valuable from debugging, implementing, or discussion that should be preserved for future sessions.",
+    "Captures executable contracts and coding conventions into .pactile/spec/ documents. Use when learning something valuable from debugging, implementing, or discussion that should be preserved for future sessions.",
 };
 
 /**
@@ -249,8 +249,8 @@ export function wrapWithSkillFrontmatter(
   name: string,
   content: string,
 ): string {
-  // Look up description by base name (without cstl- prefix)
-  const baseName = name.replace(/^cstl-/, "");
+  // Look up description by base name (without pactile- prefix).
+  const baseName = name.replace(/^pactile-/, "");
   const description = SKILL_DESCRIPTIONS[baseName];
   if (!description) {
     throw new Error(
@@ -265,7 +265,7 @@ export function wrapWithSkillFrontmatter(
  * SKILL_DESCRIPTIONS, which is long prose aimed at the skill matcher.
  */
 const COMMAND_DESCRIPTIONS: Record<string, string> = {
-  start: "Initialize a Trellis development session (dashboard; not a Cursor slash).",
+  start: "Initialize a Pactile development session (dashboard; not a Cursor slash).",
   continue: "Resume the selected task using Kernel/Dashboard.",
   "finish-work":
     "Wrap up: Verify evidence, Close/archive, journal.",
@@ -278,7 +278,7 @@ export function wrapWithCommandFrontmatter(
   name: string,
   content: string,
 ): string {
-  const baseName = name.replace(/^cstl-/, "");
+  const baseName = name.replace(/^pactile-/, "");
   const description = COMMAND_DESCRIPTIONS[baseName];
   if (!description) {
     throw new Error(
@@ -310,7 +310,7 @@ export interface ResolvedTemplate {
 
 /** A resolved file inside a multi-file skill directory. */
 export interface ResolvedSkillFile {
-  /** POSIX path relative to the skills root, e.g. "cstl-meta/SKILL.md" */
+  /** POSIX path relative to the skills root, e.g. "pactile-meta/SKILL.md" */
   relativePath: string;
   content: string;
 }
@@ -334,7 +334,7 @@ function filterCommands(
 }
 
 /**
- * Resolve ALL templates as skills with cstl- prefix.
+ * Resolve all templates as skills with the pactile- prefix.
  * Used by skill-only platforms (Kiro, Qoder, Codex) where everything is a skill.
  *
  * `start` is filtered out on agent-capable platforms — the session-start hook
@@ -349,9 +349,9 @@ export function resolveAllAsSkills(ctx: TemplateContext): ResolvedTemplate[] {
     ...getSkillTemplates(),
   ];
   return templates.map((tmpl) => ({
-    name: `cstl-${tmpl.name}`,
+    name: `pactile-${tmpl.name}`,
     content: wrapWithSkillFrontmatter(
-      `cstl-${tmpl.name}`,
+      `pactile-${tmpl.name}`,
       resolvePlaceholders(tmpl.content, ctx),
     ),
   }));
@@ -371,14 +371,14 @@ export function resolveCommands(ctx: TemplateContext): ResolvedTemplate[] {
 }
 
 /**
- * Resolve only the 5 skill templates with cstl- prefix + SKILL.md frontmatter.
+ * Resolve only the shared skill templates with Pactile frontmatter.
  * Used by "both" platforms for the auto-triggered skills.
  */
 export function resolveSkills(ctx: TemplateContext): ResolvedTemplate[] {
   return getSkillTemplates().map((tmpl) => ({
-    name: `cstl-${tmpl.name}`,
+    name: `pactile-${tmpl.name}`,
     content: wrapWithSkillFrontmatter(
-      `cstl-${tmpl.name}`,
+      `pactile-${tmpl.name}`,
       resolvePlaceholders(tmpl.content, ctx),
     ),
   }));
@@ -398,9 +398,9 @@ export function resolveCommandAsSkills(
     const tmpl = byName.get(name);
     if (!tmpl) continue;
     out.push({
-      name: `cstl-${name}`,
+      name: `pactile-${name}`,
       content: wrapWithSkillFrontmatter(
-        `cstl-${name}`,
+        `pactile-${name}`,
         resolvePlaceholders(tmpl.content, ctx),
       ),
     });
@@ -417,9 +417,9 @@ export function resolveCommandAsSkills(
  */
 export function resolveSkillsNeutral(ctx: TemplateContext): ResolvedTemplate[] {
   return getSkillTemplates().map((tmpl) => ({
-    name: `cstl-${tmpl.name}`,
+    name: `pactile-${tmpl.name}`,
     content: wrapWithSkillFrontmatter(
-      `cstl-${tmpl.name}`,
+      `pactile-${tmpl.name}`,
       resolvePlaceholdersNeutral(tmpl.content, ctx),
     ),
   }));
@@ -440,19 +440,19 @@ export function resolveAllAsSkillsNeutral(
     ...getSkillTemplates(),
   ];
   return templates.map((tmpl) => ({
-    name: `cstl-${tmpl.name}`,
+    name: `pactile-${tmpl.name}`,
     content: wrapWithSkillFrontmatter(
-      `cstl-${tmpl.name}`,
+      `pactile-${tmpl.name}`,
       resolvePlaceholdersNeutral(tmpl.content, ctx),
     ),
   }));
 }
 
 /**
- * Codex needs a `cstl-start` skill in `.agents/skills/` so the
- * `<cstl-bootstrap>` notice from `inject-workflow-state.py` resolves
+ * Codex needs a `pactile-start` skill in `.agents/skills/` so the
+ * `<pactile-bootstrap>` notice from `inject-workflow-state.py` resolves
  * to an actual skill file (the bootstrap notice tells the AI to invoke
- * `$cstl-start` once on the first `no_task` turn — added in 0.5.5
+ * `$pactile-start` once on the first `no_task` turn.
  * after the Codex SessionStart hook was removed for de-recursion).
  *
  * Built from `common/commands/start.md` + skill frontmatter; renders
@@ -463,18 +463,18 @@ export function resolveAllAsSkillsNeutral(
  * `collectPlatformTemplates.codex` (update path, manifest map). Both
  * paths must agree, otherwise upgraded users miss the file (which broke
  * 0.4.x → 0.5.5/0.5.6 upgrades — see #247-style symptom: AI reports
- * "no .agents/skills/cstl-start/SKILL.md" because update only ran
+ * "no .agents/skills/pactile-start/SKILL.md" because update only ran
  * `collectTemplates` and never wrote the file).
  */
-export function resolveCodexTrellisStartSkill(
+export function resolveCodexPactileStartSkill(
   ctx: TemplateContext,
 ): ResolvedTemplate | null {
   const startTemplate = getCommandTemplates().find((t) => t.name === "start");
   if (!startTemplate) return null;
   return {
-    name: "cstl-start",
+    name: "pactile-start",
     content: wrapWithSkillFrontmatter(
-      "cstl-start",
+      "pactile-start",
       resolvePlaceholdersNeutral(startTemplate.content, ctx),
     ),
   };
@@ -621,13 +621,13 @@ export async function writeSharedHooks(
 
 export type SubAgentType = "implement" | "check";
 
-/** Build the standard "load Trellis context first" prelude block. */
+/** Build the standard "load Pactile context first" prelude block. */
 export function buildPullBasedPrelude(agentType: SubAgentType): string {
   // JSONL filenames stay as implement.jsonl / check.jsonl — they are internal
   // context buckets keyed by role (not by platform-visible agent name).
   const jsonl = agentType === "check" ? "check.jsonl" : "implement.jsonl";
 
-  return replacePythonCommandLiterals(`## Required: Load Trellis Context First
+  return replacePythonCommandLiterals(`## Required: Load Pactile Context First
 
 This platform does NOT auto-inject task context via hook. Before doing anything else, you MUST load context yourself.
 
@@ -635,8 +635,8 @@ This platform does NOT auto-inject task context via hook. Before doing anything 
 
 Try in order — stop at the first one that yields a task path:
 
-1. **Look at the dispatch prompt** you received from the main agent. If its first line is \`Selected task: <path>\` (e.g. \`Selected task: .cstl/tasks/04-17-foo\`), use that path. The main agent is required to include this line on class-2 platforms.
-2. **Run** \`python3 ./.cstl/scripts/task.py selected --source\` and read the \`Selected task:\` line.
+1. **Look at the dispatch prompt** you received from the main agent. If its first line is \`Selected task: <path>\` (e.g. \`Selected task: .pactile/tasks/04-17-foo\`), use that path. The main agent is required to include this line on class-2 platforms.
+2. **Run** \`python3 ./.pactile/scripts/task.py selected --source\` and read the \`Selected task:\` line.
 3. **If both fail** (no \`Selected task:\` line in the prompt and \`task.py selected\` returns no task), ask the user which task to work on; do NOT guess.
 
 ### Step 2: Load task context from the resolved path
@@ -646,7 +646,7 @@ Try in order — stop at the first one that yields a task path:
    **Skip rows without a \`"file"\` field** (e.g. \`{"_example": "..."}\` seed rows left over from \`task.py create\` before the curator ran).
 3. Read the task's \`prd.md\` (requirements), then \`design.md\` if present (technical design), then \`implement.md\` if present (execution plan).
 
-If \`${jsonl}\` has no curated entries (only a seed row, or the file is missing), fall back to: read the task artifacts, list available specs with \`python3 ./.cstl/scripts/get_context.py --mode packages\`, and pick the specs that match the task domain yourself. Do NOT block on the missing jsonl — lightweight tasks may be PRD-only, while complex tasks may also include \`design.md\` and \`implement.md\`.
+If \`${jsonl}\` has no curated entries (only a seed row, or the file is missing), fall back to: read the task artifacts, list available specs with \`python3 ./.pactile/scripts/get_context.py --mode packages\`, and pick the specs that match the task domain yourself. Do NOT block on the missing jsonl — lightweight tasks may be PRD-only, while complex tasks may also include \`design.md\` and \`implement.md\`.
 
 If the resolved task path has no \`prd.md\`, ask the user what to work on; do NOT proceed without context.
 
@@ -686,13 +686,13 @@ export function injectPullBasedPreludeToml(
   return content.replace(re, `$1$2${prelude}`);
 }
 
-/** Best-effort detect agent type from filename ("cstl-implement.md" → "implement").
+/** Best-effort detect agent type from filename ("pactile-implement.md" → "implement").
  *  Returns null for research and unknown names — they skip the prelude.
  */
 export function detectSubAgentType(name: string): SubAgentType | null {
   const base = name.replace(/\.(md|toml|prompt\.md)$/, "");
-  if (base === "cstl-implement" || base === "cstl-check") {
-    return base === "cstl-implement" ? "implement" : "check";
+  if (base === "pactile-implement" || base === "pactile-check") {
+    return base === "pactile-implement" ? "implement" : "check";
   }
   return null;
 }

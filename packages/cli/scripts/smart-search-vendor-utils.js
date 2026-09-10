@@ -13,7 +13,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-/** Static npm `files` entries for @blxzer/cursor-trellis (no vendor tree). */
+/** Static npm `files` entries for @blxzer/pactile (no vendor tree). */
 const cliPackFilesStatic = [
   "dist",
   "bin",

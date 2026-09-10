@@ -2,14 +2,14 @@ export {
   reduceThreads,
   buildThreadAliasResolver,
   collectThreadTimeline,
-} from "@blxzer/cursor-trellis-core/channel";
+} from "@blxzer/pactile-core/channel";
 
 export type {
   ThreadState,
   ThreadAliasResolver,
-} from "@blxzer/cursor-trellis-core/channel";
+} from "@blxzer/pactile-core/channel";
 
-import type { ThreadState } from "@blxzer/cursor-trellis-core/channel";
+import type { ThreadState } from "@blxzer/pactile-core/channel";
 
 export function formatThreadBoard(states: ThreadState[]): string[] {
   if (states.length === 0) return ["(no threads)"];

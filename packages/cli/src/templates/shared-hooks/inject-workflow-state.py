@@ -73,7 +73,7 @@ def _detect_platform(input_data: dict) -> str | None:
 
 
 def main() -> int:
-    if os.environ.get("TRELLIS_HOOKS") == "0" or os.environ.get("TRELLIS_DISABLE_HOOKS") == "1":
+    if os.environ.get("PACTILE_HOOKS") == "0" or os.environ.get("PACTILE_DISABLE_HOOKS") == "1":
         return 0
 
     try:

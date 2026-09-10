@@ -52,7 +52,7 @@ describe("Cursor env docs after Cursor++ retirement (P23)", () => {
 
   it("local Cursor++ template directory is gone from SSOT", () => {
     expect(
-      fs.existsSync(path.join(cliRoot, "src/templates/trellis/local")),
+      fs.existsSync(path.join(cliRoot, "src/templates/pactile/local")),
     ).toBe(false);
   });
 });

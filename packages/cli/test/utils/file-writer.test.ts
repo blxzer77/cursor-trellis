@@ -50,7 +50,7 @@ describe("ensureDir", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-ensure-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-ensure-"));
   });
 
   afterEach(() => {
@@ -85,7 +85,7 @@ describe("writeFile", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-write-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-write-"));
     setWriteMode("force"); // Avoid interactive prompts
   });
 
@@ -170,7 +170,7 @@ describe("write recording", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-record-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-record-"));
     setWriteMode("force");
   });
 

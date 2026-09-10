@@ -1,7 +1,7 @@
 /**
  * P36 Wave C: confirm-gated stop-read of leftover Task fields.
  *
- * Written only after `cstl update` confirm. Dry-run and refuse never write.
+ * Written only after `pactile update` confirm. Dry-run and refusal never write.
  * Runtime closeout reads this flag; leftover kind/mode/classification stay
  * dual-read until it exists.
  */
@@ -15,7 +15,7 @@ import {
 } from "./contract-migrate.js";
 import { isPlainObject } from "./schema.js";
 
-export const WAVE_C_STATE_REL = ".cstl/.p36-wave-c.json";
+export const WAVE_C_STATE_REL = ".pactile/.p36-wave-c.json";
 export const WAVE_C_SCHEMA_VERSION = 1;
 
 export interface WaveCState {

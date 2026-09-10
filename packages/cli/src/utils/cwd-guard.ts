@@ -1,21 +1,26 @@
 /**
  * Homedir guard for destructive commands (init, uninstall).
  *
- * Running `trellis init` / `trellis uninstall` in `$HOME` is catastrophic:
+ * Running `pactile init` / `pactile uninstall` in `$HOME` is unsafe:
  * platforms like Claude Code, Codex, OpenCode all store global runtime data
  * (`.claude/projects/<sanitized-cwd>/*.jsonl` chat history, `.codex/sessions/`,
  * `.opencode/` caches, etc.) directly in the user's home directory. If
- * trellis manages the same `.{platform}/` config dirs and the hash manifest
+ * Pactile manages the same `.{platform}/` config dirs and the hash manifest
  * picks up runtime data, uninstall would later unlink it.
  *
  * Subdirectories of home (`~/Documents/projects/foo/`) are NOT blocked — only
  * exact-home match.
  *
- * Bypass: `TRELLIS_ALLOW_HOMEDIR=1`.
+ * Bypass: `PACTILE_ALLOW_HOMEDIR=1`.
  */
 
 import { realpathSync } from "node:fs";
 import * as os from "node:os";
+
+import {
+  PACTILE_ENVIRONMENT_KEYS,
+  readPactileEnvironment,
+} from "@blxzer/pactile-core";
 
 /**
  * Returns true if `process.cwd()` is exactly the user's home directory.
@@ -44,17 +49,19 @@ export function isCwdHomedir(): boolean {
 }
 
 /**
- * Error message printed by both `trellis init` and `trellis uninstall` when
+ * Error message printed by destructive Pactile commands when
  * the homedir guard trips.
  */
-export function homedirGuardMessage(commandName: "init" | "uninstall"): string {
+export function homedirGuardMessage(
+  commandName: "init" | "uninstall" | "detach" | "rollback" | "purge",
+): string {
   return (
-    `✗ Refusing to run \`trellis ${commandName}\` in your home directory.\n\n` +
-    `Trellis manages platform config dirs like .claude/, .codex/, .opencode/, which\n` +
+    `✗ Refusing to run \`pactile ${commandName}\` in your home directory.\n\n` +
+    `Pactile manages platform config dirs like .claude/, .codex/, .opencode/, which\n` +
     `in your home directory also contain runtime data from those CLIs (chat history,\n` +
     `session JSONLs, caches). Running here can wipe that data.\n\n` +
-    `Run trellis from your project directory instead. If you really want to run in\n` +
-    `$HOME, set TRELLIS_ALLOW_HOMEDIR=1.`
+    `Run pactile from your project directory instead. If you really want to run in\n` +
+    `$HOME, set PACTILE_ALLOW_HOMEDIR=1.`
   );
 }
 
@@ -62,5 +69,7 @@ export function homedirGuardMessage(commandName: "init" | "uninstall"): string {
  * Returns true when the bypass env var is set.
  */
 export function homedirBypassEnabled(): boolean {
-  return process.env.TRELLIS_ALLOW_HOMEDIR === "1";
+  return (
+    readPactileEnvironment(PACTILE_ENVIRONMENT_KEYS.allowHomeDirectory) === "1"
+  );
 }

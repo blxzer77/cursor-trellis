@@ -1,9 +1,9 @@
-import type { TrellisTaskRecord } from "./schema.js";
+import type { PactileTaskRecord } from "./schema.js";
 
 /**
- * Coarse-grained Trellis task phase derived from task status.
+ * Coarse-grained Pactile task phase derived from task status.
  *
- * This mapping is a **legacy machine alias** of {@link TrellisTaskRecord.status}
+ * This mapping is a **legacy machine alias** of {@link PactileTaskRecord.status}
  * (`plan` / `implement` / …). Humans and agents should use Kernel Phase
  * titles from `projectKernelSurface` (Open / Define / Approve / Execute /
  * Verify / Integrate? / Close) — not these names, and not `planning`.
@@ -18,7 +18,7 @@ import type { TrellisTaskRecord } from "./schema.js";
  *   completed | done    | completed
  *   <anything else>     | unknown
  */
-export type TrellisTaskPhase =
+export type PactileTaskPhase =
   | "plan"
   | "implement"
   | "review"
@@ -31,8 +31,8 @@ export type TrellisTaskPhase =
  * need to re-pluck `status` first.
  */
 export function inferTaskPhase(
-  recordOrStatus: TrellisTaskRecord | string | null | undefined,
-): TrellisTaskPhase {
+  recordOrStatus: PactileTaskRecord | string | null | undefined,
+): PactileTaskPhase {
   const status =
     typeof recordOrStatus === "string"
       ? recordOrStatus

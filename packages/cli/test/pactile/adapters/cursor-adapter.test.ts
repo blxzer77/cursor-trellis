@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { CapabilityBindingV1 } from "@blxzer/cursor-trellis-core";
+import type { CapabilityBindingV1 } from "@blxzer/pactile-core";
 import { planBinding } from "../../../src/pactile/adoption/bindings.js";
 import { discoverSnapshot } from "../../../src/pactile/adoption/inventory.js";
 import {

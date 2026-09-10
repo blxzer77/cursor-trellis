@@ -16,16 +16,16 @@ import {
   initializeHashes,
 } from "../../src/utils/template-hash.js";
 import {
-  CSTL_BLOCK_END,
-  CSTL_BLOCK_START,
-  LEGACY_TRELLIS_BLOCK_END,
-  LEGACY_TRELLIS_BLOCK_START,
+  FOREIGN_TRELLIS_BLOCK_END,
+  FOREIGN_TRELLIS_BLOCK_START,
+  PACTILE_BLOCK_END,
+  PACTILE_BLOCK_START,
 } from "../../src/utils/agents-md.js";
 
-const CSTL_BLK = (inner: string) =>
-  `${CSTL_BLOCK_START}\n${inner}\n${CSTL_BLOCK_END}`;
-const TRELLIS_BLK = (inner: string) =>
-  `${LEGACY_TRELLIS_BLOCK_START}\n${inner}\n${LEGACY_TRELLIS_BLOCK_END}`;
+const PACTILE_BLK = (inner: string) =>
+  `${PACTILE_BLOCK_START}\n${inner}\n${PACTILE_BLOCK_END}`;
+const FOREIGN_BLK = (inner: string) =>
+  `${FOREIGN_TRELLIS_BLOCK_START}\n${inner}\n${FOREIGN_TRELLIS_BLOCK_END}`;
 
 // =============================================================================
 // computeHash — pure function (EASY)
@@ -90,9 +90,8 @@ describe("loadHashes / saveHashes", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-test-"));
-    // Create .trellis directory for hashes file
-    fs.mkdirSync(path.join(tmpDir, ".cstl"), { recursive: true });
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-test-"));
+    fs.mkdirSync(path.join(tmpDir, ".pactile"), { recursive: true });
   });
 
   afterEach(() => {
@@ -113,7 +112,7 @@ describe("loadHashes / saveHashes", () => {
   });
 
   it("loadHashes returns empty object for invalid JSON", () => {
-    const hashesPath = path.join(tmpDir, ".cstl", ".template-hashes.json");
+    const hashesPath = path.join(tmpDir, ".pactile", ".template-hashes.json");
     fs.writeFileSync(hashesPath, "not valid json");
 
     const hashes = loadHashes(tmpDir);
@@ -138,8 +137,8 @@ describe("updateHashes", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-test-"));
-    fs.mkdirSync(path.join(tmpDir, ".cstl"), { recursive: true });
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-test-"));
+    fs.mkdirSync(path.join(tmpDir, ".pactile"), { recursive: true });
   });
 
   afterEach(() => {
@@ -170,6 +169,21 @@ describe("updateHashes", () => {
     expect(loaded["file.txt"]).toBe(computeHash("new content"));
     expect(loaded["file.txt"]).not.toBe("old-hash");
   });
+
+  it("does not backfill paths excluded from canonical hash tracking", () => {
+    saveHashes(tmpDir, { existing: "hash1" });
+
+    updateHashes(
+      tmpDir,
+      new Map([
+        [".pactile/.gitignore", "runtime/\n"],
+        [".pactile/.version", "0.5.0\n"],
+        [".pactile/runtime/private.json", "secret"],
+      ]),
+    );
+
+    expect(loadHashes(tmpDir)).toEqual({ existing: "hash1" });
+  });
 });
 
 // =============================================================================
@@ -180,8 +194,8 @@ describe("updateHashFromFile", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-test-"));
-    fs.mkdirSync(path.join(tmpDir, ".cstl"), { recursive: true });
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-test-"));
+    fs.mkdirSync(path.join(tmpDir, ".pactile"), { recursive: true });
   });
 
   afterEach(() => {
@@ -206,6 +220,14 @@ describe("updateHashFromFile", () => {
     expect(loaded).toEqual({ other: "hash" });
     expect(loaded).not.toHaveProperty("nonexistent.txt");
   });
+
+  it("does not add an excluded canonical path from disk", () => {
+    fs.writeFileSync(path.join(tmpDir, ".pactile", ".gitignore"), "runtime/\n");
+
+    updateHashFromFile(tmpDir, ".pactile/.gitignore");
+
+    expect(loadHashes(tmpDir)).not.toHaveProperty(".pactile/.gitignore");
+  });
 });
 
 // =============================================================================
@@ -216,8 +238,8 @@ describe("removeHash", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-test-"));
-    fs.mkdirSync(path.join(tmpDir, ".cstl"), { recursive: true });
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-test-"));
+    fs.mkdirSync(path.join(tmpDir, ".pactile"), { recursive: true });
   });
 
   afterEach(() => {
@@ -250,8 +272,8 @@ describe("renameHash", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-test-"));
-    fs.mkdirSync(path.join(tmpDir, ".cstl"), { recursive: true });
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-test-"));
+    fs.mkdirSync(path.join(tmpDir, ".pactile"), { recursive: true });
   });
 
   afterEach(() => {
@@ -285,8 +307,8 @@ describe("isTemplateModified", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-test-"));
-    fs.mkdirSync(path.join(tmpDir, ".cstl"), { recursive: true });
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-test-"));
+    fs.mkdirSync(path.join(tmpDir, ".pactile"), { recursive: true });
   });
 
   afterEach(() => {
@@ -323,33 +345,33 @@ describe("isTemplateModified", () => {
 });
 
 // =============================================================================
-// AGENTS.md block-level hash (coexistence: only the CSTL block is tracked)
+// AGENTS.md block-level hash (coexistence: only the Pactile block is tracked)
 // =============================================================================
 
 describe("AGENTS.md block-level hash", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-test-"));
-    fs.mkdirSync(path.join(tmpDir, ".cstl"), { recursive: true });
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-test-"));
+    fs.mkdirSync(path.join(tmpDir, ".pactile"), { recursive: true });
   });
 
   afterEach(() => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it("updateHashes stores the CSTL block hash for AGENTS.md, not the whole file", () => {
-    const content = `# Project\n\n${CSTL_BLK("# cstl managed")}\n\n# Footer`;
+  it("updateHashes stores the Pactile block hash for AGENTS.md, not the whole file", () => {
+    const content = `# Project\n\n${PACTILE_BLK("# pactile managed")}\n\n# Footer`;
     fs.writeFileSync(path.join(tmpDir, "AGENTS.md"), content);
     updateHashes(tmpDir, new Map([["AGENTS.md", content]]));
     const stored = loadHashes(tmpDir)["AGENTS.md"];
-    expect(stored).toBe(computeHash(CSTL_BLK("# cstl managed")));
+    expect(stored).toBe(computeHash(PACTILE_BLK("# pactile managed")));
     expect(stored).not.toBe(computeHash(content));
   });
 
-  it("edits OUTSIDE the CSTL block are NOT 'modified'", () => {
-    const original = `# Project\n\n${CSTL_BLK("# cstl managed")}\n\n# Footer`;
-    const hashes = { "AGENTS.md": computeHash(CSTL_BLK("# cstl managed")) };
+  it("edits OUTSIDE the Pactile block are NOT 'modified'", () => {
+    const original = `# Project\n\n${PACTILE_BLK("# pactile managed")}\n\n# Footer`;
+    const hashes = { "AGENTS.md": computeHash(PACTILE_BLK("# pactile managed")) };
     fs.writeFileSync(
       path.join(tmpDir, "AGENTS.md"),
       original.replace("# Footer", "# New footer"),
@@ -357,19 +379,19 @@ describe("AGENTS.md block-level hash", () => {
     expect(isTemplateModified(tmpDir, "AGENTS.md", hashes)).toBe(false);
   });
 
-  it("edits INSIDE the CSTL block ARE 'modified'", () => {
-    const original = `# Project\n\n${CSTL_BLK("# cstl managed")}\n`;
-    const hashes = { "AGENTS.md": computeHash(CSTL_BLK("# cstl managed")) };
+  it("edits INSIDE the Pactile block ARE 'modified'", () => {
+    const original = `# Project\n\n${PACTILE_BLK("# pactile managed")}\n`;
+    const hashes = { "AGENTS.md": computeHash(PACTILE_BLK("# pactile managed")) };
     fs.writeFileSync(
       path.join(tmpDir, "AGENTS.md"),
-      original.replace("# cstl managed", "# changed"),
+      original.replace("# pactile managed", "# changed"),
     );
     expect(isTemplateModified(tmpDir, "AGENTS.md", hashes)).toBe(true);
   });
 
-  it("coexistence: edits to the upstream TRELLIS block are NOT 'modified'", () => {
-    const original = `# Project\n\n${TRELLIS_BLK("# upstream")}\n\n${CSTL_BLK("# cstl managed")}\n`;
-    const hashes = { "AGENTS.md": computeHash(CSTL_BLK("# cstl managed")) };
+  it("coexistence: edits to the foreign block are NOT 'modified'", () => {
+    const original = `# Project\n\n${FOREIGN_BLK("# upstream")}\n\n${PACTILE_BLK("# pactile managed")}\n`;
+    const hashes = { "AGENTS.md": computeHash(PACTILE_BLK("# pactile managed")) };
     fs.writeFileSync(
       path.join(tmpDir, "AGENTS.md"),
       original.replace("# upstream", "# upstream changed"),
@@ -378,14 +400,14 @@ describe("AGENTS.md block-level hash", () => {
   });
 
   it("legacy whole-file stored hash does NOT trigger a false 'modified' on upgrade", () => {
-    const content = `# Project\n\n${CSTL_BLK("# cstl managed")}\n\n# Footer`;
+    const content = `# Project\n\n${PACTILE_BLK("# pactile managed")}\n\n# Footer`;
     fs.writeFileSync(path.join(tmpDir, "AGENTS.md"), content);
     // Pre-0.3.3 manifest stored a whole-file hash for AGENTS.md.
     const legacyHashes = { "AGENTS.md": computeHash(content) };
     expect(isTemplateModified(tmpDir, "AGENTS.md", legacyHashes)).toBe(false);
   });
 
-  it("AGENTS.md with no CSTL block falls back to whole-file hash", () => {
+  it("AGENTS.md with no Pactile block falls back to whole-file hash", () => {
     const content = "# Just user content, no managed block";
     fs.writeFileSync(path.join(tmpDir, "AGENTS.md"), content);
     updateHashes(tmpDir, new Map([["AGENTS.md", content]]));
@@ -401,7 +423,7 @@ describe("matchesOriginalTemplate", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-test-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-test-"));
   });
 
   afterEach(() => {
@@ -432,8 +454,8 @@ describe("getModificationStatus", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-test-"));
-    fs.mkdirSync(path.join(tmpDir, ".cstl"), { recursive: true });
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-test-"));
+    fs.mkdirSync(path.join(tmpDir, ".pactile"), { recursive: true });
   });
 
   afterEach(() => {
@@ -470,7 +492,7 @@ describe("initializeHashes", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-test-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-test-"));
   });
 
   afterEach(() => {
@@ -478,19 +500,18 @@ describe("initializeHashes", () => {
   });
 
   it("returns 0 when no template directories exist", () => {
-    // Create .trellis dir for saving hashes but no template files
-    fs.mkdirSync(path.join(tmpDir, ".cstl"), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, ".pactile"), { recursive: true });
     const count = initializeHashes(tmpDir);
     expect(count).toBe(0);
   });
 
-  it("hashes files in .cstl/ and tracked platform paths", () => {
-    // .cstl/ is always walked recursively. Platform paths (.claude/, etc.)
+  it("hashes files in .pactile/ and tracked platform paths", () => {
+    // .pactile/ is always walked recursively. Platform paths (.claude/, etc.)
     // are hashed only when explicitly listed in `trackedPaths` — the source-
     // of-truth set captured by `startRecordingWrites` during init.
-    fs.mkdirSync(path.join(tmpDir, ".cstl", "scripts"), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, ".pactile", "scripts"), { recursive: true });
     fs.writeFileSync(
-      path.join(tmpDir, ".cstl", "scripts", "task.py"),
+      path.join(tmpDir, ".pactile", "scripts", "task.py"),
       "print('hello')",
     );
 
@@ -506,7 +527,7 @@ describe("initializeHashes", () => {
     expect(count).toBeGreaterThanOrEqual(2);
 
     const hashes = loadHashes(tmpDir);
-    expect(hashes).toHaveProperty(".cstl/scripts/task.py");
+    expect(hashes).toHaveProperty(".pactile/scripts/task.py");
     expect(hashes).toHaveProperty(".claude/commands/start.md");
   });
 
@@ -514,9 +535,9 @@ describe("initializeHashes", () => {
     // Regression: blind directory walks swept user-owned runtime data
     // (.codex/sessions/*, .claude/projects/*, user-added skills, pre-existing
     // AGENTS.md) into the manifest, so uninstall later unlinked them.
-    // Now: only paths trellis actually wrote (recorded via writeFile) make
+    // Now: only paths Pactile actually wrote (recorded via writeFile) make
     // it into the platform/root section of the manifest.
-    fs.mkdirSync(path.join(tmpDir, ".cstl"), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, ".pactile"), { recursive: true });
 
     const userSession = path.join(
       tmpDir,
@@ -540,68 +561,68 @@ describe("initializeHashes", () => {
   });
 
   it("excludes workspace and tasks directories", () => {
-    fs.mkdirSync(path.join(tmpDir, ".cstl", "workspace"), { recursive: true });
-    fs.writeFileSync(path.join(tmpDir, ".cstl", "workspace", "data.md"), "user data");
-    fs.mkdirSync(path.join(tmpDir, ".cstl", "tasks"), { recursive: true });
-    fs.writeFileSync(path.join(tmpDir, ".cstl", "tasks", "task.json"), "{}");
+    fs.mkdirSync(path.join(tmpDir, ".pactile", "workspace"), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, ".pactile", "workspace", "data.md"), "user data");
+    fs.mkdirSync(path.join(tmpDir, ".pactile", "tasks"), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, ".pactile", "tasks", "task.json"), "{}");
 
     const count = initializeHashes(tmpDir);
     const hashes = loadHashes(tmpDir);
 
     // These should be excluded
-    expect(hashes).not.toHaveProperty(".cstl/workspace/data.md");
-    expect(hashes).not.toHaveProperty(".cstl/tasks/task.json");
+    expect(hashes).not.toHaveProperty(".pactile/workspace/data.md");
+    expect(hashes).not.toHaveProperty(".pactile/tasks/task.json");
     expect(count).toBe(0);
   });
 
   it("excludes spec/ directory files from hashing", () => {
-    fs.mkdirSync(path.join(tmpDir, ".cstl", "spec", "guides"), { recursive: true });
-    fs.mkdirSync(path.join(tmpDir, ".cstl", "spec", "frontend"), { recursive: true });
-    fs.mkdirSync(path.join(tmpDir, ".cstl", "spec", "backend"), { recursive: true });
-    fs.writeFileSync(path.join(tmpDir, ".cstl", "spec", "guides", "index.md"), "# Guides");
-    fs.writeFileSync(path.join(tmpDir, ".cstl", "spec", "frontend", "index.md"), "# Frontend");
-    fs.writeFileSync(path.join(tmpDir, ".cstl", "spec", "backend", "index.md"), "# Backend");
+    fs.mkdirSync(path.join(tmpDir, ".pactile", "spec", "guides"), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, ".pactile", "spec", "frontend"), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, ".pactile", "spec", "backend"), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, ".pactile", "spec", "guides", "index.md"), "# Guides");
+    fs.writeFileSync(path.join(tmpDir, ".pactile", "spec", "frontend", "index.md"), "# Frontend");
+    fs.writeFileSync(path.join(tmpDir, ".pactile", "spec", "backend", "index.md"), "# Backend");
 
     const count = initializeHashes(tmpDir);
     const hashes = loadHashes(tmpDir);
 
     // All spec/ files should be excluded
-    expect(hashes).not.toHaveProperty(".cstl/spec/guides/index.md");
-    expect(hashes).not.toHaveProperty(".cstl/spec/frontend/index.md");
-    expect(hashes).not.toHaveProperty(".cstl/spec/backend/index.md");
+    expect(hashes).not.toHaveProperty(".pactile/spec/guides/index.md");
+    expect(hashes).not.toHaveProperty(".pactile/spec/frontend/index.md");
+    expect(hashes).not.toHaveProperty(".pactile/spec/backend/index.md");
     expect(count).toBe(0);
   });
 
-  it("excludes .cstl/middleware/ overlay from hashing", () => {
-    fs.mkdirSync(path.join(tmpDir, ".cstl", "middleware"), { recursive: true });
+  it("excludes .pactile/middleware/ overlay from hashing", () => {
+    fs.mkdirSync(path.join(tmpDir, ".pactile", "middleware"), { recursive: true });
     fs.writeFileSync(
-      path.join(tmpDir, ".cstl", "middleware", "smart-search.yaml"),
+      path.join(tmpDir, ".pactile", "middleware", "smart-search.yaml"),
       "id: smart-search\n",
     );
 
     const count = initializeHashes(tmpDir);
     const hashes = loadHashes(tmpDir);
 
-    expect(hashes).not.toHaveProperty(".cstl/middleware/smart-search.yaml");
+    expect(hashes).not.toHaveProperty(".pactile/middleware/smart-search.yaml");
     expect(count).toBe(0);
 
     updateHashes(
       tmpDir,
-      new Map([[".cstl/middleware/smart-search.yaml", "id: smart-search\n"]]),
+      new Map([[".pactile/middleware/smart-search.yaml", "id: smart-search\n"]]),
     );
     expect(loadHashes(tmpDir)).not.toHaveProperty(
-      ".cstl/middleware/smart-search.yaml",
+      ".pactile/middleware/smart-search.yaml",
     );
   });
 
   it("collectFiles returns POSIX-normalized paths (no backslashes)", () => {
     // Even on Windows where path.join uses `\`, our collected paths must
     // be POSIX so they can be used as cross-platform hash keys.
-    fs.mkdirSync(path.join(tmpDir, ".cstl", "scripts", "common"), {
+    fs.mkdirSync(path.join(tmpDir, ".pactile", "scripts", "common"), {
       recursive: true,
     });
     fs.writeFileSync(
-      path.join(tmpDir, ".cstl", "scripts", "common", "task.py"),
+      path.join(tmpDir, ".pactile", "scripts", "common", "task.py"),
       "print('x')",
     );
 
@@ -612,33 +633,33 @@ describe("initializeHashes", () => {
       expect(key).not.toContain("\\");
     }
     // And confirm the expected POSIX key is present
-    expect(hashes).toHaveProperty(".cstl/scripts/common/task.py");
+    expect(hashes).toHaveProperty(".pactile/scripts/common/task.py");
   });
 
   it("does not exclude generated update-spec skills from hashing", () => {
-    fs.mkdirSync(path.join(tmpDir, ".cstl"), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, ".pactile"), { recursive: true });
     const skillPath = path.join(
       tmpDir,
       ".pi",
       "skills",
-      "cstl-update-spec",
+      "pactile-update-spec",
       "SKILL.md",
     );
     fs.mkdirSync(path.dirname(skillPath), { recursive: true });
     fs.writeFileSync(skillPath, "# Update Spec");
 
     // Old EXCLUDE_FROM_HASH had a "spec/" pattern that incorrectly matched
-    // `.pi/skills/cstl-update-spec/`. The new model doesn't use that
+    // `.pi/skills/pactile-update-spec/`. The new model doesn't use that
     // exclusion at all for platform dirs (they're driven by trackedPaths),
     // so as long as the path is tracked it lands in the manifest regardless
     // of whether its name contains "spec".
     const count = initializeHashes(tmpDir, {
-      trackedPaths: new Set([".pi/skills/cstl-update-spec/SKILL.md"]),
+      trackedPaths: new Set([".pi/skills/pactile-update-spec/SKILL.md"]),
     });
     const hashes = loadHashes(tmpDir);
 
     expect(hashes).toHaveProperty(
-      ".pi/skills/cstl-update-spec/SKILL.md",
+      ".pi/skills/pactile-update-spec/SKILL.md",
     );
     expect(count).toBe(1);
   });
@@ -650,11 +671,11 @@ describe("initializeHashes", () => {
 
 describe("cross-platform hash storage (POSIX keys + v2 schema)", () => {
   let tmpDir: string;
-  const HASHES_REL = path.join(".cstl", ".template-hashes.json");
+  const HASHES_REL = path.join(".pactile", ".template-hashes.json");
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-test-"));
-    fs.mkdirSync(path.join(tmpDir, ".cstl"), { recursive: true });
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-test-"));
+    fs.mkdirSync(path.join(tmpDir, ".pactile"), { recursive: true });
   });
 
   afterEach(() => {
@@ -704,7 +725,7 @@ describe("cross-platform hash storage (POSIX keys + v2 schema)", () => {
     // Simulate an existing user's file from before the v2 schema. Both the
     // backslash key AND the missing schema version should trigger discard.
     const legacy = {
-      ".trellis\\config.yaml": "deadbeef",
+      ".pactile\\config.yaml": "deadbeef",
       ".claude/commands/start.md": "cafebabe",
     };
     fs.writeFileSync(
@@ -746,13 +767,13 @@ describe("cross-platform hash storage (POSIX keys + v2 schema)", () => {
     // Plant a legacy flat-format hashes file.
     fs.writeFileSync(
       path.join(tmpDir, HASHES_REL),
-      JSON.stringify({ ".trellis\\config.yaml": "deadbeef" }),
+      JSON.stringify({ ".pactile\\config.yaml": "deadbeef" }),
     );
 
     // Stage some real files to pick up.
-    fs.mkdirSync(path.join(tmpDir, ".cstl", "scripts"), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, ".pactile", "scripts"), { recursive: true });
     fs.writeFileSync(
-      path.join(tmpDir, ".cstl", "scripts", "task.py"),
+      path.join(tmpDir, ".pactile", "scripts", "task.py"),
       "print('hello')",
     );
 
@@ -763,10 +784,10 @@ describe("cross-platform hash storage (POSIX keys + v2 schema)", () => {
 
     expect(parsed.__version).toBe(2);
     // Legacy bogus key is gone
-    expect(parsed.hashes).not.toHaveProperty(".trellis\\config.yaml");
-    expect(parsed.hashes).not.toHaveProperty(".cstl/config.yaml");
+    expect(parsed.hashes).not.toHaveProperty(".pactile\\config.yaml");
+    expect(parsed.hashes).not.toHaveProperty(".pactile/config.yaml");
     // Newly hashed file is present with POSIX key
-    expect(parsed.hashes).toHaveProperty(".cstl/scripts/task.py");
+    expect(parsed.hashes).toHaveProperty(".pactile/scripts/task.py");
   });
 
   it("removeHash and renameHash work with backslash inputs", () => {

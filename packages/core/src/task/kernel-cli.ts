@@ -9,7 +9,7 @@ import {
   scanContractMigration,
   type ContractMigrateReport,
 } from "./contract-migrate.js";
-import { isPlainObject, taskRecordSchema, type TrellisTaskRecord } from "./schema.js";
+import { isPlainObject, taskRecordSchema, type PactileTaskRecord } from "./schema.js";
 import {
   KernelError,
   isKernelPhase,
@@ -328,7 +328,7 @@ function parsePatchRequest(
   };
 }
 
-function parseRecord(value: unknown): TrellisTaskRecord {
+function parseRecord(value: unknown): PactileTaskRecord {
   try {
     return taskRecordSchema.parse(value);
   } catch (err) {

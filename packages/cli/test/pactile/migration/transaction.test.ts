@@ -22,7 +22,10 @@ function fingerprint(bytes: Uint8Array): string {
   return `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
 }
 
-function request(root: string, id = "migration.test"): MigrationTransactionRequest {
+function request(
+  root: string,
+  id = "migration.test",
+): MigrationTransactionRequest {
   const active = Buffer.from('{"legacy":true}\r\n');
   const transformed = Buffer.from('{"schemaVersion":1,"active":true}\n');
   const closed = Buffer.from([0x43, 0x4c, 0x4f, 0x53, 0x45, 0x44, 0x0d, 0x0a]);
@@ -70,7 +73,12 @@ describe("runMigrationTransaction", () => {
     const closedBytes = Buffer.from(request(root).files[1].sourceBytes);
     fs.writeFileSync(legacyClosed, closedBytes);
 
-    const lock = path.join(root, ".pactile", "runtime", "install-state.json.lock");
+    const lock = path.join(
+      root,
+      ".pactile",
+      "runtime",
+      "install-state.json.lock",
+    );
     fs.mkdirSync(path.dirname(lock), { recursive: true });
     fs.writeFileSync(lock, "simulate-crash");
     const interrupted = await runMigrationTransaction(request(root));
@@ -107,9 +115,12 @@ describe("runMigrationTransaction", () => {
 
   it("leaves the generation staged when caller validation rejects it", async () => {
     const root = fixture();
-    const result = await runMigrationTransaction(request(root, "migration.reject"), {
-      validateStaged: () => false,
-    });
+    const result = await runMigrationTransaction(
+      request(root, "migration.reject"),
+      {
+        validateStaged: () => false,
+      },
+    );
     expect(result).toMatchObject({
       status: "review",
       reason: "migration-validation-failed",

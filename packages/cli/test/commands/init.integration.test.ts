@@ -13,7 +13,7 @@ import path from "node:path";
 // === External dependency mocks (hoisted by vitest) ===
 
 vi.mock("figlet", () => ({
-  default: { textSync: vi.fn(() => "TRELLIS") },
+  default: { textSync: vi.fn(() => "PACTILE") },
 }));
 
 vi.mock("inquirer", () => ({
@@ -31,10 +31,9 @@ import { VERSION } from "../../src/constants/version.js";
 import { DIR_NAMES, FILE_NAMES, PATHS } from "../../src/constants/paths.js";
 import { frameworkDocs } from "../../src/templates/markdown/index.js";
 import { replacePythonCommandLiterals } from "../../src/configurators/shared.js";
-import { computeHash } from "../../src/utils/template-hash.js";
 import {
-  CSTL_BLOCK_END,
-  CSTL_BLOCK_START,
+  PACTILE_BLOCK_END,
+  PACTILE_BLOCK_START,
   extractBlock,
 } from "../../src/utils/agents-md.js";
 import { execSync } from "node:child_process";
@@ -59,7 +58,7 @@ describe("init() integration", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-init-int-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-init-int-"));
     vi.spyOn(process, "cwd").mockReturnValue(tmpDir);
     vi.spyOn(console, "log").mockImplementation(noop);
     vi.spyOn(console, "warn").mockImplementation(noop);
@@ -97,10 +96,10 @@ describe("init() integration", () => {
     expect(fs.existsSync(path.join(tmpDir, PATHS.TASKS))).toBe(true);
     expect(fs.existsSync(path.join(tmpDir, PATHS.SPEC))).toBe(true);
 
-    // Default platform: cursor only
+    // Default platforms: Cursor + Codex share host-neutral Pactile resources.
     expect(fs.existsSync(path.join(tmpDir, ".cursor"))).toBe(true);
     expect(fs.existsSync(path.join(tmpDir, ".codex"))).toBe(false);
-    expect(fs.existsSync(path.join(tmpDir, ".agents", "skills"))).toBe(false);
+    expect(fs.existsSync(path.join(tmpDir, ".agents", "skills"))).toBe(true);
     expect(fs.existsSync(path.join(tmpDir, ".agent", "workflows"))).toBe(false);
     expect(fs.existsSync(path.join(tmpDir, ".kiro", "skills"))).toBe(false);
     expect(fs.existsSync(path.join(tmpDir, ".gemini"))).toBe(false);
@@ -121,34 +120,27 @@ describe("init() integration", () => {
     expect(fs.existsSync(path.join(tmpDir, ".mcp.json"))).toBe(false);
     expect(fs.existsSync(path.join(tmpDir, ".cursor", "mcp.json"))).toBe(false);
 
-    // Cursor commands-only policy: continue + finish-work slash commands, no Cursor++ setup, no skills shipped.
+    // ProjectionStore owns host surfaces: one Pactile command/rule/agent plus
+    // host-neutral shared skills. Retired alternate-client surfaces stay absent.
     expect(
       fs.existsSync(
-        path.join(tmpDir, ".cursor", "commands", "cstl-continue.md"),
+        path.join(tmpDir, ".cursor", "commands", "pactile.md"),
       ),
     ).toBe(true);
     expect(
       fs.existsSync(
-        path.join(tmpDir, ".cursor", "commands", "cstl-finish-work.md"),
+        path.join(tmpDir, ".cursor", "rules", "pactile.mdc"),
       ),
     ).toBe(true);
     expect(
       fs.existsSync(
-        path.join(
-          tmpDir,
-          ".cursor",
-          "commands",
-          "cstl-cursor2plus-setup.md",
-        ),
+        path.join(tmpDir, ".cursor", "agents", "pactile.md"),
       ),
-    ).toBe(false);
+    ).toBe(true);
     expect(fs.existsSync(path.join(tmpDir, ".cursor", "skills"))).toBe(false);
-    expect(
-      fs.existsSync(path.join(tmpDir, ".cstl", "local", "cursor2plus")),
-    ).toBe(false);
   });
 
-  it("#1f writes selected project capability config for cursor", async () => {
+  it("#1f writes selected capability facts without bypassing ProjectionStore", async () => {
     await init({
       yes: true,
       cursor: true,
@@ -178,15 +170,9 @@ describe("init() integration", () => {
       capabilities.capabilities["playwright-mcp"]?.readiness_status,
     ).toBe("pending");
 
-    const cursorMcp = JSON.parse(
-      fs.readFileSync(path.join(tmpDir, ".cursor", "mcp.json"), "utf-8"),
-    ) as {
-      mcpServers: Record<string, { command: string; args: string[] }>;
-    };
-    expect(cursorMcp.mcpServers.playwright).toEqual({
-      command: "npx",
-      args: ["-y", "@playwright/mcp@latest"],
-    });
+    // Canonical capability facts are committed first. Init does not call the
+    // old direct host writer for MCP configuration.
+    expect(fs.existsSync(path.join(tmpDir, ".cursor", "mcp.json"))).toBe(false);
     expect(fs.existsSync(path.join(tmpDir, ".mcp.json"))).toBe(false);
     expect(fs.existsSync(path.join(tmpDir, ".codex", "config.toml"))).toBe(false);
 
@@ -211,45 +197,15 @@ describe("init() integration", () => {
     expect(fs.existsSync(path.join(tmpDir, ".cursor", "skills"))).toBe(false);
   });
 
-  it("#1f.0a --with-optional chrome-cdp installs the optional skill only (no capability, no mcp change)", async () => {
-    await init({ yes: true, withOptional: ["chrome-cdp"] });
-
-    const skillDir = path.join(tmpDir, ".cursor", "skills", "chrome-cdp");
-    expect(fs.existsSync(path.join(skillDir, "SKILL.md"))).toBe(true);
-    expect(fs.existsSync(path.join(skillDir, "scripts", "cdp.mjs"))).toBe(true);
-    expect(
-      fs.existsSync(
-        path.join(skillDir, "examples", "fetch-hook-api-capture.md"),
-      ),
-    ).toBe(true);
-    const skill = fs.readFileSync(path.join(skillDir, "SKILL.md"), "utf-8");
-    expect(skill).toContain("name: chrome-cdp");
-    expect(skill).toContain("Required Safety Wording");
-
-    // No other optional skills were installed.
-    expect(fs.existsSync(path.join(tmpDir, ".cursor", "skills"))).toBe(true);
-    const installed = fs
-      .readdirSync(path.join(tmpDir, ".cursor", "skills"))
-      .sort();
-    expect(installed).toEqual(["chrome-cdp"]);
-
-    // Capability registry and .mcp.json untouched: chrome-cdp is NOT a
-    // capability id and no chrome-devtools MCP server is registered.
-    expect(
-      fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW, "capabilities.json")),
-    ).toBe(false);
-    expect(fs.existsSync(path.join(tmpDir, ".mcp.json"))).toBe(false);
-    expect(fs.existsSync(path.join(tmpDir, ".cursor", "mcp.json"))).toBe(false);
-  });
-
-  it("#1f.0b --with-optional with an unknown name fails loudly", async () => {
+  it("#1f.0a --with-optional fails before writing host or canonical state", async () => {
     await expect(
-      init({ yes: true, withOptional: ["chrome-cdp", "no-such-skill"] }),
-    ).rejects.toThrow(/Unknown optional skill\(s\): no-such-skill/);
+      init({ yes: true, withOptional: ["chrome-cdp"] }),
+    ).rejects.toThrow(/no longer writes host skill directories/);
     expect(fs.existsSync(path.join(tmpDir, ".cursor", "skills"))).toBe(false);
+    expect(fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW))).toBe(false);
   });
 
-  it("#1f.1 writes GitHub MCP config when GitHub token env is visible", async () => {
+  it("#1f.1 records GitHub capability without persisting its token", async () => {
     vi.stubEnv("GITHUB_TOKEN", "test-token");
     vi.stubEnv("GITHUB_PERSONAL_ACCESS_TOKEN", "");
 
@@ -267,16 +223,12 @@ describe("init() integration", () => {
     ) as { selected: string[] };
     expect(capabilities.selected).toEqual(["github-mcp"]);
 
-    const cursorMcp = JSON.parse(
-      fs.readFileSync(path.join(tmpDir, ".cursor", "mcp.json"), "utf-8"),
-    ) as {
-      mcpServers: Record<string, { command: string; args: string[] }>;
-    };
-    expect(cursorMcp.mcpServers.github).toEqual({
-      command: "npx",
-      args: ["-y", "@modelcontextprotocol/server-github"],
-    });
-    expect(JSON.stringify(cursorMcp)).not.toContain("test-token");
+    const canonicalCapabilityBytes = fs.readFileSync(
+      path.join(tmpDir, DIR_NAMES.WORKFLOW, "capabilities.json"),
+      "utf-8",
+    );
+    expect(canonicalCapabilityBytes).not.toContain("test-token");
+    expect(fs.existsSync(path.join(tmpDir, ".cursor", "mcp.json"))).toBe(false);
     expect(fs.existsSync(path.join(tmpDir, ".mcp.json"))).toBe(false);
   });
 
@@ -339,7 +291,7 @@ describe("init() integration", () => {
     expect(fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW))).toBe(true);
     expect(
       fs.existsSync(
-        path.join(tmpDir, ".cursor", "rules", "cstl-bootstrap.mdc"),
+        path.join(tmpDir, ".cursor", "rules", "pactile.mdc"),
       ),
     ).toBe(true);
     expect(console.warn).toHaveBeenCalledWith(
@@ -440,7 +392,7 @@ describe("init() integration", () => {
     expect(fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW))).toBe(true);
     expect(
       fs.existsSync(
-        path.join(tmpDir, ".cursor", "rules", "cstl-bootstrap.mdc"),
+        path.join(tmpDir, ".cursor", "rules", "pactile.mdc"),
       ),
     ).toBe(true);
     expect(console.warn).toHaveBeenCalledWith(
@@ -498,7 +450,7 @@ describe("init() integration", () => {
 
     expect(capabilityLookups).toBeGreaterThanOrEqual(1);
     expect(fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW))).toBe(true);
-    expect(fs.existsSync(path.join(tmpDir, ".cursor", "mcp.json"))).toBe(true);
+    expect(fs.existsSync(path.join(tmpDir, ".cursor", "mcp.json"))).toBe(false);
     expect(console.warn).toHaveBeenCalledWith(
       expect.stringMatching(/codebase-retrieval capability unverified/),
     );
@@ -581,7 +533,7 @@ describe("init() integration", () => {
     expect(fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW))).toBe(true);
     expect(
       fs.existsSync(
-        path.join(tmpDir, ".cursor", "rules", "cstl-bootstrap.mdc"),
+        path.join(tmpDir, ".cursor", "rules", "pactile.mdc"),
       ),
     ).toBe(true);
     expect(console.warn).toHaveBeenCalledWith(
@@ -598,7 +550,7 @@ describe("init() integration", () => {
     expect(fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW))).toBe(true);
     expect(
       fs.existsSync(
-        path.join(tmpDir, ".cursor", "rules", "cstl-bootstrap.mdc"),
+        path.join(tmpDir, ".cursor", "rules", "pactile.mdc"),
       ),
     ).toBe(true);
     expect(console.warn).toHaveBeenCalledWith(
@@ -614,7 +566,7 @@ describe("init() integration", () => {
     expect(fs.existsSync(path.join(tmpDir, ".codex"))).toBe(false);
     expect(
       fs.existsSync(
-        path.join(tmpDir, ".cursor", "commands", "cstl-continue.md"),
+        path.join(tmpDir, ".cursor", "commands", "pactile.md"),
       ),
     ).toBe(true);
   });
@@ -664,7 +616,7 @@ describe("init() integration", () => {
     expect(fs.readFileSync(workflowMd, "utf-8")).toBe("user modified content");
   });
 
-  it("#6 re-init with force produces identical file set", async () => {
+  it("#6 re-init preserves managed files and stabilizes durable audit state", async () => {
     await init({ yes: true, force: true });
 
     const collectFiles = (dir: string): string[] => {
@@ -680,11 +632,32 @@ describe("init() integration", () => {
       return files.sort();
     };
 
-    const first = collectFiles(tmpDir);
-    await init({ yes: true, force: true });
-    const second = collectFiles(tmpDir);
+    const firstManaged = collectFiles(tmpDir).filter(
+      (entry) => !entry.startsWith(`.pactile${path.sep}runtime${path.sep}`),
+    );
+    const generationRoot = path.join(
+      tmpDir,
+      ".pactile",
+      "runtime",
+      "generations",
+    );
+    expect(fs.readdirSync(generationRoot)).toHaveLength(1);
 
-    expect(second).toEqual(first);
+    await init({ yes: true, force: true });
+    const secondManaged = collectFiles(tmpDir).filter(
+      (entry) => !entry.startsWith(`.pactile${path.sep}runtime${path.sep}`),
+    );
+
+    expect(secondManaged).toEqual(firstManaged);
+    expect(fs.readdirSync(generationRoot)).toHaveLength(1);
+
+    const afterFirstReinit = collectFiles(
+      path.join(tmpDir, ".pactile", "runtime"),
+    );
+    await init({ yes: true, force: true });
+    expect(
+      collectFiles(path.join(tmpDir, ".pactile", "runtime")),
+    ).toEqual(afterFirstReinit);
   });
 
   it("#7 passes developer name to init_developer script", async () => {
@@ -728,23 +701,18 @@ describe("init() integration", () => {
     expect(fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW))).toBe(false);
   });
 
-  it("#7d renders the platform Python command into generated config and logs the adaptation", async () => {
+  it("#7d renders the platform Python command into canonical generated text", async () => {
     const expectedPythonCmd =
       process.platform === "win32" ? "python" : "python3";
 
     await init({ yes: true, cursor: true });
 
-    const settings = fs.readFileSync(
-      path.join(tmpDir, ".cursor", "hooks.json"),
+    const workspaceIndex = fs.readFileSync(
+      path.join(tmpDir, PATHS.WORKSPACE, "index.md"),
       "utf-8",
     );
-    expect(settings).toContain(
-      `"${expectedPythonCmd} .cursor/hooks/session-start.py"`,
-    );
-    expect(console.log).toHaveBeenCalledWith(
-      expect.stringContaining(
-        `Trellis rendered Python commands as "${expectedPythonCmd}" in generated hooks, settings, and help text`,
-      ),
+    expect(workspaceIndex).toContain(
+      `${expectedPythonCmd} ./.pactile/scripts/init_developer.py`,
     );
   });
 
@@ -775,16 +743,16 @@ describe("init() integration", () => {
       path.join(tmpDir, FILE_NAMES.AGENTS),
       "utf-8",
     );
-    const cstlBlock = extractBlock(
+    const pactileBlock = extractBlock(
       agentsContent,
-      CSTL_BLOCK_START,
-      CSTL_BLOCK_END,
+      PACTILE_BLOCK_START,
+      PACTILE_BLOCK_END,
     );
-    expect(cstlBlock).not.toBeNull();
-    if (cstlBlock === null) {
+    expect(pactileBlock).not.toBeNull();
+    if (pactileBlock === null) {
       throw new Error("expected generated AGENTS.md to contain the managed block");
     }
-    expect(hashes[FILE_NAMES.AGENTS]).toBe(computeHash(cstlBlock));
+    expect(hashes[FILE_NAMES.AGENTS]).toBeUndefined();
     expect(Object.keys(hashes).length).toBeGreaterThan(0);
   });
 
@@ -799,7 +767,7 @@ describe("init() integration", () => {
     expect(fs.existsSync(path.join(specDir, "guides", "index.md"))).toBe(true);
   });
 
-  it("#10a init writes every frameworkDocs entry into .cstl/framework/", async () => {
+  it("#10a init writes every frameworkDocs entry into .pactile/framework/", async () => {
     await init({ yes: true });
 
     const frameworkDir = path.join(tmpDir, PATHS.FRAMEWORK);
@@ -854,7 +822,7 @@ describe("init() integration", () => {
     ).toBe(false);
     expect(
       fs.existsSync(
-        path.join(guidesDir, "cursor-trellis-release-coexistence-guide.md"),
+        path.join(guidesDir, "pactile-release-coexistence-guide.md"),
       ),
     ).toBe(false);
   });
@@ -959,8 +927,8 @@ describe("init() integration", () => {
 
   it("#14 monorepo: writes packages section to config.yaml", async () => {
     setupPnpmWorkspace(tmpDir, [
-      { rel: "packages/cli", name: "@trellis/cli" },
-      { rel: "packages/docs", name: "@trellis/docs" },
+      { rel: "packages/cli", name: "@example/cli" },
+      { rel: "packages/docs", name: "@example/docs" },
     ]);
 
     await init({ yes: true });
@@ -1002,8 +970,8 @@ describe("init() integration", () => {
     expect(taskJson.next_action).toBeUndefined();
 
     // relatedFiles point to spec/<name>/
-    expect(taskJson.relatedFiles).toContain(".cstl/spec/core/");
-    expect(taskJson.relatedFiles).toContain(".cstl/spec/ui/");
+    expect(taskJson.relatedFiles).toContain(".pactile/spec/core/");
+    expect(taskJson.relatedFiles).toContain(".pactile/spec/ui/");
 
     // prd.md mentions packages + renders per-package checklist items
     const prd = fs.readFileSync(path.join(taskDir, "prd.md"), "utf-8");
@@ -1015,10 +983,10 @@ describe("init() integration", () => {
     expect(prd).toContain("- [ ] Fill guidelines for core");
     expect(prd).toContain("- [ ] Fill guidelines for ui");
     expect(prd).not.toContain(
-      `${expectedPythonCmd} ./.cstl/scripts/task.py finish`,
+      `${expectedPythonCmd} ./.pactile/scripts/task.py finish`,
     );
     expect(prd).toContain(
-      `${expectedPythonCmd} ./.cstl/scripts/task.py archive 00-bootstrap-guidelines`,
+      `${expectedPythonCmd} ./.pactile/scripts/task.py archive 00-bootstrap-guidelines`,
     );
   });
 
@@ -1063,7 +1031,7 @@ describe("init() integration", () => {
     );
     expect(guideCall).toBeDefined();
 
-    // Should NOT create .cstl/ (early return)
+    // Should NOT create .pactile/ (early return)
     expect(fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW))).toBe(false);
   });
 
@@ -1130,37 +1098,13 @@ describe("init() integration", () => {
     expect(matches).toHaveLength(1);
   });
 
-  // GitHub issue #267 — Windows users silently lose SessionStart injection
-  // because Python cold start exceeds the historical 10s timeout. Defaults
-  // were bumped to 30s (SessionStart) / 15s (UserPromptSubmit). This guards
-  // against future drift on the most common install path.
-  it("#19 init writes bumped hook timeouts (issue #267)", async () => {
+  it("#19 init does not bypass ProjectionStore to create hook config", async () => {
     await init({ yes: true, cursor: true });
-
-    const hooks = JSON.parse(
-      fs.readFileSync(path.join(tmpDir, ".cursor", "hooks.json"), "utf-8"),
-    ) as {
-      hooks: {
-        sessionStart?: { timeout?: number }[];
-        beforeSubmitPrompt?: { timeout?: number }[];
-      };
-    };
-
-    for (const hook of hooks.hooks.sessionStart ?? []) {
-      expect(hook.timeout).toBeGreaterThanOrEqual(30);
-    }
-    for (const hook of hooks.hooks.beforeSubmitPrompt ?? []) {
-      expect(hook.timeout).toBeGreaterThanOrEqual(15);
-    }
+    expect(fs.existsSync(path.join(tmpDir, ".cursor", "hooks.json"))).toBe(false);
   });
 
-  // Coexistence scenario 2: an upstream mindfold-ai/Trellis `.trellis/` tree
-  // is present and the user adds cursor-trellis on Cursor alongside it.
-  // cursor-trellis must create `.cstl/`, take over `.cursor/`, preserve an
-  // existing `<!-- TRELLIS:START -->` block in AGENTS.md, and NOT touch
-  // `.trellis/`. See design.md "scenario 2 coexistence".
-  it("#20 coexists with upstream .trellis/ (scenario 2)", async () => {
-    // Upstream Trellis state on disk before cursor-trellis init.
+  // A foreign legacy tree is coexistence evidence, never import authority.
+  it("#20 preserves a foreign legacy tree and host surfaces", async () => {
     fs.mkdirSync(path.join(tmpDir, ".trellis", "scripts", "common"), {
       recursive: true,
     });
@@ -1169,7 +1113,7 @@ describe("init() integration", () => {
       path.join(tmpDir, ".trellis", "scripts", "common", "marker.txt"),
       "upstream-owned",
     );
-    // Upstream Cursor config that cursor-trellis must overwrite.
+    // Foreign host surfaces exist before Pactile init.
     fs.mkdirSync(path.join(tmpDir, ".cursor", "commands"), { recursive: true });
     fs.writeFileSync(
       path.join(tmpDir, ".cursor", "commands", "trellis-continue.md"),
@@ -1179,7 +1123,7 @@ describe("init() integration", () => {
       path.join(tmpDir, ".cursor", "hooks.json"),
       '{"hooks":{},"upstream":true}',
     );
-    // Upstream AGENTS.md with a TRELLIS managed block.
+    // Foreign AGENTS.md managed block.
     fs.writeFileSync(
       path.join(tmpDir, "AGENTS.md"),
       `# Project\n\n<!-- TRELLIS:START -->\n# upstream trellis block\n<!-- TRELLIS:END -->\n\n# User footer\n`,
@@ -1187,7 +1131,7 @@ describe("init() integration", () => {
 
     await init({ yes: true, cursor: true });
 
-    // .cstl/ created, .trellis/ untouched.
+    // Canonical state is created while the foreign tree remains byte-identical.
     expect(fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW))).toBe(true);
     expect(fs.existsSync(path.join(tmpDir, ".trellis"))).toBe(true);
     expect(
@@ -1197,29 +1141,29 @@ describe("init() integration", () => {
       ),
     ).toBe("upstream-owned");
 
-    // cursor-trellis took over .cursor/: cstl commands present, hooks.json
-    // is cursor-trellis's (not the upstream stub).
+    // Pactile adds its projection without overwriting unrelated foreign host
+    // files or claiming the upstream hook configuration.
     expect(
       fs.existsSync(
-        path.join(tmpDir, ".cursor", "commands", "cstl-continue.md"),
+        path.join(tmpDir, ".cursor", "commands", "pactile.md"),
       ),
     ).toBe(true);
     const hooks = JSON.parse(
       fs.readFileSync(path.join(tmpDir, ".cursor", "hooks.json"), "utf-8"),
     ) as { upstream?: boolean; hooks?: unknown };
-    expect(hooks.upstream).toBeUndefined();
+    expect(hooks.upstream).toBe(true);
 
-    // AGENTS.md has BOTH the upstream TRELLIS block and a new CSTL block.
+    // AGENTS.md has both the foreign block and a new Pactile block.
     const agents = fs.readFileSync(path.join(tmpDir, "AGENTS.md"), "utf-8");
     expect(agents).toContain("<!-- TRELLIS:START -->");
     expect(agents).toContain("<!-- TRELLIS:END -->");
     expect(agents).toContain("# upstream trellis block");
-    expect(agents).toContain("<!-- CSTL:START -->");
-    expect(agents).toContain("<!-- CSTL:END -->");
+    expect(agents).toContain("<!-- PACTILE:START -->");
+    expect(agents).toContain("<!-- PACTILE:END -->");
     expect(agents).toContain("# User footer");
-    // CSTL block placed after TRELLIS block.
+    // Pactile block is placed after the foreign block.
     expect(agents.indexOf("<!-- TRELLIS:END -->")).toBeLessThan(
-      agents.indexOf("<!-- CSTL:START -->"),
+      agents.indexOf("<!-- PACTILE:START -->"),
     );
   });
 });

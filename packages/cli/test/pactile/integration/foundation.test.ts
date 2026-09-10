@@ -16,7 +16,7 @@ import {
   type ProjectionOperationV1,
   type ProviderResolutionInputV1,
   type ResolvedProviderV1,
-} from "@blxzer/cursor-trellis-core";
+} from "@blxzer/pactile-core";
 import {
   buildTileCatalog,
   compileTileComposition,

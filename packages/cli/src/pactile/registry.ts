@@ -1,7 +1,7 @@
 import {
   parseCapabilityBindingV1,
   parseTileManifestV1,
-} from "@blxzer/cursor-trellis-core";
+} from "@blxzer/pactile-core";
 import type {
   CompiledComposition,
   TileCompositionRequest,

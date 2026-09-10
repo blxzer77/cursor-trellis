@@ -1,6 +1,6 @@
 ---
 name: python-design
-description: "Python design patterns for CLI scripts and utilities — type-first development, deep modules, complexity management, and red flags. Use when reading, writing, reviewing, or refactoring Python files, especially in .cstl/scripts/ or any CLI/scripting context. Also activate when planning module structure, deciding where to put new code, or doing code review."
+description: "Python design patterns for CLI scripts and utilities — type-first development, deep modules, complexity management, and red flags. Use when reading, writing, reviewing, or refactoring Python files, especially in .pactile/scripts/ or any CLI/scripting context. Also activate when planning module structure, deciding where to put new code, or doing code review."
 ---
 
 # Python Design for CLI Scripts
@@ -221,13 +221,13 @@ def iter_active_tasks(tasks_dir: Path) -> Iterator[TaskInfo]:
 **File format details leaking through layers:**
 ```python
 # BAD — caller knows it's JSON, knows the path convention
-registry_path = trellis_dir / "registry.json"
+registry_path = pactile_dir / "registry.json"
 data = json.loads(registry_path.read_text())
 data["agents"][agent_id] = {...}
 registry_path.write_text(json.dumps(data, indent=2))
 
 # GOOD — module hides storage format
-registry = AgentRegistry(trellis_dir)
+registry = AgentRegistry(pactile_dir)
 registry.add(agent_id, task=task_name, platform="Codex")
 ```
 

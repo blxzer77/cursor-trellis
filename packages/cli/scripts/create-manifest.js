@@ -44,7 +44,7 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const MANIFESTS_DIR = path.join(__dirname, "../src/migrations/manifests");
-const PACKAGE_NAME = "@blxzer/cursor-trellis";
+const PACKAGE_NAME = "@blxzer/pactile";
 
 /**
  * Check whether `version` is already published on npm. Returns false on network
@@ -281,7 +281,7 @@ async function main() {
     if (versionOnNpm(version)) {
       console.error(
         `\n✗ Version ${version} is already published on npm.\n` +
-        `  Rewriting its manifest would break \`trellis update\` for users\n` +
+        `  Rewriting its manifest would break \`pactile update\` for users\n` +
         `  currently at that version. Use the NEXT version number instead.\n`,
       );
       rl.close();
@@ -331,7 +331,7 @@ async function main() {
         "   the manifest will be written with TODO placeholders, then you\n" +
         "   MUST hand-edit the JSON (or re-run via --stdin with full JSON).\n"
       );
-      migrationGuide = "TODO: narrative migration guide (gets templated into the user's migration task PRD on trellis update --migrate).";
+      migrationGuide = "TODO: narrative migration guide (gets templated into the user's migration task PRD on pactile update --migrate).";
       aiInstructions = "TODO: AI hints for helping users migrate (what to check, common pitfalls).";
     }
 

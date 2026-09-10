@@ -9,16 +9,14 @@
  *
  * `pruneOrphanManifestKeys` removes any manifest entry that no current
  * platform configurator owns. The two entry points that consume it are
- * `trellis update` (before migration classification) and `trellis uninstall`
+ * `pactile update` (before migration classification) and lifecycle cleanup
  * (before plan building). Together they ensure existing poisoned manifests
  * self-correct on the next routine command.
  *
  * Rules:
- *   - `.cstl/*` entries are ALWAYS kept. `trellis uninstall` removes
- *     `.cstl/` wholesale via `fs.rmSync(..., { recursive: true })`, so
- *     manifest accuracy there doesn't affect uninstall data-loss. `update`
- *     also relies on these entries to detect user-modified workflow files.
- *   - Root-level `AGENTS.md` is kept only when it still looks Trellis-managed
+ *   - Canonical `.pactile/*` entries are kept only for framework-managed
+ *     content; user task/workspace/spec and middleware state is excluded.
+ *   - Root-level `AGENTS.md` is kept only when it still looks Pactile-managed
  *     (contains the managed block markers) or is missing on disk. This
  *     self-heals old poisoned manifests for user-owned AGENTS.md files that
  *     predated init and were skipped.
@@ -28,7 +26,7 @@
  *     source/target.
  *   - Everything else: if the path is not in the union of
  *     `collectPlatformTemplates()` for currently-configured platforms, it is
- *     pruned. This matches "files trellis actually wrote during init/update".
+ *     pruned. This matches files Pactile actually wrote during init/update.
  */
 
 import fs from "node:fs";
@@ -40,11 +38,14 @@ import { FILE_NAMES, isUserMiddlewareOverlayPath } from "../constants/paths.js";
 import { getAllMigrations } from "../migrations/index.js";
 import { saveHashes } from "./template-hash.js";
 import { toPosix } from "./posix.js";
+import {
+  LEGACY_CSTL_BLOCK_END,
+  LEGACY_CSTL_BLOCK_START,
+  PACTILE_BLOCK_END,
+  PACTILE_BLOCK_START,
+} from "./agents-md.js";
 import type { AITool } from "../types/ai-tools.js";
 import type { TemplateHashes } from "../types/migration.js";
-
-const TRELLIS_BLOCK_START = "<!-- TRELLIS:START -->";
-const TRELLIS_BLOCK_END = "<!-- TRELLIS:END -->";
 
 export interface PruneResult {
   /** Manifest keys removed (POSIX-style relative paths). */
@@ -54,9 +55,9 @@ export interface PruneResult {
 }
 
 /**
- * Compute the union of "what trellis writes" across:
+ * Compute the union of what Pactile writes across:
  *   - every configured platform's collectTemplates() output
- *   - root-level AGENTS.md when it still carries Trellis managed-block markers
+ *   - root-level AGENTS.md when it still carries an owned managed block
  *   - every migration manifest's from/to path (preserve so legitimate
  *     pending migrations can find their source/target)
  */
@@ -71,7 +72,7 @@ function buildKnownKeys(configuredPlatforms: readonly AITool[]): Set<string> {
   }
   // Root-level files written by the workflow configurator (CONTEXT.md,
   // docs/adr/README.md) — they live outside platform config dirs but are
-  // trellis-owned, so uninstall must recognize and remove them.
+  // Pactile-owned, so lifecycle reconciliation must recognize them.
   for (const key of getWorkflowRootTemplateFiles().keys()) {
     known.add(toPosix(key));
   }
@@ -93,16 +94,22 @@ function buildKnownKeys(configuredPlatforms: readonly AITool[]): Set<string> {
  * managed block markers are the least destructive ownership signal: no
  * markers means preserve the user's file by pruning the stale manifest key.
  */
-function shouldKeepAgentsMd(cwd: string): boolean {
+function shouldKeepAgentsMd(cwd: string, canonicalInstall: boolean): boolean {
   const fullPath = path.join(cwd, FILE_NAMES.AGENTS);
   if (!fs.existsSync(fullPath)) {
     return true;
   }
   try {
     const content = fs.readFileSync(fullPath, "utf-8");
+    if (canonicalInstall) {
+      return (
+        content.includes(PACTILE_BLOCK_START) &&
+        content.includes(PACTILE_BLOCK_END)
+      );
+    }
     return (
-      content.includes(TRELLIS_BLOCK_START) &&
-      content.includes(TRELLIS_BLOCK_END)
+      content.includes(LEGACY_CSTL_BLOCK_START) &&
+      content.includes(LEGACY_CSTL_BLOCK_END)
     );
   } catch {
     return true;
@@ -139,23 +146,55 @@ export function pruneOrphanManifestKeys(
   const known = buildKnownKeys(configuredPlatforms);
   const pruned: string[] = [];
   const kept: TemplateHashes = {};
+  const canonicalInstall = fs.existsSync(path.join(cwd, ".pactile"));
+  const projectionOwned = [
+    "AGENTS.md",
+    ".agents/",
+    ".cursor/",
+    ".codex/",
+  ];
 
   for (const [rawKey, value] of Object.entries(hashes)) {
     const key = toPosix(rawKey);
-    // Always preserve .cstl/ entries — they're for the workflow tree
-    // which uninstall removes wholesale and which update needs for
-    // modified-file detection. Exception: user middleware overlay must
-    // never stay in the template hash (poisoned or accidental).
+    if (
+      canonicalInstall &&
+      projectionOwned.some(
+        (prefix) => key === prefix || key.startsWith(prefix),
+      )
+    ) {
+      pruned.push(key);
+      continue;
+    }
+    // A user middleware overlay must never stay in the template hash.
     if (isUserMiddlewareOverlayPath(key)) {
       pruned.push(key);
       continue;
     }
-    if (key.startsWith(".cstl/") || key === ".cstl") {
+    if (canonicalInstall && (key.startsWith(".cstl/") || key === ".cstl")) {
+      pruned.push(key);
+      continue;
+    }
+    if (key.startsWith(".pactile/") || key === ".pactile") {
+      if (
+        key === ".pactile/spec" ||
+        key.startsWith(".pactile/spec/") ||
+        key === ".pactile/tasks" ||
+        key.startsWith(".pactile/tasks/") ||
+        key === ".pactile/workspace" ||
+        key.startsWith(".pactile/workspace/")
+      ) {
+        pruned.push(key);
+      } else {
+        kept[key] = value;
+      }
+      continue;
+    }
+    if (!canonicalInstall && (key.startsWith(".cstl/") || key === ".cstl")) {
       kept[key] = value;
       continue;
     }
     if (key === FILE_NAMES.AGENTS) {
-      if (shouldKeepAgentsMd(cwd)) {
+      if (shouldKeepAgentsMd(cwd, canonicalInstall)) {
         kept[key] = value;
       } else {
         pruned.push(key);

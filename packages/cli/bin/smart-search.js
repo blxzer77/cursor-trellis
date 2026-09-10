@@ -23,7 +23,7 @@ const smartSearchBin = join(
 
 if (!existsSync(smartSearchBin)) {
   console.error(
-    "smart-search Provider is not installed. CSTL treats this as optional Middleware (external-knowledge). Install @blxzer/smart-search separately, or continue tasks that do not need external knowledge.",
+    "smart-search Provider is not installed. Pactile treats this as optional Middleware (external-knowledge). Install @blxzer/smart-search separately, or continue tasks that do not need external knowledge.",
   );
   process.exit(2);
 }

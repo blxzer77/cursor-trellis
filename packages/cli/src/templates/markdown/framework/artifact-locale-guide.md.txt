@@ -1,6 +1,6 @@
 # Human-Reviewed Artifact Locale Guide
 
-> **Purpose:** Let PRD / DESIGN / IMPLEMENT / VERIFY / HANDOFF follow the user's language (Chinese or English) without turning Trellis into a full i18n product.
+> **Purpose:** Let PRD / DESIGN / IMPLEMENT / VERIFY / HANDOFF follow the user's language (Chinese or English) without turning Pactile into a full i18n product.
 
 ---
 
@@ -13,13 +13,13 @@
 | Session / planning hints for artifact language | Bilingual mirrors of `workflow.md` or `.cursor/rules` |
 | `prd.md` / `design.md` / `implement.md` / `verify.md` / `handoff.md` | `task.json` field names or gate enums |
 
-**Rollback:** `python ./.cstl/scripts/task.py artifact-locale set zh` or remove `artifact_locale` from `.cstl/config.yaml`. For a single task, delete `task.json` → `meta.artifact_locale`.
+**Rollback:** `python ./.pactile/scripts/task.py artifact-locale set zh` or remove `artifact_locale` from `.pactile/config.yaml`. For a single task, delete `task.json` → `meta.artifact_locale`.
 
 ---
 
 ## 2. Configuration
 
-### Workspace default (`.cstl/config.yaml`)
+### Workspace default (`.pactile/config.yaml`)
 
 ```yaml
 # Human-reviewed artifact locale (zh | en)
@@ -32,17 +32,17 @@ Default when unset: **`zh`** (matches current dogfood and User Rules for Simplif
 
 ```powershell
 # Resolved locale (workspace default)
-python ./.cstl/scripts/task.py artifact-locale get
+python ./.pactile/scripts/task.py artifact-locale get
 
 # Resolved locale for one task (includes task override)
-python ./.cstl/scripts/task.py artifact-locale get --task .cstl/tasks/<dir>
+python ./.pactile/scripts/task.py artifact-locale get --task .pactile/tasks/<dir>
 
 # Workspace default
-python ./.cstl/scripts/task.py artifact-locale set en
-python ./.cstl/scripts/task.py artifact-locale set zh
+python ./.pactile/scripts/task.py artifact-locale set en
+python ./.pactile/scripts/task.py artifact-locale set zh
 
 # Per-task override
-python ./.cstl/scripts/task.py artifact-locale set zh --task .cstl/tasks/<dir>
+python ./.pactile/scripts/task.py artifact-locale set zh --task .pactile/tasks/<dir>
 ```
 
 Invalid values print a warning and fall back to the next layer (`task` → `workspace` → `zh`).
@@ -53,8 +53,8 @@ Invalid values print a warning and fall back to the next layer (`task` → `work
 
 | Artifact | Mechanism |
 | --- | --- |
-| `prd.md` on `task.py create` | Locale template under `.cstl/tasks/locale/{zh,en}/default-prd.md` |
-| `design.md` / `implement.md` | Agent planning (session context + `cstl-brainstorm`) |
+| `prd.md` on `task.py create` | Locale template under `.pactile/tasks/locale/{zh,en}/default-prd.md` |
+| `design.md` / `implement.md` | Agent planning (session context + `pactile-brainstorm`) |
 | `verify.md` / `handoff.md` | Agent execution / finish (same session hint) |
 | Optional `tasks/templates/*` copies | Agent follows guide; English paths stay canonical |
 

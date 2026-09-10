@@ -22,7 +22,7 @@ describe("Kernel store + JSON CLI", () => {
   let taskDir: string;
 
   beforeEach(() => {
-    tmp = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-kernel-"));
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-kernel-"));
     taskDir = path.join(tmp, "08-28-kernel-demo");
     writeTaskRecord({
       taskDir,

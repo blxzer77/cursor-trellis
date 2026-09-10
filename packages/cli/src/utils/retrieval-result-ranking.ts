@@ -1,6 +1,6 @@
 import { Buffer } from "node:buffer";
 
-import type { PactileIntentV1 } from "@blxzer/cursor-trellis-core";
+import type { PactileIntentV1 } from "@blxzer/pactile-core";
 
 export type RetrievalRankingIntent = PactileIntentV1;
 

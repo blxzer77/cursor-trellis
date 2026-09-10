@@ -1,7 +1,7 @@
 import type {
   AssuranceLevelV1,
   ProviderRuntimeFactV1,
-} from "@blxzer/cursor-trellis-core";
+} from "@blxzer/pactile-core";
 
 export const PACTILE_PROVIDER_PROBE_IDS = [
   "rg",

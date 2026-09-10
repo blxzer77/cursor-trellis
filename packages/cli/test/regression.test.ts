@@ -39,7 +39,7 @@ import {
   commonSessionContext,
   getAllScripts,
   MAINTAINER_ONLY_SCRIPT_PATHS,
-} from "../src/templates/trellis/index.js";
+} from "../src/templates/pactile/index.js";
 import {
   workspaceIndexContent,
 } from "../src/templates/markdown/index.js";
@@ -183,15 +183,15 @@ describe("regression: add_session.py runtime branch context (issue-106)", () => 
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-session-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-session-"));
   });
 
   afterEach(() => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  function writeTrellisScripts(): void {
-    const scriptsDir = path.join(tmpDir, ".cstl", "scripts");
+  function writePactileScripts(): void {
+    const scriptsDir = path.join(tmpDir, ".pactile", "scripts");
     for (const [relativePath, content] of getAllScripts()) {
       const absPath = path.join(scriptsDir, relativePath);
       fs.mkdirSync(path.dirname(absPath), { recursive: true });
@@ -237,7 +237,7 @@ ${separator}
 <!-- @@@/auto:session-history -->
 `;
     fs.writeFileSync(
-      path.join(tmpDir, ".cstl", "workspace", "test-dev", "index.md"),
+      path.join(tmpDir, ".pactile", "workspace", "test-dev", "index.md"),
       indexContent,
       "utf-8",
     );
@@ -249,41 +249,41 @@ ${separator}
     taskBranch?: string;
     taskBaseBranch?: string;
   }): void {
-    writeTrellisScripts();
+    writePactileScripts();
 
-    fs.mkdirSync(path.join(tmpDir, ".cstl", "workspace", "test-dev"), {
+    fs.mkdirSync(path.join(tmpDir, ".pactile", "workspace", "test-dev"), {
       recursive: true,
     });
     fs.writeFileSync(
-      path.join(tmpDir, ".cstl", ".developer"),
+      path.join(tmpDir, ".pactile", ".developer"),
       "name=test-dev\ninitialized_at=2026-03-22T00:00:00\n",
       "utf-8",
     );
     fs.writeFileSync(
-      path.join(tmpDir, ".cstl", "workspace", "test-dev", "journal-1.md"),
+      path.join(tmpDir, ".pactile", "workspace", "test-dev", "journal-1.md"),
       "# Journal - test-dev (Part 1)\n\n---\n",
       "utf-8",
     );
     createWorkspaceIndex(options?.headerMode ?? "current5");
 
     if (options?.taskBranch || options?.taskBaseBranch) {
-      const taskDir = path.join(tmpDir, ".cstl", "tasks", "issue-106");
+      const taskDir = path.join(tmpDir, ".pactile", "tasks", "issue-106");
       fs.mkdirSync(taskDir, { recursive: true });
       fs.mkdirSync(
-        path.join(tmpDir, ".cstl", ".runtime", "sessions"),
+        path.join(tmpDir, ".pactile", ".runtime", "sessions"),
         { recursive: true },
       );
       fs.writeFileSync(
         path.join(
           tmpDir,
-          ".cstl",
+          ".pactile",
           ".runtime",
           "sessions",
           "session-a.json",
         ),
         JSON.stringify(
           {
-            selected_task: ".cstl/tasks/issue-106",
+            selected_task: ".pactile/tasks/issue-106",
             platform: "test",
           },
           null,
@@ -320,7 +320,7 @@ ${separator}
     const command = [
       "python3",
       JSON.stringify(
-        path.join(tmpDir, ".cstl", "scripts", "add_session.py"),
+        path.join(tmpDir, ".pactile", "scripts", "add_session.py"),
       ),
       "--title",
       JSON.stringify(title),
@@ -335,7 +335,7 @@ ${separator}
     execSync(command.join(" "), {
       cwd: tmpDir,
       encoding: "utf-8",
-      env: { ...process.env, TRELLIS_CONTEXT_ID: "session-a" },
+      env: { ...process.env, PACTILE_CONTEXT_ID: "session-a" },
     });
   }
 
@@ -349,11 +349,11 @@ ${separator}
     runAddSession("CLI branch wins", { branch: "cli/from-arg" });
 
     const journal = fs.readFileSync(
-      path.join(tmpDir, ".cstl", "workspace", "test-dev", "journal-1.md"),
+      path.join(tmpDir, ".pactile", "workspace", "test-dev", "journal-1.md"),
       "utf-8",
     );
     const index = fs.readFileSync(
-      path.join(tmpDir, ".cstl", "workspace", "test-dev", "index.md"),
+      path.join(tmpDir, ".pactile", "workspace", "test-dev", "index.md"),
       "utf-8",
     );
 
@@ -376,11 +376,11 @@ ${separator}
     runAddSession("Task branch wins");
 
     const journal = fs.readFileSync(
-      path.join(tmpDir, ".cstl", "workspace", "test-dev", "journal-1.md"),
+      path.join(tmpDir, ".pactile", "workspace", "test-dev", "journal-1.md"),
       "utf-8",
     );
     const index = fs.readFileSync(
-      path.join(tmpDir, ".cstl", "workspace", "test-dev", "index.md"),
+      path.join(tmpDir, ".pactile", "workspace", "test-dev", "index.md"),
       "utf-8",
     );
 
@@ -400,11 +400,11 @@ ${separator}
     runAddSession("Git branch fallback");
 
     const journal = fs.readFileSync(
-      path.join(tmpDir, ".cstl", "workspace", "test-dev", "journal-1.md"),
+      path.join(tmpDir, ".pactile", "workspace", "test-dev", "journal-1.md"),
       "utf-8",
     );
     const index = fs.readFileSync(
-      path.join(tmpDir, ".cstl", "workspace", "test-dev", "index.md"),
+      path.join(tmpDir, ".pactile", "workspace", "test-dev", "index.md"),
       "utf-8",
     );
 
@@ -426,7 +426,7 @@ ${separator}
     runAddSession("Legacy 4-column migration");
 
     const index = fs.readFileSync(
-      path.join(tmpDir, ".cstl", "workspace", "test-dev", "index.md"),
+      path.join(tmpDir, ".pactile", "workspace", "test-dev", "index.md"),
       "utf-8",
     );
 
@@ -443,11 +443,11 @@ ${separator}
     runAddSession("No branch available");
 
     const journal = fs.readFileSync(
-      path.join(tmpDir, ".cstl", "workspace", "test-dev", "journal-1.md"),
+      path.join(tmpDir, ".pactile", "workspace", "test-dev", "journal-1.md"),
       "utf-8",
     );
     const index = fs.readFileSync(
-      path.join(tmpDir, ".cstl", "workspace", "test-dev", "index.md"),
+      path.join(tmpDir, ".pactile", "workspace", "test-dev", "index.md"),
       "utf-8",
     );
 
@@ -462,7 +462,7 @@ ${separator}
 
 describe("regression: Windows path separator (beta.12)", () => {
   it("[beta.12] isManagedPath handles Windows backslash paths", () => {
-    expect(isManagedPath(".cstl\\spec\\backend")).toBe(true);
+    expect(isManagedPath(".pactile\\spec\\backend")).toBe(true);
     expect(isManagedPath(".cursor\\commands\\start.md")).toBe(true);
   });
 
@@ -477,8 +477,8 @@ describe("regression: Windows path separator (beta.12)", () => {
 // =============================================================================
 
 describe("regression: task directory paths (0.2.14, 0.2.15, beta.13)", () => {
-  it("[0.2.15] PATHS.TASKS is .cstl/tasks (not .cstl/workspace/*/tasks)", () => {
-    expect(PATHS.TASKS).toBe(".cstl/tasks");
+  it("[0.2.15] PATHS.TASKS is .pactile/tasks (not .pactile/workspace/*/tasks)", () => {
+    expect(PATHS.TASKS).toBe(".pactile/tasks");
     expect(PATHS.TASKS).not.toContain("workspace");
   });
 
@@ -504,9 +504,9 @@ describe("regression: task directory paths (0.2.14, 0.2.15, beta.13)", () => {
 });
 
 describe("regression: resolve_task_dir path handling", () => {
-  it("[beta.12] resolve_task_dir handles .trellis prefix", () => {
-    // The function should recognize .trellis-prefixed paths as relative paths
-    expect(commonTaskUtils).toContain('.startswith(".cstl")');
+  it("[beta.12] resolve_task_dir handles .pactile prefix", () => {
+    // The function should recognize .pactile-prefixed paths as relative paths
+    expect(commonTaskUtils).toContain('.startswith(".pactile")');
   });
 
   it("[current-task] resolve_task_dir normalizes backslash separators before path classification", () => {
@@ -652,7 +652,7 @@ describe("regression: migration data integrity (beta.14)", () => {
 // =============================================================================
 
 describe("regression: shell to Python migration (beta.0)", () => {
-  it("[beta.0] no .sh scripts remain in trellis templates", () => {
+  it("[beta.0] no .sh scripts remain in Pactile templates", () => {
     const scripts = getAllScripts();
     for (const [name] of scripts) {
       expect(name.endsWith(".sh"), `${name} should not end with .sh`).toBe(
@@ -668,13 +668,13 @@ describe("regression: shell to Python migration (beta.0)", () => {
     }
   });
 
-  it("[beta.3] getAllScripts covers every .py file in templates/trellis/scripts/", () => {
+  it("[beta.3] getAllScripts covers every .py file in templates/pactile/scripts/", () => {
     // Bug: update.ts had a hand-maintained file list that missed 11 scripts.
     // Fix: update.ts now uses getAllScripts() directly. This test ensures
     // getAllScripts() itself stays in sync with the filesystem.
     const scriptsDir = path.resolve(
       path.dirname(fileURLToPath(import.meta.url)),
-      "../src/templates/trellis/scripts",
+      "../src/templates/pactile/scripts",
     );
     const fsFiles = new Set<string>();
     function walk(dir: string, prefix: string) {
@@ -708,21 +708,21 @@ describe("regression: shell to Python migration (beta.0)", () => {
 
 
 
-describe("regression: agent-session Trellis update hint", () => {
+describe("regression: agent-session Pactile update hint", () => {
   let tmpDir: string;
   const pythonCmd = process.platform === "win32" ? "python" : "python3";
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-update-hint-"));
-    const scriptsDir = path.join(tmpDir, ".cstl", "scripts");
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-update-hint-"));
+    const scriptsDir = path.join(tmpDir, ".pactile", "scripts");
     for (const [relativePath, content] of getAllScripts()) {
       const absPath = path.join(scriptsDir, relativePath);
       fs.mkdirSync(path.dirname(absPath), { recursive: true });
       fs.writeFileSync(absPath, content, "utf-8");
     }
-    fs.mkdirSync(path.join(tmpDir, ".cstl", "tasks"), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, ".pactile", "tasks"), { recursive: true });
     fs.writeFileSync(
-      path.join(tmpDir, ".cstl", ".developer"),
+      path.join(tmpDir, ".pactile", ".developer"),
       "name=test-dev\ninitialized_at=2026-05-09T00:00:00Z\n",
       "utf-8",
     );
@@ -732,12 +732,12 @@ describe("regression: agent-session Trellis update hint", () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  function runContextWithTrellisOutput(
+  function runContextWithPactileOutput(
     currentVersion: string,
-    trellisVersionOutput: string | null,
+    pactileVersionOutput: string | null,
   ): string {
     fs.writeFileSync(
-      path.join(tmpDir, ".cstl", ".version"),
+      path.join(tmpDir, ".pactile", ".version"),
       `${currentVersion}\n`,
       "utf-8",
     );
@@ -748,10 +748,10 @@ describe("regression: agent-session Trellis update hint", () => {
         "import os",
         "import sys",
         "from pathlib import Path",
-        "sys.path.insert(0, str(Path.cwd() / '.cstl' / 'scripts'))",
+        "sys.path.insert(0, str(Path.cwd() / '.pactile' / 'scripts'))",
         "from common import session_context",
-        "output = os.environ.get('TRELLIS_VERSION_OUTPUT')",
-        "session_context._fetch_trellis_version_output = lambda: None if output == '__NONE__' else output",
+        "output = os.environ.get('PACTILE_VERSION_OUTPUT')",
+        "session_context._fetch_pactile_version_output = lambda: None if output == '__NONE__' else output",
         "session_context.output_text(Path.cwd())",
         "",
       ].join("\n"),
@@ -762,8 +762,8 @@ describe("regression: agent-session Trellis update hint", () => {
       encoding: "utf-8",
       env: {
         ...process.env,
-        TRELLIS_VERSION_OUTPUT: trellisVersionOutput ?? "__NONE__",
-        TRELLIS_CONTEXT_ID: "test-update-session",
+        PACTILE_VERSION_OUTPUT: pactileVersionOutput ?? "__NONE__",
+        PACTILE_CONTEXT_ID: "test-update-session",
       },
     });
   }
@@ -776,70 +776,70 @@ describe("regression: agent-session Trellis update hint", () => {
     return match?.[0] ?? "";
   }
 
-  it("shows a concise update hint when cstl --version reports a newer version", () => {
-    const output = runContextWithTrellisOutput(
+  it("shows a concise update hint when pactile --version reports a newer version", () => {
+    const output = runContextWithPactileOutput(
       "0.5.0",
-      "Trellis update available: 0.5.0 → 0.5.9\nRun: cstl update\n0.5.9",
+      "Pactile update available: 0.5.0 → 0.5.9\nRun: pactile update\n0.5.9",
     );
 
-    expect(output).toContain("Trellis update available: 0.5.0 -> 0.5.9");
-    expect(output).toContain("run cstl upgrade");
+    expect(output).toContain("Pactile update available: 0.5.0 -> 0.5.9");
+    expect(output).toContain("run pactile upgrade");
     expect(output).toContain("SESSION CONTEXT");
   });
 
   it("does not show a hint when installed version is equal or newer", () => {
-    expect(runContextWithTrellisOutput("0.5.9", "0.5.9")).not.toContain(
-      "Trellis update available",
+    expect(runContextWithPactileOutput("0.5.9", "0.5.9")).not.toContain(
+      "Pactile update available",
     );
-    fs.rmSync(path.join(tmpDir, ".cstl", ".runtime"), {
+    fs.rmSync(path.join(tmpDir, ".pactile", ".runtime"), {
       recursive: true,
       force: true,
     });
-    expect(runContextWithTrellisOutput("0.6.0", "0.5.9")).not.toContain(
-      "Trellis update available",
+    expect(runContextWithPactileOutput("0.6.0", "0.5.9")).not.toContain(
+      "Pactile update available",
     );
   });
 
-  it("silently skips the hint when cstl --version fails or version parsing fails", () => {
-    expect(runContextWithTrellisOutput("0.5.0", null)).not.toContain(
-      "Trellis update available",
+  it("silently skips the hint when pactile --version fails or version parsing fails", () => {
+    expect(runContextWithPactileOutput("0.5.0", null)).not.toContain(
+      "Pactile update available",
     );
-    fs.rmSync(path.join(tmpDir, ".cstl", ".runtime"), {
+    fs.rmSync(path.join(tmpDir, ".pactile", ".runtime"), {
       recursive: true,
       force: true,
     });
-    expect(runContextWithTrellisOutput("not-a-version", "0.5.9")).not.toContain(
-      "Trellis update available",
+    expect(runContextWithPactileOutput("not-a-version", "0.5.9")).not.toContain(
+      "Pactile update available",
     );
   });
 
   it("does not burn the once-per-session marker when version lookup fails", () => {
-    expect(runContextWithTrellisOutput("0.5.0", null)).not.toContain(
-      "Trellis update available",
+    expect(runContextWithPactileOutput("0.5.0", null)).not.toContain(
+      "Pactile update available",
     );
 
-    const output = runContextWithTrellisOutput("0.5.0", "0.5.9");
+    const output = runContextWithPactileOutput("0.5.0", "0.5.9");
 
-    expect(output).toContain("Trellis update available: 0.5.0 -> 0.5.9");
+    expect(output).toContain("Pactile update available: 0.5.0 -> 0.5.9");
   });
 
-  it("uses the final cstl --version token when no update line is present", () => {
-    const output = runContextWithTrellisOutput("0.5.0", "0.5.9");
+  it("uses the final pactile --version token when no update line is present", () => {
+    const output = runContextWithPactileOutput("0.5.0", "0.5.9");
 
-    expect(output).toContain("Trellis update available: 0.5.0 -> 0.5.9");
+    expect(output).toContain("Pactile update available: 0.5.0 -> 0.5.9");
   });
 
   it("only attempts the default text update hint once per session", () => {
-    const first = runContextWithTrellisOutput("0.5.0", "0.5.9");
-    const second = runContextWithTrellisOutput("0.5.0", "0.5.9");
+    const first = runContextWithPactileOutput("0.5.0", "0.5.9");
+    const second = runContextWithPactileOutput("0.5.0", "0.5.9");
 
-    expect(first).toContain("Trellis update available: 0.5.0 -> 0.5.9");
-    expect(second).not.toContain("Trellis update available");
+    expect(first).toContain("Pactile update available: 0.5.0 -> 0.5.9");
+    expect(second).not.toContain("Pactile update available");
     expect(
       fs.existsSync(
         path.join(
           tmpDir,
-          ".cstl",
+          ".pactile",
           ".runtime",
           "update-check-test-update-session.marker",
         ),
@@ -859,7 +859,7 @@ describe("regression: agent-session Trellis update hint", () => {
     ]) {
       expect(
         pythonFunctionBody(commonSessionContext, functionName),
-        `${functionName} should not check Trellis updates`,
+        `${functionName} should not check Pactile updates`,
       ).not.toContain("_get_update_hint");
     }
     expect(commonGitContext).toContain("if args.mode == \"record\":");
@@ -875,19 +875,19 @@ describe("regression: issue #252 polyrepo Git context", () => {
   const pythonCmd = process.platform === "win32" ? "python" : "python3";
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-polyrepo-git-"));
-    const scriptsDir = path.join(tmpDir, ".cstl", "scripts");
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-polyrepo-git-"));
+    const scriptsDir = path.join(tmpDir, ".pactile", "scripts");
     for (const [relativePath, content] of getAllScripts()) {
       const absPath = path.join(scriptsDir, relativePath);
       fs.mkdirSync(path.dirname(absPath), { recursive: true });
       fs.writeFileSync(absPath, content, "utf-8");
     }
-    fs.mkdirSync(path.join(tmpDir, ".cstl", "tasks"), { recursive: true });
-    fs.mkdirSync(path.join(tmpDir, ".cstl", "workspace", "test-dev"), {
+    fs.mkdirSync(path.join(tmpDir, ".pactile", "tasks"), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, ".pactile", "workspace", "test-dev"), {
       recursive: true,
     });
     fs.writeFileSync(
-      path.join(tmpDir, ".cstl", ".developer"),
+      path.join(tmpDir, ".pactile", ".developer"),
       "name=test-dev\n",
       "utf-8",
     );
@@ -899,7 +899,7 @@ describe("regression: issue #252 polyrepo Git context", () => {
 
   function writeConfigYaml(content: string): void {
     fs.writeFileSync(
-      path.join(tmpDir, ".cstl", "config.yaml"),
+      path.join(tmpDir, ".pactile", "config.yaml"),
       content,
       "utf-8",
     );
@@ -932,7 +932,7 @@ describe("regression: issue #252 polyrepo Git context", () => {
         "import json",
         "import sys",
         "from pathlib import Path",
-        "sys.path.insert(0, str(Path.cwd() / '.cstl' / 'scripts'))",
+        "sys.path.insert(0, str(Path.cwd() / '.pactile' / 'scripts'))",
         "from common import session_context",
         expression,
         "",

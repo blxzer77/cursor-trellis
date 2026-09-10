@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { ProjectionOperationV1 } from "@blxzer/cursor-trellis-core";
+import type { ProjectionOperationV1 } from "@blxzer/pactile-core";
 import { ProjectionStore } from "../../../src/pactile/projection/store.js";
 import { fingerprintBytes } from "../../../src/pactile/projection/planner.js";
 import {
@@ -70,6 +70,74 @@ describe("projection transaction store", () => {
     });
     expect(store.apply(next)).toMatchObject({ status: "review" });
     expect(fs.existsSync(path.join(root, "foreign.txt"))).toBe(false);
+  });
+  it("verifies an applied receipt without writes and reports later host drift", () => {
+    const store = new ProjectionStore(root);
+    const preview = inspect(store);
+    expect(store.apply(preview).status).toBe("applied");
+    const before = fs.readFileSync(
+      path.join(root, ".pactile/runtime/ownership-ledger.json"),
+    );
+    expect(store.verifyApplied(preview)).toMatchObject({ status: "applied" });
+    expect(
+      fs.readFileSync(
+        path.join(root, ".pactile/runtime/ownership-ledger.json"),
+      ),
+    ).toEqual(before);
+
+    fs.appendFileSync(target(), "user edit\n");
+    expect(store.verifyApplied(preview)).toEqual({
+      status: "drift",
+      reason: "applied-state-drift",
+    });
+    expect(store.verifyApplied({ ...preview })).toEqual({
+      status: "review",
+      reason: "unrecognized-or-modified-preview",
+    });
+  });
+  it("accepts a B2 receipt only as the canonical empty external-claim state", () => {
+    const store = new ProjectionStore(root);
+    const preview = inspect(store);
+    const applied = store.apply(preview);
+    expect(applied.status).toBe("applied");
+    if (applied.status !== "applied") throw new Error(JSON.stringify(applied));
+    const receiptPath = path.join(
+      root,
+      ".pactile/runtime/receipts",
+      `projection-${applied.receipt.planFingerprint.slice(7)}.json`,
+    );
+    const legacyReceipt = JSON.parse(fs.readFileSync(receiptPath, "utf8"));
+    delete legacyReceipt.externalClaimsFingerprint;
+    fs.writeFileSync(receiptPath, JSON.stringify(legacyReceipt));
+
+    expect(store.verifyApplied(preview)).toMatchObject({ status: "applied" });
+    expect(
+      store.verifyAdapterState("adapter-a", applied.receipt.planFingerprint),
+    ).toMatchObject({ status: "applied" });
+    expect(store.apply(preview).status).toBe("already-applied");
+  });
+  it("verifies one Adapter from its durable receipt while sibling claims evolve", () => {
+    const store = new ProjectionStore(root);
+    const first = inspect(store);
+    const applied = store.apply(first);
+    expect(applied.status).toBe("applied");
+    if (applied.status !== "applied") throw new Error(JSON.stringify(applied));
+    expect(
+      store.verifyAdapterState("adapter-a", applied.receipt.planFingerprint),
+    ).toMatchObject({ status: "applied" });
+
+    expect(
+      store.apply(inspect(store, claim(store, "adapter-b"), "adapter-b"))
+        .status,
+    ).toBe("applied");
+    expect(
+      store.verifyAdapterState("adapter-a", applied.receipt.planFingerprint),
+    ).toMatchObject({ status: "applied" });
+
+    fs.appendFileSync(target(), "user edit\n");
+    expect(
+      store.verifyAdapterState("adapter-a", applied.receipt.planFingerprint),
+    ).toEqual({ status: "drift", reason: "applied-state-drift" });
   });
   it("claims two, releases one, deletes last unmodified created file, and reclaims", () => {
     const store = new ProjectionStore(root);
@@ -518,7 +586,7 @@ describe("projection transaction store", () => {
     expect(new ProjectionStore(root).recover().status).toBe("review");
     expect(fs.existsSync(target())).toBe(false);
   });
-  it("external bindings never read assets or persist a second binding SSOT or secret content", () => {
+  it("persists borrowed claim identity without reading or copying external content", () => {
     const store = new ProjectionStore(root),
       asset = path.join(root, "external.txt");
     fs.writeFileSync(asset, "SENSITIVE-FIXTURE-BODY");
@@ -533,6 +601,19 @@ describe("projection transaction store", () => {
     });
     const result = store.apply(inspect(store, op));
     expect(result.status).toBe("applied");
+    if (result.status !== "applied") throw new Error(JSON.stringify(result));
+    expect(
+      store.verifyAdapterState(op.claimantId, result.receipt.planFingerprint),
+    ).toMatchObject({
+      status: "applied",
+      externalClaims: [
+        {
+          resourceId: op.resourceId,
+          externalAssetId: "external-skill-a",
+          claimants: [op.claimantId],
+        },
+      ],
+    });
     expect(fs.readFileSync(asset, "utf8")).toBe("SENSITIVE-FIXTURE-BODY");
     const receiptDir = path.join(root, ".pactile/runtime/receipts"),
       receipt = fs.readFileSync(
@@ -543,10 +624,65 @@ describe("projection transaction store", () => {
     expect(receipt).not.toContain(root);
     expect(receipt).not.toContain("SENSITIVE-FIXTURE-BODY");
     expect(store.readLedger()?.ledger.entries).toEqual([]);
+    expect(store.readExternalClaims().claims).toEqual([
+      {
+        resourceId: op.resourceId,
+        externalAssetId: "external-skill-a",
+        claimants: [op.claimantId],
+      },
+    ]);
+    expect(
+      fs.readFileSync(
+        path.join(root, ".pactile/runtime/external-claims.json"),
+        "utf8",
+      ),
+    ).not.toContain("SENSITIVE-FIXTURE-BODY");
     expect(fs.readdirSync(path.join(root, ".pactile/runtime")).sort()).toEqual([
+      "external-claims.json",
       "ownership-ledger.json",
       "receipts",
     ]);
+  });
+  it("scopes external-claim receipts so sibling Adapter claims do not cause drift", () => {
+    const store = new ProjectionStore(root);
+    const external = (adapterId: string, resourceId: string) =>
+      operation({
+        id: `bind-${adapterId}`,
+        resourceId,
+        claimantId: adapterId,
+        action: "bind",
+        control: "borrowed",
+        targetPath: null,
+        format: "external-ref",
+        contentRef: null,
+        desiredFingerprint: null,
+        expectedCurrentFingerprint: null,
+        externalAssetId: `external-${resourceId}`,
+      });
+
+    const first = inspect(
+      store,
+      external("adapter-a", "external-a"),
+      "adapter-a",
+    );
+    const applied = store.apply(first);
+    expect(applied.status).toBe("applied");
+    if (applied.status !== "applied") throw new Error(JSON.stringify(applied));
+    expect(
+      store.verifyAdapterState("adapter-a", applied.receipt.planFingerprint),
+    ).toMatchObject({ status: "applied" });
+
+    const sibling = inspect(
+      store,
+      external("adapter-b", "external-b"),
+      "adapter-b",
+    );
+    expect(store.apply(sibling).status).toBe("applied");
+    expect(
+      store.verifyAdapterState("adapter-a", applied.receipt.planFingerprint),
+    ).toMatchObject({ status: "applied" });
+    expect(store.verifyApplied(first)).toMatchObject({ status: "applied" });
+    expect(store.apply(first).status).toBe("already-applied");
   });
 });
 describe("Windows projection namespace boundaries", () => {

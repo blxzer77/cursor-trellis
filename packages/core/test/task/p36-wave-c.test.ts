@@ -23,7 +23,7 @@ describe("P36 wave C confirm-gated stop-read", () => {
   let tmp: string;
 
   beforeEach(() => {
-    tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cstl-p36-c-"));
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-p36-c-"));
   });
 
   afterEach(() => {
@@ -44,7 +44,7 @@ describe("P36 wave C confirm-gated stop-read", () => {
   });
 
   it("vernacular names leftover stop-read and keeps Continue/Close on refuse", () => {
-    const taskDir = path.join(tmp, ".cstl", "tasks", "legacy");
+    const taskDir = path.join(tmp, ".pactile", "tasks", "legacy");
     writeJson(path.join(taskDir, "task.json"), {
       ...emptyTaskRecord({
         id: "legacy",

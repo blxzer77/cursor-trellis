@@ -1,5 +1,5 @@
 /**
- * `trellis channel list` — table summary of all channels in `~/.cstl/channels/`.
+ * `pactile channel list` — table summary of channels in `~/.pactile/channels/`.
  *
  * Columns: name, created (ts), workers (alive/total), last activity, task.
  * Sorted by most recent activity first.

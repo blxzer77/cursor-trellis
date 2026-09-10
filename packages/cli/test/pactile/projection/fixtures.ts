@@ -1,7 +1,7 @@
 import type {
   ProjectionOperationV1,
   ProjectionPlanV1,
-} from "@blxzer/cursor-trellis-core";
+} from "@blxzer/pactile-core";
 import {
   fingerprintBytes,
   type ProjectionContent,

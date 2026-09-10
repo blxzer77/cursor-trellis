@@ -3,16 +3,21 @@ import os from "node:os";
 import path from "node:path";
 
 import {
+  PACTILE_ENVIRONMENT_KEYS,
+  readPactileEnvironment,
+  writePactileEnvironment,
+} from "@blxzer/pactile-core";
+import {
   GLOBAL_PROJECT_KEY,
   type ChannelRef,
   type ChannelScope,
 } from "./schema.js";
 
-/** Top-level Trellis channels directory. */
+/** Top-level Pactile channels directory. */
 export function channelRoot(): string {
-  const env = process.env.TRELLIS_CHANNEL_ROOT;
+  const env = readPactileEnvironment(PACTILE_ENVIRONMENT_KEYS.channelRoot);
   if (env && env.length > 0) return path.resolve(env);
-  return path.join(os.homedir(), ".cstl", "channels");
+  return path.join(os.homedir(), ".pactile", "channels");
 }
 
 /**
@@ -40,12 +45,12 @@ export function projectKey(cwd: string): string {
 
 /**
  * Project key for the current CLI invocation. Reads
- * `TRELLIS_CHANNEL_PROJECT` env first (set by the supervisor spawn so
+ * `PACTILE_CHANNEL_PROJECT` env first (set by the supervisor spawn so
  * detached children land in the same bucket as the spawning CLI), then
  * falls back to deriving from `process.cwd()`.
  */
 export function currentProjectKey(): string {
-  const env = process.env.TRELLIS_CHANNEL_PROJECT;
+  const env = readPactileEnvironment(PACTILE_ENVIRONMENT_KEYS.channelProject);
   if (env && env.length > 0) return env;
   return projectKey(process.cwd());
 }
@@ -240,7 +245,7 @@ export function resolveExistingChannelRef(
         `Channel '${name}' not found in ${opts.scope} scope (${project})`,
       );
     }
-    process.env.TRELLIS_CHANNEL_PROJECT = project;
+    writePactileEnvironment(PACTILE_ENVIRONMENT_KEYS.channelProject, project);
     return { name, scope: opts.scope, project, dir: channelDir(name, project) };
   }
 
@@ -257,7 +262,10 @@ export function resolveExistingChannelRef(
   }
 
   if (globalExists) {
-    process.env.TRELLIS_CHANNEL_PROJECT = GLOBAL_PROJECT_KEY;
+    writePactileEnvironment(
+      PACTILE_ENVIRONMENT_KEYS.channelProject,
+      GLOBAL_PROJECT_KEY,
+    );
     return {
       name,
       scope: "global",
@@ -267,7 +275,7 @@ export function resolveExistingChannelRef(
   }
 
   if (fs.existsSync(eventsPath(name, current))) {
-    process.env.TRELLIS_CHANNEL_PROJECT = current;
+    writePactileEnvironment(PACTILE_ENVIRONMENT_KEYS.channelProject, current);
     return {
       name,
       scope: "project",
@@ -277,7 +285,10 @@ export function resolveExistingChannelRef(
   }
 
   if (projectMatches.length === 1) {
-    process.env.TRELLIS_CHANNEL_PROJECT = projectMatches[0];
+    writePactileEnvironment(
+      PACTILE_ENVIRONMENT_KEYS.channelProject,
+      projectMatches[0],
+    );
     return {
       name,
       scope: "project",

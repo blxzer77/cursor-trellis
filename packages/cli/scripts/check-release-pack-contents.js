@@ -1,23 +1,23 @@
-#!/usr/bin/env node
-
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { createCommandRunner } from "./release-guard.js";
 
 export const REQUIRED_RELEASE_FILES = [
+  "bin/pactile.js",
   "bin/cstl.js",
+  "bin/compat-warning.js",
   "bin/smart-search.js",
   "dist/cli/index.js",
-  "dist/templates/trellis/scripts/task.py",
-  "dist/templates/trellis/scripts/get_context.py",
-  "dist/templates/trellis/scripts/common/retrieval_pack.py",
-  "dist/templates/trellis/scripts/common/codebase_retrieval_router.py",
-  "dist/templates/trellis/scripts/common/retrieval_adapter_metadata.py",
-  "dist/templates/trellis/workflow.md",
-  "dist/templates/trellis/modules/index.json",
-  "dist/templates/trellis/modules/intake-basic/contract.md",
-  "dist/templates/trellis/scripts/compile_session_pack.py",
+  "dist/templates/pactile/scripts/task.py",
+  "dist/templates/pactile/scripts/get_context.py",
+  "dist/templates/pactile/scripts/common/retrieval_pack.py",
+  "dist/templates/pactile/scripts/common/codebase_retrieval_router.py",
+  "dist/templates/pactile/scripts/common/retrieval_adapter_metadata.py",
+  "dist/templates/pactile/workflow.md",
+  "dist/templates/pactile/modules/index.json",
+  "dist/templates/pactile/modules/intake-basic/contract.md",
+  "dist/templates/pactile/scripts/compile_session_pack.py",
   "dist/templates/shared-hooks/session-start.py",
   "scripts/postinstall.js",
   "README.md",
@@ -77,7 +77,7 @@ export function checkReleasePackContents({
       capture: true,
       env: {
         ...process.env,
-        TRELLIS_SKIP_SMART_SEARCH_POSTINSTALL: "1",
+        PACTILE_SKIP_SMART_SEARCH_POSTINSTALL: "1",
       },
     },
   );

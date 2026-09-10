@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * Prepare and publish the Core + CLI pair across an explicit credential wall.
  *
@@ -36,12 +35,15 @@ import {
   computeNpmTag,
   createPublishPlan,
   npmVersionExists,
+  releasePackageDefinitions,
 } from "./release-preflight.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CLI_DIR = path.resolve(__dirname, "..");
 const REPO_ROOT = path.resolve(CLI_DIR, "../..");
 const CORE_DIR = path.resolve(CLI_DIR, "../core");
+const LEGACY_CORE_DIR = path.resolve(CLI_DIR, "../cursor-trellis-core-shim");
+const LEGACY_CLI_DIR = path.resolve(CLI_DIR, "../cursor-trellis-shim");
 
 export const PUBLISH_CREDENTIAL_ENV_KEYS = ["NODE_AUTH_TOKEN", "NPM_TOKEN"];
 
@@ -52,6 +54,8 @@ function readPackage(file) {
 export function readPackageInfo() {
   const cli = readPackage(path.join(CLI_DIR, "package.json"));
   const core = readPackage(path.join(CORE_DIR, "package.json"));
+  const legacyCore = readPackage(path.join(LEGACY_CORE_DIR, "package.json"));
+  const legacyCli = readPackage(path.join(LEGACY_CLI_DIR, "package.json"));
   return {
     cliName: cli.name,
     cliVersion: cli.version,
@@ -59,6 +63,12 @@ export function readPackageInfo() {
     coreName: core.name,
     coreVersion: core.version,
     coreDir: CORE_DIR,
+    legacyCoreName: legacyCore.name,
+    legacyCoreVersion: legacyCore.version,
+    legacyCoreDir: LEGACY_CORE_DIR,
+    legacyCliName: legacyCli.name,
+    legacyCliVersion: legacyCli.version,
+    legacyCliDir: LEGACY_CLI_DIR,
   };
 }
 
@@ -76,12 +86,12 @@ export function assertCredentialFreePreparation(env = process.env) {
 }
 
 function validationEnvironment(cliDir, env) {
-  const bin = path.join(cliDir, "bin", "cstl.js");
+  const bin = path.join(cliDir, "bin", "pactile.js");
   const quoted = /\s/.test(bin) ? `"${bin}"` : bin;
   return {
-    TRELLIS_KERNEL_CLI:
-      env.TRELLIS_KERNEL_CLI ?? `node ${quoted} kernel --json`,
-    TRELLIS_SKIP_SMART_SEARCH_POSTINSTALL: "1",
+    PACTILE_KERNEL_CLI:
+      env.PACTILE_KERNEL_CLI ?? `node ${quoted} kernel --json`,
+    PACTILE_SKIP_SMART_SEARCH_POSTINSTALL: "1",
     NODE_AUTH_TOKEN: undefined,
     NPM_TOKEN: undefined,
   };
@@ -133,21 +143,19 @@ export function writeManifestReceiptOutput({
 }
 
 function dryRunPlan(packageInfo) {
-  return {
+  const plan = {
     version: packageInfo.cliVersion,
     tag: computeNpmTag(packageInfo.cliVersion),
     registryChecked: false,
-    core: {
-      name: packageInfo.coreName,
-      publish: true,
-      alreadyOnNpm: null,
-    },
-    cli: {
-      name: packageInfo.cliName,
-      publish: true,
-      alreadyOnNpm: null,
-    },
   };
+  for (const definition of releasePackageDefinitions(packageInfo)) {
+    plan[definition.key] = {
+      name: definition.name,
+      publish: true,
+      alreadyOnNpm: null,
+    };
+  }
+  return plan;
 }
 
 function statusAfter(runner, repoRoot) {
@@ -302,9 +310,17 @@ export function runPreparedPublish({
   log(
     `publish plan: ${plan.version} -> ${plan.tag} ` +
       `(core=${plan.core.publish ? "publish" : "skip"}, ` +
-      `cli=${plan.cli.publish ? "publish" : "skip"})`,
+      `cli=${plan.cli.publish ? "publish" : "skip"}, ` +
+      `legacyCore=${plan.legacyCore.publish ? "publish" : "skip"}, ` +
+      `legacyCli=${plan.legacyCli.publish ? "publish" : "skip"})`,
   );
-  if (!dryRun && (plan.core.publish || plan.cli.publish)) {
+  const orderedPlan = [
+    { key: "core", item: plan.core },
+    { key: "cli", item: plan.cli },
+    { key: "legacyCore", item: plan.legacyCore },
+    { key: "legacyCli", item: plan.legacyCli },
+  ];
+  if (!dryRun && orderedPlan.some((entry) => entry.item.publish)) {
     try {
       runner("npm", ["whoami"], { cwd: repoRoot, capture: true });
     } catch {
@@ -314,10 +330,7 @@ export function runPreparedPublish({
     }
   }
 
-  for (const entry of [
-    { key: "core", item: plan.core },
-    { key: "cli", item: plan.cli },
-  ]) {
+  for (const entry of orderedPlan) {
     if (!entry.item.publish) continue;
     const artifact = packageArtifact(artifacts, entry.key);
     runner(
@@ -355,7 +368,7 @@ export function runPreparedPublish({
 export function runPublishDryRun({ artifactDir, ...options } = {}) {
   const ownDirectory = !artifactDir;
   const target =
-    artifactDir ?? fs.mkdtempSync(path.join(os.tmpdir(), "cstl-release-dry-"));
+    artifactDir ?? fs.mkdtempSync(path.join(os.tmpdir(), "pactile-release-dry-"));
   try {
     const preparation = runCandidatePreparation({
       ...options,
@@ -410,7 +423,7 @@ function main() {
     );
     if (!remote) throw new Error("--remote requires a remote name.");
     if (args.includes("--tag") && !explicitTag) {
-      throw new Error("--tag requires an exact cstl-v<semver> value.");
+      throw new Error("--tag requires an exact pactile-v<semver> value.");
     }
     if (args.includes("--receipt-output") && !receiptOutput) {
       throw new Error("--receipt-output requires a path.");

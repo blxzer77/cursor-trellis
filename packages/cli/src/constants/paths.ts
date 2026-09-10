@@ -1,36 +1,35 @@
 /**
- * Path constants for Trellis workflow structure
+ * Path constants for the Pactile workflow structure
  *
  * Change these values to rename directories across the entire project.
  * All paths should be relative to the project root.
  */
 
-import { DEFAULT_CANONICAL_PATHS_V1 } from "@blxzer/cursor-trellis-core";
+import { DEFAULT_CANONICAL_PATHS_V1 } from "@blxzer/pactile-core";
 
-/** New Runtime SSOT; legacy lifecycle constants below stay unchanged until migration. */
+/** Canonical Pactile Runtime SSOT. */
 export const PACTILE_PATHS = DEFAULT_CANONICAL_PATHS_V1;
 
-// Legacy lifecycle directory names (do not switch init/update implicitly).
 export const DIR_NAMES = {
   /** Root workflow directory */
-  WORKFLOW: ".cstl",
-  /** Workspace directory (under .cstl/) - developer work areas */
+  WORKFLOW: ".pactile",
+  /** Workspace directory (under .pactile/) - developer work areas */
   WORKSPACE: "workspace",
-  /** Tasks directory (under .cstl/) - unified task storage */
+  /** Tasks directory (under .pactile/) - unified task storage */
   TASKS: "tasks",
   /** Archive directory (under tasks/) */
   ARCHIVE: "archive",
-  /** Spec/guidelines directory (under .cstl/) */
+  /** Spec/guidelines directory (under .pactile/) */
   SPEC: "spec",
-  /** Framework docs directory (under .cstl/) - framework-owned, update-managed */
+  /** Framework docs directory (under .pactile/) - framework-owned, update-managed */
   FRAMEWORK: "framework",
-  /** Scripts directory (under .cstl/) */
+  /** Scripts directory (under .pactile/) */
   SCRIPTS: "scripts",
-  /** Review-pool directory (under .cstl/) */
+  /** Review-pool directory (under .pactile/) */
   POOL: "pool",
-  /** P29 short-contract modules (under .cstl/) — index.json + <id>/contract.md */
+  /** Short-contract modules (under .pactile/) — index.json + <id>/contract.md */
   MODULES: "modules",
-  /** User middleware overlay (under .cstl/) — never written/hashed by init/update */
+  /** User middleware overlay (under .pactile/) — never written/hashed by init/update */
   MIDDLEWARE: "middleware",
 } as const;
 
@@ -54,35 +53,35 @@ export const FILE_NAMES = {
 
 // Constructed paths (relative to project root)
 export const PATHS = {
-  /** .cstl/ */
+  /** .pactile/ */
   WORKFLOW: DIR_NAMES.WORKFLOW,
-  /** .cstl/workspace/ */
+  /** .pactile/workspace/ */
   WORKSPACE: `${DIR_NAMES.WORKFLOW}/${DIR_NAMES.WORKSPACE}`,
-  /** .cstl/tasks/ */
+  /** .pactile/tasks/ */
   TASKS: `${DIR_NAMES.WORKFLOW}/${DIR_NAMES.TASKS}`,
-  /** .cstl/spec/ */
+  /** .pactile/spec/ */
   SPEC: `${DIR_NAMES.WORKFLOW}/${DIR_NAMES.SPEC}`,
-  /** .cstl/framework/ */
+  /** .pactile/framework/ */
   FRAMEWORK: `${DIR_NAMES.WORKFLOW}/${DIR_NAMES.FRAMEWORK}`,
-  /** .cstl/scripts/ */
+  /** .pactile/scripts/ */
   SCRIPTS: `${DIR_NAMES.WORKFLOW}/${DIR_NAMES.SCRIPTS}`,
-  /** .cstl/pool/ */
+  /** .pactile/pool/ */
   POOL: `${DIR_NAMES.WORKFLOW}/${DIR_NAMES.POOL}`,
-  /** .cstl/modules/ — user-shipped short contracts (not catalog.ts) */
+  /** .pactile/modules/ — user-shipped short contracts (not catalog.ts) */
   MODULES: `${DIR_NAMES.WORKFLOW}/${DIR_NAMES.MODULES}`,
-  /** .cstl/middleware/ — user overlay; update never writes, deletes, or hashes */
+  /** .pactile/middleware/ — user overlay; update never writes, deletes, or hashes */
   MIDDLEWARE: `${DIR_NAMES.WORKFLOW}/${DIR_NAMES.MIDDLEWARE}`,
-  /** .cstl/.developer */
+  /** .pactile/.developer */
   DEVELOPER_FILE: `${DIR_NAMES.WORKFLOW}/${FILE_NAMES.DEVELOPER}`,
-  /** .cstl/.current-task */
+  /** .pactile/.current-task */
   CURRENT_TASK_FILE: `${DIR_NAMES.WORKFLOW}/${FILE_NAMES.CURRENT_TASK}`,
-  /** .cstl/workflow.md */
+  /** .pactile/workflow.md */
   WORKFLOW_GUIDE_FILE: `${DIR_NAMES.WORKFLOW}/${FILE_NAMES.WORKFLOW_GUIDE}`,
 } as const;
 
 /**
  * Get developer's workspace directory path
- * @example getWorkspaceDir("john") => ".cstl/workspace/john"
+ * @example getWorkspaceDir("john") => ".pactile/workspace/john"
  */
 export function getWorkspaceDir(developer: string): string {
   return `${PATHS.WORKSPACE}/${developer}`;
@@ -90,7 +89,7 @@ export function getWorkspaceDir(developer: string): string {
 
 /**
  * Get task directory path
- * @example getTaskDir("01-21-my-task") => ".cstl/tasks/01-21-my-task"
+ * @example getTaskDir("01-21-my-task") => ".pactile/tasks/01-21-my-task"
  */
 export function getTaskDir(taskName: string): string {
   return `${PATHS.TASKS}/${taskName}`;
@@ -98,7 +97,7 @@ export function getTaskDir(taskName: string): string {
 
 /**
  * Get archive directory path
- * @example getArchiveDir() => ".cstl/tasks/archive"
+ * @example getArchiveDir() => ".pactile/tasks/archive"
  */
 export function getArchiveDir(): string {
   return `${PATHS.TASKS}/${DIR_NAMES.ARCHIVE}`;
@@ -106,7 +105,7 @@ export function getArchiveDir(): string {
 
 /**
  * True for the user middleware overlay and any file under it.
- * `cstl init` / `cstl update` must never write, delete, or hash these paths.
+ * `pactile init` / `pactile update` must never write, delete, or hash these paths.
  */
 export function isUserMiddlewareOverlayPath(relativePath: string): boolean {
   const normalized = relativePath.replace(/\\/g, "/");

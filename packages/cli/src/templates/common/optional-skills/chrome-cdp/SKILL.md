@@ -3,7 +3,7 @@ name: chrome-cdp
 description: Interact with local Chrome browser session (only on explicit user approval after being asked to inspect, debug, or interact with a page open in Chrome)
 ---
 
-> **experimental** — optional skill, installed on explicit request only (`cstl init --with-optional chrome-cdp`). Not a default Trellis capability.
+> **experimental** — optional skill, installed on explicit request only (`pactile init --with-optional chrome-cdp`). Not a default Pactile capability.
 >
 > vendored from `blaze-skills/chrome-cdp@4ed61ff`（源 commit）；同步机制：改源 → 拷副本 → 更新本标记。不要直接在本副本上分叉内容。
 

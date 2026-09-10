@@ -10,7 +10,7 @@ import path from "node:path";
 
 const TEMPLATE_ROOT = path.resolve(
   __dirname,
-  "../../src/templates/trellis",
+  "../../src/templates/pactile",
 );
 const TEMPLATE_SCRIPTS = path.join(TEMPLATE_ROOT, "scripts");
 
@@ -29,7 +29,7 @@ function runTask(
   repo: string,
   args: string[],
 ): { status: number | null; stdout: string; stderr: string } {
-  const r = spawnSync(PY, [".cstl/scripts/task.py", ...args], {
+  const r = spawnSync(PY, [".pactile/scripts/task.py", ...args], {
     cwd: repo,
     encoding: "utf-8",
   });
@@ -41,14 +41,14 @@ function runTask(
 }
 
 function setupRepo(tmp: string): void {
-  fs.mkdirSync(path.join(tmp, ".cstl", "tasks"), { recursive: true });
-  fs.mkdirSync(path.join(tmp, ".cstl", "config"), { recursive: true });
-  fs.cpSync(TEMPLATE_SCRIPTS, path.join(tmp, ".cstl", "scripts"), {
+  fs.mkdirSync(path.join(tmp, ".pactile", "tasks"), { recursive: true });
+  fs.mkdirSync(path.join(tmp, ".pactile", "config"), { recursive: true });
+  fs.cpSync(TEMPLATE_SCRIPTS, path.join(tmp, ".pactile", "scripts"), {
     recursive: true,
   });
   fs.copyFileSync(
     path.join(TEMPLATE_ROOT, "config", "execution-strategy-rules.json"),
-    path.join(tmp, ".cstl", "config", "execution-strategy-rules.json"),
+    path.join(tmp, ".pactile", "config", "execution-strategy-rules.json"),
   );
 }
 
@@ -70,7 +70,7 @@ function makeFullTask(
     classification?: string;
   } = {},
 ): string {
-  const taskDir = path.join(repo, ".cstl", "tasks", name);
+  const taskDir = path.join(repo, ".pactile", "tasks", name);
   fs.mkdirSync(taskDir, { recursive: true });
   const mode = opts.contractMode ?? "worker";
   const iso = opts.contractIso ?? "main-worktree";
@@ -115,7 +115,7 @@ describe("execution-strategy integration", () => {
   let tmp: string;
 
   beforeEach(() => {
-    tmp = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-exec-strat-"));
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-exec-strat-"));
     setupRepo(tmp);
     const git = spawnSync("git", ["init"], { cwd: tmp, encoding: "utf-8" });
     expect(git.status).toBe(0);
@@ -132,7 +132,7 @@ describe("execution-strategy integration", () => {
     });
     const r = runTask(tmp, [
       "suggest-execution-strategy",
-      ".cstl/tasks/code-full",
+      ".pactile/tasks/code-full",
       "--json",
     ]);
     expect(r.status).toBe(0);
@@ -153,7 +153,7 @@ describe("execution-strategy integration", () => {
     });
     const r = runTask(tmp, [
       "suggest-execution-strategy",
-      ".cstl/tasks/doc-only",
+      ".pactile/tasks/doc-only",
       "--json",
     ]);
     expect(r.status).toBe(0);
@@ -168,7 +168,7 @@ describe("execution-strategy integration", () => {
       contractIso: "main-worktree",
       caps: ["python-task-scripts"],
     });
-    const r = runTask(tmp, ["start-execution", ".cstl/tasks/drift", "--check"]);
+    const r = runTask(tmp, ["start-execution", ".pactile/tasks/drift", "--check"]);
     expect(r.status).toBe(0);
     expect(r.stdout).toContain("PASS");
     expect(r.stderr).toContain("[execution-strategy] WARN");

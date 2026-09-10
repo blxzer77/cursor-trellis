@@ -218,7 +218,7 @@ export function encodeClaudeInterruptMessage(text: string): string {
   const lines = [
     JSON.stringify({
       type: "control_request",
-      request_id: `trellis-int-${Date.now()}-${Math.random()
+      request_id: `pactile-int-${Date.now()}-${Math.random()
         .toString(36)
         .slice(2, 8)}`,
       request: { subtype: "interrupt" },

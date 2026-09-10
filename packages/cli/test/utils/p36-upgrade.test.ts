@@ -12,7 +12,7 @@ import {
 import { fileURLToPath } from "node:url";
 
 import { computeHash } from "../../src/utils/template-hash.js";
-import { planArtifactMigration } from "@blxzer/cursor-trellis-core/task";
+import { planArtifactMigration } from "@blxzer/pactile-core/task";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const UPGRADE_MD = path.join(

@@ -12,12 +12,12 @@ Three-layer retrieval ABI (frozen; do not merge back into workflow.md):
 DEGRADED MODE (2026-06-24): beforeSubmitPrompt ``additional_context`` does
 not reach the model in current Cursor versions (L1: event often not fired;
 L2: additional_context not delivered). This hook is telemetry-only: it logs
-routing decisions to ``.cstl/.runtime/retrieval-plan-events.log`` and MUST
+routing decisions to ``.pactile/.runtime/retrieval-plan-events.log`` and MUST
 NOT inject plan blocks, MUST NOT print ``additional_context`` to stdout, and
 MUST NOT claim the plan was delivered into the Prompt.
 
 Silent exit 0 (no stdout) when:
-  - TRELLIS_HOOKS=0 / not a Trellis repo
+  - PACTILE_HOOKS=0 / not a Pactile repo
   - prompt is meta-only (continue, slash commands, etc.)
   - gate says retrieval plan is not needed
   - quality layer has nothing to score (still must not fail)
@@ -55,7 +55,7 @@ if sys.platform.startswith("win"):
             except Exception:
                 pass
 
-DIR_WORKFLOW = ".cstl"
+DIR_WORKFLOW = ".pactile"
 # Markers of the plan block this hook deliberately does NOT emit.
 PLAN_MARKER_ZH = "## 代码库检索计划"
 PLAN_MARKER_EN = "## Codebase retrieval plan"
@@ -67,7 +67,7 @@ ABI_QUALITY_OWNER = "retrieval-extended"
 ABI_LAYER = "quality"
 
 
-def _find_trellis_root(start: Path) -> Path | None:
+def _find_pactile_root(start: Path) -> Path | None:
     current = start.resolve()
     while True:
         if (current / DIR_WORKFLOW / "scripts").is_dir():
@@ -154,8 +154,8 @@ def _write_telemetry_log(
 
 
 def main() -> int:
-    if os.environ.get("TRELLIS_HOOKS") == "0" or os.environ.get(
-        "TRELLIS_DISABLE_HOOKS"
+    if os.environ.get("PACTILE_HOOKS") == "0" or os.environ.get(
+        "PACTILE_DISABLE_HOOKS"
     ) == "1":
         return 0
 
@@ -168,7 +168,7 @@ def main() -> int:
         data = {}
 
     cwd_str = data.get("cwd") or os.getcwd()
-    root = _find_trellis_root(Path(str(cwd_str)))
+    root = _find_pactile_root(Path(str(cwd_str)))
     if root is None:
         return 0
 

@@ -90,11 +90,13 @@ describe("registry internal consistency", () => {
 
 
 
-  it("no configDir collides with .trellis", () => {
+  it("no configDir collides with canonical or legacy Pactile runtime roots", () => {
 
     for (const id of PLATFORM_IDS) {
 
-      expect(AI_TOOLS[id].configDir).not.toBe(".cstl");
+      expect([".pactile", ".cstl", ".trellis"]).not.toContain(
+        AI_TOOLS[id].configDir,
+      );
 
     }
 

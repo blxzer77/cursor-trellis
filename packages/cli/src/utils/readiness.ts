@@ -269,7 +269,7 @@ export function probeProjectCapability(
 
   if (id === "github-mcp" && commandAvailable && !hasGithubApiCredentialEnv()) {
     failures.push(
-      "`GITHUB_TOKEN` or `GITHUB_PERSONAL_ACCESS_TOKEN` is not visible to Trellis readiness checks",
+      "`GITHUB_TOKEN` or `GITHUB_PERSONAL_ACCESS_TOKEN` is not visible to Pactile readiness checks",
     );
   }
 
@@ -280,7 +280,7 @@ export function probeProjectCapability(
     hasLegacyGithubCredentialEnv()
   ) {
     warnings.push(
-      "`GH_TOKEN` is present, but Trellis GitHub MCP readiness expects `GITHUB_TOKEN` or `GITHUB_PERSONAL_ACCESS_TOKEN`; mirror the token into one of those variables before claiming GitHub MCP readiness.",
+      "`GH_TOKEN` is present, but Pactile GitHub MCP readiness expects `GITHUB_TOKEN` or `GITHUB_PERSONAL_ACCESS_TOKEN`; mirror the token into one of those variables before claiming GitHub MCP readiness.",
     );
   }
 
@@ -360,14 +360,14 @@ export function probeCodebaseRetrievalCapability(
         );
       } else {
         warnings.push(
-          `CodeGraph index marker found (${markers.join(", ")}), but Trellis has not verified index freshness; run a host-level status/query smoke or confirm with Git/source evidence before graph-derived impact claims. Structural graph output remains unverified until then.`,
+          `CodeGraph index marker found (${markers.join(", ")}), but Pactile has not verified index freshness; run a host-level status/query smoke or confirm with Git/source evidence before graph-derived impact claims. Structural graph output remains unverified until then.`,
         );
       }
     }
   }
 
   warnings.push(
-    "LSP adapter readiness is host-specific; Trellis does not start language servers during ordinary init/update, and navigation output remains candidate evidence until confirmed by source reads.",
+    "LSP adapter readiness is host-specific; Pactile does not start language servers during ordinary init/update, and navigation output remains candidate evidence until confirmed by source reads.",
   );
 
   return { id, infos, failures, warnings };

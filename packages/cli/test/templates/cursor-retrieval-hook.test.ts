@@ -44,7 +44,7 @@ describe("cursor retrieval plan hook", () => {
 
   it("default Cursor rules are bootstrap-only", () => {
     const rule = readFileSync(
-      join(templatesRoot, "cursor/rules/cstl-bootstrap.mdc"),
+      join(templatesRoot, "cursor/rules/pactile-bootstrap.mdc"),
       "utf-8",
     );
     expect(rule).toContain("Event Bridge");

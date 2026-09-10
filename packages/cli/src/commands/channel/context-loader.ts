@@ -3,7 +3,7 @@
  * string to be embedded in the worker's system prompt.
  *
  * --file <path-or-glob>     direct file inclusion (glob expanded via fs.globSync)
- * --jsonl <path>            parse a Trellis jsonl manifest where each line is
+ * --jsonl <path>            parse a Pactile jsonl manifest where each line is
  *                           {"file": "<path>", "reason": "<why>"} and include
  *                           each referenced file (reason becomes part of header)
  *

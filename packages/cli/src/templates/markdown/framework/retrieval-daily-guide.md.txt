@@ -16,7 +16,7 @@ Subsequent retrieval optimization may change ranking features, pack schema, or O
 
 ## Web research rule (smart-search is mandatory first)
 
-For **external / current / web facts**, **smart-search** (`run_smart_search.py`) is the **mandatory first choice**. Platform built-in web tools (Cursor `WebSearch` / `WebFetch`) are **downgrade-only**: use them solely when smart-search is unavailable (`doctor` not ok, `not_configured` / `failed`, or timeout). Never reach for built-in web search while smart-search is healthy. This rule overrides any general "use available tools" instinct — web retrieval strength is routed inside Trellis, not left to the platform default.
+For **external / current / web facts**, **smart-search** (`run_smart_search.py`) is the **mandatory first choice**. Platform built-in web tools (Cursor `WebSearch` / `WebFetch`) are **downgrade-only**: use them solely when smart-search is unavailable (`doctor` not ok, `not_configured` / `failed`, or timeout). Never reach for built-in web search while smart-search is healthy. This rule overrides any general "use available tools" instinct — web retrieval strength is routed inside Pactile, not left to the platform default.
 
 ## External-knowledge gate (search-or-not)
 
@@ -25,11 +25,11 @@ Ask: *If this answer were wrong because the world or a third-party API moved, wo
 | Decision | Action |
 | --- | --- |
 | **YES** (freshness / third-party surface) | Run `run_smart_search.py` — prefer `docs` / `official-source` / `broad-search` when cheap; use `deep-research` when multi-source or claim-risk is high |
-| **NO** (truth lives in this workspace) | Use rg / codegraph / `.cstl/spec` / task artifacts only — do **not** default to web |
+| **NO** (truth lives in this workspace) | Use rg / codegraph / `.pactile/spec` / task artifacts only — do **not** default to web |
 | **Ambiguous** | Prefer a **cheap** external probe over guessing; do not skip solely to save a call |
 
 **YES examples:** library/SDK current API or version; changelog / release notes; CVE / GitHub issue status; pricing / product status; live URLs; industry practice when designing policy.  
-**NO examples:** symbol location / call chains; in-repo Trellis contracts; behavior of the code you are editing; pure rename/lint inside known files.  
+**NO examples:** symbol location / call chains; in-repo Pactile contracts; behavior of the code you are editing; pure rename/lint inside known files.
 After search: persist under `{TASK}/research/` with a **provider label**; treat hits as candidates until corroborated (repo, test, or second source).
 
 ## Primary source preference
@@ -62,7 +62,7 @@ Prefer **primary sources** — official docs, source code, first-party API refer
 | Symbol, callers, edit blast radius | **codegraph** MCP | Own layer: structure-first for caller/trap/extension intents |
 | Unknown keywords, semantic discovery | **@codebase** (Cursor Native) / **fast-context** (BYOK env) | Native: built-in semantic; BYOK: `fast_context_search` MCP (see `cursorEnv` in plans) |
 | External / current facts | **smart-search-cli** | **Mandatory first** — built-in web tools are downgrade-only (see rule above) |
-| Trellis durable docs | **artifact-search** | `search_artifacts.py` |
+| Pactile durable docs | **artifact-search** | `search_artifacts.py` |
 | Past sessions | **session-memory** | Historical; verify against tasks/spec |
 | Intent hint for code questions | **router** | `route_codebase_retrieval.py` — plan JSON + `agentInstructions`; `--instructions` for steps only |
 | Agent follows retrieval policy on Cursor | **`.cursor/rules/retrieval-routing.mdc`** + **`route_codebase_retrieval.py`** | Rules enforce default tool order; `beforeSubmitPrompt` hook is telemetry-only (no plan injection); sessionStart is session-level orientation |
@@ -70,10 +70,10 @@ Prefer **primary sources** — official docs, source code, first-party API refer
 
 ## Semantic routing (Cursor)
 
-The planner emits **`platform-semantic`** with backend chosen by **`cursorEnv`** (`native` | `byok` from `~/.ccursor/routes.json` or `TRELLIS_CURSOR_BYOK`):
+The planner emits **`platform-semantic`** only when current Adapter facts resolve an authorized and ready host capability:
 
-- **native:** built-in `@codebase` / agent semantic search — **do not** use fast-context as Primary.
-- **byok:** **fast-context MCP** (`fast_context_search`) — built-in semantic is not in the agent tool list.
+- **host native:** built-in `@codebase` / agent semantic search — **do not** use fast-context as Primary.
+- **declared Middleware Provider:** use the resolver-selected Provider only after manifest, authorization, and readiness checks pass.
 
 Definition / reference jumps (Agent): **Prefer Grep → Read** for named symbols; **codegraph** when trap/blast/ambiguity. **Not** raw LSP: `GO_TO_DEFINITION` absent from [Agent tool overview](https://cursor.com/docs/agent/overview.md) (2026-08-05). Semantic / `@codebase` is a separate Prefer path for concepts (embedding index), not LSP. IDE Editor F12 ≠ Agent tool routing.
 
@@ -94,13 +94,13 @@ When `projectFileCount > 2000`, the router promotes structural (codegraph) route
 ## Commands
 
 ```powershell
-python ./.cstl/scripts/search_artifacts.py --query "<topic>" --json
-python ./.cstl/scripts/search_memory.py --query "<topic>" --json
-python ./.cstl/scripts/run_smart_search.py "<question>" --intent deep-research --json
-python ./.cstl/scripts/route_codebase_retrieval.py "<question>" --json
-python ./.cstl/scripts/route_codebase_retrieval.py "<question>" --instructions
-python ./.cstl/scripts/get_context.py --mode retrieval-pack --json --input evidence.json
-python ./.cstl/scripts/codegraph_session_smoke.py --json
+python ./.pactile/scripts/search_artifacts.py --query "<topic>" --json
+python ./.pactile/scripts/search_memory.py --query "<topic>" --json
+python ./.pactile/scripts/run_smart_search.py "<question>" --intent deep-research --json
+python ./.pactile/scripts/route_codebase_retrieval.py "<question>" --json
+python ./.pactile/scripts/route_codebase_retrieval.py "<question>" --instructions
+python ./.pactile/scripts/get_context.py --mode retrieval-pack --json --input evidence.json
+python ./.pactile/scripts/codegraph_session_smoke.py --json
 ```
 
 ## Codegraph session readiness (eval / dogfood)
@@ -108,7 +108,7 @@ python ./.cstl/scripts/codegraph_session_smoke.py --json
 Before a **cold benchmark** or structural-heavy run:
 
 1. **MCP**: In Cursor project MCP settings, enable the **codegraph** server for the workspace (or eval checkout).
-2. **Index on disk**: Run `python ./.cstl/scripts/codegraph_session_smoke.py` (exit 0 = at least one `.codegraph/` under workspace root or a top-level subproject). Use `--root <eval-checkout>` when the agent root is not the harness.
+2. **Index on disk**: Run `python ./.pactile/scripts/codegraph_session_smoke.py` (exit 0 = at least one `.codegraph/` under workspace root or a top-level subproject). Use `--root <eval-checkout>` when the agent root is not the harness.
 3. **Live MCP smoke** (manual): one `codegraph_search` with a known symbol in that repo; stale-index banner → re-read affected files.
 
 Paste into the **run report header** (markdown):
@@ -124,7 +124,7 @@ Paste into the **run report header** (markdown):
 
 When `smart-search doctor` is not ok or `run_smart_search.py` status is `not_configured` / `failed` (including **search timeout**), use **Cursor WebSearch/WebFetch**, then persist to `{TASK}/research/` with `source: cursor-web-fallback` in frontmatter. See `smart-search-cli` skill §4b.
 
-**CLI discovery (Cursor):** `TRELLIS_SMART_SEARCH_COMMAND` / `smart_search.command` → PATH `smart-search` → project `node_modules/.bin/smart-search` (when installed as a dependency). Agent entrypoint is always `./.cstl/scripts/run_smart_search.py`.
+**CLI discovery (Cursor):** `PACTILE_SMART_SEARCH_COMMAND` / `smart_search.command` → PATH `smart-search` → project `node_modules/.bin/smart-search` (when installed as a dependency). Agent entrypoint is always `./.pactile/scripts/run_smart_search.py`.
 
 **Research flags (smart-search ≥ 0.2.0; flags also on 0.1.15+):** pass through `run_smart_search.py` for `--intent deep-research`:
 
@@ -134,7 +134,7 @@ When `smart-search doctor` is not ok or `run_smart_search.py` status is `not_con
 | `--dry-run` | flag | Plan + routing preview only; no live providers |
 | `--progress` | flag | `[research]` stage logs to stderr |
 
-Research JSON may include `output_schema_version: 1` and structured `citations` (`id`, `source_type`, `verified`, `content_len`). Trellis manifests preserve those fields when present.
+Research JSON may include `output_schema_version: 1` and structured `citations` (`id`, `source_type`, `verified`, `content_len`). Pactile manifests preserve those fields when present.
 
 **Cursor skill surface:** `smart-search-cli` is an internal workflow name — it is **not** installed under `.cursor/skills/` (commands-only policy). On Cursor, follow this guide + `run_smart_search.py`; bundled skill assets ship for Codex/Gemini via `.agents/skills/` only.
 
@@ -155,7 +155,7 @@ After Grep/codegraph/semantic produce **path candidates**, reorder before choosi
 | `env-config-literal` | Prefer `scripts/`, `e2e/`, `bench/`, `test/` over generic `src/auth` / `src/paths`. |
 
 - **Agent plans**: `render_agent_instructions` / `route_codebase_retrieval.py --instructions` append a **结果层排序** block when these intents appear.
-- **Offline reorder**: `python ./.cstl/scripts/rank_retrieval_candidates.py --candidates fixtures.json --intents caller-chain --top-k 5 --pretty`
+- **Offline reorder**: `python ./.pactile/scripts/rank_retrieval_candidates.py --candidates fixtures.json --intents caller-chain --top-k 5 --pretty`
 - **Library**: `common/retrieval_result_ranking.py` (Python mirror used by router and rank script).
 
 Do **not** claim aggregate openclaw score gains from ranking alone without fresh telemetry (`candidate_pool_recall` vs final Top-K).

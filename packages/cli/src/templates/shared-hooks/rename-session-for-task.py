@@ -4,7 +4,7 @@
 When the agent successfully runs `task.py select` or
 `task.py start-execution <task> --approved`, emit an agent_message (best-effort)
 so the main session calls cursor-app-control `rename_chat` with the task
-directory name. MCP unavailable → agent skips silently per cstl-session-rename rule.
+directory name. MCP unavailable → agent skips silently per pactile-session-rename rule.
 """
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-DIR_WORKFLOW = ".cstl"
+DIR_WORKFLOW = ".pactile"
 DIR_RUNTIME = ".runtime"
 DIR_SESSION_RENAME = "session-rename"
 ANSI_ESCAPE = re.compile(r"\x1b\[[0-9;]*m")
@@ -45,7 +45,7 @@ def _strip_ansi(text: str) -> str:
     return ANSI_ESCAPE.sub("", text)
 
 
-def _find_trellis_root(start: Path) -> Path | None:
+def _find_pactile_root(start: Path) -> Path | None:
     current = start.resolve()
     while True:
         if (current / DIR_WORKFLOW).is_dir():
@@ -144,7 +144,7 @@ def _write_rename_state(path: Path, context_key: str, title: str) -> None:
 
 def _agent_rename_message(title: str) -> str:
     return (
-        "Trellis session rename: call cursor-app-control MCP `rename_chat` once "
+        "Pactile session rename: call cursor-app-control MCP `rename_chat` once "
         f'with title "{title}" (task directory name). '
         "If rename_chat is not in your tool list, skip silently — do not ask the user "
         "to rename manually."
@@ -163,7 +163,7 @@ def _load_context_key(root: Path, hook_input: dict[str, Any]) -> str | None:
 
 
 def main() -> int:
-    if os.environ.get("TRELLIS_HOOKS") == "0" or os.environ.get("TRELLIS_DISABLE_HOOKS") == "1":
+    if os.environ.get("PACTILE_HOOKS") == "0" or os.environ.get("PACTILE_DISABLE_HOOKS") == "1":
         print("{}")
         return 0
 
@@ -196,7 +196,7 @@ def main() -> int:
         return 0
 
     cwd = Path(_string_value(hook_input.get("cwd")) or os.getcwd())
-    root = _find_trellis_root(cwd)
+    root = _find_pactile_root(cwd)
     if root is None:
         print("{}")
         return 0

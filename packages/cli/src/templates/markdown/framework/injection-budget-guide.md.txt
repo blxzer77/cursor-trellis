@@ -2,7 +2,7 @@
 
 > **Purpose**: Allocate context injection across **reliable Cursor channels** with measurable caps —「完整 = 证据密度」, not unbounded prose.
 
-**Matrix input:** `08-06-cstl-p0-channel-baseline-matrix` → `research/channel-matrix.md` (C01–C04, C16).
+**Matrix input:** `08-06-pactile-p0-channel-baseline-matrix` → `research/channel-matrix.md` (C01–C04, C16).
 
 ---
 
@@ -10,7 +10,7 @@
 
 - **No `beforeSubmitPrompt` injection** — C04 stays telemetry-only until Cursor changelog proves otherwise.
 - **No black-box silent injection** — Layer 2 and jsonl loads emit stderr manifest lines.
-- **No weakening active controls** — execution approval and retrieval policy remain enforced. Intake is handled by `intake-basic`; it has no `[Triage:]` line, and the removed `cstl-triage.mdc` is not an always-on gate.
+- **No weakening active controls** — execution approval and retrieval policy remain enforced. Intake is handled by `intake-basic`; it has no `[Triage:]` line, and the removed `pactile-triage.mdc` is not an always-on gate.
 - **No Auto-Trigger Skill as retrieval primary** — C16 stays Rules + `route_codebase_retrieval.py --instructions`.
 
 ---
@@ -19,7 +19,7 @@
 
 | Tier | Channels | When | Budget |
 | --- | --- | --- | --- |
-| **Per-turn hard** | C01 Rules, C02 AGENTS | Every agent turn | Rules total warn 20 KiB / fail 32 KiB; AGENTS CSTL block warn 4 KiB |
+| **Per-turn hard** | C01 Rules, C02 AGENTS | Every agent turn | Rules total warn 20 KiB / fail 32 KiB; AGENTS PACTILE block warn 4 KiB |
 | **Session once** | C03 sessionStart | New session | Keep the context-progressive Session pack compact; not a substitute for per-turn rules |
 | **Zero** | C04 beforeSubmit | Every message | **0** — log only |
 | **Subagent only** | C06 Layer 2 | `generate_dispatch_prompt` → Task | Role default `max_chars` + jsonl caps (§3) |
@@ -47,7 +47,7 @@ Curate **spec/research only** — never pre-register code paths you will edit.
 **Dispatch manifest (stderr):**
 
 ```text
-[subagent-dispatch] injection-budget: .cstl/tasks/.../implement.jsonl loaded 2 entries (8421 chars): ...
+[subagent-dispatch] injection-budget: .pactile/tasks/.../implement.jsonl loaded 2 entries (8421 chars): ...
 [subagent-dispatch] injection-budget: skipped path: total cap (...)
 ```
 
@@ -74,7 +74,7 @@ Truncation order after jsonl budget: whole context string tail-truncated with `.
 Before adding a new `.cursor/rules/*.mdc` with `alwaysApply: true`:
 
 1. Confirm the content **must** be visible **every turn** (see `cursor-context-injection-guide.md`).
-2. Run `python ./.cstl/scripts/injection_budget_probe.py --repo-root .`.
+2. Run `python ./.pactile/scripts/injection_budget_probe.py --repo-root .`.
 3. If total alwaysApply exceeds **20 KiB**, trim or move detail to on-demand spec / `get_context.py`.
 
 **Rollback:** remove or scope the new rule; re-run probe.
@@ -85,16 +85,16 @@ Before adding a new `.cursor/rules/*.mdc` with `alwaysApply: true`:
 
 ```powershell
 # Workspace surfaces
-python ./.cstl/scripts/injection_budget_probe.py --repo-root .
+python ./.pactile/scripts/injection_budget_probe.py --repo-root .
 
 # Task jsonl + dispatch size
-python ./.cstl/scripts/injection_budget_probe.py --repo-root . --task .cstl/tasks/<task-dir> --dispatch-role implement
+python ./.pactile/scripts/injection_budget_probe.py --repo-root . --task .pactile/tasks/<task-dir> --dispatch-role implement
 
 # CI / gate style (fail on WARN or rules >32KiB)
-python ./.cstl/scripts/injection_budget_probe.py --repo-root . --strict
+python ./.pactile/scripts/injection_budget_probe.py --repo-root . --strict
 ```
 
-Constants live in `.cstl/scripts/common/injection_budget.py` (single source).
+Constants live in `.pactile/scripts/common/injection_budget.py` (single source).
 
 ---
 

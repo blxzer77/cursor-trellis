@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { getSharedHookScripts } from "../../src/templates/shared-hooks/index.js";
-import { getAllScriptsForTests } from "../../src/templates/trellis/index.js";
+import { getAllScriptsForTests } from "../../src/templates/pactile/index.js";
 import { resolvePython } from "./retrieval-eval-fixtures.js";
 
 const pythonCmd = resolvePython();
@@ -15,16 +15,16 @@ const templatesRoot = path.join(cliRoot, "src", "templates");
 const ABI_FILES = [
   "shared-hooks/inject-retrieval-plan.py",
   "shared-hooks/research-end-retrieval-pack.py",
-  "trellis/scripts/build_retrieval_pack.py",
-  "trellis/scripts/rank_retrieval_candidates.py",
-  "trellis/scripts/score_evidence.py",
+  "pactile/scripts/build_retrieval_pack.py",
+  "pactile/scripts/rank_retrieval_candidates.py",
+  "pactile/scripts/score_evidence.py",
 ] as const;
 
-const TASK_PATH = ".cstl/tasks/08-31-abi";
+const TASK_PATH = ".pactile/tasks/08-31-abi";
 const SESSION_ID = "retrieval-abi-test";
 
 function writeTrellisScripts(root: string): void {
-  const scriptsDir = path.join(root, ".cstl", "scripts");
+  const scriptsDir = path.join(root, ".pactile", "scripts");
   for (const [rel, content] of getAllScriptsForTests()) {
     const target = path.join(scriptsDir, rel);
     fs.mkdirSync(path.dirname(target), { recursive: true });
@@ -51,9 +51,9 @@ function seedTask(root: string): void {
     `${JSON.stringify({ id: "abi", name: "abi", title: "ABI", status: "in_progress" }, null, 2)}\n`,
     "utf-8",
   );
-  fs.mkdirSync(path.join(root, ".cstl", ".runtime", "sessions"), { recursive: true });
+  fs.mkdirSync(path.join(root, ".pactile", ".runtime", "sessions"), { recursive: true });
   fs.writeFileSync(
-    path.join(root, ".cstl", ".runtime", "sessions", `${SESSION_ID}.json`),
+    path.join(root, ".pactile", ".runtime", "sessions", `${SESSION_ID}.json`),
     `${JSON.stringify({ selected_task: TASK_PATH }, null, 2)}\n`,
     "utf-8",
   );
@@ -84,7 +84,7 @@ describe.skipIf(pythonCmd === null)("retrieval three-layer ABI freeze", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-retrieval-abi-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-retrieval-abi-"));
     seedTask(tmpDir);
   });
 
@@ -106,7 +106,7 @@ describe.skipIf(pythonCmd === null)("retrieval three-layer ABI freeze", () => {
   it("build_retrieval_pack CLI refuses missing collected-evidence as AC Evidence", () => {
     const result = runPython(
       [
-        path.join(tmpDir, ".cstl", "scripts", "build_retrieval_pack.py"),
+        path.join(tmpDir, ".pactile", "scripts", "build_retrieval_pack.py"),
         "--json",
       ],
       { cwd: tmpDir, input: "{}" },
@@ -148,7 +148,7 @@ describe.skipIf(pythonCmd === null)("retrieval three-layer ABI freeze", () => {
     );
     const result = runPython([hookPath], {
       cwd: tmpDir,
-      env: { TRELLIS_CONTEXT_ID: SESSION_ID },
+      env: { PACTILE_CONTEXT_ID: SESSION_ID },
       input: JSON.stringify({
         cwd: tmpDir,
         cursor_version: "1.0.0",
@@ -171,7 +171,7 @@ describe.skipIf(pythonCmd === null)("retrieval three-layer ABI freeze", () => {
     const hookPath = writeHook(tmpDir, "inject-retrieval-plan.py");
     const result = runPython([hookPath], {
       cwd: tmpDir,
-      env: { TRELLIS_CONTEXT_ID: SESSION_ID },
+      env: { PACTILE_CONTEXT_ID: SESSION_ID },
       input: JSON.stringify({
         cwd: tmpDir,
         cursor_version: "1.0.0",
@@ -184,7 +184,7 @@ describe.skipIf(pythonCmd === null)("retrieval three-layer ABI freeze", () => {
     expect(`${result.stdout}\n${result.stderr}`).not.toContain("已注入 Prompt");
     const logPath = path.join(
       tmpDir,
-      ".cstl",
+      ".pactile",
       ".runtime",
       "retrieval-plan-events.log",
     );
@@ -220,7 +220,7 @@ describe.skipIf(pythonCmd === null)("retrieval three-layer ABI freeze", () => {
     const stopHook = writeHook(tmpDir, "research-end-retrieval-pack.py");
     const stop = runPython([stopHook], {
       cwd: tmpDir,
-      env: { TRELLIS_CONTEXT_ID: SESSION_ID },
+      env: { PACTILE_CONTEXT_ID: SESSION_ID },
       input: JSON.stringify({
         cwd: tmpDir,
         cursor_version: "1.0.0",
@@ -236,7 +236,7 @@ describe.skipIf(pythonCmd === null)("retrieval three-layer ABI freeze", () => {
     const planHook = writeHook(tmpDir, "inject-retrieval-plan.py");
     const plan = runPython([planHook], {
       cwd: tmpDir,
-      env: { TRELLIS_CONTEXT_ID: SESSION_ID },
+      env: { PACTILE_CONTEXT_ID: SESSION_ID },
       input: JSON.stringify({
         cwd: tmpDir,
         cursor_version: "1.0.0",
@@ -248,7 +248,7 @@ describe.skipIf(pythonCmd === null)("retrieval three-layer ABI freeze", () => {
     expect(plan.stdout.trim()).toBe("");
     const logPath = path.join(
       tmpDir,
-      ".cstl",
+      ".pactile",
       ".runtime",
       "retrieval-plan-events.log",
     );

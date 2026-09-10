@@ -8,7 +8,7 @@ import {
   type ChannelScope,
   type ContextChannelEvent,
   type ThreadChannelEvent,
-} from "@blxzer/cursor-trellis-core/channel";
+} from "@blxzer/pactile-core/channel";
 
 import {
   parseChannelScope,
@@ -64,7 +64,7 @@ export async function channelThreadPost(
   const parsed = parseThreadAction(opts.action);
   if (parsed === "rename") {
     throw new Error(
-      "Use `trellis channel thread rename <channel> <old> <new>` instead of `post rename`.",
+      "Use `pactile channel thread rename <channel> <old> <new>` instead of `post rename`.",
     );
   }
   const action = parsed as Exclude<ThreadAction, "rename">;

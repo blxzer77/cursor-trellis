@@ -17,7 +17,7 @@ const cliRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../../..",
 );
-const scriptsDir = path.join(cliRoot, "src/templates/trellis/scripts");
+const scriptsDir = path.join(cliRoot, "src/templates/pactile/scripts");
 const cases = JSON.parse(
   readFileSync(
     path.join(cliRoot, "test/fixtures/retrieval-v3/cases.json"),

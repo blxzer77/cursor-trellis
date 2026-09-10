@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   parseOwnershipLedgerV1,
   type OwnershipLedgerV1,
-} from "@blxzer/cursor-trellis-core";
+} from "@blxzer/pactile-core";
 import {
   canonicalOwnershipLedger,
   fingerprintBytes,

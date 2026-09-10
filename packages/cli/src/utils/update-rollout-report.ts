@@ -1,5 +1,9 @@
-import type { ClassifiedMigrations, MigrationResult } from "../types/migration.js";
+import type {
+  ClassifiedMigrations,
+  MigrationResult,
+} from "../types/migration.js";
 import { VERSION, PACKAGE_NAME } from "../constants/version.js";
+import type { LifecycleResult } from "../pactile/lifecycle/orchestrator.js";
 
 export const UPDATE_ROLLOUT_REPORT_SCHEMA_VERSION = 1 as const;
 
@@ -9,6 +13,7 @@ export type UpdateRolloutOutcome =
   | "no_changes"
   | "would_apply"
   | "applied"
+  | "applied_degraded"
   | "cancelled"
   | "blocked_downgrade"
   | "blocked_migration_required"
@@ -77,7 +82,7 @@ export interface UpdateRolloutReport {
   mode: UpdateRolloutMode;
   outcome: UpdateRolloutOutcome;
   projectPath: string;
-  trellis: {
+  pactile: {
     cliVersion: string;
     packageName: string;
     projectVersionBefore: string;
@@ -122,6 +127,7 @@ export interface UpdateRolloutReport {
     configSectionsAppended: number;
   };
   readiness: UpdateReadinessSnapshot;
+  lifecycle: UpdateLifecycleSummary | null;
   postUpdateSmoke: UpdateSmokeCheckResult[];
   releaseBlockers: UpdateReleaseBlocker[];
 }
@@ -135,7 +141,9 @@ export interface BuildFilePlanInput {
   safeDeletePaths?: string[];
 }
 
-export function buildFilePlanFromChanges(input: BuildFilePlanInput): UpdateFileActions {
+export function buildFilePlanFromChanges(
+  input: BuildFilePlanInput,
+): UpdateFileActions {
   return {
     added: input.newFiles.map((f) => f.relativePath),
     autoUpdated: input.autoUpdateFiles.map((f) => f.relativePath),
@@ -185,6 +193,21 @@ export function migrationResultToSummary(
   };
 }
 
+export function lifecycleResultToSummary(
+  result: LifecycleResult | null,
+): UpdateLifecycleSummary | null {
+  if (!result) return null;
+  return {
+    status: result.status,
+    resumed: result.resumed,
+    reason: result.reason,
+    planId: result.plan?.id ?? null,
+    generationId: result.plan?.target.generationId ?? null,
+    generationFingerprint: result.generationFingerprint,
+    adapters: result.adapters.map((adapter) => ({ ...adapter })),
+  };
+}
+
 export function createBaseRolloutReport(input: {
   mode: UpdateRolloutMode;
   outcome: UpdateRolloutOutcome;
@@ -203,6 +226,7 @@ export function createBaseRolloutReport(input: {
   breakingMigrationGateRequired?: boolean;
   apply?: UpdateRolloutReport["apply"];
   postUpdateSmoke?: UpdateSmokeCheckResult[];
+  lifecycle?: UpdateLifecycleSummary | null;
   releaseBlockers?: UpdateReleaseBlocker[];
   p36?: UpdateRolloutReport["p36"];
 }): UpdateRolloutReport {
@@ -212,7 +236,7 @@ export function createBaseRolloutReport(input: {
     mode: input.mode,
     outcome: input.outcome,
     projectPath: input.projectPath,
-    trellis: {
+    pactile: {
       cliVersion: VERSION,
       packageName: PACKAGE_NAME,
       projectVersionBefore: input.projectVersionBefore,
@@ -223,7 +247,8 @@ export function createBaseRolloutReport(input: {
     options: input.options,
     plan: {
       upgradeDirection: input.upgradeDirection,
-      breakingMigrationGateRequired: input.breakingMigrationGateRequired ?? false,
+      breakingMigrationGateRequired:
+        input.breakingMigrationGateRequired ?? false,
       files: input.files,
       conflictsPending: input.conflictsPending,
       migrations: input.migrations,
@@ -231,6 +256,7 @@ export function createBaseRolloutReport(input: {
     },
     apply: input.apply,
     readiness: input.readiness,
+    lifecycle: input.lifecycle ?? null,
     postUpdateSmoke: input.postUpdateSmoke ?? [],
     releaseBlockers: input.releaseBlockers ?? [],
     p36: input.p36,
@@ -251,10 +277,15 @@ export function emitRolloutReport(
   console.log(`  outcome: ${report.outcome}`);
   console.log(`  mode: ${report.mode}`);
   console.log(
-    `  versions: ${report.trellis.projectVersionBefore} → ${report.trellis.projectVersionAfter ?? "(unchanged)"} (cli ${report.trellis.cliVersion})`,
+    `  versions: ${report.pactile.projectVersionBefore} → ${report.pactile.projectVersionAfter ?? "(unchanged)"} (cli ${report.pactile.cliVersion})`,
   );
   if (relBackup) {
     console.log(`  backup: ${relBackup}`);
+  }
+  if (report.lifecycle) {
+    console.log(
+      `  lifecycle: ${report.lifecycle.status} (${report.lifecycle.generationId ?? "no-generation"})`,
+    );
   }
   const f = report.plan.files;
   const pending =
@@ -279,4 +310,21 @@ export function emitRolloutReport(
     }
   }
   console.log("  Tip: re-run with --json for full structured evidence.");
+}
+
+export interface UpdateLifecycleSummary {
+  status: LifecycleResult["status"];
+  resumed: boolean;
+  reason: string | null;
+  planId: string | null;
+  generationId: string | null;
+  generationFingerprint: string | null;
+  adapters: {
+    adapterId: string;
+    status: "succeeded" | "failed" | "pending";
+    attempts: number;
+    reason: string | null;
+    retryable: boolean;
+    projectionFingerprint: string | null;
+  }[];
 }

@@ -4,13 +4,13 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { CODEBASE_RETRIEVAL_ROUTER_VERSION } from "../../src/utils/codebase-retrieval-router.js";
-import { getAllScriptsForTests } from "../../src/templates/trellis/index.js";
+import { getAllScriptsForTests } from "../../src/templates/pactile/index.js";
 import { resolvePython } from "./retrieval-eval-fixtures.js";
 
 const pythonCmd = resolvePython();
 
-function writeTrellisScripts(root: string): void {
-  const scriptsDir = path.join(root, ".cstl", "scripts");
+function writePactileScripts(root: string): void {
+  const scriptsDir = path.join(root, ".pactile", "scripts");
   for (const [rel, content] of getAllScriptsForTests()) {
     const target = path.join(scriptsDir, rel);
     fs.mkdirSync(path.dirname(target), { recursive: true });
@@ -21,7 +21,7 @@ function writeTrellisScripts(root: string): void {
 function runRouter(root: string, query: string): Record<string, unknown> {
   const scriptPath = path.join(
     root,
-    ".cstl",
+    ".pactile",
     "scripts",
     "route_codebase_retrieval.py",
   );
@@ -37,8 +37,8 @@ describe.skipIf(pythonCmd === null)("codebase_retrieval_router.py", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-router-"));
-    writeTrellisScripts(tmpDir);
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-router-"));
+    writePactileScripts(tmpDir);
   });
 
   afterEach(() => {
@@ -71,7 +71,7 @@ describe.skipIf(pythonCmd === null)("codebase_retrieval_router.py", () => {
     );
     const build = path.join(
       tmpDir,
-      ".cstl",
+      ".pactile",
       "scripts",
       "build_retrieval_pack.py",
     );

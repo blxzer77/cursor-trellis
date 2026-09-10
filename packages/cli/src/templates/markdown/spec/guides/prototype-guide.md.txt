@@ -76,7 +76,7 @@
 | 层 | 手段 | 适用 |
 | --- | --- | --- |
 | A | git **throwaway 分支**提交（如 `proto/<slug>`，离开 main），留上下文指针 | git 仓库 |
-| B | **路径快照**：复制到 `.cstl/tasks/<task>/research/prototype-<slug>.py`（或任务目录等价位置），并在 handoff.md / verify.md 记录路径 | **非 git 仓库的默认手段** |
+| B | **路径快照**：复制到 `.pactile/tasks/<task>/research/prototype-<slug>.py`（或任务目录等价位置），并在 handoff.md / verify.md 记录路径 | **非 git 仓库的默认手段** |
 
 - 工作位置本身是任务 `research/prototype-<slug>.py` 时，即工作即留证，无需再复制。
 - A / B 可并用。

@@ -55,7 +55,7 @@ describe("requireSupportedPython", () => {
     vi.mocked(execSync).mockReturnValue("Python 3.8.18");
 
     expect(() => requireSupportedPython("python3")).toThrow(
-      'Python 3.8.18 detected via "python3", but Trellis init requires Python ≥ 3.9.',
+      'Python 3.8.18 detected via "python3", but Pactile init requires Python ≥ 3.9.',
     );
   });
 
@@ -65,7 +65,7 @@ describe("requireSupportedPython", () => {
     });
 
     expect(() => requireSupportedPython("python")).toThrow(
-      'Python command "python" not found. Trellis init requires Python ≥ 3.9.',
+      'Python command "python" not found. Pactile init requires Python ≥ 3.9.',
     );
   });
 
@@ -98,19 +98,19 @@ describe("requireSupportedPython", () => {
     );
   });
 
-  it("skips the probe entirely when TRELLIS_SKIP_PYTHON_CHECK=1", () => {
-    const prev = process.env.TRELLIS_SKIP_PYTHON_CHECK;
-    process.env.TRELLIS_SKIP_PYTHON_CHECK = "1";
+  it("skips the probe entirely when PACTILE_SKIP_PYTHON_CHECK=1", () => {
+    const prev = process.env.PACTILE_SKIP_PYTHON_CHECK;
+    process.env.PACTILE_SKIP_PYTHON_CHECK = "1";
     try {
       // execSync should not be called at all
       const result = requireSupportedPython("python3");
-      expect(result).toBe("version check skipped (TRELLIS_SKIP_PYTHON_CHECK=1)");
+      expect(result).toBe("version check skipped (PACTILE_SKIP_PYTHON_CHECK=1)");
       expect(execSync).not.toHaveBeenCalled();
     } finally {
       if (prev === undefined) {
-        delete process.env.TRELLIS_SKIP_PYTHON_CHECK;
+        delete process.env.PACTILE_SKIP_PYTHON_CHECK;
       } else {
-        process.env.TRELLIS_SKIP_PYTHON_CHECK = prev;
+        process.env.PACTILE_SKIP_PYTHON_CHECK = prev;
       }
     }
   });
@@ -124,14 +124,14 @@ describe("resolveSupportedPython", () => {
   beforeEach(() => {
     vi.mocked(execSync).mockReset();
     resetResolvedPythonCommand();
-    delete process.env.TRELLIS_PYTHON_CMD;
-    delete process.env.TRELLIS_SKIP_PYTHON_CHECK;
+    delete process.env.PACTILE_PYTHON_CMD;
+    delete process.env.PACTILE_SKIP_PYTHON_CHECK;
   });
 
   afterEach(() => {
     resetResolvedPythonCommand();
-    delete process.env.TRELLIS_PYTHON_CMD;
-    delete process.env.TRELLIS_SKIP_PYTHON_CHECK;
+    delete process.env.PACTILE_PYTHON_CMD;
+    delete process.env.PACTILE_SKIP_PYTHON_CHECK;
     vi.restoreAllMocks();
   });
 
@@ -173,8 +173,8 @@ describe("resolveSupportedPython", () => {
     expect(() => resolveSupportedPython()).toThrow(/not found/);
   });
 
-  it("honors TRELLIS_PYTHON_CMD as an explicit override (no probe)", () => {
-    process.env.TRELLIS_PYTHON_CMD = "py -3.12";
+  it("honors PACTILE_PYTHON_CMD as an explicit override (no probe)", () => {
+    process.env.PACTILE_PYTHON_CMD = "py -3.12";
 
     const result = resolveSupportedPython();
     expect(result.command).toBe("py -3.12");
@@ -182,8 +182,8 @@ describe("resolveSupportedPython", () => {
     expect(getPythonCommandForPlatform()).toBe("py -3.12");
   });
 
-  it("honors TRELLIS_SKIP_PYTHON_CHECK=1 as last-resort escape hatch", () => {
-    process.env.TRELLIS_SKIP_PYTHON_CHECK = "1";
+  it("honors PACTILE_SKIP_PYTHON_CHECK=1 as last-resort escape hatch", () => {
+    process.env.PACTILE_SKIP_PYTHON_CHECK = "1";
 
     const result = resolveSupportedPython();
     // Should return the platform default without probing.

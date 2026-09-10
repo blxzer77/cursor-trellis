@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Session Start Hook - Inject the context-progressive Session pack only.
@@ -71,7 +71,7 @@ def _normalize_windows_shell_path(path_str: str) -> str:
 
 
 FIRST_REPLY_NOTICE = """<first-reply-notice>
-First visible reply: say once in Chinese that Trellis SessionStart context is loaded, then answer directly.
+First visible reply: say once in Chinese that Pactile SessionStart context is loaded, then answer directly.
 This notice is one-shot: do not repeat it after the first assistant reply in the same session.
 </first-reply-notice>"""
 
@@ -99,12 +99,12 @@ if sys.platform.startswith("win"):
 
 
 def should_skip_injection() -> bool:
-    """Check if any platform's non-interactive flag is set, or if Trellis
-    hooks are explicitly disabled via TRELLIS_HOOKS=0 / TRELLIS_DISABLE_HOOKS=1.
+    """Check if any platform's non-interactive flag is set, or if Pactile
+    hooks are explicitly disabled via PACTILE_HOOKS=0 / PACTILE_DISABLE_HOOKS=1.
     """
-    if os.environ.get("TRELLIS_HOOKS") == "0":
+    if os.environ.get("PACTILE_HOOKS") == "0":
         return True
-    if os.environ.get("TRELLIS_DISABLE_HOOKS") == "1":
+    if os.environ.get("PACTILE_DISABLE_HOOKS") == "1":
         return True
     non_interactive_vars = [
         "CLAUDE_NON_INTERACTIVE",
@@ -155,10 +155,10 @@ def _detect_platform(input_data: dict) -> str | None:
     return None
 
 
-def _append_hook_log(trellis_dir: Path, record: dict) -> None:
+def _append_hook_log(pactile_dir: Path, record: dict) -> None:
     """Side-channel: prove this process ran even if additional_context is dropped."""
     try:
-        log_dir = trellis_dir / ".runtime" / "hooks"
+        log_dir = pactile_dir / ".runtime" / "hooks"
         log_dir.mkdir(parents=True, exist_ok=True)
         payload = {
             "ts": datetime.now(timezone.utc)
@@ -173,25 +173,25 @@ def _append_hook_log(trellis_dir: Path, record: dict) -> None:
         pass
 
 
-def _resolve_trellis_dir(project_dir: Path) -> Path:
-    """Resolve the cstl instance directory for this project.
+def _resolve_pactile_dir(project_dir: Path) -> Path:
+    """Resolve the pactile instance directory for this project.
 
-    Mirrors common/paths.py get_repo_root(): finds the nearest .cstl upward
-    from project_dir. Harness sub-repos without a local .cstl resolve to the
+    Mirrors common/paths.py get_repo_root(): finds the nearest .pactile upward
+    from project_dir. Harness sub-repos without a local .pactile resolve to the
     harness root instance (thin-connect, 2026-08-16 instance-boundary decision).
     """
     current = project_dir
     while True:
-        if (current / ".cstl").is_dir():
-            return current / ".cstl"
+        if (current / ".pactile").is_dir():
+            return current / ".pactile"
         if current.parent == current:
             break
         current = current.parent
-    return project_dir / ".cstl"
+    return project_dir / ".pactile"
 
 
-def _resolve_context_key(trellis_dir: Path, input_data: dict) -> str | None:
-    scripts_dir = trellis_dir / "scripts"
+def _resolve_context_key(pactile_dir: Path, input_data: dict) -> str | None:
+    scripts_dir = pactile_dir / "scripts"
     if str(scripts_dir) not in sys.path:
         sys.path.insert(0, str(scripts_dir))
     from common.active_task import resolve_context_key  # type: ignore[import-not-found]
@@ -200,7 +200,7 @@ def _resolve_context_key(trellis_dir: Path, input_data: dict) -> str | None:
 
 
 def _persist_context_key_for_bash(context_key: str | None) -> None:
-    """Expose Trellis session identity to later Claude Code Bash commands.
+    """Expose Pactile session identity to later Claude Code Bash commands.
 
     Claude Code SessionStart hooks can append exports to CLAUDE_ENV_FILE; those
     variables are then available to Bash tools in the same conversation. Without
@@ -214,30 +214,30 @@ def _persist_context_key_for_bash(context_key: str | None) -> None:
         return
     try:
         with open(env_file, "a", encoding="utf-8") as handle:
-            handle.write(f"export TRELLIS_CONTEXT_ID={shlex.quote(context_key)}\n")
+            handle.write(f"export PACTILE_CONTEXT_ID={shlex.quote(context_key)}\n")
     except OSError:
         pass
 
 
-def _resolve_selected_task(trellis_dir: Path, input_data: dict):
-    scripts_dir = trellis_dir / "scripts"
+def _resolve_selected_task(pactile_dir: Path, input_data: dict):
+    scripts_dir = pactile_dir / "scripts"
     if str(scripts_dir) not in sys.path:
         sys.path.insert(0, str(scripts_dir))
     from common.active_task import resolve_selected_task  # type: ignore[import-not-found]
 
     return resolve_selected_task(
-        trellis_dir.parent,
+        pactile_dir.parent,
         input_data,
         platform=_detect_platform(input_data),
     )
 
 
-def _load_session_pack_module(trellis_dir: Path):
+def _load_session_pack_module(pactile_dir: Path):
     """Load session_pack.py without executing common/__init__.py."""
-    pack_path = trellis_dir / "scripts" / "common" / "session_pack.py"
+    pack_path = pactile_dir / "scripts" / "common" / "session_pack.py"
     if not pack_path.is_file():
         return None
-    spec = importlib.util.spec_from_file_location("cstl_session_pack", pack_path)
+    spec = importlib.util.spec_from_file_location("pactile_session_pack", pack_path)
     if spec is None or spec.loader is None:
         return None
     module = importlib.util.module_from_spec(spec)
@@ -245,24 +245,24 @@ def _load_session_pack_module(trellis_dir: Path):
     return module
 
 
-def _compile_session_pack_text(trellis_dir: Path, input_data: dict) -> str:
+def _compile_session_pack_text(pactile_dir: Path, input_data: dict) -> str:
     """Return compiled Session pack XML, or empty string on any failure."""
     try:
-        module = _load_session_pack_module(trellis_dir)
+        module = _load_session_pack_module(pactile_dir)
         if module is None:
             return ""
         selected_path = None
         selected_stale = False
         try:
-            active = _resolve_selected_task(trellis_dir, input_data)
+            active = _resolve_selected_task(pactile_dir, input_data)
             selected_path = active.task_path
             selected_stale = bool(active.stale)
         except Exception:
             selected_path = None
             selected_stale = False
-        fact_gap = os.environ.get("CSTL_SESSION_FACT_GAP") == "1"
-        pack = module.compile_session_pack_from_trellis(
-            trellis_dir,
+        fact_gap = os.environ.get("PACTILE_SESSION_FACT_GAP") == "1"
+        pack = module.compile_session_pack_from_pactile(
+            pactile_dir,
             selected_task_path=selected_path,
             selected_stale=selected_stale,
             fact_gap=fact_gap,
@@ -288,9 +288,9 @@ def _emit(context_text: str) -> None:
 
 def main():
     enter_root = Path(_normalize_windows_shell_path(os.getcwd())).resolve()
-    _append_hook_log(_resolve_trellis_dir(enter_root), {"phase": "enter"})
+    _append_hook_log(_resolve_pactile_dir(enter_root), {"phase": "enter"})
     if should_skip_injection():
-        _append_hook_log(_resolve_trellis_dir(enter_root), {"phase": "skip"})
+        _append_hook_log(_resolve_pactile_dir(enter_root), {"phase": "skip"})
         sys.exit(0)
 
     try:
@@ -320,20 +320,20 @@ def main():
     if project_dir is None:
         project_dir = Path(_normalize_windows_shell_path(hook_input.get("cwd", "."))).resolve()
 
-    trellis_dir = _resolve_trellis_dir(project_dir)
+    pactile_dir = _resolve_pactile_dir(project_dir)
     try:
-        context_key = _resolve_context_key(trellis_dir, hook_input)
+        context_key = _resolve_context_key(pactile_dir, hook_input)
         _persist_context_key_for_bash(context_key)
     except Exception:
         pass
 
-    compiled = _compile_session_pack_text(trellis_dir, hook_input)
+    compiled = _compile_session_pack_text(pactile_dir, hook_input)
     parts = [FIRST_REPLY_NOTICE]
     if compiled.strip():
         parts.append(compiled)
     text = "\n\n".join(parts)
     _append_hook_log(
-        trellis_dir,
+        pactile_dir,
         {
             "phase": "emit",
             "chars": len(text),

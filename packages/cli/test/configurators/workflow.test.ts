@@ -4,14 +4,14 @@ import path from "node:path";
 import os from "node:os";
 import { createWorkflowStructure } from "../../src/configurators/workflow.js";
 import { setWriteMode } from "../../src/utils/file-writer.js";
-import { listModuleCatalog } from "../../src/templates/trellis/modules/catalog.js";
+import { listModuleCatalog } from "../../src/templates/pactile/modules/catalog.js";
 import { PATHS } from "../../src/constants/paths.js";
 
-describe("createWorkflowStructure — Cursor++ never written (P23)", () => {
+describe("createWorkflowStructure — retired alternate-client bundle is never written", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-c2p-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-workflow-"));
     setWriteMode("force");
   });
 
@@ -20,28 +20,28 @@ describe("createWorkflowStructure — Cursor++ never written (P23)", () => {
     setWriteMode("ask");
   });
 
-  it("does NOT write cursor2plus bundle (option removed)", async () => {
+  it("does NOT write an alternate-client bundle", async () => {
     await createWorkflowStructure(tmpDir, { projectType: "fullstack" });
-    const cursor2plusDir = path.join(
+    const alternateClientDir = path.join(
       tmpDir,
-      ".cstl",
+      ".pactile",
       "local",
-      "cursor2plus",
+      "alternate-client",
     );
-    expect(fs.existsSync(cursor2plusDir)).toBe(false);
+    expect(fs.existsSync(alternateClientDir)).toBe(false);
     expect(
-      fs.existsSync(path.join(cursor2plusDir, "patch_wpelc8.py")),
+      fs.existsSync(path.join(alternateClientDir, "patch-client.py")),
     ).toBe(false);
-    // cursor2plus is no longer a WorkflowOptions field
+    // Alternate-client setup is not a WorkflowOptions field.
     expect(
-      "cursor2plus" in
+      "alternateClient" in
         (({ projectType: "fullstack" }) as Record<string, unknown>),
     ).toBe(false);
   });
 
   it("does NOT write maintainer-only scripts (probe, eval tools)", async () => {
     await createWorkflowStructure(tmpDir, { projectType: "fullstack" });
-    const scriptsDir = path.join(tmpDir, ".cstl", "scripts");
+    const scriptsDir = path.join(tmpDir, ".pactile", "scripts");
     expect(
       fs.existsSync(path.join(scriptsDir, "cursor_retrieval_probe.py")),
     ).toBe(false);
@@ -60,17 +60,17 @@ describe("createWorkflowStructure — Cursor++ never written (P23)", () => {
     expect(fs.existsSync(path.join(scriptsDir, "task.py"))).toBe(true);
   });
 
-  it("still creates .cstl base structure", async () => {
+  it("creates the canonical .pactile base structure", async () => {
     await createWorkflowStructure(tmpDir, {
       projectType: "fullstack",
     });
-    expect(fs.existsSync(path.join(tmpDir, ".cstl"))).toBe(true);
+    expect(fs.existsSync(path.join(tmpDir, ".pactile"))).toBe(true);
     expect(
-      fs.existsSync(path.join(tmpDir, ".cstl", "scripts")),
+      fs.existsSync(path.join(tmpDir, ".pactile", "scripts")),
     ).toBe(true);
-    expect(fs.existsSync(path.join(tmpDir, ".cstl", "tasks"))).toBe(true);
+    expect(fs.existsSync(path.join(tmpDir, ".pactile", "tasks"))).toBe(true);
     expect(
-      fs.existsSync(path.join(tmpDir, ".cstl", "workflow.md")),
+      fs.existsSync(path.join(tmpDir, ".pactile", "workflow.md")),
     ).toBe(true);
   });
 });
@@ -79,7 +79,7 @@ describe("createWorkflowStructure — P29 modules ship", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-modules-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-modules-"));
     setWriteMode("force");
   });
 

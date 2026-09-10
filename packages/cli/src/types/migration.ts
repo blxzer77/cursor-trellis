@@ -1,5 +1,5 @@
 /**
- * Migration types for Trellis update command
+ * Migration types for the Pactile update command
  *
  * These types support intelligent migration during updates,
  * handling file renames, deletions, and user modification detection.
@@ -31,13 +31,13 @@ export interface MigrationItem {
 /**
  * A new top-level config.yaml section introduced by this release.
  *
- * Used by `trellis update` to append the section to existing user config files
+ * Used by `pactile update` to append the section to existing user config files
  * that pre-date the release, without overwriting their other customizations.
  * Append is gated on `sentinel`: if the user file already contains the sentinel
  * substring (live or commented), the section is treated as already present.
  */
 export interface ConfigSectionAdded {
-  /** Target file relative to project root (e.g. `.cstl/config.yaml`). */
+  /** Target file relative to project root (e.g. `.pactile/config.yaml`). */
   file: string;
   /**
    * Substring whose presence in the user file means this section already

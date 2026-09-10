@@ -25,7 +25,7 @@ import {
   TASK_RECORD_FIELD_ORDER,
   isPlainObject,
   taskRecordSchema,
-  type TrellisTaskRecord,
+  type PactileTaskRecord,
 } from "./schema.js";
 import {
   KERNEL_JSON_BASENAME,
@@ -79,7 +79,7 @@ export interface KernelCreateRequest {
   taskDir: string;
   actor: string;
   idempotencyKey: string;
-  record: TrellisTaskRecord;
+  record: PactileTaskRecord;
   extras?: Record<string, unknown>;
   evidence?: string;
   gate?: unknown;
@@ -93,7 +93,7 @@ export interface KernelStartRequest {
   expectedRevision: number;
   actor: string;
   idempotencyKey: string;
-  record: TrellisTaskRecord;
+  record: PactileTaskRecord;
   extras?: Record<string, unknown>;
   evidence?: string;
   gate?: unknown;
@@ -121,7 +121,7 @@ export interface KernelArchiveRequest {
   expectedRevision: number;
   actor: string;
   idempotencyKey: string;
-  record: TrellisTaskRecord;
+  record: PactileTaskRecord;
   extras?: Record<string, unknown>;
   evidence?: string;
   gate?: unknown;
@@ -453,7 +453,7 @@ function readKernelUnlocked(dir: string): KernelReadResult {
     };
   }
 
-  const record: TrellisTaskRecord = loadTaskRecord({ taskDir: dir });
+  const record: PactileTaskRecord = loadTaskRecord({ taskDir: dir });
 
   const legacy: LegacyTaskProjection = {
     status: record.status,
@@ -798,7 +798,7 @@ function hopKernelSnapshot(
 
 function attachProjection(
   snapshot: KernelSnapshot,
-  record: TrellisTaskRecord,
+  record: PactileTaskRecord,
   extras: Record<string, unknown>,
   status: string,
 ): KernelSnapshot {
@@ -1146,9 +1146,9 @@ export function applyKernelArchive(
 }
 
 function mergeCanonicalRecord(
-  base: TrellisTaskRecord,
+  base: PactileTaskRecord,
   patch: unknown,
-): TrellisTaskRecord {
+): PactileTaskRecord {
   if (patch === undefined || patch === null) return base;
   if (!isPlainObject(patch)) {
     throw new KernelError("INVALID_REQUEST", "record must be a JSON object");
@@ -1185,7 +1185,7 @@ function assertNoLifecycleStatusHop(from: string, to: string): void {
 function currentProjectionRecord(
   dir: string,
   current: KernelReadResult,
-): TrellisTaskRecord {
+): PactileTaskRecord {
   if (current.kernel.projection?.record) {
     return current.kernel.projection.record;
   }

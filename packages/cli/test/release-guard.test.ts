@@ -96,12 +96,18 @@ function fakeRunner(options: FakeGitOptions = {}): {
 }
 
 const packageInfo = {
-  cliName: "@blxzer/cursor-trellis",
+  cliName: "@blxzer/pactile",
   cliVersion: "0.5.0-beta.5",
   cliDir: path.join(REPO_ROOT, "packages/cli"),
-  coreName: "@blxzer/cursor-trellis-core",
+  coreName: "@blxzer/pactile-core",
   coreVersion: "0.5.0-beta.5",
   coreDir: path.join(REPO_ROOT, "packages/core"),
+  legacyCoreName: "@blxzer/cursor-trellis-core",
+  legacyCoreVersion: "0.5.0-beta.5",
+  legacyCoreDir: path.join(REPO_ROOT, "packages/cursor-trellis-core-shim"),
+  legacyCliName: "@blxzer/cursor-trellis",
+  legacyCliVersion: "0.5.0-beta.5",
+  legacyCliDir: path.join(REPO_ROOT, "packages/cursor-trellis-shim"),
 };
 
 function fakeArtifacts(
@@ -111,7 +117,7 @@ function fakeArtifacts(
     schemaVersion: 1,
     version: packageInfo.cliVersion,
     npmTag: "beta",
-    releaseTag: "cstl-v0.5.0-beta.5",
+    releaseTag: "pactile-v0.5.0-beta.5",
     commit: "candidate-head",
     manifestSha256: `sha256:${"c".repeat(64)}`,
     packages: [
@@ -119,21 +125,45 @@ function fakeArtifacts(
         key: "core",
         name: packageInfo.coreName,
         version: packageInfo.coreVersion,
-        filename: "blxzer-cursor-trellis-core-0.5.0-beta.5.tgz",
+        filename: "blxzer-pactile-core-0.5.0-beta.5.tgz",
         size: 100,
         sha256: `sha256:${"a".repeat(64)}`,
         tarballPath: path.join(
           artifactDir,
-          "blxzer-cursor-trellis-core-0.5.0-beta.5.tgz",
+          "blxzer-pactile-core-0.5.0-beta.5.tgz",
         ),
       },
       {
         key: "cli",
         name: packageInfo.cliName,
         version: packageInfo.cliVersion,
-        filename: "blxzer-cursor-trellis-0.5.0-beta.5.tgz",
+        filename: "blxzer-pactile-0.5.0-beta.5.tgz",
         size: 200,
         sha256: `sha256:${"b".repeat(64)}`,
+        tarballPath: path.join(
+          artifactDir,
+          "blxzer-pactile-0.5.0-beta.5.tgz",
+        ),
+      },
+      {
+        key: "legacyCore",
+        name: packageInfo.legacyCoreName,
+        version: packageInfo.legacyCoreVersion,
+        filename: "blxzer-cursor-trellis-core-0.5.0-beta.5.tgz",
+        size: 80,
+        sha256: `sha256:${"d".repeat(64)}`,
+        tarballPath: path.join(
+          artifactDir,
+          "blxzer-cursor-trellis-core-0.5.0-beta.5.tgz",
+        ),
+      },
+      {
+        key: "legacyCli",
+        name: packageInfo.legacyCliName,
+        version: packageInfo.legacyCliVersion,
+        filename: "blxzer-cursor-trellis-0.5.0-beta.5.tgz",
+        size: 60,
+        sha256: `sha256:${"e".repeat(64)}`,
         tarballPath: path.join(
           artifactDir,
           "blxzer-cursor-trellis-0.5.0-beta.5.tgz",
@@ -176,11 +206,11 @@ describe("release guard negative paths", () => {
     ).toThrow(/cannot be prepared/);
   });
 
-  it("requires the exact cstl tag namespace", () => {
+  it("requires the exact pactile tag namespace", () => {
     expect(() => parseReleaseTag("v0.5.0-beta.5")).toThrow(
       /Invalid release tag/,
     );
-    expect(() => parseReleaseTag("prefix-cstl-v0.5.0-beta.5")).toThrow(
+    expect(() => parseReleaseTag("prefix-pactile-v0.5.0-beta.5")).toThrow(
       /Invalid release tag/,
     );
   });
@@ -188,7 +218,7 @@ describe("release guard negative paths", () => {
   it("rejects a stable tag whose commit is not in main", () => {
     expect(() =>
       assertPublishProvenance({
-        tag: "cstl-v0.5.0",
+        tag: "pactile-v0.5.0",
         packageVersion: "0.5.0",
         head: "feature-head",
         tagCommit: "feature-head",
@@ -201,7 +231,7 @@ describe("release guard negative paths", () => {
   it("rejects a non-ancestor beta tag", () => {
     expect(() =>
       assertPublishProvenance({
-        tag: "cstl-v0.5.0-beta.5",
+        tag: "pactile-v0.5.0-beta.5",
         packageVersion: "0.5.0-beta.5",
         head: "orphan-head",
         tagCommit: "orphan-head",
@@ -275,7 +305,7 @@ describe("credential wall and immutable publish DAG", () => {
     ).toThrow(/NPM_TOKEN/);
   });
 
-  it("finishes every validator before sealing both package artifacts", () => {
+  it("finishes every validator before sealing all package artifacts", () => {
     const fake = fakeRunner({
       ancestors: ["candidate-head>private/beta"],
     });
@@ -284,7 +314,7 @@ describe("credential wall and immutable publish DAG", () => {
 
     runCandidatePreparation({
       dryRun: false,
-      explicitTag: "cstl-v0.5.0-beta.5",
+      explicitTag: "pactile-v0.5.0-beta.5",
       remote: "private",
       artifactDir: path.join(os.tmpdir(), "release-artifacts"),
       runner: fake.runner,
@@ -329,14 +359,14 @@ describe("credential wall and immutable publish DAG", () => {
     ).toBe(true);
   });
 
-  it("publishes the two validated tarball paths without repacking directories", () => {
+  it("publishes the four validated tarball paths in dependency order without repacking", () => {
     const fake = fakeRunner();
     const artifacts = fakeArtifacts();
     const registryEvents: string[] = [];
 
     runPreparedPublish({
       dryRun: false,
-      explicitTag: "cstl-v0.5.0-beta.5",
+      explicitTag: "pactile-v0.5.0-beta.5",
       artifactDir: path.dirname(artifacts.packages[0].tarballPath),
       expectedManifestSha256: artifacts.manifestSha256,
       runner: fake.runner,
@@ -355,13 +385,15 @@ describe("credential wall and immutable publish DAG", () => {
     });
 
     expect(registryEvents).toEqual([
+      "@blxzer/pactile-core",
+      "@blxzer/pactile",
       "@blxzer/cursor-trellis-core",
       "@blxzer/cursor-trellis",
     ]);
     const publishes = fake.calls.filter(
       (call) => call.command === "npm" && call.args[0] === "publish",
     );
-    expect(publishes).toHaveLength(2);
+    expect(publishes).toHaveLength(4);
     expect(publishes.map((call) => call.args[1])).toEqual(
       artifacts.packages.map((item) => item.tarballPath),
     );
@@ -403,7 +435,7 @@ describe("credential wall and immutable publish DAG", () => {
       const fake = fakeRunner();
       expect(() =>
         runPreparedPublish({
-          explicitTag: "cstl-v0.5.0-beta.5",
+          explicitTag: "pactile-v0.5.0-beta.5",
           artifactDir: temporary,
           expectedManifestSha256,
           runner: fake.runner,
@@ -423,7 +455,7 @@ describe("credential wall and immutable publish DAG", () => {
     let loaded = false;
     expect(() =>
       runPreparedPublish({
-        explicitTag: "cstl-v0.5.0-beta.5",
+        explicitTag: "pactile-v0.5.0-beta.5",
         artifactDir: path.join(os.tmpdir(), "release-artifacts"),
         runner: fake.runner,
         packageInfo,
@@ -452,7 +484,7 @@ describe("credential wall and immutable publish DAG", () => {
       const fake = fakeRunner();
       expect(() =>
         runPreparedPublish({
-          explicitTag: "cstl-v0.5.0-beta.5",
+          explicitTag: "pactile-v0.5.0-beta.5",
           artifactDir: temporary,
           expectedManifestSha256: `sha256:${"0".repeat(64)}`,
           runner: fake.runner,
@@ -502,7 +534,7 @@ describe("credential wall and immutable publish DAG", () => {
       const fake = fakeRunner();
       expect(() =>
         runPreparedPublish({
-          explicitTag: "cstl-v0.5.0-beta.5",
+          explicitTag: "pactile-v0.5.0-beta.5",
           artifactDir: temporary,
           expectedManifestSha256: preparationReceipt,
           runner: fake.runner,
@@ -582,7 +614,7 @@ describe("credential wall and immutable publish DAG", () => {
     const publishes = fake.calls.filter(
       (call) => call.command === "npm" && call.args[0] === "publish",
     );
-    expect(publishes).toHaveLength(2);
+    expect(publishes).toHaveLength(4);
     expect(publishes.every((call) => call.args.includes("--dry-run"))).toBe(
       true,
     );

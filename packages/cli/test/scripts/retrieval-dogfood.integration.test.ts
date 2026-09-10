@@ -38,7 +38,7 @@ describe.skipIf(pythonCmd === null)("retrieval dogfood - archive-backed orchestr
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-retrieval-dogfood-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-retrieval-dogfood-"));
     seedDogfoodProject(tmpDir);
   });
 
@@ -205,7 +205,7 @@ describe.skipIf(pythonCmd === null)("retrieval dogfood - get_context retrieval-p
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-retrieval-dogfood-surface-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-retrieval-dogfood-surface-"));
     seedDogfoodProject(tmpDir);
   });
 

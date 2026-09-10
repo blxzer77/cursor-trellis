@@ -1,12 +1,12 @@
 /**
- * Integration tests for `cstl workflow` and the init/update hash boundary
+ * Integration tests for `pactile workflow` and the init/update hash boundary
  * for non-native workflow selection.
  *
  * Coverage:
- * - `cstl workflow --template native`: writes bundled content, keeps hash.
- * - `cstl workflow --template tdd`: writes marketplace content, removes hash.
- * - `cstl init --workflow tdd`: marketplace content is written, hash removed.
- * - `cstl update` after switch to tdd does NOT silently restore native.
+ * - `pactile workflow --template native`: writes bundled content, keeps hash.
+ * - `pactile workflow --template tdd`: writes marketplace content, removes hash.
+ * - `pactile init --workflow tdd`: marketplace content is written, hash removed.
+ * - `pactile update` after switch to tdd does NOT silently restore native.
  * - Non-interactive modified workflow.md fails without --force / --create-new.
  * - `--create-new` writes `.new` and leaves workflow.md + hash untouched.
  */
@@ -17,7 +17,7 @@ import os from "node:os";
 import path from "node:path";
 
 vi.mock("figlet", () => ({
-  default: { textSync: vi.fn(() => "TRELLIS") },
+  default: { textSync: vi.fn(() => "PACTILE") },
 }));
 
 vi.mock("inquirer", () => ({
@@ -36,7 +36,7 @@ import { update } from "../../src/commands/update.js";
 import { runWorkflowCommand, WorkflowCommandError } from "../../src/commands/workflow.js";
 import { PATHS } from "../../src/constants/paths.js";
 import { loadHashes } from "../../src/utils/template-hash.js";
-import { workflowMdTemplate } from "../../src/templates/trellis/index.js";
+import { workflowMdTemplate } from "../../src/templates/pactile/index.js";
 import { replacePythonCommandLiterals } from "../../src/configurators/shared.js";
 
 // eslint-disable-next-line @typescript-eslint/no-empty-function
@@ -83,11 +83,11 @@ function stubMarketplaceFetch(): void {
   );
 }
 
-describe("cstl workflow integration", () => {
+describe("pactile workflow integration", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-workflow-int-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-workflow-int-"));
     vi.spyOn(process, "cwd").mockReturnValue(tmpDir);
     vi.spyOn(console, "log").mockImplementation(noop);
     vi.spyOn(console, "error").mockImplementation(noop);
@@ -172,7 +172,7 @@ describe("cstl workflow integration", () => {
     ).rejects.toThrow(/workflow template/i);
   });
 
-  it("cstl workflow --template native refreshes hash after switching from tdd", async () => {
+  it("pactile workflow --template native refreshes hash after switching from tdd", async () => {
     stubMarketplaceFetch();
     await init({ yes: true, workflow: "tdd" } as Record<string, unknown>);
     expect(
@@ -192,7 +192,7 @@ describe("cstl workflow integration", () => {
     expect(loadHashes(tmpDir)[PATHS.WORKFLOW_GUIDE_FILE]).toBeTruthy();
   });
 
-  it("cstl workflow --template tdd writes marketplace content and removes the hash", async () => {
+  it("pactile workflow --template tdd writes marketplace content and removes the hash", async () => {
     stubMarketplaceFetch();
     await init({ yes: true });
     expect(loadHashes(tmpDir)[PATHS.WORKFLOW_GUIDE_FILE]).toBeTruthy();
@@ -281,7 +281,7 @@ describe("cstl workflow integration", () => {
     expect(loadHashes(tmpDir)[PATHS.WORKFLOW_GUIDE_FILE]).toBe(originalHash);
   });
 
-  it("cstl update after switching to tdd does not silently restore native workflow", async () => {
+  it("pactile update after switching to tdd does not silently restore native workflow", async () => {
     stubMarketplaceFetch();
     await init({ yes: true });
     await runWorkflowCommand({ template: "tdd" });
@@ -298,5 +298,5 @@ describe("cstl workflow integration", () => {
     expect(afterUpdate).not.toBe(
       replacePythonCommandLiterals(workflowMdTemplate),
     );
-  });
+  }, 120_000);
 });

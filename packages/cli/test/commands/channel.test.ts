@@ -42,14 +42,14 @@ describe("channel storage and forum channels", () => {
   let originalStdin: typeof process.stdin;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-channel-test-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-channel-test-"));
     projectDir = path.join(tmpDir, "project");
     fs.mkdirSync(projectDir);
-    oldRoot = process.env.TRELLIS_CHANNEL_ROOT;
-    oldProject = process.env.TRELLIS_CHANNEL_PROJECT;
+    oldRoot = process.env.PACTILE_CHANNEL_ROOT;
+    oldProject = process.env.PACTILE_CHANNEL_PROJECT;
     originalStdin = process.stdin;
-    process.env.TRELLIS_CHANNEL_ROOT = path.join(tmpDir, "channels");
-    delete process.env.TRELLIS_CHANNEL_PROJECT;
+    process.env.PACTILE_CHANNEL_ROOT = path.join(tmpDir, "channels");
+    delete process.env.PACTILE_CHANNEL_PROJECT;
     vi.spyOn(process, "cwd").mockReturnValue(projectDir);
     vi.spyOn(console, "log").mockImplementation(noop);
     vi.spyOn(console, "error").mockImplementation(noop);
@@ -57,10 +57,10 @@ describe("channel storage and forum channels", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
-    if (oldRoot === undefined) delete process.env.TRELLIS_CHANNEL_ROOT;
-    else process.env.TRELLIS_CHANNEL_ROOT = oldRoot;
-    if (oldProject === undefined) delete process.env.TRELLIS_CHANNEL_PROJECT;
-    else process.env.TRELLIS_CHANNEL_PROJECT = oldProject;
+    if (oldRoot === undefined) delete process.env.PACTILE_CHANNEL_ROOT;
+    else process.env.PACTILE_CHANNEL_ROOT = oldRoot;
+    if (oldProject === undefined) delete process.env.PACTILE_CHANNEL_PROJECT;
+    else process.env.PACTILE_CHANNEL_PROJECT = oldProject;
     Object.defineProperty(process, "stdin", {
       value: originalStdin,
       configurable: true,
@@ -68,7 +68,7 @@ describe("channel storage and forum channels", () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it("honors TRELLIS_CHANNEL_ROOT when writing project channels", async () => {
+  it("honors PACTILE_CHANNEL_ROOT when writing project channels", async () => {
     await createChannel("root-check", { by: "main" });
 
     expect(channelRoot()).toBe(path.join(tmpDir, "channels"));
@@ -85,7 +85,7 @@ describe("channel storage and forum channels", () => {
       by: "main",
       scope: "global",
       type: "forum",
-      description: "Local Trellis feedback board",
+      description: "Local Pactile feedback board",
       contextFile: [linkedFile],
       contextRaw: ["watch channel UX"],
     });
@@ -164,7 +164,7 @@ describe("channel storage and forum channels", () => {
       .mocked(console.log)
       .mock.calls.map(([line]) => String(line))
       .join("\n");
-    expect(createOutput).toContain("description: Local Trellis feedback board");
+    expect(createOutput).toContain("description: Local Pactile feedback board");
     expect(createOutput).toContain(`context:file: ${linkedFile}`);
     expect(createOutput).toContain("context:raw: watch channel UX");
 

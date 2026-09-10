@@ -8,7 +8,7 @@ import {
   listModuleCatalog,
   loadModuleCatalog,
   readModuleContract,
-} from "../../src/templates/trellis/modules/catalog.js";
+} from "../../src/templates/pactile/modules/catalog.js";
 
 const REQUIRED_HEADINGS = [
   "## 职责",
@@ -133,7 +133,7 @@ describe("P29 module short-contract catalog", () => {
 
 describe("module catalog isolation", () => {
   it("loads contracts through the catalog path, not a sibling overview file", () => {
-    expect(dirname(getModulesRoot()).endsWith("trellis")).toBe(true);
+    expect(dirname(getModulesRoot()).endsWith("pactile")).toBe(true);
     expect(getModuleCatalogPath().endsWith("index.json")).toBe(true);
     const listed = listModuleCatalog();
     expect(listed.every((entry) => entry.contract.endsWith("contract.md"))).toBe(

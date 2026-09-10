@@ -30,7 +30,7 @@ describe("cleanupEmptyDirs", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-cleanup-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-cleanup-"));
   });
 
   afterEach(() => {
@@ -68,30 +68,30 @@ describe("cleanupEmptyDirs", () => {
     expect(fs.existsSync(path.join(tmpDir, ".cursor"))).toBe(true);
   });
 
-  it("[CR#1] does not delete .trellis root even if empty", () => {
-    fs.mkdirSync(path.join(tmpDir, ".cstl"), { recursive: true });
-    cleanupEmptyDirs(tmpDir, ".cstl");
-    expect(fs.existsSync(path.join(tmpDir, ".cstl"))).toBe(true);
+  it("[CR#1] does not delete .pactile root even if empty", () => {
+    fs.mkdirSync(path.join(tmpDir, ".pactile"), { recursive: true });
+    cleanupEmptyDirs(tmpDir, ".pactile");
+    expect(fs.existsSync(path.join(tmpDir, ".pactile"))).toBe(true);
   });
 
   it("recursively cleans parent directories but stops at root", () => {
-    // Create .cstl/scripts/multi_agent/ (all empty)
-    fs.mkdirSync(path.join(tmpDir, ".cstl", "scripts", "multi_agent"), {
+    // Create .pactile/scripts/multi_agent/ (all empty)
+    fs.mkdirSync(path.join(tmpDir, ".pactile", "scripts", "multi_agent"), {
       recursive: true,
     });
-    cleanupEmptyDirs(tmpDir, ".cstl/scripts/multi_agent");
+    cleanupEmptyDirs(tmpDir, ".pactile/scripts/multi_agent");
 
     // multi_agent and scripts should be removed (both empty)
     expect(
       fs.existsSync(
-        path.join(tmpDir, ".cstl", "scripts", "multi_agent"),
+        path.join(tmpDir, ".pactile", "scripts", "multi_agent"),
       ),
     ).toBe(false);
     expect(
-      fs.existsSync(path.join(tmpDir, ".cstl", "scripts")),
+      fs.existsSync(path.join(tmpDir, ".pactile", "scripts")),
     ).toBe(false);
-    // .trellis root must survive
-    expect(fs.existsSync(path.join(tmpDir, ".cstl"))).toBe(true);
+    // .pactile root must survive
+    expect(fs.existsSync(path.join(tmpDir, ".pactile"))).toBe(true);
   });
 
   it("handles non-existent directory gracefully", () => {

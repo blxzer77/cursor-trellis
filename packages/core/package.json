@@ -1,7 +1,7 @@
 {
-  "name": "@blxzer/cursor-trellis-core",
+  "name": "@blxzer/pactile-core",
   "version": "0.5.0-beta.5",
-  "description": "Trellis core SDK — channel and task domain primitives consumed by the Trellis CLI and downstream Node services",
+  "description": "Pactile core SDK — channel, task, and capability contract primitives consumed by the Pactile CLI and downstream Node services",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -26,6 +26,11 @@
       "types": "./dist/testing/index.d.ts",
       "import": "./dist/testing/index.js",
       "default": "./dist/testing/index.js"
+    },
+    "./compat": {
+      "types": "./dist/compat/index.d.ts",
+      "import": "./dist/compat/index.js",
+      "default": "./dist/compat/index.js"
     }
   },
   "files": [
@@ -46,7 +51,7 @@
     "typecheck": "tsc --noEmit"
   },
   "keywords": [
-    "trellis",
+    "pactile",
     "channel",
     "sdk",
     "agent",
@@ -67,6 +72,6 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/blxzer77/cursor-trellis.git"
+    "url": "https://github.com/blxzer77/pactile.git"
   }
 }

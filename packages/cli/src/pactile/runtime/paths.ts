@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { DEFAULT_CANONICAL_PATHS_V1 } from "@blxzer/cursor-trellis-core";
+import { DEFAULT_CANONICAL_PATHS_V1 } from "@blxzer/pactile-core";
 import { caseFoldComponent } from "./case-fold.js";
 import { normalizeNfc15 } from "./unicode-nfc.js";
 

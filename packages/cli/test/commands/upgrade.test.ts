@@ -40,12 +40,12 @@ describe("upgrade command", () => {
       buildUpgradeCommand({ tag: "beta" }, "0.5.12", "darwin"),
     ).toMatchObject({
       command: "npm",
-      args: ["install", "-g", "@blxzer/cursor-trellis@beta"],
+      args: ["install", "-g", "@blxzer/pactile@beta"],
       spawnOptions: { stdio: "inherit", shell: false },
-      displayCommand: "npm install -g @blxzer/cursor-trellis@beta",
-      target: "@blxzer/cursor-trellis@beta",
+      displayCommand: "npm install -g @blxzer/pactile@beta",
+      target: "@blxzer/pactile@beta",
       tag: "beta",
-      binaryCheckCommand: "which cstl",
+      binaryCheckCommand: "which pactile",
     });
   });
 
@@ -54,12 +54,12 @@ describe("upgrade command", () => {
       buildUpgradeCommand({ tag: "beta" }, "0.5.12", "win32"),
     ).toMatchObject({
       command: "cmd.exe",
-      args: ["/d", "/s", "/c", "npm install -g @blxzer/cursor-trellis@beta"],
+      args: ["/d", "/s", "/c", "npm install -g @blxzer/pactile@beta"],
       spawnOptions: { stdio: "inherit", shell: false },
-      displayCommand: "npm install -g @blxzer/cursor-trellis@beta",
-      target: "@blxzer/cursor-trellis@beta",
+      displayCommand: "npm install -g @blxzer/pactile@beta",
+      target: "@blxzer/pactile@beta",
       tag: "beta",
-      binaryCheckCommand: "where cstl",
+      binaryCheckCommand: "where pactile",
     });
   });
 
@@ -71,7 +71,7 @@ describe("upgrade command", () => {
 
     expect(runner).not.toHaveBeenCalled();
     expect(log).toHaveBeenCalledWith(
-      expect.stringContaining("Run: npm install -g @blxzer/cursor-trellis@latest"),
+      expect.stringContaining("Run: npm install -g @blxzer/pactile@latest"),
     );
 
     log.mockRestore();
@@ -90,7 +90,7 @@ describe("upgrade command", () => {
       plan.spawnOptions,
     );
     expect(log).toHaveBeenCalledWith(
-      expect.stringContaining("cstl --version"),
+      expect.stringContaining("pactile --version"),
     );
     expect(log).toHaveBeenCalledWith(
       expect.stringContaining(plan.binaryCheckCommand),

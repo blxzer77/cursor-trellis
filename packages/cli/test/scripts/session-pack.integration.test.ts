@@ -13,15 +13,15 @@ import {
 const pythonCmd = resolvePython();
 const modulesSrc = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
-  "../../src/templates/trellis/modules",
+  "../../src/templates/pactile/modules",
 );
 const sessionPackSrc = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
-  "../../src/templates/trellis/scripts/common/session_pack.py",
+  "../../src/templates/pactile/scripts/common/session_pack.py",
 );
 
 function writeModules(root: string): void {
-  const dest = path.join(root, ".cstl", "modules");
+  const dest = path.join(root, ".pactile", "modules");
   fs.cpSync(modulesSrc, dest, { recursive: true });
   fs.mkdirSync(path.join(dest, "ghost-unactivated"), { recursive: true });
   fs.writeFileSync(
@@ -35,7 +35,7 @@ function runPackJson(
   root: string,
   extraArgs: string[] = [],
 ): { status: number | null; stdout: string; stderr: string } {
-  const script = path.join(root, ".cstl", "scripts", "compile_session_pack.py");
+  const script = path.join(root, ".pactile", "scripts", "compile_session_pack.py");
   const result = spawnSync(pythonCmd as string, [script, "--json", ...extraArgs], {
     cwd: root,
     encoding: "utf-8",
@@ -66,15 +66,15 @@ describe.skipIf(pythonCmd === null)("compile_session_pack.py", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "cstl-session-pack-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-session-pack-"));
     seedEvalProject(tmpDir);
     writeModules(tmpDir);
     fs.copyFileSync(
       sessionPackSrc,
-      path.join(tmpDir, ".cstl", "scripts", "common", "session_pack.py"),
+      path.join(tmpDir, ".pactile", "scripts", "common", "session_pack.py"),
     );
     fs.writeFileSync(
-      path.join(tmpDir, ".cstl", "workflow.md"),
+      path.join(tmpDir, ".pactile", "workflow.md"),
       "# workflow\nUNIQUE_PHASE_INDEX_SENTINEL\n[workflow-state:planning]\n",
     );
     fs.writeFileSync(
@@ -113,7 +113,7 @@ describe.skipIf(pythonCmd === null)("compile_session_pack.py", () => {
   });
 
   it("without a selected task, layer 2 is intake-only and artifacts stay empty", () => {
-    fs.rmSync(path.join(tmpDir, ".cstl", ".runtime", "sessions"), {
+    fs.rmSync(path.join(tmpDir, ".pactile", ".runtime", "sessions"), {
       recursive: true,
       force: true,
     });
@@ -128,7 +128,7 @@ describe.skipIf(pythonCmd === null)("compile_session_pack.py", () => {
   });
 
   it("blocked condition puts debug-recovery on layer 5, not layer 2", () => {
-    const taskDir = path.join(tmpDir, ".cstl", "tasks", "blocked-exec");
+    const taskDir = path.join(tmpDir, ".pactile", "tasks", "blocked-exec");
     fs.mkdirSync(taskDir, { recursive: true });
     fs.writeFileSync(
       path.join(taskDir, "kernel.json"),
@@ -156,7 +156,7 @@ describe.skipIf(pythonCmd === null)("compile_session_pack.py", () => {
       }),
       "utf-8",
     );
-    const ran = runPackJson(tmpDir, ["--task", ".cstl/tasks/blocked-exec"]);
+    const ran = runPackJson(tmpDir, ["--task", ".pactile/tasks/blocked-exec"]);
     expect(ran.status, ran.stderr).toBe(0);
     const pack = JSON.parse(ran.stdout) as SessionPack;
     expect(pack.layers[1]?.moduleIds ?? []).not.toContain("debug-recovery");
@@ -180,7 +180,7 @@ describe.skipIf(pythonCmd === null)("compile_session_pack.py", () => {
   });
 
   it("drops a Baseline id from layer 2 when it is removed from baseline_modules.active", () => {
-    const taskDir = path.join(tmpDir, ".cstl", "tasks", "exec-off");
+    const taskDir = path.join(tmpDir, ".pactile", "tasks", "exec-off");
     fs.mkdirSync(taskDir, { recursive: true });
     const baselineSansExecute = [
       "intake-basic",
@@ -220,7 +220,7 @@ describe.skipIf(pythonCmd === null)("compile_session_pack.py", () => {
       "utf-8",
     );
     fs.writeFileSync(path.join(taskDir, "prd.md"), "# Exec off\n\n- [ ] AC\n");
-    const ran = runPackJson(tmpDir, ["--task", ".cstl/tasks/exec-off"]);
+    const ran = runPackJson(tmpDir, ["--task", ".pactile/tasks/exec-off"]);
     expect(ran.status, ran.stderr).toBe(0);
     const pack = JSON.parse(ran.stdout) as SessionPack;
     expect(pack.activationSource.kind).toBe("profile-runtime");
@@ -230,7 +230,7 @@ describe.skipIf(pythonCmd === null)("compile_session_pack.py", () => {
   });
 
   it("omits an On-demand contract until ondemand_modules.active is written", () => {
-    const taskDir = path.join(tmpDir, ".cstl", "tasks", "define-ext");
+    const taskDir = path.join(tmpDir, ".pactile", "tasks", "define-ext");
     fs.mkdirSync(taskDir, { recursive: true });
     const writeTask = (active: string[]) => {
       fs.writeFileSync(
@@ -263,14 +263,14 @@ describe.skipIf(pythonCmd === null)("compile_session_pack.py", () => {
       fs.writeFileSync(path.join(taskDir, "prd.md"), "# Define\n\n- [ ] AC\n");
     };
     writeTask([]);
-    const off = runPackJson(tmpDir, ["--task", ".cstl/tasks/define-ext"]);
+    const off = runPackJson(tmpDir, ["--task", ".pactile/tasks/define-ext"]);
     expect(off.status, off.stderr).toBe(0);
     const offPack = JSON.parse(off.stdout) as SessionPack;
     expect(offPack.layers[1]?.moduleIds ?? []).not.toContain("define-extended");
     expect(offPack.layers[1]?.text ?? "").not.toContain("# `define-extended`");
 
     writeTask(["define-extended"]);
-    const on = runPackJson(tmpDir, ["--task", ".cstl/tasks/define-ext"]);
+    const on = runPackJson(tmpDir, ["--task", ".pactile/tasks/define-ext"]);
     expect(on.status, on.stderr).toBe(0);
     const onPack = JSON.parse(on.stdout) as SessionPack;
     expect(onPack.activationSource.kind).toBe("profile-runtime");

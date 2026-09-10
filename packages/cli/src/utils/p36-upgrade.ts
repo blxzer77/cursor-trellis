@@ -1,10 +1,10 @@
 /**
- * P36 official-surface A planner + vernacular summary for `cstl update`.
+ * P36 official-surface A planner and vernacular summary for `pactile update`.
  *
  * Wave A refreshes unmodified shipped files (already owned by update hash
  * analysis) and retires leftover extra always-on rules. User-modified
  * official files are listed and kept. Wave C stop-read is confirm-gated
- * on the same `cstl update` + one confirm.
+ * on the same `pactile update` plus one confirmation.
  */
 
 import fs from "node:fs";
@@ -17,7 +17,7 @@ import {
   formatWaveCVernacular,
   type ArtifactMigratePlan,
   type WaveCPlan,
-} from "@blxzer/cursor-trellis-core/task";
+} from "@blxzer/pactile-core/task";
 import type { TemplateHashes } from "../types/migration.js";
 import { computeHash, removeHash } from "./template-hash.js";
 import { toPosix } from "./posix.js";
@@ -32,7 +32,7 @@ export const RETIRED_ALWAYS_ON_RULES = [
   ".cursor/rules/trellis-retrieval-routing.mdc",
 ] as const;
 
-export const KEEP_ALWAYS_ON_RULES = [".cursor/rules/cstl-bootstrap.mdc"] as const;
+export const KEEP_ALWAYS_ON_RULES = [".cursor/rules/pactile-bootstrap.mdc"] as const;
 
 export type OfficialRetireAction = "retire" | "preserve";
 
@@ -120,6 +120,10 @@ export function applyOfficialRetire(
   for (const item of plan.retire) {
     const fullPath = path.join(cwd, item.path);
     if (!fs.existsSync(fullPath)) continue;
+    // The plan is computed before canonical commit and Adapter projection.
+    // Re-check the official marker so a concurrent/user edit is preserved
+    // instead of being unlinked from a stale pre-commit observation.
+    if (!hasAlwaysApply(fullPath)) continue;
     fs.unlinkSync(fullPath);
     try {
       removeHash(cwd, item.path);

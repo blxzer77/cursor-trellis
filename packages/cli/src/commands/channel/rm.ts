@@ -1,8 +1,8 @@
 /**
- * `trellis channel rm <name>` — kill any live workers, then remove the
- * channel directory under `~/.cstl/channels/`.
+ * `pactile channel rm <name>` — kill any live workers, then remove the
+ * channel directory under `~/.pactile/channels/`.
  *
- * `trellis channel prune [--all | --idle <duration> | --empty]` — bulk
+ * `pactile channel prune [--all | --idle <duration> | --empty]` — bulk
  * cleanup matching criteria.
  */
 

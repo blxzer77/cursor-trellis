@@ -1,6 +1,6 @@
 # Debug Loop Guide
 
-> **Purpose**: 调试纪律 —— 先建 tight、red-capable 反馈环，再假设、再修，一次到位找到并修对；与 `cstl-break-loop` 划界（诊断进行中 vs 修完后防再发），互不替代。
+> **Purpose**: 调试纪律 —— 先建 tight、red-capable 反馈环，再假设、再修，一次到位找到并修对；与 `pactile-break-loop` 划界（诊断进行中 vs 修完后防再发），互不替代。
 
 ---
 
@@ -11,20 +11,20 @@
 **Non-goals**
 
 - **Not a mandate for every bug.** A lightweight bug (obvious at a glance, provable in a single step) may skip the full loop — but you must state **one sentence** explaining why the full cycle was skipped.
-- **Not a replacement for `cstl-break-loop`.** This guide owns *diagnosis in progress*; break-loop owns *post-fix root cause classification / prevention / knowledge capture* (see §2).
+- **Not a replacement for `pactile-break-loop`.** This guide owns *diagnosis in progress*; break-loop owns *post-fix root cause classification / prevention / knowledge capture* (see §2).
 - **No production instrumentation** unless the user explicitly permits it. If you cannot build a loop without instrumenting production, stop and ask (see Phase 1 "genuinely cannot build a loop").
 - **Not TDD ceremony.** Phase 5 freezes the loop as a test *or* a repeatable command — whichever is the correct seam.
 
-## 2. Boundary with cstl-break-loop
+## 2. Boundary with pactile-break-loop
 
-| | **debug-loop-guide** (this guide) | **cstl-break-loop** |
+| | **debug-loop-guide** (this guide) | **pactile-break-loop** |
 | --- | --- | --- |
 | 时机 | 诊断与修复**进行中**（建环 → 修） | 修复**完成后**（深分析） |
 | 目标 | 一次到位找到并修对（red 环、假设表、修复、清理） | 根因分类（A–E）、为何修失败、防再发机制、入 spec |
 | 输出 | 红环、3–5 假设排名、修复、回归、清理 | 5 维分析、prevention、knowledge capture 到 guides |
-| 触发 | 用户报 bug / 性能回归，进入诊断 | `/cstl:break-loop` 或修完后的任务收尾 |
+| 触发 | 用户报 bug / 性能回归，进入诊断 | `/pactile:break-loop` 或修完后的任务收尾 |
 
-**二者不互相替代**：debug-loop-guide 结束时若只修完没做根因分类，同类 bug 会再发；cstl-break-loop 不帮你找到原因（它在修完之后才启动）。Phase 6 的 post-mortem 钩子负责把两者接起来。
+**二者不互相替代**：debug-loop-guide 结束时若只修完没做根因分类，同类 bug 会再发；pactile-break-loop 不帮你找到原因（它在修完之后才启动）。Phase 6 的 post-mortem 钩子负责把两者接起来。
 
 ## 3. Hard rule: no red-capable loop → no hypotheses
 
@@ -164,7 +164,7 @@ Required before declaring done:
 - [ ] Throwaway prototypes deleted (or moved to a clearly-marked debug location)
 - [ ] The hypothesis that turned out correct is stated in the commit / PR message — so the next debugger learns
 
-**Post-mortem hook:** then ask *what would have prevented this bug?* If the answer involves architectural change (no good test seam, tangled callers, hidden coupling), or the bug is worth classifying, run **`cstl-break-loop`** (root cause category A–E, why fixes failed, prevention mechanisms) and/or update the relevant spec/guide via **`cstl-update-spec`**. Make the recommendation **after** the fix is in, not before — you have more information now than when you started.
+**Post-mortem hook:** then ask *what would have prevented this bug?* If the answer involves architectural change (no good test seam, tangled callers, hidden coupling), or the bug is worth classifying, run **`pactile-break-loop`** (root cause category A–E, why fixes failed, prevention mechanisms) and/or update the relevant spec/guide via **`pactile-update-spec`**. Make the recommendation **after** the fix is in, not before — you have more information now than when you started.
 
 ## 12. PowerShell HITL template
 
@@ -223,5 +223,5 @@ Adaptation notes for the agent: keep the loop **agent-runnable** where possible 
 - [ ] Phase 3: 3–5 ranked falsifiable hypotheses, each with a stated prediction; shown to user
 - [ ] Phase 4: one variable per probe; debug logs tagged `[DEBUG-...]`
 - [ ] Phase 5: loop frozen as test or repeatable command at a correct seam (or absence of seam documented)
-- [ ] Phase 6: original repro green, instrumentation removed (one grep, zero hits), post-mortem hook to `cstl-break-loop` / `cstl-update-spec` decided
+- [ ] Phase 6: original repro green, instrumentation removed (one grep, zero hits), post-mortem hook to `pactile-break-loop` / `pactile-update-spec` decided
 - [ ] Everything shown to the user redacted (`<REDACTED>`, credentials via env)

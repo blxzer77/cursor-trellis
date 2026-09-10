@@ -6,15 +6,15 @@ import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 import {
-  extractCstlManagedBlock,
+  extractPactileManagedBlock,
   formatMirrorDiffs,
   runMirrorCheck,
 } from "../../src/utils/mirror-check.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const cliDir = path.resolve(__dirname, "../..");
-const trellisRoot = path.resolve(cliDir, "../..");
-const harnessRoot = path.resolve(trellisRoot, "..");
+const pactileRoot = path.resolve(cliDir, "../..");
+const harnessRoot = path.resolve(pactileRoot, "..");
 const templateCursorDir = path.join(cliDir, "src/templates/cursor");
 const templateAgentsPath = path.join(cliDir, "src/templates/markdown/agents.md");
 
@@ -23,7 +23,7 @@ function normalize(content: string): string {
 }
 
 function createMirroredDogfood(): string {
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-mirror-"));
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-mirror-"));
   fs.cpSync(templateCursorDir, path.join(tmp, ".cursor"), { recursive: true });
   fs.copyFileSync(templateAgentsPath, path.join(tmp, "AGENTS.md"));
   return tmp;
@@ -32,7 +32,7 @@ function createMirroredDogfood(): string {
 const p43MirrorPairs = [
   [
     path.join(harnessRoot, ".cstl/workflow.md"),
-    path.join(cliDir, "src/templates/trellis/workflow.md"),
+    path.join(cliDir, "src/templates/pactile/workflow.md"),
   ],
   ...["cstl-check.md", "cstl-implement.md", "cstl-research.md"].map(
     (name) => [
@@ -70,12 +70,12 @@ const harnessMirrorExists =
 
 describe("mirror-check", () => {
   const localDogfoodExists =
-    fs.existsSync(path.join(trellisRoot, ".cursor", "rules")) &&
-    fs.existsSync(path.join(trellisRoot, ".cursor", "agents"));
-  const agentsPath = path.join(trellisRoot, "AGENTS.md");
+    fs.existsSync(path.join(pactileRoot, ".cursor", "rules")) &&
+    fs.existsSync(path.join(pactileRoot, ".cursor", "agents"));
+  const agentsPath = path.join(pactileRoot, "AGENTS.md");
   const isThinConnected =
     fs.existsSync(agentsPath) &&
-    fs.readFileSync(agentsPath, "utf-8").includes("Thin-connect");
+    /\bthin-connect(?:ed)?\b/iu.test(fs.readFileSync(agentsPath, "utf-8"));
   const standaloneDogfoodExists = localDogfoodExists && !isThinConnected;
 
   it("passes when dogfood mirrors templates (positive case)", () => {
@@ -97,7 +97,7 @@ describe("mirror-check", () => {
     try {
       const dogfoodRule = path.join(
         tmp,
-        ".cursor/rules/cstl-bootstrap.mdc",
+        ".cursor/rules/pactile-bootstrap.mdc",
       );
       fs.appendFileSync(dogfoodRule, "\n# drift");
 
@@ -109,7 +109,7 @@ describe("mirror-check", () => {
       expect(result.ok).toBe(false);
       expect(
         result.diffs.some(
-          (diff) => diff.relativePath === "rules/cstl-bootstrap.mdc",
+          (diff) => diff.relativePath === "rules/pactile-bootstrap.mdc",
         ),
       ).toBe(true);
     } finally {
@@ -121,7 +121,7 @@ describe("mirror-check", () => {
     const tmp = createMirroredDogfood();
     try {
       fs.appendFileSync(
-        path.join(tmp, ".cursor/agents/cstl-implement.md"),
+        path.join(tmp, ".cursor/agents/pactile-implement.md"),
         "\n# drift",
       );
       const dogfoodAgents = path.join(tmp, "AGENTS.md");
@@ -129,7 +129,7 @@ describe("mirror-check", () => {
         dogfoodAgents,
         fs
           .readFileSync(dogfoodAgents, "utf-8")
-          .replace("# Cursor-Trellis", "# Drifted Cursor-Trellis"),
+          .replace("# Pactile (pactile)", "# Drifted Pactile (pactile)"),
       );
 
       const result = runMirrorCheck({
@@ -140,7 +140,7 @@ describe("mirror-check", () => {
       expect(result.ok).toBe(false);
       expect(
         result.diffs.map((diff) => diff.relativePath),
-      ).toEqual(expect.arrayContaining(["agents/cstl-implement.md", "AGENTS.md"]));
+      ).toEqual(expect.arrayContaining(["agents/pactile-implement.md", "AGENTS.md"]));
     } finally {
       fs.rmSync(tmp, { recursive: true, force: true });
     }
@@ -154,8 +154,8 @@ describe("mirror-check", () => {
           normalize(fs.readFileSync(source, "utf-8")),
         );
       }
-      expect(extractCstlManagedBlock(fs.readFileSync(templateAgentsPath, "utf-8"))).toBe(
-        extractCstlManagedBlock(
+      expect(extractPactileManagedBlock(fs.readFileSync(templateAgentsPath, "utf-8"))).toBe(
+        extractPactileManagedBlock(
           fs.readFileSync(path.join(harnessRoot, "AGENTS.md"), "utf-8"),
         ),
       );
@@ -169,6 +169,19 @@ describe("mirror-check", () => {
         cwd: cliDir,
         encoding: "utf-8",
       });
+    },
+  );
+
+  it.skipIf(!isThinConnected)(
+    "thin-connected repository reports standalone dogfood parity as not applicable",
+    () => {
+      const output = execSync("node scripts/mirror-check.js", {
+        cwd: cliDir,
+        encoding: "utf-8",
+      });
+      expect(output).toContain(
+        "thin-connected checkout has no product-owned .cursor dogfood tree",
+      );
     },
   );
 });

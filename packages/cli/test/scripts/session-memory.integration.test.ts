@@ -3,7 +3,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { getAllScriptsForTests } from "../../src/templates/trellis/index.js";
+import { getAllScriptsForTests } from "../../src/templates/pactile/index.js";
 
 function resolvePython(): string | null {
   const candidates =
@@ -52,19 +52,19 @@ function writeFile(root: string, rel: string, content: string): void {
   fs.writeFileSync(target, content, "utf-8");
 }
 
-function writeTrellisScripts(root: string): void {
-  const scriptsDir = path.join(root, ".cstl", "scripts");
+function writePactileScripts(root: string): void {
+  const scriptsDir = path.join(root, ".pactile", "scripts");
   for (const [rel, content] of getAllScriptsForTests()) {
     writeFile(scriptsDir, rel, content);
   }
 }
 
 function seedProject(root: string): void {
-  writeTrellisScripts(root);
-  writeFile(root, ".cstl/.developer", "name=test-dev\n");
+  writePactileScripts(root);
+  writeFile(root, ".pactile/.developer", "name=test-dev\n");
   writeFile(
     root,
-    ".cstl/workspace/test-dev/journal-1.md",
+    ".pactile/workspace/test-dev/journal-1.md",
     [
       "# Journal - test-dev (Part 1)",
       "",
@@ -89,7 +89,7 @@ function seedProject(root: string): void {
       "",
       "**Date**: 2026-06-13",
       "**Task**: Smart Search Evidence",
-      "**Package**: Trellis",
+      "**Package**: Pactile",
       "**Branch**: `feature/retrieval`",
       "",
       "### Summary",
@@ -120,7 +120,7 @@ function runSearchMemory(
 ): { status: number | null; stdout: string; stderr: string } {
   const result = spawnSync(
     pythonCmd as string,
-    [path.join(root, ".cstl", "scripts", "search_memory.py"), ...args],
+    [path.join(root, ".pactile", "scripts", "search_memory.py"), ...args],
     { cwd: root, encoding: "utf-8" },
   );
   return {
@@ -134,7 +134,7 @@ describe.skipIf(pythonCmd === null)("search_memory.py", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-session-memory-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-session-memory-"));
     seedProject(tmpDir);
   });
 
@@ -164,10 +164,10 @@ describe.skipIf(pythonCmd === null)("search_memory.py", () => {
       title: "Smart Search Evidence",
       date: "2026-06-13",
       task: "Smart Search Evidence",
-      package: "Trellis",
+      package: "Pactile",
       branch: "feature/retrieval",
       commits: ["abc1234"],
-      path: ".cstl/workspace/test-dev/journal-1.md",
+      path: ".pactile/workspace/test-dev/journal-1.md",
     });
     expect(memory.summary).toContain("Smart Search manifest handoff");
     expect(memory.matchedSections).toContain("Summary");
@@ -181,7 +181,7 @@ describe.skipIf(pythonCmd === null)("search_memory.py", () => {
       "--query",
       "context ranking",
       "--package",
-      "Trellis",
+      "Pactile",
       "--branch",
       "retrieval",
       "--task",
@@ -204,9 +204,9 @@ describe.skipIf(pythonCmd === null)("search_memory.py", () => {
     expect(noMatch.status).toBe(0);
     expect((JSON.parse(noMatch.stdout) as MemoryPayload).results).toEqual([]);
 
-    const emptyRoot = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-no-memory-"));
+    const emptyRoot = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-no-memory-"));
     try {
-      writeTrellisScripts(emptyRoot);
+      writePactileScripts(emptyRoot);
       const missingWorkspace = runSearchMemory(emptyRoot, ["--query", "anything", "--json"]);
       expect(missingWorkspace.status).toBe(0);
       expect((JSON.parse(missingWorkspace.stdout) as MemoryPayload).total).toBe(0);

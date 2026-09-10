@@ -2,7 +2,7 @@
  * Supervisor process: owns a single worker (claude or codex) and bridges
  * worker ↔ channel events.jsonl.
  *
- * Run as: `trellis channel __supervisor <channel> <worker> <config-path>`
+ * Run as: `pactile channel __supervisor <channel> <worker> <config-path>`
  *
  * Three concurrent loops:
  *   1. stdout reader  — parse worker stdout → adapter → append events
@@ -20,7 +20,11 @@ import type { Readable, Writable } from "node:stream";
 import {
   DEFAULT_INBOX_POLICY,
   type InboxPolicy,
-} from "@blxzer/cursor-trellis-core/channel";
+} from "@blxzer/pactile-core/channel";
+import {
+  PACTILE_ENVIRONMENT_KEYS,
+  readPactileEnvironment,
+} from "@blxzer/pactile-core";
 
 import { getAdapter, type Provider } from "./adapters/index.js";
 import { appendEvent } from "./store/events.js";
@@ -40,7 +44,7 @@ export interface SupervisorConfig {
    *  No "initial user prompt" — the worker stays idle until the first
    *  inbox `send --to <worker>` arrives. */
   systemPrompt: string;
-  /** Extra env vars (TRELLIS_HOOKS=0 etc. are added automatically). */
+  /** Extra env vars (`PACTILE_HOOKS=0` etc. are added automatically). */
   env?: Record<string, string>;
   /** Optional model override. */
   model?: string;
@@ -76,7 +80,7 @@ type Child = ChildProcessByStdio<Writable, Readable, Readable>;
 const SHUTDOWN_GRACE_MS = 3000;
 
 /**
- * Entry point invoked by `trellis channel __supervisor <channel> <worker> <config>`.
+ * Entry point invoked by `pactile channel __supervisor <channel> <worker> <config>`.
  */
 export async function runSupervisor(
   channelName: string,
@@ -85,8 +89,10 @@ export async function runSupervisor(
 ): Promise<void> {
   const config = readConfig(configPath);
 
-  // Self-pid file lets `trellis channel kill` find us.
-  const project = process.env.TRELLIS_CHANNEL_PROJECT;
+  // Self-pid file lets `pactile channel kill` find us.
+  const project = readPactileEnvironment(
+    PACTILE_ENVIRONMENT_KEYS.channelProject,
+  );
   fs.writeFileSync(
     workerFile(channelName, workerName, "pid", project),
     String(process.pid),
@@ -106,9 +112,9 @@ export async function runSupervisor(
   const env: NodeJS.ProcessEnv = {
     ...process.env,
     ...config.env,
-    TRELLIS_HOOKS: "0",
-    TRELLIS_CHANNEL: channelName,
-    TRELLIS_CHANNEL_AS: workerName,
+    [PACTILE_ENVIRONMENT_KEYS.hooks]: "0",
+    [PACTILE_ENVIRONMENT_KEYS.channel]: channelName,
+    [PACTILE_ENVIRONMENT_KEYS.channelActor]: workerName,
   };
 
   const logPath = workerFile(channelName, workerName, "log", project);
@@ -410,7 +416,7 @@ async function cleanup(channelName: string, workerName: string): Promise<void> {
           channelName,
           workerName,
           suffix,
-          process.env.TRELLIS_CHANNEL_PROJECT,
+          readPactileEnvironment(PACTILE_ENVIRONMENT_KEYS.channelProject),
         ),
       );
     } catch {

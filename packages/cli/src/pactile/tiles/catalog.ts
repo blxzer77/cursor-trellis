@@ -3,7 +3,7 @@ import {
   parseTileManifestV1,
   type AssuranceLevelV1,
   type TileTriggerV1,
-} from "@blxzer/cursor-trellis-core";
+} from "@blxzer/pactile-core";
 import {
   tileFingerprint,
   type TileCatalogEntry,

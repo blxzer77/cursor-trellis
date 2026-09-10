@@ -3,7 +3,7 @@
  *
  * Emits a one-shot `supervisor_warning` channel event when the worker
  * is approaching its lifetime timeout, so observers (dispatchers /
- * `trellis channel messages`) can see the impending kill without
+ * `pactile channel messages`) can see the impending kill without
  * having to poll. The event is observability-only — it never replaces
  * the eventual `killed` / `done` / `error` terminal event, and is
  * not part of the meaningful-event set so plain `wait` does not wake

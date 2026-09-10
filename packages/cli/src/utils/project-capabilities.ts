@@ -87,10 +87,10 @@ interface StoredCapabilityState {
   readiness_status_detail?: string;
 }
 
-const CAPABILITIES_JSON_PATH = ".cstl/capabilities.json";
-const CAPABILITIES_MD_PATH = ".cstl/capabilities.md";
-const CODEX_CAPABILITIES_START = "# TRELLIS:PROJECT-CAPABILITIES:START";
-const CODEX_CAPABILITIES_END = "# TRELLIS:PROJECT-CAPABILITIES:END";
+const CAPABILITIES_JSON_PATH = ".pactile/capabilities.json";
+const CAPABILITIES_MD_PATH = ".pactile/capabilities.md";
+const CODEX_CAPABILITIES_START = "# PACTILE:PROJECT-CAPABILITIES:START";
+const CODEX_CAPABILITIES_END = "# PACTILE:PROJECT-CAPABILITIES:END";
 
 export const PROJECT_CAPABILITIES: readonly ProjectCapability[] = [
   {
@@ -187,7 +187,7 @@ export const PROJECT_CAPABILITIES: readonly ProjectCapability[] = [
       },
       {
         command:
-          'rg -i "storage default|sidecar|sqlite only" AGENTS.md "**/AGENTS.md" README.md CONTRIBUTING.md .cstl/spec',
+          'rg -i "storage default|sidecar|sqlite only" AGENTS.md "**/AGENTS.md" README.md CONTRIBUTING.md .pactile/spec',
         use: "For architecture, boundary, or storage/persistence policy questions (OpenClaw benchmark C-class, especially storage-policy queries), search project instruction and policy docs before implementation modules such as SQLite or state DB files.",
       },
       {
@@ -485,7 +485,7 @@ export function renderCapabilitiesJson(
   return `${JSON.stringify(
     {
       schema_version: 3,
-      note: "Trellis-managed project capability selection. Credentials and global MCP/client config stay outside repository templates.",
+      note: "Pactile-managed project capability selection. Credentials and global MCP/client config stay outside repository templates.",
       selected: selectedIds,
       capabilities,
     },
@@ -510,7 +510,7 @@ function appendPolicyDocumentRetrievalRouting(lines: string[]): void {
     "",
     "Evidence order for policy/document queries:",
     "",
-    "1. Root and nested `AGENTS.md`, then `.cstl/spec/**`, `README.md`, `CONTRIBUTING.md`, architecture or design docs, and package-level policy or contract instruction files.",
+    "1. Root and nested `AGENTS.md`, then `.pactile/spec/**`, `README.md`, `CONTRIBUTING.md`, architecture or design docs, and package-level policy or contract instruction files.",
     "2. Exact `rg` on policy phrases and boundary terms scoped to those paths (for example `Storage default: SQLite only`, `sidecar`, `SQLite only`, transport-only, import boundary).",
     "3. Read matched policy sections with direct source reads before ranking implementation files as Top-1.",
     "4. Use AST/CodeGraph or semantic recall only to corroborate policy claims or locate related implementation; do not let SQLite/state/cache modules outrank root policy docs when the question asks what is allowed or forbidden.",
@@ -655,9 +655,9 @@ export function renderCapabilitiesMarkdown(
 ): string {
   const selectedIds = uniqueInRegistryOrder(selected);
   const lines = [
-    "# Trellis Project Capabilities",
+    "# Pactile Project Capabilities",
     "",
-    "This file records selected project capabilities for the Trellis workflow. It does not store credentials and does not prove readiness by itself.",
+    "This file records selected project capabilities for the Pactile workflow. It does not store credentials and does not prove readiness by itself.",
     "",
     "## Selected",
     "",
@@ -686,7 +686,7 @@ export function renderCapabilitiesMarkdown(
     "- Unselected, unavailable, skipped, or uninvoked capabilities must not be reported as used.",
     "- Capability output that affects task decisions must be recorded in task research or verify evidence.",
     "- `codebase-retrieval` routes by retrieval role, not by tool brand: exact search, intent-gated policy/document-first routing, optional project-authorized structural or semantic resolution, then verification.",
-    "- Policy, architecture, boundary, and storage-policy questions must inspect `AGENTS.md`, `.cstl/spec/**`, and README/contributing/architecture docs before semantic implementation search.",
+    "- Policy, architecture, boundary, and storage-policy questions must inspect `AGENTS.md`, `.pactile/spec/**`, and README/contributing/architecture docs before semantic implementation search.",
     "- Intent-gated branches (policy/document, caller-chain, trap demotion, extension disambiguation, env/config literals) must not override exact-symbol or F/G protocol routes.",
     "- Exact `rg` search and direct source reads are the baseline for current-code claims.",
     "- CodeGraph output is structural guidance until index freshness and current source/Git evidence are confirmed.",
@@ -787,7 +787,7 @@ function renderCodexCapabilityBlock(
 
   const lines = [
     CODEX_CAPABILITIES_START,
-    "# Project-local MCP servers selected through Trellis.",
+    "# Project-local MCP servers selected through Pactile.",
     "# Credentials stay in the agent host environment or user-level config.",
   ];
 
@@ -829,7 +829,7 @@ export function applyCodexCapabilityConfig(
   return `${withoutExistingBlock}\n\n${block}\n`;
 }
 
-/** MCP server names declared by any registry capability (Trellis-managed keys). */
+/** MCP server names declared by any registry capability (Pactile-managed keys). */
 export function managedMcpServerNames(): string[] {
   const names = new Set<string>();
   for (const capability of PROJECT_CAPABILITIES) {
@@ -888,8 +888,8 @@ export function loadExistingMcpServers(
 
 /**
  * Render `.cursor/mcp.json`.
- * When `existing` is provided (M1), upsert Trellis-managed servers from
- * selection, remove managed names not in selection, preserve non-managed keys.
+ * When `existing` is provided, upsert Pactile-managed servers from
+ * selection, remove managed names not in selection, and preserve foreign keys.
  */
 export function renderMcpJson(
   selected: readonly ProjectCapabilityId[],

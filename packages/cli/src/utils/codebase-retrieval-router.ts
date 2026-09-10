@@ -9,7 +9,7 @@ import type {
   AssuranceLevelV1,
   PactileIntentV1,
   PolicyCeilingV1,
-} from "@blxzer/cursor-trellis-core";
+} from "@blxzer/pactile-core";
 
 import {
   RETRIEVAL_ABI_VERSION,

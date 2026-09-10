@@ -59,7 +59,7 @@ export function createTemplateReader(importMetaUrl: string): TemplateReader {
 
   /** Read all .md command files from a subdirectory (e.g. cursor/commands).
    * Unlike listMdAgents, the name keeps no prefix transformation — callers
-   * decide the output filename (e.g. `trellis-${name}.md`). */
+   * decide the output filename (e.g. `pactile-${name}.md`). */
   function listMdCommands(dir = "commands"): AgentTemplate[] {
     return listFiles(dir)
       .filter((f) => f.endsWith(".md"))

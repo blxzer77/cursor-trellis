@@ -36,7 +36,7 @@ describe("Stage 2 Kernel commands + half-conversion", () => {
   let taskDir: string;
 
   beforeEach(() => {
-    tmp = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-kernel-cmd-"));
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-kernel-cmd-"));
     taskDir = path.join(tmp, "08-28-kernel-cmd");
     setKernelAfterWriteHook(null);
   });

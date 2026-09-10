@@ -3,7 +3,7 @@ import type {
   PactileIntentV1,
   PolicyCeilingV1,
   ProviderReadinessV1,
-} from "@blxzer/cursor-trellis-core";
+} from "@blxzer/pactile-core";
 
 export const RETRIEVAL_ABI_VERSION = 3 as const;
 

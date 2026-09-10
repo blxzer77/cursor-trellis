@@ -3,7 +3,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { getAllScriptsForTests } from "../../src/templates/trellis/index.js";
+import { getAllScriptsForTests } from "../../src/templates/pactile/index.js";
 
 function resolvePython(): string | null {
   const candidates = process.platform === "win32" ? ["python", "python3"] : ["python3", "python"];
@@ -43,7 +43,7 @@ function writeFile(root: string, rel: string, content: string): void {
 }
 
 function writeTrellisScripts(root: string): void {
-  const scriptsDir = path.join(root, ".cstl", "scripts");
+  const scriptsDir = path.join(root, ".pactile", "scripts");
   for (const [rel, content] of getAllScriptsForTests()) {
     writeFile(path.join(scriptsDir), rel, content);
   }
@@ -53,7 +53,7 @@ function seedArtifacts(root: string): void {
   writeTrellisScripts(root);
   writeFile(
     root,
-    ".cstl/spec/backend/index.md",
+    ".pactile/spec/backend/index.md",
     [
       "# Backend Guidelines",
       "",
@@ -63,7 +63,7 @@ function seedArtifacts(root: string): void {
   );
   writeFile(
     root,
-    ".cstl/tasks/06-13-plain/prd.md",
+    ".pactile/tasks/06-13-plain/prd.md",
     [
       "# Plain Requirement",
       "",
@@ -73,7 +73,7 @@ function seedArtifacts(root: string): void {
   );
   writeFile(
     root,
-    ".cstl/tasks/06-13-search/research/retrieval.md",
+    ".pactile/tasks/06-13-search/research/retrieval.md",
     [
       "---",
       "title: Retrieval Research",
@@ -81,7 +81,7 @@ function seedArtifacts(root: string): void {
       "status: active",
       "confidence: high",
       "related_files:",
-      "  - packages/cli/src/templates/trellis/scripts/get_context.py",
+      "  - packages/cli/src/templates/pactile/scripts/get_context.py",
       "---",
       "# Retrieval Research",
       "",
@@ -93,7 +93,7 @@ function seedArtifacts(root: string): void {
   );
   writeFile(
     root,
-    ".cstl/tasks/06-13-search/verify.md",
+    ".pactile/tasks/06-13-search/verify.md",
     [
       "# Verify",
       "",
@@ -103,7 +103,7 @@ function seedArtifacts(root: string): void {
   );
   writeFile(
     root,
-    ".cstl/workspace/test-dev/journal-1.md",
+    ".pactile/workspace/test-dev/journal-1.md",
     [
       "# Journal",
       "",
@@ -116,7 +116,7 @@ function seedArtifacts(root: string): void {
 function runSearch(root: string, args: string[]): { status: number | null; stdout: string; stderr: string } {
   const result = spawnSync(
     pythonCmd as string,
-    [path.join(root, ".cstl", "scripts", "search_artifacts.py"), ...args],
+    [path.join(root, ".pactile", "scripts", "search_artifacts.py"), ...args],
     { cwd: root, encoding: "utf-8" },
   );
   return {
@@ -134,7 +134,7 @@ describe.skipIf(pythonCmd === null)("search_artifacts.py", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-artifact-search-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-artifact-search-"));
     seedArtifacts(tmpDir);
   });
 
@@ -160,7 +160,7 @@ describe.skipIf(pythonCmd === null)("search_artifacts.py", () => {
     expect(research?.title).toBe("Retrieval Research");
     expect(research?.frontmatter.status).toBe("active");
     expect(research?.frontmatter.related_files).toEqual([
-      "packages/cli/src/templates/trellis/scripts/get_context.py",
+      "packages/cli/src/templates/pactile/scripts/get_context.py",
     ]);
     expect(research?.matched_fields).toContain("body");
     expect(research?.snippets[0]?.anchor).toBe("key-evidence");
@@ -189,7 +189,7 @@ describe.skipIf(pythonCmd === null)("search_artifacts.py", () => {
     const payload = parseJson(result.stdout);
     expect(payload.total).toBe(1);
     expect(payload.results[0]?.path).toBe(
-      ".cstl/tasks/06-13-search/research/retrieval.md",
+      ".pactile/tasks/06-13-search/research/retrieval.md",
     );
     expect(payload.results[0]?.matched_fields).toEqual([
       "frontmatter.related_files",
@@ -200,12 +200,12 @@ describe.skipIf(pythonCmd === null)("search_artifacts.py", () => {
   it("uses deterministic path ordering after score ties and honors limit", () => {
     writeFile(
       tmpDir,
-      ".cstl/tasks/06-13-tie-a/design.md",
+      ".pactile/tasks/06-13-tie-a/design.md",
       "# Tie A\n\nDeterministic needle text.\n",
     );
     writeFile(
       tmpDir,
-      ".cstl/tasks/06-13-tie-b/design.md",
+      ".pactile/tasks/06-13-tie-b/design.md",
       "# Tie B\n\nDeterministic needle text.\n",
     );
 
@@ -223,7 +223,7 @@ describe.skipIf(pythonCmd === null)("search_artifacts.py", () => {
     const payload = parseJson(result.stdout);
     expect(payload.total).toBe(1);
     expect(payload.results[0]?.path).toBe(
-      ".cstl/tasks/06-13-tie-a/design.md",
+      ".pactile/tasks/06-13-tie-a/design.md",
     );
   });
 

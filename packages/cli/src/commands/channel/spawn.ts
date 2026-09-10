@@ -3,7 +3,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import type { InboxPolicy } from "@blxzer/cursor-trellis-core/channel";
+import {
+  PACTILE_ENVIRONMENT_KEYS,
+  readPactileEnvironment,
+} from "@blxzer/pactile-core";
+import type { InboxPolicy } from "@blxzer/pactile-core/channel";
 
 import { loadAgent } from "./agent-loader.js";
 import type { Provider } from "./adapters/index.js";
@@ -37,11 +41,11 @@ export interface SpawnOptions {
   warnBeforeMs?: number;
   /** Files (or globs) to include in the worker's system prompt. */
   files?: string[];
-  /** Trellis jsonl manifests to expand into the system prompt. */
+  /** Pactile jsonl manifests to expand into the system prompt. */
   jsonls?: string[];
   scope?: string;
   /** Identity recorded as the `spawned` event author. Defaults to
-   *  the calling worker (`TRELLIS_CHANNEL_AS` env) or "main". */
+   *  the calling worker (`PACTILE_CHANNEL_AS` env) or "main". */
   by?: string;
   /** Worker inbox delivery policy (default `explicitOnly`). */
   inboxPolicy?: InboxPolicy;
@@ -109,7 +113,7 @@ function resolveSpawn(channelName: string, opts: SpawnOptions): ResolvedSpawn {
 }
 
 /**
- * Compose the worker's system prompt: Trellis channel protocol prefix
+ * Compose the worker's system prompt: Pactile channel protocol prefix
  * (placeholder) + agent body (if any).
  *
  * NOTE: protocol prefix lives in the system prompt — NOT in any user
@@ -123,7 +127,7 @@ function buildSystemPrompt(
   context: string,
 ): string {
   const protocol = [
-    "[TRELLIS CHANNEL PROTOCOL — placeholder]",
+    "[PACTILE CHANNEL PROTOCOL — placeholder]",
     `You are agent "${safeIdentifier(workerName)}" participating in the channel "${safeIdentifier(channelName)}".`,
     "Other agents (humans and AIs) may also be in this channel.",
     "Messages addressed to you arrive as ordinary user turns.",
@@ -244,12 +248,11 @@ async function spawnLocked(
     }
   }
 
+  const inheritedActor = readPactileEnvironment(
+    PACTILE_ENVIRONMENT_KEYS.channelActor,
+  );
   const spawnedBy =
-    opts.by ??
-    (typeof process.env.TRELLIS_CHANNEL_AS === "string" &&
-    process.env.TRELLIS_CHANNEL_AS.length > 0
-      ? process.env.TRELLIS_CHANNEL_AS
-      : "main");
+    opts.by ?? (inheritedActor && inheritedActor.length > 0 ? inheritedActor : "main");
 
   const configPath = writeSupervisorConfig(
     channelName,
@@ -310,7 +313,7 @@ async function spawnLocked(
       // regardless of where the supervisor's process.cwd() ends up.
       env: {
         ...process.env,
-        TRELLIS_CHANNEL_PROJECT: project,
+        [PACTILE_ENVIRONMENT_KEYS.channelProject]: project,
       },
     },
   );

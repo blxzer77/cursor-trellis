@@ -33,14 +33,14 @@ const finishWorkPath = path.join(
 );
 const bootstrapPath = path.join(
   cliSrc,
-  "templates/cursor/rules/cstl-bootstrap.mdc",
+  "templates/cursor/rules/pactile-bootstrap.mdc",
 );
 const cursorRulesDir = path.join(cliSrc, "templates/cursor/rules");
 
 const SHIPPED_SLASH_FILES = [
-  "cstl-continue.md",
-  "cstl-finish-work.md",
-  "cstl-handoff.md",
+  "pactile-continue.md",
+  "pactile-finish-work.md",
+  "pactile-handoff.md",
 ] as const;
 
 const continueRoutingLine = (body: string, phase: string): string => {
@@ -83,7 +83,7 @@ describe("Cursor adapter modes — shipped slash set", () => {
       .map((key) => key.slice(".cursor/commands/".length))
       .sort();
     expect(commandFiles).toEqual([...SHIPPED_SLASH_FILES]);
-    expect(templates?.has(".cursor/commands/cstl-start.md")).toBe(false);
+    expect(templates?.has(".cursor/commands/pactile-start.md")).toBe(false);
     for (const internal of [
       "brainstorm",
       "check",
@@ -91,7 +91,7 @@ describe("Cursor adapter modes — shipped slash set", () => {
       "before-dev",
       "micro-grill",
     ]) {
-      expect(templates?.has(`.cursor/commands/cstl-${internal}.md`)).toBe(
+      expect(templates?.has(`.cursor/commands/pactile-${internal}.md`)).toBe(
         false,
       );
     }
@@ -102,7 +102,7 @@ describe("Cursor adapter modes — configure install list", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "cstl-adapter-modes-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-adapter-modes-"));
     setWriteMode("force");
   });
 
@@ -111,12 +111,12 @@ describe("Cursor adapter modes — configure install list", () => {
     setWriteMode("ask");
   });
 
-  it("writes only cstl-continue / cstl-finish-work / cstl-handoff under commands", async () => {
+  it("writes only pactile-continue / pactile-finish-work / pactile-handoff under commands", async () => {
     await configurePlatform("cursor", tmpDir);
     const commandsDir = path.join(tmpDir, ".cursor", "commands");
     const installed = fs.readdirSync(commandsDir).sort();
     expect(installed).toEqual([...SHIPPED_SLASH_FILES]);
-    expect(installed).not.toContain("cstl-start.md");
+    expect(installed).not.toContain("pactile-start.md");
   });
 });
 
@@ -136,7 +136,7 @@ describe("Cursor adapter modes — guide and escape hatches", () => {
     expect(guide).not.toContain("本版不支持");
     expect(guide).toContain("generalPurpose");
     expect(guide).toMatch(/\/goal/);
-    expect(guide).toContain("Do **not** restore `cstl-goal`");
+    expect(guide).toContain("Do **not** restore `pactile-goal`");
   });
 
   it("modes guide covers Q5 slot map and Q11–Q25 experience bindings", () => {
@@ -224,17 +224,17 @@ describe("Cursor adapter modes — guide and escape hatches", () => {
   });
 
   it("SKILL_DESCRIPTIONS continue no longer names Phase Index as the loader", () => {
-    const wrapped = wrapWithSkillFrontmatter("cstl-continue", "# body\n");
+    const wrapped = wrapWithSkillFrontmatter("pactile-continue", "# body\n");
     expect(wrapped).not.toContain("Loads the workflow Phase Index");
     expect(wrapped).toMatch(/Kernel\/Dashboard/);
   });
 
-  it("cstl-bootstrap.mdc is the only default always-on rule and stays thin", () => {
+  it("pactile-bootstrap.mdc is the only default always-on rule and stays thin", () => {
     const rules = fs
       .readdirSync(cursorRulesDir)
       .filter((name) => name.endsWith(".mdc"))
       .sort();
-    expect(rules).toEqual(["cstl-bootstrap.mdc"]);
+    expect(rules).toEqual(["pactile-bootstrap.mdc"]);
     const body = read(bootstrapPath);
     expect(body).toMatch(/^alwaysApply:\s*true$/m);
     expect(body).toContain("single thin Bootstrap");

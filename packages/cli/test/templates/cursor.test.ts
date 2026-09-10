@@ -8,9 +8,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "../../../..");
 
 const EXPECTED_AGENT_NAMES = [
-  "cstl-check",
-  "cstl-implement",
-  "cstl-research",
+  "pactile-check",
+  "pactile-implement",
+  "pactile-research",
 ];
 
 describe("cursor getAllAgents", () => {
@@ -22,9 +22,9 @@ describe("cursor getAllAgents", () => {
 
   it("keeps all three agents dispatchable, recursion-safe, and off the workflow SSOT", () => {
     const expectedDispatchKinds = new Map([
-      ["cstl-check", "check"],
-      ["cstl-implement", "implement"],
-      ["cstl-research", "research"],
+      ["pactile-check", "check"],
+      ["pactile-implement", "implement"],
+      ["pactile-research", "research"],
     ]);
 
     for (const agent of getAllAgents()) {
@@ -35,7 +35,7 @@ describe("cursor getAllAgents", () => {
       );
       expect(agent.content).toContain("## Recursion Guard");
       expect(agent.content).toMatch(
-        /not (?:a )?runtime SSOT|not `\.cstl\/workflow\.md`/i,
+        /not (?:a )?runtime SSOT|not `\.pactile\/workflow\.md`/i,
       );
       expect(agent.content).toMatch(/## (?:Forbidden Operations|Write FORBIDDEN)/);
       for (const command of ["git commit", "git push", "git merge"]) {
@@ -44,9 +44,9 @@ describe("cursor getAllAgents", () => {
     }
   });
 
-  it("cstl-check keeps optional gate evidence without owning baseline-check", () => {
+  it("pactile-check keeps optional gate evidence without owning baseline-check", () => {
     const checkAgent = getAllAgents().find(
-      (agent) => agent.name === "cstl-check",
+      (agent) => agent.name === "pactile-check",
     );
     expect(checkAgent?.content).toContain("task.py record-gate");
     expect(checkAgent?.content).toContain("Never record `baseline-check`");
@@ -60,7 +60,7 @@ describe("cursor getAllAgents", () => {
 // the agent becomes unusable. See PRD task
 // 05-06-fix-codex-subagent-recursion-and-cursor-agent-description-format.
 describe("cursor agents frontmatter single-line description", () => {
-  for (const name of ["cstl-research", "cstl-implement", "cstl-check"]) {
+  for (const name of ["pactile-research", "pactile-implement", "pactile-check"]) {
     it(`${name}.md frontmatter description is a single-line literal (no '|' block scalar)`, () => {
       const filePath = path.join(
         repoRoot,

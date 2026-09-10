@@ -16,7 +16,7 @@ sys.dont_write_bytecode = True
 if hasattr(sys.stdout, "reconfigure"):
     cast(_ReconfigurableTextIO, sys.stdout).reconfigure(encoding="utf-8")
 
-source = Path(__file__).resolve().parents[3] / "src/templates/trellis/scripts/common/paths.py"
+source = Path(__file__).resolve().parents[3] / "src/templates/pactile/scripts/common/paths.py"
 spec = importlib.util.spec_from_file_location("runtime_paths", source)
 assert spec is not None and spec.loader is not None
 runtime = importlib.util.module_from_spec(spec)

@@ -46,7 +46,7 @@ describe("canonical discovery and legacy compatibility", () => {
     expect(resolveWorkflowDirName(root)).toBe(".trellis");
     fs.mkdirSync(path.join(root, ".cstl"));
     fs.mkdirSync(path.join(root, ".pactile"));
-    expect(resolveWorkflowDirName(root)).toBe(".cstl");
+    expect(resolveWorkflowDirName(root)).toBe(".pactile");
     expect(
       discoverRuntimeRoots(root).legacy.map((item) => item.present),
     ).toEqual([true, true]);

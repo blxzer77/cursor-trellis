@@ -28,7 +28,7 @@ function normalizeLineEndings(content: string): string {
 describe("getInstallPath", () => {
   it("returns spec path for 'spec' type", () => {
     const result = getInstallPath("/project", "spec");
-    expect(result).toBe(path.join("/project", ".cstl/spec"));
+    expect(result).toBe(path.join("/project", ".pactile/spec"));
   });
 
   it("returns skill path for 'skill' type", () => {
@@ -48,12 +48,12 @@ describe("getInstallPath", () => {
 
   it("falls back to spec path for unknown type", () => {
     const result = getInstallPath("/project", "unknown-type");
-    expect(result).toBe(path.join("/project", ".cstl/spec"));
+    expect(result).toBe(path.join("/project", ".pactile/spec"));
   });
 
   it("works with different cwd values", () => {
     const result = getInstallPath("/home/user/my-project", "spec");
-    expect(result).toBe(path.join("/home/user/my-project", ".cstl/spec"));
+    expect(result).toBe(path.join("/home/user/my-project", ".pactile/spec"));
   });
 });
 
@@ -529,7 +529,7 @@ async function withGitRegistry<T>(
   subdir: string,
   callback: (fixture: GitRegistryFixture) => Promise<T>,
 ): Promise<T> {
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-git-reg-"));
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-git-reg-"));
   const repoDir = path.join(tmpDir, "repo");
   fs.mkdirSync(repoDir, { recursive: true });
 
@@ -545,9 +545,9 @@ async function withGitRegistry<T>(
       "git",
       [
         "-c",
-        "user.name=Trellis Test",
+        "user.name=Pactile Test",
         "-c",
-        "user.email=trellis@example.com",
+        "user.email=pactile@example.com",
         "commit",
         "-m",
         "fixture",
@@ -578,7 +578,7 @@ async function withFakeGit<T>(
   stderr: string,
   callback: () => Promise<T>,
 ): Promise<T> {
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-fake-git-"));
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-fake-git-"));
   const gitPath = path.join(tmpDir, "git");
   const previousPath = process.env.PATH;
 
@@ -668,7 +668,7 @@ gitDescribe("git-backed registry backend", () => {
         expect(
           normalizeLineEndings(
             fs.readFileSync(
-              path.join(cwd, ".cstl", "spec", "rules.md"),
+              path.join(cwd, ".pactile", "spec", "rules.md"),
               "utf-8",
             ),
           ),
@@ -724,7 +724,7 @@ gitDescribe("git-backed registry backend", () => {
         expect(
           normalizeLineEndings(
             fs.readFileSync(
-              path.join(cwd, ".cstl", "spec", "rules.md"),
+              path.join(cwd, ".pactile", "spec", "rules.md"),
               "utf-8",
             ),
           ),
@@ -749,7 +749,7 @@ gitDescribe("git-backed registry backend", () => {
         expect(probe.isNotFound).toBe(true);
 
         const cwd = path.join(tmpDir, "project");
-        const specDir = path.join(cwd, ".cstl", "spec");
+        const specDir = path.join(cwd, ".pactile", "spec");
         fs.mkdirSync(specDir, { recursive: true });
         fs.writeFileSync(path.join(specDir, "keep.md"), "local keep\n");
 

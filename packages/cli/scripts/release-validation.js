@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -7,7 +5,9 @@ import path from "node:path";
 import { validateReleasePackPaths } from "./check-release-pack-contents.js";
 import {
   computeNpmTag,
+  releasePackageDefinitions,
   validatePackedCliPackage,
+  validatePackedShimPackage,
 } from "./release-preflight.js";
 
 export const RELEASE_ARTIFACT_MANIFEST = "release-artifacts-v1.json";
@@ -16,6 +16,27 @@ export const REQUIRED_CORE_RELEASE_FILES = [
   "package.json",
   "dist/index.js",
   "dist/index.d.ts",
+];
+
+export const REQUIRED_LEGACY_CORE_RELEASE_FILES = [
+  "package.json",
+  "LICENSE",
+  "index.js",
+  "index.d.ts",
+  "channel.js",
+  "channel.d.ts",
+  "task.js",
+  "task.d.ts",
+  "testing.js",
+  "testing.d.ts",
+];
+
+export const REQUIRED_LEGACY_CLI_RELEASE_FILES = [
+  "package.json",
+  "LICENSE",
+  "index.js",
+  "index.d.ts",
+  "bin/cstl.js",
 ];
 
 export function candidateValidationCommands({ repoRoot, cliDir }) {
@@ -30,7 +51,7 @@ export function candidateValidationCommands({ repoRoot, cliDir }) {
       command: "pnpm",
       args: [
         "--filter",
-        "@blxzer/cursor-trellis",
+        "@blxzer/pactile",
         "run",
         "check:router-copy-sync:hash",
       ],
@@ -63,13 +84,13 @@ export function candidateValidationCommands({ repoRoot, cliDir }) {
     },
     {
       command: "pnpm",
-      args: ["--filter", "@blxzer/cursor-trellis", "run", "check:pack-files"],
+      args: ["--filter", "@blxzer/pactile", "run", "check:pack-files"],
       cwd: repoRoot,
       label: "CLI pack file contract",
     },
     {
       command: "pnpm",
-      args: ["--filter", "@blxzer/cursor-trellis", "run", "check:release-pack"],
+      args: ["--filter", "@blxzer/pactile", "run", "check:release-pack"],
       cwd: repoRoot,
       label: "release pack preview",
     },
@@ -96,6 +117,28 @@ export function validateCorePackPaths(inputPaths) {
   return REQUIRED_CORE_RELEASE_FILES.filter((file) => !paths.has(file)).map(
     (file) => `missing required packed core file: ${file}`,
   );
+}
+
+export function validateShimPackPaths(inputPaths, key) {
+  const expected =
+    key === "legacyCore"
+      ? REQUIRED_LEGACY_CORE_RELEASE_FILES
+      : key === "legacyCli"
+        ? REQUIRED_LEGACY_CLI_RELEASE_FILES
+        : null;
+  if (!expected) throw new Error(`Unknown shim package key "${key}".`);
+  const paths = new Set(
+    inputPaths.map((file) => String(file).replace(/\\/g, "/")),
+  );
+  const errors = expected
+    .filter((file) => !paths.has(file))
+    .map((file) => `missing required packed ${key} file: ${file}`);
+  for (const file of paths) {
+    if (!expected.includes(file)) {
+      errors.push(`unexpected packed ${key} file: ${file}`);
+    }
+  }
+  return errors;
 }
 
 function assertArtifactDirectory({ artifactDir, repoRoot }) {
@@ -210,6 +253,13 @@ export function inspectReleaseTarball({ runner, tarballPath, key, expected }) {
     const errors = validateReleasePackPaths(entries);
     if (errors.length > 0) throw new Error(errors.join("\n"));
     validatePackedCliPackage(packedPackage, expected.version);
+  } else if (key === "legacyCore" || key === "legacyCli") {
+    const errors = validateShimPackPaths(entries, key);
+    if (errors.length > 0) throw new Error(errors.join("\n"));
+    validatePackedShimPackage(packedPackage, {
+      key,
+      expectedVersion: expected.version,
+    });
   } else {
     throw new Error(`Unknown release package key "${key}".`);
   }
@@ -221,7 +271,7 @@ function packPackage({ runner, packageDir, artifactDir, name, version }) {
     cwd: packageDir,
     capture: true,
     env: credentialFreeEnvironment({
-      TRELLIS_SKIP_SMART_SEARCH_POSTINSTALL: "1",
+      PACTILE_SKIP_SMART_SEARCH_POSTINSTALL: "1",
     }),
   });
   const tarballPath = path.join(
@@ -257,7 +307,7 @@ function hydrateManifest(manifest, artifactDir) {
   };
 }
 
-/** Build both immutable package artifacts, validate their bytes, then seal hashes. */
+/** Build all immutable package artifacts, validate their bytes, then seal hashes. */
 export function prepareReleaseArtifacts({
   runner,
   repoRoot,
@@ -270,20 +320,13 @@ export function prepareReleaseArtifacts({
     repoRoot,
   });
   const version = packageInfo.cliVersion;
-  const definitions = [
-    {
-      key: "core",
-      name: packageInfo.coreName,
+  const definitions = releasePackageDefinitions(packageInfo).map(
+    (definition) => ({
+      ...definition,
       version,
-      packageDir: packageInfo.coreDir,
-    },
-    {
-      key: "cli",
-      name: packageInfo.cliName,
-      version,
-      packageDir: packageInfo.cliDir,
-    },
-  ];
+      packageDir: packageInfo[`${definition.key}Dir`],
+    }),
+  );
 
   const records = [];
   for (const definition of definitions) {
@@ -377,7 +420,7 @@ function validateArtifactRecord(record, expected, artifactDir) {
   return { ...record, tarballPath };
 }
 
-/** Re-open and fully validate the sealed pair before any registry operation. */
+/** Re-open and fully validate the sealed package set before any registry operation. */
 export function readPreparedReleaseArtifacts({
   runner,
   artifactDir,
@@ -420,7 +463,9 @@ export function readPreparedReleaseArtifacts({
   }
   if (
     manifest.version !== packageInfo.cliVersion ||
-    manifest.version !== packageInfo.coreVersion
+    manifest.version !== packageInfo.coreVersion ||
+    manifest.version !== packageInfo.legacyCoreVersion ||
+    manifest.version !== packageInfo.legacyCliVersion
   ) {
     throw new Error("Release artifact version no longer matches the checkout.");
   }
@@ -435,23 +480,15 @@ export function readPreparedReleaseArtifacts({
       `Prepared release tag ${manifest.releaseTag ?? "(none)"} does not match ${expectedReleaseTag}.`,
     );
   }
-  if (!Array.isArray(manifest.packages) || manifest.packages.length !== 2) {
+  if (!Array.isArray(manifest.packages) || manifest.packages.length !== 4) {
     throw new Error(
-      "Release artifact manifest must contain exactly core and CLI.",
+      "Release artifact manifest must contain exactly the four-package release set.",
     );
   }
-  const expected = [
-    {
-      key: "core",
-      name: packageInfo.coreName,
-      version: manifest.version,
-    },
-    {
-      key: "cli",
-      name: packageInfo.cliName,
-      version: manifest.version,
-    },
-  ];
+  const expected = releasePackageDefinitions(packageInfo).map((definition) => ({
+    ...definition,
+    version: manifest.version,
+  }));
   const packages = expected.map((definition) => {
     const matches = manifest.packages.filter(
       (item) => item?.key === definition.key,

@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Any
 
 
-DIR_WORKFLOW = ".cstl"
+DIR_WORKFLOW = ".pactile"
 DIR_RUNTIME = ".runtime"
 DIR_CURSOR_SHELL = "cursor-shell"
 SESSION_SUBCOMMANDS = {"select", "selected", "exit"}
@@ -43,7 +43,7 @@ def _string_value(value: Any) -> str | None:
     return None
 
 
-def _find_trellis_root(start: Path) -> Path | None:
+def _find_pactile_root(start: Path) -> Path | None:
     current = start.resolve()
     while True:
         if (current / DIR_WORKFLOW).is_dir():
@@ -142,7 +142,7 @@ def _write_ticket(
 
 
 def main() -> int:
-    if os.environ.get("TRELLIS_HOOKS") == "0" or os.environ.get("TRELLIS_DISABLE_HOOKS") == "1":
+    if os.environ.get("PACTILE_HOOKS") == "0" or os.environ.get("PACTILE_DISABLE_HOOKS") == "1":
         return 0
 
     try:
@@ -158,7 +158,7 @@ def main() -> int:
         return 0
 
     cwd = Path(_string_value(hook_input.get("cwd")) or os.getcwd())
-    root = _find_trellis_root(cwd)
+    root = _find_pactile_root(cwd)
     if root is None:
         return 0
 

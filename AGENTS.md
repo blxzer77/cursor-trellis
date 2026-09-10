@@ -1,282 +1,104 @@
-<!-- CSTL:START -->
-# Cursor-Trellis (cstl)
+<!-- PACTILE:START -->
+# Pactile
 
-Thin-connect: this repo has no independent `.cstl/`. Runtime is the harness root.
+Pactile is an evidence-backed capability workspace for Cursor and Codex.
 
-- `D:\MyHarness\.cstl/framework/index.md` — framework docs (gates, parallel-first, retrieval, skills)
-- `D:\MyHarness\.cstl/workflow.md` — interface card (not runtime SSOT)
-- `D:\MyHarness\docs/` — harness docs
+This checkout is thin-connected to the `D:\MyHarness` harness. It has no
+independent task-control instance: follow `D:\MyHarness\AGENTS.md`, use the
+harness root's selected task and framework guidance, including its current
+package identifier for this checkout.
 
-User commands: `cstl-continue`, `cstl-finish-work`, `cstl-handoff` (and `cstl-start` when needed). Tasks: `D:\MyHarness\.cstl/tasks/` with `--package cursor-trellis`.
+User commands are `pactile-start`, `pactile-continue`,
+`pactile-finish-work`, and `pactile-handoff`.
 
-Managed by cursor-trellis. Edits outside this block are preserved; edits inside may be overwritten by a future `cstl update`.
+Managed by Pactile. Edits outside this block are preserved; edits inside may
+be overwritten by a future `pactile update`.
+<!-- PACTILE:END -->
 
-<!-- CSTL:END -->
+## Repository policy
 
-## Thin-connect to harness root (maintainers, 2026-08-16 决策落地)
+- The existing `private` Git remote is authoritative. Do not add or push to an
+  upstream remote.
+- `main` is integration and release only. Feature work uses a short-lived
+  `feat/*`, `fix/*`, or `chore/*` branch and integrates into `beta` during an
+  open prerelease round.
+- Do not commit, push, tag, publish, merge, or create a release unless the user
+  explicitly authorizes that action.
+- The worktree may contain unrelated user changes. Preserve them; never reset,
+  clean, or overwrite them to make a task easier.
+- Published migration manifests, the changelog, archived fixtures, and legal
+  attribution are historical evidence. Do not rewrite them as part of a live
+  brand change.
 
-This repo has **no independent `.cstl/`** (its local instance was archived to `D:\MyHarness\.tmp\cstl-legacy-cursor-trellis-0.3.3`). The cstl runtime and all working knowledge live in the **harness root instance** `D:\MyHarness\.cstl`:
+## Architecture
 
-- `D:\MyHarness\.cstl/workflow.md` — development phases, when to create tasks, skill routing
-- `D:\MyHarness\.cstl/spec/` — package- and layer-scoped coding guidelines (read before writing code in a given layer)
-- `D:\MyHarness\.cstl/workspace/` — per-developer journals and session traces
-- `D:\MyHarness\.cstl/tasks/` — active and archived tasks (PRDs, research, jsonl context)
+Pactile is a pnpm TypeScript monorepo:
 
-CLI/hook scripts run from this directory resolve to the root instance automatically (nearest-`.cstl` upward lookup). Tasks for this repo live under `D:\MyHarness\.cstl\tasks/`; mark them with `--package cursor-trellis` when creating.
-
-## Mindfold harness (maintainers)
-
-The Trellis CLI source repo sits inside the **D:\MyHarness** harness: the harness root is a **local-only git repository** (git-ified 2026-08-14) holding the workspace-level `.cstl/` (tasks, spec, workflow, journals). This repo has no local `.cstl/` (archived 2026-08-16) — cstl runtime resolves to the harness root instance. Run `git`, `pnpm`, and CLI validation from **this** directory. See `D:\MyHarness\AGENTS.md` for the four-repo layout (`cursor-trellis/`, `smart-search/`, `blaze-skills/`, `cursor-byok/`).
-
-**Git remotes (local policy):** This checkout uses **only** the `private` remote (`git@github.com:blxzer77/cursor-trellis.git`). Do **not** add or push to `origin` / `mindfold-ai/Trellis`. Use `git push` (default remote is `private`) or `git push private <branch>`. Do not run `git push origin`.
-
-**Branch policy (mandatory):** **`main` is integration/release only — never develop on `main`.** Before any durable edit, create or checkout a short-lived branch (`feat/…`, `fix/…`, `chore/…`). Do not commit feature work directly to `main`. Harness-wide rule: `D:\MyHarness\.cursor\rules\feature-branch-policy.mdc`.
-
----
-
-# Trellis — AI Agent Codebase Guide (Cursor-only fork)
-
-> Operational guide for AI agents editing this repository.
-> This fork targets **Cursor** only (`--cursor`). Cursor++ / `--cursor2plus` retired.
-
-## 1. What Trellis Is
-
-Trellis is a **team AI coding harness** — it turns monolithic `AGENTS.md` / `.cursorrules` into a progressive wiki of specs, tasks, workflows, and journals that agents load only when needed.
-
-Published as npm package `@blxzer/cursor-trellis` with core SDK `@blxzer/cursor-trellis-core`. **Init and public docs are Cursor-only**; generated output is `.cursor/` (commands, rules, agents, hooks) plus `.cstl/`.
-
-**Key concepts delivered to user projects**:
-- `.cstl/spec/` — Team coding standards
-- `.cstl/tasks/` — PRDs, context, status, acceptance criteria
-- `.cstl/workspace/` — Developer journals and session continuity
-- `.cstl/workflow.md` — Shared lifecycle: plan, build, check, finish, learn
-- Cursor adapter — Generated `.cursor/` tree
-
----
-
-## 2. Monorepo Architecture
-
-```
-Trellis/
-  packages/
-    core/              # @blxzer/cursor-trellis-core - domain primitives
-    cli/               # @blxzer/cursor-trellis - CLI tool
-  drafts/
-  assets/
-  .cstl/            # (archived 2026-08-16 to harness .tmp; runtime = harness root instance)
-  .cursor/
-  package.json
-  pnpm-workspace.yaml
+```text
+packages/
+  core/                 @blxzer/pactile-core
+  cli/                  @blxzer/pactile
+  <legacy bridges>/     0.5.x package and bin redirects
 ```
 
-**Package manager**: pnpm 10.32.1 (monorepo workspaces)
-**Build order**: core MUST build before cli
-**Node.js**: >= 18.17.0
-**TypeScript**: ES2022 target, NodeNext module resolution, strict mode, ESM only
-**Python**: >= 3.9 for hook scripts; basedpyright for type checking
-
-### Root scripts
-
-| Command | What it does |
-|---------|-------------|
-| `pnpm build` | Build core then cli (ordered) |
-| `pnpm build:core` / `pnpm build:cli` | Build a single package |
-| `pnpm test` | Test core then cli (ordered) |
-| `pnpm test:core` / `pnpm test:cli` | Test a single package |
-| `pnpm lint` | ESLint both packages |
-| `pnpm typecheck` | Build core then tsc --noEmit on cli |
-| `pnpm release` | Patch release of cli |
-| `pnpm release:beta` / `release:rc` | Prerelease channels |
-| `pnpm release:promote` | Promote prerelease to stable |
-| `pnpm release:check` | Preflight version alignment checks |
-| `pnpm release:plan` | Compute publish plan |
-
----
-
-## 3. Core Package — `packages/core/`
-
-**npm**: `@blxzer/cursor-trellis-core` — Zero runtime dependencies.
-
-### Subpath exports
-
-| Import path | Contents |
-|-------------|----------|
-| `@blxzer/cursor-trellis-core` | Root barrel (channel + task) |
-| `@blxzer/cursor-trellis-core/channel` | Channel event log, worker lifecycle, threads, inbox |
-| `@blxzer/cursor-trellis-core/task` | Task record schema, paths, phase inference |
-| `@blxzer/cursor-trellis-core/testing` | Test utilities (NOT in root barrel) |
-
-### Task API — `core/src/task/`
-
-| Module | Purpose |
-|--------|---------|
-| `schema.ts` | TrellisTaskRecord type, Zod schema, field order, emptyTaskRecord() |
-| `records.ts` | loadTaskRecord(), writeTaskRecord() |
-| `paths.ts` | validateTaskDirName(), isValidTaskDirName() |
-| `phase.ts` | inferTaskPhase() |
-
-**Task phases**: planning -> in_progress -> verify -> complete
-
----
-
-## 4. CLI Package — `packages/cli/`
-
-**npm**: `@blxzer/cursor-trellis` — Bins: `cstl`, `smart-search`
-**Dependencies**: trellis-core (workspace), chalk, commander, figlet, giget, inquirer, undici, zod
-
-### Source layout (high level)
-
-```
-src/
-  cli/index.ts                   # Commander program + update check
-  commands/
-    init.ts, update.ts, rollout.ts, upgrade.ts, uninstall.ts, workflow.ts
-    channel/                     # Advanced multi-agent runtime (not public Cursor docs)
-  configurators/
-    cursor.ts, workflow.ts, shared.ts
-  templates/
-    trellis/ (scripts, workflow.md, config.yaml)
-    common/ (commands, skills)
-    cursor/
-    shared-hooks/
-    markdown/ (AGENTS.md, guides)
-  migrations/manifests/
-  types/ai-tools.ts              # Cursor platform registry
-  utils/ (template-hash, file-writer, codebase-retrieval-router, …)
-```
-
-### CLI Commands (user-facing)
-
-| Command | Module | Key behavior |
-|---------|--------|-------------|
-| `cstl init` | commands/init.ts | Detect project, check Python, write Cursor templates |
-| `cstl update` | commands/update.ts | Diff templates, classify changes, apply migrations |
-| `cstl rollout` | commands/rollout.ts | Multi-project update with evidence |
-| `cstl upgrade` | commands/upgrade.ts | npm install -g with tag resolution |
-| `cstl uninstall` | commands/uninstall.ts | Scrub Trellis-managed files |
-| `cstl workflow` | commands/workflow.ts | List/switch workflow.md |
-
-**Init flags**: `--cursor`, `-u name`, `--capability id` (repeatable/all), `--workflow id`, `-t template`, `--monorepo/--no-monorepo`
-
----
-
-## 5. Cursor Platform System
-
-### AI_TOOLS registry — `types/ai-tools.ts`
-
-Cursor-only fork: active platform is **cursor** (first-class). Cursor++ local bundle retired.
-
-### Configurators — `configurators/`
-
-- `configureCursor()` — `.cursor/` commands, rules, agents, hooks
-- `configureWorkflow()` — `.cstl/` structure creation
-- Cursor++ local configurator removed (P23)
-
-Key helpers: `replacePythonCommandLiterals()`, `resolvePlaceholders()`.
-
-### Template System
-
-Templates are **TypeScript string constants** in `src/templates/`, not disk files.
-
-**The Mirror Rule (critical)**: When modifying `.cstl/` or `.cursor/` in project root (dogfooding), MUST also update `src/templates/`. Project files are self-consumed; templates go to user projects.
-
-### Template hash tracking — `utils/template-hash.ts`
-
-SHA-256 in `.cstl/.template-hashes`: Unchanged (auto-update), Modified (conflict), New (safe write), Deleted (user removed).
-
----
-
-## 6. Migration Engine — `migrations/`
-
-JSON manifests in `manifests/` (v0.1.9 -> v1.0.0). Types: rename, delete, safe-file-delete, config-section-added.
-
-API: `getMigrationsForVersion()`, `getAllMigrations()`, `hasPendingMigrations()`, `getMigrationSummary()`, `getMigrationMetadata()`, `getConfigSectionsAddedBetween()`, `clearManifestCache()`
-
----
-
-## 7. Smart-Search npm Dependency
-
-Runtime: `@blxzer/smart-search` npm package (installed as a dependency of `@blxzer/cursor-trellis`).
-Bin: `smart-search` → `./bin/smart-search.js` forwards to `node_modules/@blxzer/smart-search`.
-Bundled skill template: `packages/cli/src/templates/common/bundled-skills/smart-search-cli/` (synced from the smart-search repo; written to `.agents/skills/` on non-Cursor platforms only — **not** `.cursor/skills/`).
-Cursor entrypoint: `./.cstl/scripts/run_smart_search.py` + `.cursor/rules/retrieval-routing.mdc` + `AGENTS.md`.
-
----
-
-## 8. Build, Test & CI/CD
-
-**Build**: core (clean+tsc), cli (clean+tsc+copy-templates).
-
-**Test config**: core (Vitest 4.x, 10s timeout, threads), cli (Vitest 4.x, 30s timeout, forks pool, test/setup.ts, v8 coverage).
-
-**Test categories**: Unit, Integration, Regression (`regression.test.ts`), Template (`trellis.test.ts`), Dogfood fixtures.
-
-**CI / hooks:** No GitHub Actions or Husky hooks in this fork. Run `pnpm lint && pnpm typecheck && pnpm test && pnpm build` locally before push.
-
-**Publish:** Manual via `pnpm release*` scripts; pushes tags to the `private` remote.
-
----
-
-## 9. Key Conventions & Gotchas
-
-### Windows compatibility (regression-tested)
-
-- Python hooks MUST call `configure_encoding()` from `common/__init__.py`
-- `sys.platform == "win32"` guards for stdout/stderr
-- `reconfigure()` check before `detach()` check (beta.16 root cause)
-- `python` in templates -> `python` on Windows via `replacePythonCommandLiterals()`
-
-### Path handling
-
-- POSIX paths in templates/hashes: `toPosix()`
-- `DIR_NAMES` / `PATHS` in `constants/paths.ts` — single source for names
-- Managed paths from `AI_TOOLS` via `getManagedPaths()` — never hardcode
-
-### Session records
-
-- 5 columns: | # | Date | Title | Commits | Branch |
-- `add_session.py` uses `--branch` (not `--base-branch`)
-
-### Sub-agent dispatch (workflow.md)
-
-- `cstl-implement` / `cstl-check` / `cstl-research` via Cursor Task tool
-- Sub-agents self-exempt from recursion
-- Dispatch prompt starts with `Selected task: <path>`
-
-### File writing
-
-Modes: force, skip, create-new. `startRecordingWrites()`/`stopRecordingWrites()` for tracking.
-
----
-
-## 10. Dogfooding
-
-The local dogfooding instance was archived 2026-08-16 (`.cstl` → `D:\MyHarness\.tmp\cstl-legacy-cursor-trellis-0.3.3`); cstl runtime now resolves to the harness root instance. **The Mirror Rule still applies**: when modifying `.cstl/` or `.cursor/` content that ships to user projects, update `src/templates/` — mirror edits are made against the harness root instance's `.cstl/`.
-
----
-
-## 11. Quick Reference
-
-**New CLI command**: `src/commands/{name}.ts` -> register in `cli/index.ts` -> tests
-
-**New Python script**: `src/templates/trellis/scripts/` -> export from `trellis/index.ts` -> `getAllScripts()` -> regression test
-
-**New migration**: `src/migrations/manifests/{version}.json` -> regression test -> `check-manifest-continuity.js`
-
-**Modify workflow.md**: Edit `src/templates/trellis/workflow.md` -> mirror `.cstl/workflow.md` -> template tests
-
-**Modify AGENTS.md template**: Edit `src/templates/markdown/index.ts` (user projects) or root `AGENTS.md` (self). Never edit inside CSTL:START/END block.
-
-**Sync smart-search bundled skill**: Update `smart-search/skills/smart-search-cli/` → copy into `packages/cli/src/templates/common/bundled-skills/smart-search-cli/` (does not change Cursor `.cursor/skills/` policy).
-
-**Full quality check**: `pnpm lint && pnpm lint:py && pnpm typecheck && pnpm test && pnpm build`
-
----
-
-## 12. Path Constants — `constants/paths.ts`
-
-```
-DIR_NAMES: .cstl, workspace, tasks, archive, spec, scripts
-FILE_NAMES: AGENTS.md, .developer, .current-task, task.json, prd.md, workflow.md, journal-
-Helpers: getWorkspaceDir(dev), getTaskDir(name), getArchiveDir()
-```
+The core package has no runtime dependencies and owns task, channel, lifecycle,
+runtime, generation, and compatibility primitives. The CLI owns commands,
+host adapters, projection, migrations, templates, and release validation.
+
+Canonical project state is under `.pactile/`. Host projections are receipts-
+and-ledger governed: preserve foreign, borrowed, shared, and user-modified
+resources. Cursor and Codex share one small `PACTILE` block in `AGENTS.md`.
+
+Compatibility rules for the 0.5.x line:
+
+- old project roots and environment names are read-only inputs;
+- new writes use only canonical Pactile paths, markers, and environment names;
+- the legacy CLI spelling is a warning alias for the canonical `pactile` bin;
+- legacy npm packages are thin redirects and contain no second implementation;
+- upstream-owned project state is never auto-claimed or rewritten;
+- compatibility readers are centralized and must have focused tests and a
+  documented removal condition.
+
+## Development
+
+Use Node.js 18.17 or newer and pnpm. Build order is core before CLI.
+
+| Command | Purpose |
+| --- | --- |
+| `pnpm build` | Build core and CLI in dependency order |
+| `pnpm typecheck` | Build core, then type-check the CLI |
+| `pnpm lint` | Lint both canonical packages |
+| `pnpm test` | Run core and CLI tests |
+| `pnpm mirror-check` | Verify generated-template and dogfood parity |
+| `pnpm release:check` | Validate the four-package release graph |
+| `pnpm check:pack-files` | Validate packed artifact contents |
+
+Source is strict ESM with NodeNext resolution and explicit `.js` specifiers.
+Python templates support Python 3.9 and newer and are checked with the configured
+type checker.
+
+## Change rules
+
+- Treat `packages/cli/src/templates/` as the generated-project source of truth.
+  Keep checked-in dogfood assets in `.agents/` and `.cursor/` byte- or
+  semantics-equivalent where the mirror contract requires it.
+- A fresh project must expose only `.pactile`, `pactile-*`, `PACTILE:*`, and
+  `PACTILE_*` identifiers.
+- Never add host files through init/update directly. Route all host mutations
+  through the projection store so adoption, claimant sharing, detach, recovery,
+  and modified-file preservation remain auditable.
+- Keep project tasks, workspace journals, spec content, middleware overlays,
+  secrets, and host session data out of template hashes and generation payloads.
+- Lifecycle commits canonical state before attempting host adapters. A partial
+  adapter failure records degraded truth and retries only failed adapters.
+- Uninstall means non-destructive detach. Purge requires an unchanged preview
+  fingerprint and explicit confirmation. Rollback targets a verified sealed
+  generation and never deletes the generation being left.
+- When changing package identity, validate canonical and compatibility bins,
+  exact packed dependency versions, absence of workspace protocols, and the
+  release order: canonical core, canonical CLI, legacy core bridge, legacy CLI
+  bridge.
+- Prefer focused tests while iterating, then run type-check, lint, build,
+  package validation, mirror checks, and the broad suite in proportion to risk.
+- Report pre-existing baseline failures separately from failures caused by the
+  current change. Do not weaken a guard to make a check pass.

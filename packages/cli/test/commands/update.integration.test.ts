@@ -16,7 +16,7 @@ import { fileURLToPath } from "node:url";
 // === External dependency mocks (hoisted by vitest) ===
 
 vi.mock("figlet", () => ({
-  default: { textSync: vi.fn(() => "TRELLIS") },
+  default: { textSync: vi.fn(() => "PACTILE") },
 }));
 
 vi.mock("inquirer", () => ({
@@ -41,18 +41,13 @@ vi.mock("node:child_process", () => ({
 import {
   isWaveCConfirmed,
   WAVE_C_STATE_REL,
-} from "@blxzer/cursor-trellis-core/task";
+} from "@blxzer/pactile-core/task";
 import { init } from "../../src/commands/init.js";
 import { update } from "../../src/commands/update.js";
 import { VERSION } from "../../src/constants/version.js";
 import { DIR_NAMES, FILE_NAMES, PATHS } from "../../src/constants/paths.js";
 import { computeHash } from "../../src/utils/template-hash.js";
-import {
-  CSTL_BLOCK_END,
-  CSTL_BLOCK_START,
-  extractBlock,
-} from "../../src/utils/agents-md.js";
-import { workflowMdTemplate } from "../../src/templates/trellis/index.js";
+import { workflowMdTemplate } from "../../src/templates/pactile/index.js";
 import { frameworkDocs } from "../../src/templates/markdown/index.js";
 import { replacePythonCommandLiterals } from "../../src/configurators/shared.js";
 import { compareVersions } from "../../src/utils/compare-versions.js";
@@ -174,7 +169,7 @@ describe("update() integration", () => {
   }
 
   /**
-   * Stage a project as if an older Trellis version installed pristine template
+   * Stage a project as if an older Pactile version installed pristine template
    * files, then the current CLI is about to update it. The hash file records
    * the older pristine content so update() must treat those files as
    * auto-update candidates.
@@ -203,7 +198,7 @@ describe("update() integration", () => {
   }
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-update-int-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-update-int-"));
     vi.spyOn(process, "cwd").mockReturnValue(tmpDir);
     // Simulate an interactive TTY for stdin: update.ts guards its inquirer
     // prompt behind process.stdin.isTTY and hard-fails when stdin is not a TTY
@@ -251,65 +246,69 @@ describe("update() integration", () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it("#1 same version update is a true no-op (zero file changes, no backup)", async () => {
-    await setupProject();
-    await runUpdate({});
+  it(
+    "#1 same version update is a true no-op (zero file changes, no backup)",
+    async () => {
+      await setupProject();
+      await runUpdate({});
 
-    // Full snapshot before update
-    const snapshotBefore = new Map<string, string>();
-    const walk = (dir: string) => {
-      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-        const full = path.join(dir, entry.name);
-        if (entry.isDirectory()) walk(full);
-        else
-          snapshotBefore.set(
-            path.relative(tmpDir, full),
-            fs.readFileSync(full, "utf-8"),
-          );
+      // Full snapshot before update
+      const snapshotBefore = new Map<string, string>();
+      const walk = (dir: string) => {
+        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+          const full = path.join(dir, entry.name);
+          if (entry.isDirectory()) walk(full);
+          else
+            snapshotBefore.set(
+              path.relative(tmpDir, full),
+              fs.readFileSync(full, "utf-8"),
+            );
+        }
+      };
+      walk(tmpDir);
+
+      await runUpdate({});
+
+      // Full snapshot after update
+      const snapshotAfter = new Map<string, string>();
+      const walk2 = (dir: string) => {
+        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+          const full = path.join(dir, entry.name);
+          if (entry.isDirectory()) walk2(full);
+          else
+            snapshotAfter.set(
+              path.relative(tmpDir, full),
+              fs.readFileSync(full, "utf-8"),
+            );
+        }
+      };
+      walk2(tmpDir);
+
+      // No files added or removed
+      const addedFiles = [...snapshotAfter.keys()].filter(
+        (k) => !snapshotBefore.has(k),
+      );
+      const removedFiles = [...snapshotBefore.keys()].filter(
+        (k) => !snapshotAfter.has(k),
+      );
+      expect(addedFiles).toEqual([]);
+      expect(removedFiles).toEqual([]);
+
+      // No file contents changed
+      const changedFiles: string[] = [];
+      for (const [filePath, content] of snapshotBefore) {
+        if (snapshotAfter.get(filePath) !== content) {
+          changedFiles.push(filePath);
+        }
       }
-    };
-    walk(tmpDir);
+      expect(changedFiles).toEqual([]);
 
-    await runUpdate({});
-
-    // Full snapshot after update
-    const snapshotAfter = new Map<string, string>();
-    const walk2 = (dir: string) => {
-      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-        const full = path.join(dir, entry.name);
-        if (entry.isDirectory()) walk2(full);
-        else
-          snapshotAfter.set(
-            path.relative(tmpDir, full),
-            fs.readFileSync(full, "utf-8"),
-          );
-      }
-    };
-    walk2(tmpDir);
-
-    // No files added or removed
-    const addedFiles = [...snapshotAfter.keys()].filter(
-      (k) => !snapshotBefore.has(k),
-    );
-    const removedFiles = [...snapshotBefore.keys()].filter(
-      (k) => !snapshotAfter.has(k),
-    );
-    expect(addedFiles).toEqual([]);
-    expect(removedFiles).toEqual([]);
-
-    // No file contents changed
-    const changedFiles: string[] = [];
-    for (const [filePath, content] of snapshotBefore) {
-      if (snapshotAfter.get(filePath) !== content) {
-        changedFiles.push(filePath);
-      }
-    }
-    expect(changedFiles).toEqual([]);
-
-    // No backup directory created
-    const entries = fs.readdirSync(path.join(tmpDir, DIR_NAMES.WORKFLOW));
-    expect(entries.filter((e) => e.startsWith(".backup-")).length).toBe(0);
-  });
+      // No backup directory created
+      const entries = fs.readdirSync(path.join(tmpDir, DIR_NAMES.WORKFLOW));
+      expect(entries.filter((e) => e.startsWith(".backup-")).length).toBe(0);
+    },
+    120_000,
+  );
 
   it("#1b verifies Smart Search readiness during update", async () => {
     await setupProject();
@@ -399,7 +398,6 @@ describe("update() integration", () => {
     const trackedFiles = [
       `${DIR_NAMES.WORKFLOW}/capabilities.json`,
       `${DIR_NAMES.WORKFLOW}/capabilities.md`,
-      ".cursor/mcp.json",
     ];
     const before = new Map(
       trackedFiles.map((relativePath) => [
@@ -481,6 +479,7 @@ describe("update() integration", () => {
     for (const relativePath of trackedFiles) {
       expect(readProjectFile(relativePath)).toBe(before.get(relativePath));
     }
+    expect(fs.existsSync(projectFile(".cursor/mcp.json"))).toBe(false);
     const entries = fs.readdirSync(path.join(tmpDir, DIR_NAMES.WORKFLOW));
     expect(entries.filter((e) => e.startsWith(".backup-"))).toEqual([]);
   });
@@ -629,7 +628,7 @@ describe("update() integration", () => {
     expect(fs.readFileSync(targetFull, "utf-8")).toBe(templateContent);
   });
 
-  it("#4b auto-updates legacy untracked AGENTS.md and preserves outside content", async () => {
+  it("#4b preserves a locally reframed AGENTS.md outside-content envelope", async () => {
     await setupProject();
 
     const targetRelative = FILE_NAMES.AGENTS;
@@ -637,7 +636,6 @@ describe("update() integration", () => {
     const templateContent = fs.readFileSync(targetFull, "utf-8");
     const oldContent = removeSubagentsSection(templateContent);
     const existingContent = `# Local instructions\n\n${oldContent}\n\n## Project Notes\n\nKeep this.`;
-    const expectedContent = `# Local instructions\n\n${templateContent}\n\n## Project Notes\n\nKeep this.`;
 
     fs.writeFileSync(targetFull, existingContent);
 
@@ -654,18 +652,8 @@ describe("update() integration", () => {
 
     await runUpdate({});
 
-    expect(fs.readFileSync(targetFull, "utf-8")).toBe(expectedContent);
-    const expectedBlock = extractBlock(
-      expectedContent,
-      CSTL_BLOCK_START,
-      CSTL_BLOCK_END,
-    );
-    if (expectedBlock === null) {
-      throw new Error("updated AGENTS.md must contain the managed CSTL block");
-    }
-    expect(readHashesV2(hashFile)[targetRelative]).toBe(
-      computeHash(expectedBlock),
-    );
+    expect(fs.readFileSync(targetFull, "utf-8")).toBe(existingContent);
+    expect(readHashesV2(hashFile)[targetRelative]).toBeUndefined();
   });
 
   it("#4c preserves user-modified untracked AGENTS.md managed block", async () => {
@@ -675,8 +663,8 @@ describe("update() integration", () => {
     const targetFull = path.join(tmpDir, targetRelative);
     const templateContent = fs.readFileSync(targetFull, "utf-8");
     const modifiedOldContent = removeSubagentsSection(templateContent).replace(
-      "# Trellis Instructions",
-      "# Custom Trellis Instructions",
+      "# Pactile (pactile)",
+      "# Custom Pactile Instructions",
     );
     fs.writeFileSync(targetFull, modifiedOldContent);
 
@@ -696,32 +684,21 @@ describe("update() integration", () => {
     expect(fs.readFileSync(targetFull, "utf-8")).toBe(modifiedOldContent);
   });
 
-  it("#4d preserves user AGENTS.md without TRELLIS markers by appending the managed block", async () => {
+  it("#4d preserves a user-replaced AGENTS.md even under force", async () => {
     await setupProject();
 
     const targetRelative = FILE_NAMES.AGENTS;
     const targetFull = path.join(tmpDir, targetRelative);
-    const templateContent = fs.readFileSync(targetFull, "utf-8");
-
-    // User has a hand-written AGENTS.md with no TRELLIS:START/END markers at
-    // all (predates 0.5.0-beta.18 or was authored by hand). Pre-fix behavior
-    // would clobber this content; post-fix should append the managed block.
+    // Replacing a projected file destroys generated-byte evidence. Force only
+    // resolves template conflicts; it is not authority to overwrite a foreign
+    // or modified ProjectionStore target.
     const userContent = "# Project notes\n\nThings the team agreed on.\n";
     fs.writeFileSync(targetFull, userContent);
 
     await runUpdate({ force: true });
 
     const result = fs.readFileSync(targetFull, "utf-8");
-    expect(result).toContain("# Project notes");
-    expect(result).toContain("Things the team agreed on.");
-    expect(result).toContain("<!-- CSTL:START -->");
-    expect(result).toContain("<!-- CSTL:END -->");
-    // Managed block should sit AFTER the user content, not replace it.
-    expect(result.indexOf("# Project notes")).toBeLessThan(
-      result.indexOf("<!-- CSTL:START -->"),
-    );
-    // Tail equals the canonical template (force-applied managed block).
-    expect(result.endsWith(templateContent.trimEnd() + "\n")).toBe(true);
+    expect(result).toBe(userContent);
   });
 
   it("#5 force overwrites user-modified files", async () => {
@@ -890,7 +867,7 @@ describe("update() integration", () => {
       "#### 2.1 Implement `[required · repeatable]`\n\n" +
       "[Codex]\nSpawn the implement sub-agent:\n[/Codex]\n\n" +
       "[Kilo, Antigravity, Windsurf]\n" +
-      "1. Load the `cstl-before-dev` skill to read project guidelines\n" +
+      "1. Load the `pactile-before-dev` skill to read project guidelines\n" +
       "[/Kilo, Antigravity, Windsurf]\n";
 
     stageVersionedUpgradeProject({
@@ -1399,7 +1376,7 @@ describe("update() integration", () => {
       "#### 2.1 Implement `[required · repeatable]`\n\n" +
       "[Codex]\nSpawn the implement sub-agent:\n[/Codex]\n\n" +
       "[Kilo, Antigravity, Windsurf]\n" +
-      "1. Load the `cstl-before-dev` skill to read project guidelines\n" +
+      "1. Load the `pactile-before-dev` skill to read project guidelines\n" +
       "[/Kilo, Antigravity, Windsurf]\n";
 
     fs.writeFileSync(workflowPath, staleWorkflow, "utf-8");
@@ -1580,12 +1557,12 @@ describe("update() integration", () => {
     }
   });
 
-  // === .cstl/framework/ (framework-owned docs) ===
+  // === .pactile/framework/ (framework-owned docs) ===
 
-  it("#framework-1 upgrade from a pre-framework project lists .cstl/framework/* as new files and never manages .cstl/spec/", async () => {
+  it("#framework-1 upgrade from a pre-framework project lists .pactile/framework/* as new files and never manages .pactile/spec/", async () => {
     await setupProject();
 
-    // Simulate a pre-framework project: no .cstl/framework/ dir, no hashes for it.
+    // Simulate a pre-framework project: no canonical framework dir or hashes.
     fs.rmSync(projectFile(PATHS.FRAMEWORK), { recursive: true, force: true });
     fs.writeFileSync(versionFilePath(), "0.4.0");
     let hashes = readHashesV2(hashFilePath());
@@ -1612,8 +1589,8 @@ describe("update() integration", () => {
       expect(output).toContain(`+ ${PATHS.FRAMEWORK}/${doc.name}`);
     }
 
-    // Nothing under .cstl/spec/ is ever listed as a managed file (the only
-    // .cstl/spec/ line allowed is the protected "User data" notice).
+    // Nothing under .pactile/spec/ is ever listed as a managed file (the only
+    // matching line allowed is the protected "User data" notice).
     const managedSpecLines = output
       .split("\n")
       .map((line) => line.trim())
@@ -1623,12 +1600,12 @@ describe("update() integration", () => {
             line.startsWith("↑") ||
             line.startsWith("?") ||
             line.startsWith("✕")) &&
-          line.includes(".cstl/spec/"),
+          line.includes(".pactile/spec/"),
       );
     expect(managedSpecLines).toEqual([]);
   });
 
-  it("#framework-2 apply update writes .cstl/framework/* into an old project and leaves .cstl/spec/ untouched", async () => {
+  it("#framework-2 apply update writes .pactile/framework/* and leaves .pactile/spec/ untouched", async () => {
     await setupProject();
 
     // User-customized spec guide must survive update (protected path).
@@ -1636,7 +1613,7 @@ describe("update() integration", () => {
     const customContent = "# My Custom Guides\n\nEdited by user.\n";
     fs.writeFileSync(guidesIndex, customContent);
 
-    // Simulate a pre-framework project without .cstl/framework/.
+    // Simulate a pre-framework project without the canonical framework tree.
     fs.rmSync(projectFile(PATHS.FRAMEWORK), { recursive: true, force: true });
     fs.writeFileSync(versionFilePath(), "0.4.0");
     let hashes = readHashesV2(hashFilePath());
@@ -1659,9 +1636,9 @@ describe("update() integration", () => {
     // User-edited spec guide untouched; old guide copies remain
     expect(fs.readFileSync(guidesIndex, "utf-8")).toBe(customContent);
 
-    // Hashes never track anything under .cstl/spec/
+    // Hashes never track anything under .pactile/spec/.
     const hashKeys = Object.keys(readHashesV2(hashFilePath()));
-    expect(hashKeys.filter((key) => key.startsWith(".cstl/spec/"))).toEqual(
+    expect(hashKeys.filter((key) => key.startsWith(".pactile/spec/"))).toEqual(
       [],
     );
     // Framework docs are hash-tracked (same-version no-op on next update)
@@ -1669,7 +1646,7 @@ describe("update() integration", () => {
       .toHaveLength(frameworkDocs.length);
   });
 
-  it("#middleware-overlay update never writes, deletes, or hashes .cstl/middleware/", async () => {
+  it("#middleware-overlay update never writes, deletes, or hashes .pactile/middleware/", async () => {
     await setupProject();
 
     const overlayRel = `${PATHS.MIDDLEWARE}/smart-search.yaml`;

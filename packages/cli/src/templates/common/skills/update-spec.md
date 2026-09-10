@@ -9,9 +9,9 @@ When you learn something valuable (from debugging, implementing, or discussion),
 ## Semi-automatic flow (required for durable learning)
 
 1. **Detect** — did this task produce reusable code-spec or guide-worthy learning?
-2. **Proposal** — write `{TASK}/research/learning-proposal.md` (target spec paths, draft bullets; **do not** edit `.cstl/spec/` yet).
+2. **Proposal** — write `{TASK}/research/learning-proposal.md` (target spec paths, draft bullets; **do not** edit `.pactile/spec/` yet).
 3. **Confirm** — user or task owner explicitly approves (`Learning decision: update-spec` in `verify.md`).
-4. **Write** — only then edit spec files; add `Spec update evidence: .cstl/spec/...` to `verify.md`.
+4. **Write** — only then edit spec files; add `Spec update evidence: .pactile/spec/...` to `verify.md`.
 
 **Forbidden:** silent spec edits; writing spec when `Learning decision: no-update` or `unsure` without follow-up; auto-updating spec from hooks or check alone.
 
@@ -68,7 +68,7 @@ For triggered tasks, include all sections below:
 ## Spec Structure Overview
 
 ```
-.cstl/spec/
+.pactile/spec/
 ├── <layer>/           # Per-layer coding standards (e.g., backend/, frontend/, api/)
 │   ├── index.md       # Overview and links
 │   └── *.md           # Topic-specific guidelines
@@ -130,7 +130,7 @@ Before editing, read the current code-spec to:
 - Find the right section for your update
 
 ```bash
-cat .cstl/spec/<category>/<file>.md
+cat .pactile/spec/<category>/<file>.md
 ```
 
 ### Step 4: Make the Update
@@ -342,15 +342,15 @@ Before finishing your code-spec update:
 
 ```
 Development Flow:
-  Learn something → `update-spec` (Trellis command) → Knowledge captured
+  Learn something → `update-spec` (Pactile command) → Knowledge captured
        ↑                                  ↓
-  `break-loop` (Trellis command) ←──────────────────── Future sessions benefit
+  `break-loop` (Pactile command) ←──────────────────── Future sessions benefit
   (deep bug analysis)
 ```
 
-- ``break-loop` (Trellis command)` - Analyzes bugs deeply, often reveals spec updates needed
-- ``update-spec` (Trellis command)` - Actually makes the updates
-- ``finish-work` (Trellis command)` - Reminds you to check if specs need updates
+- ``break-loop` (Pactile command)` - Analyzes bugs deeply, often reveals spec updates needed
+- ``update-spec` (Pactile command)` - Actually makes the updates
+- ``finish-work` (Pactile command)` - Reminds you to check if specs need updates
 
 ---
 

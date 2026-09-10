@@ -4,7 +4,7 @@ import {
   fingerprintPactileContractV1,
   parseTileManifestV1,
   type TileManifestV1,
-} from "@blxzer/cursor-trellis-core";
+} from "@blxzer/pactile-core";
 import {
   MAX_TILE_TEXT_BYTES,
   normalizeTileText,

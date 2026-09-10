@@ -8,7 +8,7 @@ import { handleRuntimePathRequest } from "../../../src/pactile/runtime/json-api.
 import {
   parseInstallStateV1,
   type InstallStateV1,
-} from "@blxzer/cursor-trellis-core";
+} from "@blxzer/pactile-core";
 import {
   GenerationStore,
   InstallStateStore,

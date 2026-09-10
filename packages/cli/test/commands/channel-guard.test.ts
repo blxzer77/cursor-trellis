@@ -39,15 +39,15 @@ interface TmpEnv {
 
 function setup(): TmpEnv {
   const tmpDir = fs.mkdtempSync(
-    path.join(os.tmpdir(), "trellis-channel-guard-test-"),
+    path.join(os.tmpdir(), "pactile-channel-guard-test-"),
   );
   const projectDir = path.join(tmpDir, "project");
   fs.mkdirSync(projectDir);
   const channelsRoot = path.join(tmpDir, "channels");
-  const oldRoot = process.env.TRELLIS_CHANNEL_ROOT;
-  const oldProject = process.env.TRELLIS_CHANNEL_PROJECT;
-  process.env.TRELLIS_CHANNEL_ROOT = channelsRoot;
-  delete process.env.TRELLIS_CHANNEL_PROJECT;
+  const oldRoot = process.env.PACTILE_CHANNEL_ROOT;
+  const oldProject = process.env.PACTILE_CHANNEL_PROJECT;
+  process.env.PACTILE_CHANNEL_ROOT = channelsRoot;
+  delete process.env.PACTILE_CHANNEL_PROJECT;
   return {
     tmpDir,
     projectDir,
@@ -59,10 +59,10 @@ function setup(): TmpEnv {
 }
 
 function teardown(env: TmpEnv): void {
-  if (env.oldRoot === undefined) delete process.env.TRELLIS_CHANNEL_ROOT;
-  else process.env.TRELLIS_CHANNEL_ROOT = env.oldRoot;
-  if (env.oldProject === undefined) delete process.env.TRELLIS_CHANNEL_PROJECT;
-  else process.env.TRELLIS_CHANNEL_PROJECT = env.oldProject;
+  if (env.oldRoot === undefined) delete process.env.PACTILE_CHANNEL_ROOT;
+  else process.env.PACTILE_CHANNEL_ROOT = env.oldRoot;
+  if (env.oldProject === undefined) delete process.env.PACTILE_CHANNEL_PROJECT;
+  else process.env.PACTILE_CHANNEL_PROJECT = env.oldProject;
   fs.rmSync(env.tmpDir, { recursive: true, force: true });
 }
 
@@ -537,7 +537,7 @@ describe("scanLiveWorkers + enforceSpawnBudget (integration)", () => {
     });
     expect(msg).toContain("Live worker budget exhausted");
     expect(msg).toContain("channel='c5'");
-    expect(msg).toContain("trellis channel kill");
+    expect(msg).toContain("pactile channel kill");
     expect(msg).toContain("--max-live-workers");
   });
 

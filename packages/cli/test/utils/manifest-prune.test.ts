@@ -1,6 +1,6 @@
 /**
  * Unit tests for pruneOrphanManifestKeys + isCwdHomedir
- * (.cstl/tasks/05-13-uninstall-overdelete-manifest-leak).
+ * (.pactile/tasks/05-13-uninstall-overdelete-manifest-leak).
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
@@ -20,19 +20,19 @@ describe("pruneOrphanManifestKeys", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-prune-"));
-    fs.mkdirSync(path.join(tmpDir, ".cstl"), { recursive: true });
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-prune-"));
+    fs.mkdirSync(path.join(tmpDir, ".pactile"), { recursive: true });
   });
 
   afterEach(() => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it("preserves every .cstl/* entry regardless of platform-collect output", () => {
+  it("preserves every .pactile/* entry regardless of platform-collect output", () => {
     const hashes = {
-      ".cstl/workflow.md": "h1",
-      ".cstl/scripts/task.py": "h2",
-      ".cstl/config.yaml": "h3",
+      ".pactile/workflow.md": "h1",
+      ".pactile/scripts/task.py": "h2",
+      ".pactile/config.yaml": "h3",
     };
     saveHashes(tmpDir, hashes);
 
@@ -42,10 +42,10 @@ describe("pruneOrphanManifestKeys", () => {
     expect(kept).toEqual(hashes);
   });
 
-  it("prunes poisoned .cstl/middleware/ overlay keys", () => {
+  it("prunes poisoned .pactile/middleware/ overlay keys", () => {
     const hashes = {
-      ".cstl/workflow.md": "h1",
-      ".cstl/middleware/smart-search.yaml": "user-overlay",
+      ".pactile/workflow.md": "h1",
+      ".pactile/middleware/smart-search.yaml": "user-overlay",
     };
     saveHashes(tmpDir, hashes);
 
@@ -55,9 +55,9 @@ describe("pruneOrphanManifestKeys", () => {
       hashes,
     );
 
-    expect(pruned).toEqual([".cstl/middleware/smart-search.yaml"]);
-    expect(kept).toHaveProperty(".cstl/workflow.md");
-    expect(kept).not.toHaveProperty(".cstl/middleware/smart-search.yaml");
+    expect(pruned).toEqual([".pactile/middleware/smart-search.yaml"]);
+    expect(kept).toHaveProperty(".pactile/workflow.md");
+    expect(kept).not.toHaveProperty(".pactile/middleware/smart-search.yaml");
   });
 
   it("prunes platform-dir entries no current configurator owns", () => {
@@ -80,7 +80,7 @@ describe("pruneOrphanManifestKeys", () => {
     );
   });
 
-  it("keeps entries that any configured platform's collectTemplates owns", () => {
+  it("prunes projection-owned host entries even if a legacy configurator lists them", () => {
     const hashes = {
       ".cursor/hooks.json": "cursor-hash",
       ".cursor/hooks/user-custom.py": "user-hash",
@@ -93,16 +93,19 @@ describe("pruneOrphanManifestKeys", () => {
       hashes,
     );
 
-    expect(pruned).toEqual([".cursor/hooks/user-custom.py"]);
-    expect(kept).toHaveProperty(".cursor/hooks.json");
+    expect(pruned).toEqual([
+      ".cursor/hooks.json",
+      ".cursor/hooks/user-custom.py",
+    ]);
+    expect(kept).not.toHaveProperty(".cursor/hooks.json");
     expect(kept).not.toHaveProperty(".cursor/hooks/user-custom.py");
   });
 
-  it("keeps root-level AGENTS.md when it has Trellis managed-block markers", () => {
+  it("prunes root-level AGENTS.md from template hashes when ProjectionStore owns it", () => {
     const hashes = { "AGENTS.md": "h" };
     fs.writeFileSync(
       path.join(tmpDir, "AGENTS.md"),
-      "<!-- TRELLIS:START -->\nmanaged\n<!-- TRELLIS:END -->\n",
+      "<!-- PACTILE:START -->\nmanaged\n<!-- PACTILE:END -->\n",
     );
     saveHashes(tmpDir, hashes);
 
@@ -112,11 +115,11 @@ describe("pruneOrphanManifestKeys", () => {
       hashes,
     );
 
-    expect(pruned).toEqual([]);
-    expect(kept).toHaveProperty("AGENTS.md");
+    expect(pruned).toEqual(["AGENTS.md"]);
+    expect(kept).not.toHaveProperty("AGENTS.md");
   });
 
-  it("prunes poisoned root-level AGENTS.md when the file lacks Trellis markers", () => {
+  it("prunes poisoned root-level AGENTS.md when the file lacks Pactile markers", () => {
     const hashes = { "AGENTS.md": "user-hash" };
     fs.writeFileSync(path.join(tmpDir, "AGENTS.md"), "my own AGENTS.md\n");
     saveHashes(tmpDir, hashes);
@@ -133,7 +136,7 @@ describe("pruneOrphanManifestKeys", () => {
 
   it("persists pruned manifest to disk by default", () => {
     const hashes = {
-      ".cstl/workflow.md": "h1",
+      ".pactile/workflow.md": "h1",
       ".codex/sessions/user.jsonl": "orphan",
     };
     saveHashes(tmpDir, hashes);
@@ -143,12 +146,12 @@ describe("pruneOrphanManifestKeys", () => {
     expect(pruned).toEqual([".codex/sessions/user.jsonl"]);
     // Disk should reflect the prune.
     expect(loadHashes(tmpDir)).not.toHaveProperty(".codex/sessions/user.jsonl");
-    expect(loadHashes(tmpDir)).toHaveProperty(".cstl/workflow.md");
+    expect(loadHashes(tmpDir)).toHaveProperty(".pactile/workflow.md");
   });
 
   it("does NOT write disk when persist=false", () => {
     const hashes = {
-      ".cstl/workflow.md": "h1",
+      ".pactile/workflow.md": "h1",
       ".codex/sessions/user.jsonl": "orphan",
     };
     saveHashes(tmpDir, hashes);
@@ -160,10 +163,10 @@ describe("pruneOrphanManifestKeys", () => {
   });
 
   it("does NOT rewrite disk when nothing was pruned", () => {
-    const hashes = { ".cstl/workflow.md": "h1" };
+    const hashes = { ".pactile/workflow.md": "h1" };
     saveHashes(tmpDir, hashes);
 
-    const hashFile = path.join(tmpDir, ".cstl", ".template-hashes.json");
+    const hashFile = path.join(tmpDir, ".pactile", ".template-hashes.json");
     const mtimeBefore = fs.statSync(hashFile).mtimeMs;
 
     // Wait a tick so mtime would visibly differ if a write happened.
@@ -217,30 +220,30 @@ describe("isCwdHomedir / homedir guard helpers", () => {
     }
   });
 
-  it("homedirBypassEnabled reflects TRELLIS_ALLOW_HOMEDIR env var", () => {
-    const orig = process.env.TRELLIS_ALLOW_HOMEDIR;
+  it("homedirBypassEnabled reflects PACTILE_ALLOW_HOMEDIR env var", () => {
+    const orig = process.env.PACTILE_ALLOW_HOMEDIR;
     try {
-      delete process.env.TRELLIS_ALLOW_HOMEDIR;
+      delete process.env.PACTILE_ALLOW_HOMEDIR;
       expect(homedirBypassEnabled()).toBe(false);
-      process.env.TRELLIS_ALLOW_HOMEDIR = "1";
+      process.env.PACTILE_ALLOW_HOMEDIR = "1";
       expect(homedirBypassEnabled()).toBe(true);
       for (const value of ["0", "false", "true", ""]) {
-        process.env.TRELLIS_ALLOW_HOMEDIR = value;
+        process.env.PACTILE_ALLOW_HOMEDIR = value;
         expect(homedirBypassEnabled()).toBe(false);
       }
     } finally {
-      if (orig === undefined) delete process.env.TRELLIS_ALLOW_HOMEDIR;
-      else process.env.TRELLIS_ALLOW_HOMEDIR = orig;
+      if (orig === undefined) delete process.env.PACTILE_ALLOW_HOMEDIR;
+      else process.env.PACTILE_ALLOW_HOMEDIR = orig;
     }
   });
 
   it("homedirGuardMessage mentions the command and the bypass env var", () => {
     const msgInit = homedirGuardMessage("init");
     expect(msgInit).toContain("init");
-    expect(msgInit).toContain("TRELLIS_ALLOW_HOMEDIR=1");
+    expect(msgInit).toContain("PACTILE_ALLOW_HOMEDIR=1");
 
     const msgUninstall = homedirGuardMessage("uninstall");
     expect(msgUninstall).toContain("uninstall");
-    expect(msgUninstall).toContain("TRELLIS_ALLOW_HOMEDIR=1");
+    expect(msgUninstall).toContain("PACTILE_ALLOW_HOMEDIR=1");
   });
 });

@@ -3,7 +3,7 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { getAllScriptsForTests } from "../../src/templates/trellis/index.js";
+import { getAllScriptsForTests } from "../../src/templates/pactile/index.js";
 import {
   buildMixedSourceBundle,
   resolvePython,
@@ -18,7 +18,7 @@ function resolvePythonLocal(): string | null {
 const pythonCmd = resolvePythonLocal();
 
 function writeTrellisScripts(root: string): void {
-  const scriptsDir = path.join(root, ".cstl", "scripts");
+  const scriptsDir = path.join(root, ".pactile", "scripts");
   for (const [rel, content] of getAllScriptsForTests()) {
     const target = path.join(scriptsDir, rel);
     fs.mkdirSync(path.dirname(target), { recursive: true });
@@ -44,7 +44,7 @@ function runAdapterMetadataDirect(
 ): EvidenceEnvelopePayload {
   const script = `
 import json, sys
-sys.path.insert(0, r"${path.join(root, ".cstl", "scripts").replace(/\\/g, "\\\\")}")
+sys.path.insert(0, r"${path.join(root, ".pactile", "scripts").replace(/\\/g, "\\\\")}")
 from common.retrieval_adapter_metadata import build_evidence_envelope
 print(json.dumps(build_evidence_envelope(**json.loads(sys.stdin.read())), ensure_ascii=False))
 `;
@@ -62,7 +62,7 @@ describe.skipIf(pythonCmd === null)("retrieval_adapter_metadata.py", () => {
 
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(
-      path.join(os.tmpdir(), "trellis-adapter-metadata-"),
+      path.join(os.tmpdir(), "pactile-adapter-metadata-"),
     );
     writeTrellisScripts(tmpDir);
   });
@@ -108,7 +108,7 @@ describe.skipIf(pythonCmd === null)("retrieval_adapter_metadata.py", () => {
           {
             status: "failed",
             manifestPath:
-              ".cstl/tasks/x/research/smart-search/run/manifest.json",
+              ".pactile/tasks/x/research/smart-search/run/manifest.json",
             error: "provider auth failed",
           },
         ],

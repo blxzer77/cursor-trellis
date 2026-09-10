@@ -56,7 +56,7 @@ const IMPLEMENT = [
 const VERIFY = [
   "# Verification Evidence",
   "",
-  "- validation: pnpm --filter @blxzer/cursor-trellis-core test",
+  "- validation: pnpm --filter @blxzer/pactile-core test",
   "- acceptance: Full Quality Close completed",
   "- durable learning: no durable learning",
   "",
@@ -116,7 +116,7 @@ describe("Stage 4 Full Quality", () => {
   let taskDir: string;
 
   beforeEach(() => {
-    tmp = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-full-quality-"));
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-full-quality-"));
     taskDir = path.join(tmp, "08-28-full-quality");
   });
 

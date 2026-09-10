@@ -47,7 +47,7 @@ export interface CommonBundledSkillFile {
 }
 
 export interface CommonBundledSkill {
-  /** Skill directory name, e.g. "cstl-meta" */
+  /** Skill directory name, e.g. "pactile-meta" */
   name: string;
   /** Files that must be written under the skill directory */
   files: CommonBundledSkillFile[];
@@ -56,7 +56,7 @@ export interface CommonBundledSkill {
 /**
  * Optional/experimental skill — same shape as bundled skills, but lives under
  * `optional-skills/` which `getBundledSkillTemplates()` does NOT scan.
- * Installed only via `cstl init --with-optional <name>` (default off).
+ * Installed only via `pactile init --with-optional <name>` (default off).
  */
 export interface CommonOptionalSkill {
   /** Skill directory name, e.g. "chrome-cdp" */
@@ -154,8 +154,8 @@ export function getBundledSkillTemplates(): CommonBundledSkill[] {
  * Get all optional/experimental skills (e.g. `optional-skills/chrome-cdp/`).
  *
  * Deliberately separate from {@link getBundledSkillTemplates}: `optional-skills/`
- * is NOT scanned by the bundled pipeline, so default `cstl init` never installs
- * these. They are installed only through `cstl init --with-optional <name>`.
+ * is NOT scanned by the bundled pipeline, so default `pactile init` never installs
+ * these. They are installed only through `pactile init --with-optional <name>`.
  * Results are cached after first call.
  */
 export function getOptionalSkillTemplates(): CommonOptionalSkill[] {

@@ -10,7 +10,7 @@ import path from "node:path";
 
 const TEMPLATE_SCRIPTS = path.resolve(
   __dirname,
-  "../../src/templates/trellis/scripts",
+  "../../src/templates/pactile/scripts",
 );
 
 function pythonExe(): string {
@@ -98,13 +98,13 @@ function runTask(
   repo: string,
   args: string[],
 ): { status: number | null; stdout: string; stderr: string } {
-  const fakeKernel = path.join(repo, ".cstl", "scripts", "_fake_kernel.py");
-  const r = spawnSync(PY, [".cstl/scripts/task.py", ...args], {
+  const fakeKernel = path.join(repo, ".pactile", "scripts", "_fake_kernel.py");
+  const r = spawnSync(PY, [".pactile/scripts/task.py", ...args], {
     cwd: repo,
     encoding: "utf-8",
     env: {
       ...process.env,
-      TRELLIS_KERNEL_CLI: `${PY} ${fakeKernel}`,
+      PACTILE_KERNEL_CLI: `${PY} ${fakeKernel}`,
     },
   });
   return {
@@ -115,12 +115,12 @@ function runTask(
 }
 
 function setupRepo(tmp: string): void {
-  fs.mkdirSync(path.join(tmp, ".cstl", "tasks"), { recursive: true });
-  fs.cpSync(TEMPLATE_SCRIPTS, path.join(tmp, ".cstl", "scripts"), {
+  fs.mkdirSync(path.join(tmp, ".pactile", "tasks"), { recursive: true });
+  fs.cpSync(TEMPLATE_SCRIPTS, path.join(tmp, ".pactile", "scripts"), {
     recursive: true,
   });
   fs.writeFileSync(
-    path.join(tmp, ".cstl", "scripts", "_fake_kernel.py"),
+    path.join(tmp, ".pactile", "scripts", "_fake_kernel.py"),
     FAKE_KERNEL,
     "utf-8",
   );
@@ -163,8 +163,8 @@ function makeFullChild(
   parentName: string,
   childName: string,
 ): { parentDir: string; childDir: string } {
-  const parentDir = path.join(repo, ".cstl", "tasks", parentName);
-  const childDir = path.join(repo, ".cstl", "tasks", childName);
+  const parentDir = path.join(repo, ".pactile", "tasks", parentName);
+  const childDir = path.join(repo, ".pactile", "tasks", childName);
   fs.mkdirSync(parentDir, { recursive: true });
   fs.mkdirSync(childDir, { recursive: true });
 
@@ -219,7 +219,7 @@ describe("task_gates transition contract", () => {
 
   beforeEach(() => {
     tmp = fs.mkdtempSync(
-      path.join(os.tmpdir(), "trellis-gate-contract-test-"),
+      path.join(os.tmpdir(), "pactile-gate-contract-test-"),
     );
     setupRepo(tmp);
   });
@@ -236,15 +236,15 @@ describe("task_gates transition contract", () => {
         [
           "import sys",
           "from pathlib import Path",
-          "sys.path.insert(0, '.cstl/scripts')",
+          "sys.path.insert(0, '.pactile/scripts')",
           "from common.task_gates import task_closeout_profile",
-          "lite = Path('.cstl/tasks/lite')",
+          "lite = Path('.pactile/tasks/lite')",
           "lite.mkdir(parents=True)",
-          "full = Path('.cstl/tasks/full')",
+          "full = Path('.pactile/tasks/full')",
           "full.mkdir(parents=True)",
           "(full / 'design.md').write_text('# d', encoding='utf-8')",
           "(full / 'implement.md').write_text('execution_mode: inline\\n', encoding='utf-8')",
-          "parent = Path('.cstl/tasks/parent')",
+          "parent = Path('.pactile/tasks/parent')",
           "parent.mkdir(parents=True)",
           "print(task_closeout_profile(lite, {'meta': {'classification': 'lite'}}))",
           "print(task_closeout_profile(full, {'required_controls': {'rigor': 'full'}}))",
@@ -264,7 +264,7 @@ describe("task_gates transition contract", () => {
   });
 
   it("rejects record-gate PASS when verify evidence is placeholder-only", () => {
-    const taskDir = path.join(tmp, ".cstl", "tasks", "full-task");
+    const taskDir = path.join(tmp, ".pactile", "tasks", "full-task");
     fs.mkdirSync(taskDir, { recursive: true });
     writeJson(path.join(taskDir, "task.json"), {
       id: "full-task",
@@ -329,7 +329,7 @@ describe("task_gates transition contract", () => {
     const parentName = "parent-lite";
     const childName = "child-lite";
     makeFullChild(tmp, parentName, childName);
-    writeJson(path.join(tmp, ".cstl", "tasks", childName, "task.json"), {
+    writeJson(path.join(tmp, ".pactile", "tasks", childName, "task.json"), {
       id: childName,
       name: childName,
       title: childName,
@@ -338,8 +338,8 @@ describe("task_gates transition contract", () => {
       children: [],
       meta: { classification: "lite" },
     });
-    fs.rmSync(path.join(tmp, ".cstl", "tasks", childName, "design.md"));
-    fs.rmSync(path.join(tmp, ".cstl", "tasks", childName, "implement.md"));
+    fs.rmSync(path.join(tmp, ".pactile", "tasks", childName, "design.md"));
+    fs.rmSync(path.join(tmp, ".pactile", "tasks", childName, "implement.md"));
 
     const result = runTask(tmp, [
       "integrate-child",
@@ -393,7 +393,7 @@ describe("task_gates transition contract", () => {
 
   it("blocks Parent archive when children remain accepted", () => {
     const parentName = "parent-archive";
-    const parentDir = path.join(tmp, ".cstl", "tasks", parentName);
+    const parentDir = path.join(tmp, ".pactile", "tasks", parentName);
     fs.mkdirSync(parentDir, { recursive: true });
     writeJson(path.join(parentDir, "task.json"), {
       id: parentName,
@@ -439,7 +439,7 @@ describe("task_gates transition contract", () => {
 
   it("blocks Parent archive without integration-review gate", () => {
     const parentName = "parent-integrated-gate";
-    const parentDir = path.join(tmp, ".cstl", "tasks", parentName);
+    const parentDir = path.join(tmp, ".pactile", "tasks", parentName);
     fs.mkdirSync(parentDir, { recursive: true });
     writeJson(path.join(parentDir, "task.json"), {
       id: parentName,
@@ -485,7 +485,7 @@ describe("task_gates transition contract", () => {
 
   it("allows Parent archive after parent-integrated gate when implement.md contract is present", () => {
     const parentName = "parent-with-contract";
-    const parentDir = path.join(tmp, ".cstl", "tasks", parentName);
+    const parentDir = path.join(tmp, ".pactile", "tasks", parentName);
     fs.mkdirSync(parentDir, { recursive: true });
     writeJson(path.join(parentDir, "task.json"), {
       id: parentName,

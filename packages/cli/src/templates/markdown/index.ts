@@ -1,5 +1,5 @@
 /**
- * Markdown templates for Trellis workflow
+ * Markdown templates for Pactile workflow
  *
  * These are GENERIC templates for new projects.
  * Structure templates use .md.txt extension as they are generic templates.
@@ -113,7 +113,7 @@ export const guidesCrossPlatformThinkingGuideContent: string =
   readLocalTemplate("spec/guides/cross-platform-thinking-guide.md.txt");
 
 // =============================================================================
-// Framework docs (.cstl/framework/ — framework-owned, refreshed by update)
+// Framework docs (.pactile/framework/ — framework-owned, refreshed by update)
 // =============================================================================
 
 export const frameworkIndexContent: string = readLocalTemplate(
@@ -164,7 +164,7 @@ export const frameworkReleaseBoundaryContent: string = readLocalTemplate(
 );
 
 /**
- * Single source of truth for `.cstl/framework/` docs.
+ * Single source of truth for `.pactile/framework/` docs.
  * Consumed by init (configurators/workflow.ts) and update (commands/update.ts)
  * so the two paths can never drift.
  */

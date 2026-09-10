@@ -1,18 +1,18 @@
 /**
  * Canonical task.json shape — single source of truth shared by all TS
  * writers. The canonical types and factory now live in the
- * `@blxzer/cursor-trellis-core` task API; this module re-exports them under
+ * `@blxzer/pactile-core` task API; this module re-exports them under
  * the legacy `TaskJson` / `emptyTaskJson` names for CLI call sites.
  *
- * New code should prefer `TrellisTaskRecord` / `emptyTaskRecord` from
- * `@blxzer/cursor-trellis-core/task` directly.
+ * New code should prefer `PactileTaskRecord` / `emptyTaskRecord` from
+ * `@blxzer/pactile-core/task` directly.
  */
 
 import {
   emptyTaskRecord,
-  type TrellisTaskRecord,
-} from "@blxzer/cursor-trellis-core/task";
+  type PactileTaskRecord,
+} from "@blxzer/pactile-core/task";
 
-export type TaskJson = TrellisTaskRecord;
+export type TaskJson = PactileTaskRecord;
 
 export const emptyTaskJson = emptyTaskRecord;

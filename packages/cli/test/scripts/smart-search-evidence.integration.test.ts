@@ -3,7 +3,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { getAllScriptsForTests } from "../../src/templates/trellis/index.js";
+import { getAllScriptsForTests } from "../../src/templates/pactile/index.js";
 
 function resolvePython(): string | null {
   const candidates =
@@ -47,7 +47,7 @@ function writeFile(root: string, rel: string, content: string): void {
 }
 
 function writeTrellisScripts(root: string): void {
-  const scriptsDir = path.join(root, ".cstl", "scripts");
+  const scriptsDir = path.join(root, ".pactile", "scripts");
   for (const [rel, content] of getAllScriptsForTests()) {
     writeFile(scriptsDir, rel, content);
   }
@@ -55,11 +55,11 @@ function writeTrellisScripts(root: string): void {
 
 function seedProject(root: string): void {
   writeTrellisScripts(root);
-  writeFile(root, ".cstl/.developer", "name=test-dev\n");
-  writeFile(root, ".cstl/tasks/06-13-smart/prd.md", "# Smart Task\n");
+  writeFile(root, ".pactile/.developer", "name=test-dev\n");
+  writeFile(root, ".pactile/tasks/06-13-smart/prd.md", "# Smart Task\n");
   writeFile(
     root,
-    ".cstl/tasks/06-13-smart/task.json",
+    ".pactile/tasks/06-13-smart/task.json",
     JSON.stringify(
       {
         id: "smart",
@@ -72,7 +72,7 @@ function seedProject(root: string): void {
         createdAt: "2026-06-13",
         children: [],
         parent: null,
-        package: "trellis",
+        package: "pactile",
       },
       null,
       2,
@@ -150,7 +150,7 @@ function runSmartSearch(
 ): { status: number | null; stdout: string; stderr: string } {
   const result = spawnSync(
     pythonCmd as string,
-    [path.join(root, ".cstl", "scripts", "run_smart_search.py"), ...args],
+    [path.join(root, ".pactile", "scripts", "run_smart_search.py"), ...args],
     { cwd: root, encoding: "utf-8", env },
   );
   return {
@@ -164,7 +164,7 @@ describe.skipIf(pythonCmd === null)("run_smart_search.py", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-smart-search-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-smart-search-"));
     seedProject(tmpDir);
   });
 
@@ -181,7 +181,7 @@ describe.skipIf(pythonCmd === null)("run_smart_search.py", () => {
         "--smart-search-command",
         smartSearchCommand,
         "--task",
-        ".cstl/tasks/06-13-smart",
+        ".pactile/tasks/06-13-smart",
         "--run-id",
         "unit-run",
         "--json",
@@ -199,9 +199,9 @@ describe.skipIf(pythonCmd === null)("run_smart_search.py", () => {
       intent: "deep-research",
       status: "ok",
       outputPath:
-        ".cstl/tasks/06-13-smart/research/smart-search/unit-run/deep_research.json",
-      evidenceDir: ".cstl/tasks/06-13-smart/research/smart-search/unit-run",
-      manifestPath: ".cstl/tasks/06-13-smart/research/smart-search/unit-run/manifest.json",
+        ".pactile/tasks/06-13-smart/research/smart-search/unit-run/deep_research.json",
+      evidenceDir: ".pactile/tasks/06-13-smart/research/smart-search/unit-run",
+      manifestPath: ".pactile/tasks/06-13-smart/research/smart-search/unit-run/manifest.json",
       degraded: false,
       routePolicyVersion: "research-router-v1",
     });
@@ -229,7 +229,7 @@ describe.skipIf(pythonCmd === null)("run_smart_search.py", () => {
 
     const manifestPath = path.join(
       tmpDir,
-      ".cstl",
+      ".pactile",
       "tasks",
       "06-13-smart",
       "research",
@@ -249,7 +249,7 @@ describe.skipIf(pythonCmd === null)("run_smart_search.py", () => {
         "--smart-search-command",
         smartSearchCommand,
         "--task",
-        ".cstl/tasks/06-13-smart",
+        ".pactile/tasks/06-13-smart",
         "--run-id",
         "flags-run",
         "--locale-scope",
@@ -277,7 +277,7 @@ describe.skipIf(pythonCmd === null)("run_smart_search.py", () => {
         "--smart-search-command",
         missingExecutable,
         "--task",
-        ".cstl/tasks/06-13-smart",
+        ".pactile/tasks/06-13-smart",
         "--run-id",
         "missing-cli",
         "--json",
@@ -289,7 +289,7 @@ describe.skipIf(pythonCmd === null)("run_smart_search.py", () => {
     expect(manifest.status).toBe("not_configured");
     expect(manifest.error).toContain("could not be resolved");
     expect(manifest.outputPath).toBe(
-      ".cstl/tasks/06-13-smart/research/smart-search/missing-cli/deep_research.json",
+      ".pactile/tasks/06-13-smart/research/smart-search/missing-cli/deep_research.json",
     );
     expect(manifest.citations).toEqual([]);
   });
@@ -298,7 +298,7 @@ describe.skipIf(pythonCmd === null)("run_smart_search.py", () => {
     const repoRoot = path.join(tmpDir, "polyrepo");
     const wrapper = path.join(
       repoRoot,
-      "cursor-trellis",
+      "pactile",
       "packages",
       "cli",
       "bin",
@@ -322,7 +322,7 @@ describe.skipIf(pythonCmd === null)("run_smart_search.py", () => {
         ].join("\n"),
       ],
       {
-        cwd: path.join(repoRoot, ".cstl", "scripts"),
+        cwd: path.join(repoRoot, ".pactile", "scripts"),
         encoding: "utf-8",
       },
     );
@@ -330,7 +330,7 @@ describe.skipIf(pythonCmd === null)("run_smart_search.py", () => {
     expect(result.status).toBe(0);
     const argv = JSON.parse(result.stdout.trim()) as string[] | null;
     expect(argv).not.toBeNull();
-    expect(argv?.join(" ")).toContain("cursor-trellis");
+    expect(argv?.join(" ")).toContain("pactile");
     expect(argv?.join(" ")).toContain("smart-search.js");
   });
 });

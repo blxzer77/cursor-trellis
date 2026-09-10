@@ -1,4 +1,4 @@
-# Trellis Brainstorm
+# Pactile Brainstorm
 
 ## Non-Negotiable Interview Contract
 
@@ -40,16 +40,16 @@ Among competing designs that satisfy the acceptance criteria, prefer the one wit
 
 Use this skill during Phase 1 planning to turn the user's request into clear requirements and planning artifacts.
 
-**Agent-capable platforms:** Do **not** use legacy Claude-only grill subagents as a hard gate. Complete **PRD Grill** (below) and **`cstl-micro-grill`** for blocking open questions before treating planning as ready for `design.md` / `implement.md` / `start-execution --check`.
+**Agent-capable platforms:** Do **not** use legacy Claude-only grill subagents as a hard gate. Complete **PRD Grill** (below) and **`pactile-micro-grill`** for blocking open questions before treating planning as ready for `design.md` / `implement.md` / `start-execution --check`.
 
 ## Preconditions
 
-Use this skill only after task-creation consent has been given and the user is ready to enter Trellis planning.
+Use this skill only after task-creation consent has been given and the user is ready to enter Pactile planning.
 
 If no task exists yet, create one:
 
 ```bash
-TASK_DIR=$(python ./.cstl/scripts/task.py create "<short task title>" --slug <slug>)
+TASK_DIR=$(python ./.pactile/scripts/task.py create "<short task title>" --slug <slug>)
 ```
 
 Use a concise title from the user's request. Use a slug without a date prefix. `task.py create` adds the `MM-DD-` directory prefix automatically.
@@ -74,14 +74,14 @@ Run **before** any user interview questions.
 Inspect and record in `prd.md` (sections: **Confirmed facts**, initial **Out of scope**, draft **Goal**):
 
 1. **Code & tests** — relevant modules, fixtures, configs, error paths.
-2. **Specs** — `.cstl/spec/` indexes and layer guides for touched packages.
+2. **Specs** — `.pactile/spec/` indexes and layer guides for touched packages.
 3. **History** — archived tasks, active task research, developer journal when useful.
-4. **Platform** — project platform hooks, agents, and skills (see `.cstl/framework/cursor-subagent-policy.md` when using Cursor); shared `.agents/skills/` when behavior spans platforms.
+4. **Platform** — project platform hooks, agents, and skills (see `.pactile/framework/cursor-subagent-policy.md` when using Cursor); shared `.agents/skills/` when behavior spans platforms.
 5. **Parent/Child** — if multiple independent deliverables, note child split early in `prd.md`.
 
-Use retrieval per `.cstl/framework/retrieval-daily-guide.md` (rg for literals, codegraph for structure, fast-context for semantic sweep).
+Use retrieval per `.pactile/framework/retrieval-daily-guide.md` (rg for literals, codegraph for structure, fast-context for semantic sweep).
 
-Dispatch **`cstl-research`** (writable Agent) when a topic needs a dedicated `{TASK}/research/<topic>.md` file; do **not** use a subagent for PRD Grill itself.
+Dispatch **`pactile-research`** (writable Agent) when a topic needs a dedicated `{TASK}/research/<topic>.md` file; do **not** use a subagent for PRD Grill itself.
 
 ## Phase A — PRD draft
 
@@ -119,7 +119,7 @@ Treat `prd.md` (+ existing `design.md` fragments) as the **only document surface
 
 ## Phase B — Micro-grill unresolved
 
-For each **blocking** open question after the checklist, embed the **`cstl-micro-grill` contract**:
+For each **blocking** open question after the checklist, embed the **`pactile-micro-grill` contract**:
 
 - exactly **one** question per message
 - **Simplified Chinese** for user-facing text
@@ -141,7 +141,7 @@ PRD Grill questions advance in **frontier rounds**:
 - **Decisions are the user's job**: every decision waits for the user's answer; do not answer for them.
 - A user answer reshapes the design tree and the frontier extrapolates into the next round; **an empty frontier = the design tree is exhausted** — summarize the consensus and confirm before treating planning as done.
 
-> **Override note:** this section overrides the "Ask the questions one at a time" line in the Non-Negotiable Interview Contract — Phase B (PRD Grill) pacing follows these frontier rounds rather than one-question-at-a-time; `cstl-micro-grill` still defaults to one question at a time.
+> **Override note:** this section overrides the "Ask the questions one at a time" line in the Non-Negotiable Interview Contract — Phase B (PRD Grill) pacing follows these frontier rounds rather than one-question-at-a-time; `pactile-micro-grill` still defaults to one question at a time.
 
 ## Question Rules (Phase B only)
 
@@ -178,7 +178,7 @@ Your recommended answer defaults to Occam's Razor: the **minimal sufficient** op
 - ordered implementation checklist
 - validation commands
 - risky files or rollback points
-- **Development Strategy Contract** (`execution_mode`, `isolation`, …): before finalizing, run `python3 ./.cstl/scripts/task.py suggest-execution-strategy <task-dir>` (or `--json`); reconcile suggestion with scope, then paste the approved YAML block into `implement.md`
+- **Development Strategy Contract** (`execution_mode`, `isolation`, …): before finalizing, run `python3 ./.pactile/scripts/task.py suggest-execution-strategy <task-dir>` (or `--json`); reconcile suggestion with scope, then paste the approved YAML block into `implement.md`
 - follow-up checks before `task.py start-execution --check`
 
 Lightweight tasks may have only `prd.md`. Complex tasks must have `prd.md`, `design.md`, and `implement.md` before `task.py start-execution --check`.

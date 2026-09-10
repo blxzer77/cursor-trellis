@@ -10,7 +10,7 @@
 import {
   isPlainObject,
   taskRecordSchema,
-  type TrellisTaskRecord,
+  type PactileTaskRecord,
 } from "./schema.js";
 import {
   assuranceSatisfiesV1, policyWithinCeilingV1, parseResolvedProviderV1,
@@ -250,7 +250,7 @@ export interface KernelGates {
 
 export interface KernelLegacyProjection {
   status: string;
-  record: TrellisTaskRecord;
+  record: PactileTaskRecord;
   extras: Record<string, unknown>;
 }
 

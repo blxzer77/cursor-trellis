@@ -1,6 +1,6 @@
 # Test Discipline Guide（测试纪律）
 
-> **Purpose**: 定义 CSTL **测试积木**（任务验证 + 软件测试），以及测试**写作纪律**（pre-agreed seams、垂直切片、三反模式、mock 边界）。积木是自觉，不是墙。**纪律不是 TDD 要求**；也**不是 archive 硬门**。
+> **Purpose**: 定义 PACTILE **测试积木**（任务验证 + 软件测试），以及测试**写作纪律**（pre-agreed seams、垂直切片、三反模式、mock 边界）。积木是自觉，不是墙。**纪律不是 TDD 要求**；也**不是 archive 硬门**。
 
 ---
 
@@ -40,7 +40,7 @@
 | **性能瓶颈** | 预算与放大是否把主路径拖死 | 摘要截断、Parent 带子任务归档、过大 `verify.md` |
 | **安全风险** | 不可信路径 / 密钥 / 注入是否进产物 | 任务路径穿越、`verify.md` / 投影里的密钥、未校验的外部输入 |
 
-**不是墙：** 本积木**不**把软件测试变成 Close / `task.py archive` 硬门。失效边界仍在：测试靠自觉，无新的机器兜底。既有 kernel 接口护栏（如 `.cstl/scripts/common/test_task_gates.py`）保留——那是接口完整性测试，不是本积木新加的门。
+**不是墙：** 本积木**不**把软件测试变成 Close / `task.py archive` 硬门。失效边界仍在：测试靠自觉，无新的机器兜底。既有 kernel 接口护栏（如 `.pactile/scripts/common/test_task_gates.py`）保留——那是接口完整性测试，不是本积木新加的门。
 
 与写作纪律的关系：积木决定**要不要测、测哪类风险**；§4–§8 决定**测点落在 seam、不 tautological、不 mock 内部**。
 

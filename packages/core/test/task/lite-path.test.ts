@@ -54,7 +54,7 @@ function writeEvidence(taskDir: string): void {
     [
       "# Verification Evidence",
       "",
-      "- validation: pnpm --filter @blxzer/cursor-trellis-core test",
+      "- validation: pnpm --filter @blxzer/pactile-core test",
       "- acceptance: Lite path completed without Parent",
       "- durable learning: no durable learning",
       "",
@@ -68,7 +68,7 @@ describe("Stage 3 Personal Lite path", () => {
   let taskDir: string;
 
   beforeEach(() => {
-    tmp = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-lite-path-"));
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-lite-path-"));
     taskDir = path.join(tmp, "08-28-personal-lite");
   });
 

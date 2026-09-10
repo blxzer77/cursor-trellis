@@ -204,7 +204,7 @@ describe("Pactile Batch 0 brand and documentation surface", () => {
     );
     const routes = documentationMap.p23CursorPlusPlus.routes;
 
-    expect(routes).toHaveLength(15);
+    expect(routes).toHaveLength(14);
     expect(new Set(routes.map((route) => route.sourcePath)).size).toBe(
       routes.length,
     );
@@ -295,6 +295,24 @@ describe("Pactile Batch 0 brand and documentation surface", () => {
     fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
     fs.writeFileSync(absolutePath, Buffer.from([0, 255, 1, 2, 3]));
     runGit(temporaryRoot, ["add", relativePath]);
+
+    const result = runChecker(temporaryRoot);
+
+    expect(result.status).toBe(1);
+    expect(result.report.filesByClassification.live).toContain(relativePath);
+    expect(result.report.errors).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/brand inventory snapshot drift/),
+      ]),
+    );
+  });
+
+  it("scans non-ignored untracked files during an uncommitted rebrand", () => {
+    const temporaryRoot = createMinimalContractRepository();
+    const relativePath = "packages/untracked-cstl-surface.txt";
+    const absolutePath = path.join(temporaryRoot, ...relativePath.split("/"));
+    fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
+    fs.writeFileSync(absolutePath, "legacy surface\n", "utf8");
 
     const result = runChecker(temporaryRoot);
 

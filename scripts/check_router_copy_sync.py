@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
 """
 Router Copy Sync Guard — verify that codebase retrieval router copies stay
-consistent across TS source, CLI template Python, and workspace dogfood
+consistent across TS source, CLI template Python, and Pactile dogfood
 Python.
 
 Invariant strategy:
-  1. Byte-identical hash for Python copies (workspace ↔ CLI template).
+  1. Byte-identical hash for Python copies (Pactile dogfood ↔ CLI template).
      Rationale: both are the same language and should be exact copies;
      structural drift is caught trivially.
   2. Golden-route behavior smoke for TS ↔ Python equivalence.
      Rationale: TS and Python differ by language so byte-comparison is
      inappropriate; behavior-level fixtures confirm semantic parity.
 
-Eval .cstl copies are NOT checked here (cross-repo CI is out of scope).
+External project copies are NOT checked here (cross-repo CI is out of scope).
 See verify.md for manual smoke steps.
 
 Usage:
-  python scripts/check_router_copy_sync.py           # from Trellis repo root
+  python scripts/check_router_copy_sync.py           # from Pactile repo root
   python scripts/check_router_copy_sync.py --json     # machine-readable output
 """
 
@@ -25,47 +25,51 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-TRELLIS_ROOT = Path(__file__).resolve().parent.parent
+PACTILE_ROOT = Path(__file__).resolve().parent.parent
+WORKSPACE_ROOT = Path(
+    os.environ.get("PACTILE_SYNC_WORKSPACE_ROOT", str(PACTILE_ROOT))
+).resolve()
 
-TS_ROUTER = TRELLIS_ROOT / "packages" / "cli" / "src" / "utils" / "codebase-retrieval-router.ts"
+TS_ROUTER = PACTILE_ROOT / "packages" / "cli" / "src" / "utils" / "codebase-retrieval-router.ts"
 CLI_TEMPLATE_PY = (
-    TRELLIS_ROOT
+    PACTILE_ROOT
     / "packages"
     / "cli"
     / "src"
     / "templates"
-    / "trellis"
+    / "pactile"
     / "scripts"
     / "common"
     / "codebase_retrieval_router.py"
 )
 WORKSPACE_PY = (
-    TRELLIS_ROOT
-    / ".cstl"
+    WORKSPACE_ROOT
+    / ".pactile"
     / "scripts"
     / "common"
     / "codebase_retrieval_router.py"
 )
 
-WORKSPACE_LAUNCHER = TRELLIS_ROOT / ".cstl" / "scripts" / "route_codebase_retrieval.py"
+WORKSPACE_LAUNCHER = WORKSPACE_ROOT / ".pactile" / "scripts" / "route_codebase_retrieval.py"
 CLI_TEMPLATE_LAUNCHER = (
-    TRELLIS_ROOT
+    PACTILE_ROOT
     / "packages"
     / "cli"
     / "src"
     / "templates"
-    / "trellis"
+    / "pactile"
     / "scripts"
     / "route_codebase_retrieval.py"
 )
 L1_GOLDEN_JSON = (
-    TRELLIS_ROOT
+    PACTILE_ROOT
     / "packages"
     / "cli"
     / "test"
@@ -74,7 +78,7 @@ L1_GOLDEN_JSON = (
     / "cases.json"
 )
 EVIDENCE_GOLDEN_JSON = (
-    TRELLIS_ROOT
+    PACTILE_ROOT
     / "packages"
     / "cli"
     / "test"
@@ -109,7 +113,7 @@ def file_sha256(path: Path) -> str:
 
 
 def check_python_hash(report: SyncReport) -> None:
-    """Check 1: workspace .trellis Python ↔ CLI template Python byte-identical."""
+    """Check 1: dogfood .pactile Python ↔ CLI template Python byte-identical."""
     if not WORKSPACE_PY.is_file():
         report.checks.append(
             CheckResult(
@@ -143,7 +147,7 @@ def check_python_hash(report: SyncReport) -> None:
 
 
 def check_launcher_hash(report: SyncReport) -> None:
-    """Check 2: workspace launcher ↔ CLI template launcher byte-identical."""
+    """Check 2: dogfood launcher ↔ CLI template launcher byte-identical."""
     if not WORKSPACE_LAUNCHER.is_file() or not CLI_TEMPLATE_LAUNCHER.is_file():
         report.checks.append(
             CheckResult(
@@ -202,7 +206,7 @@ def golden_fixtures() -> list[dict[str, Any]]:
 
 def run_ts_router(query: str) -> dict[str, Any] | None:
     """Run the TS router via the built CLI dist and return the plan envelope."""
-    dist_path = TRELLIS_ROOT / "packages" / "cli" / "dist" / "utils" / "codebase-retrieval-router.js"
+    dist_path = PACTILE_ROOT / "packages" / "cli" / "dist" / "utils" / "codebase-retrieval-router.js"
     if not dist_path.is_file():
         return None
     input_obj: dict[str, Any] = {"query": query}
@@ -216,7 +220,7 @@ console.log(JSON.stringify(plan));
             ["node", "--input-type=module", "-e", wrapper],
             capture_output=True,
             text=True,
-            cwd=str(TRELLIS_ROOT),
+            cwd=str(PACTILE_ROOT),
             timeout=30,
         )
         if result.returncode != 0:
@@ -230,7 +234,7 @@ def run_py_router(query: str) -> dict[str, Any] | None:
     """Run the Python router (workspace copy) and return the plan envelope."""
     if not WORKSPACE_PY.is_file():
         return None
-    # Package import: common.* lives under .cstl/scripts/
+    # Package import: common.* lives under .pactile/scripts/.
     scripts_root = WORKSPACE_PY.parent.parent
     script = (
         "import json, sys; "
@@ -363,7 +367,7 @@ def run_ts_evidence_fixture(
 ) -> tuple[dict[str, Any], dict[str, Any]] | None:
     """Build and assess a corpus item through the compiled TS ABI."""
     dist_path = (
-        TRELLIS_ROOT
+        PACTILE_ROOT
         / "packages"
         / "cli"
         / "dist"
@@ -433,7 +437,7 @@ console.log(JSON.stringify({ input, result: assessRetrievalClaimV3(input) }));
             capture_output=True,
             text=True,
             input=json.dumps(fixture, ensure_ascii=False),
-            cwd=str(TRELLIS_ROOT),
+            cwd=str(PACTILE_ROOT),
             timeout=30,
         )
         if completed.returncode != 0:
@@ -525,9 +529,9 @@ def check_ts_py_evidence_parity(report: SyncReport) -> None:
 
 
 def check_extra_workspace_copies(report: SyncReport, extra_root: Path) -> None:
-    """Optional: harness/eval workspace .trellis copies vs CLI template."""
-    extra_router = extra_root / ".trellis" / "scripts" / "common" / "codebase_retrieval_router.py"
-    extra_launcher = extra_root / ".trellis" / "scripts" / "route_codebase_retrieval.py"
+    """Optional: another Pactile workspace copy vs the CLI template."""
+    extra_router = extra_root / ".pactile" / "scripts" / "common" / "codebase_retrieval_router.py"
+    extra_launcher = extra_root / ".pactile" / "scripts" / "route_codebase_retrieval.py"
     label = extra_root.name or str(extra_root)
 
     if extra_router.is_file() and CLI_TEMPLATE_PY.is_file():
@@ -561,7 +565,7 @@ def main() -> int:
         action="append",
         default=[],
         metavar="PATH",
-        help="Also compare PATH/.trellis/scripts/* to CLI template (repeatable)",
+        help="Also compare PATH/.pactile/scripts/* to CLI template (repeatable)",
     )
     args = parser.parse_args()
 

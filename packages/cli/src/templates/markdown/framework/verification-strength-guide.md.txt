@@ -1,15 +1,15 @@
 # Verification Strength Guide
 
-> **Purpose**: Define **how deeply** cstl tasks must be verified before closeout — graded by task risk (Lite / Full / Parent), **not** TDD ceremony.
+> **Purpose**: Define **how deeply** pactile tasks must be verified before closeout — graded by task risk (Lite / Full / Parent), **not** TDD ceremony.
 
 ---
 
 ## 1. Non-goals
 
-- **No TDD productization** — cstl does not require red-green-refactor loops, "write tests first" gates, or per-function unit test mandates.
+- **No TDD productization** — pactile does not require red-green-refactor loops, "write tests first" gates, or per-function unit test mandates.
 - **No per-task full-suite burden** — Lite tasks must not be forced through architecture review or whole-repo CI.
-- **No replacement for project test frameworks** — cstl validation checks **task evidence** in `verify.md` and configured quality gates; it does not run or replace your project's test runner.
-- **No test-writing mandate** — how to write good tests (pre-agreed seams, anti-patterns, mock boundaries) lives in the [Test Discipline Guide](.cstl/spec/guides/test-discipline-guide.md); verification strength is orthogonal to test-writing style.
+- **No replacement for project test frameworks** — pactile validation checks **task evidence** in `verify.md` and configured quality gates; it does not run or replace your project's test runner.
+- **No test-writing mandate** — how to write good tests (pre-agreed seams, anti-patterns, mock boundaries) lives in the [Test Discipline Guide](.pactile/spec/guides/test-discipline-guide.md); verification strength is orthogonal to test-writing style.
 
 ---
 
@@ -46,9 +46,9 @@ Details: `task_gates.py` → `PROFILE_DEFAULT_GATES`.
 ### Lite
 
 - [ ] Focused validation on **touched behavior** (command + result in `verify.md`)
-- [ ] `python ./.cstl/scripts/task.py validate <task>`
+- [ ] `python ./.pactile/scripts/task.py validate <task>`
 - [ ] Final acceptance mapped to PRD AC
-- [ ] Durable-learning decision line (see [Durable Learning Decision Guide](.cstl/spec/guides/durable-learning-decision-guide.md))
+- [ ] Durable-learning decision line (see [Durable Learning Decision Guide](.pactile/spec/guides/durable-learning-decision-guide.md))
 
 **Example `verify.md` lines:**
 
@@ -63,7 +63,7 @@ Durable learning decision: no durable learning — one-off content fix
 All Lite items, plus:
 
 - [ ] Validation commands from `implement.md` executed; results recorded
-- [ ] `Check evidence:` or `cstl-check evidence:` — inline skill or agent review completed
+- [ ] `Check evidence:` or `pactile-check evidence:` — inline skill or agent review completed
 - [ ] `Reviewed change-set:` or `Git diff ref:` — identity of reviewed diff
 - [ ] Required gates recorded via `task.py record-gate` when contract enables them
 
@@ -71,8 +71,8 @@ All Lite items, plus:
 
 ```markdown
 Validation: probe matrix 4/4 PASS (see research/probe-results.md)
-Check evidence: cstl-check skill — spec compliance + py_compile
-Reviewed change-set: git diff main..HEAD — 8 files in .cstl/spec + scripts
+Check evidence: pactile-check skill — spec compliance + py_compile
+Reviewed change-set: git diff main..HEAD — 8 files in .pactile/spec + scripts
 Acceptance: prd AC 1–5 mapped below
 Durable learning decision: no durable learning
 ```
@@ -113,7 +113,7 @@ The CLI uses regex to detect **substantive** evidence. Placeholder values (`TBD`
 | Signal | Example lines (any one match) |
 | --- | --- |
 | Validation | `Validation:`, `Validation commands:`, `Validation results:` |
-| Check evidence | `Check evidence:`, `cstl-check evidence:` |
+| Check evidence | `Check evidence:`, `pactile-check evidence:` |
 | Acceptance | `Acceptance:`, `Final acceptance:`, `Accepted by user:` |
 | Durable learning | `Durable learning decision:`, `no durable learning`, `Spec update evidence:` |
 | Integration | `Integration evidence:`, `Final integration:` |
@@ -121,7 +121,7 @@ The CLI uses regex to detect **substantive** evidence. Placeholder values (`TBD`
 
 **Not sufficient alone:**
 
-- `python ./.cstl/scripts/task.py validate` passing JSONL schema — **does not** prove task acceptance
+- `python ./.pactile/scripts/task.py validate` passing JSONL schema — **does not** prove task acceptance
 - Long log dumps without structured signal lines
 - Checkbox ticks in PRD without `verify.md` validation mapping
 
@@ -143,10 +143,10 @@ The CLI uses regex to detect **substantive** evidence. Placeholder values (`TBD`
 Run fixture matrix against shared logic (no second rule set):
 
 ```powershell
-python ./.cstl/scripts/verify_evidence_probe.py --fixture <path> --profile lite|full|parent --expect pass|fail
+python ./.pactile/scripts/verify_evidence_probe.py --fixture <path> --profile lite|full|parent --expect pass|fail
 ```
 
-Fixtures: `.cstl/tasks/08-06-cstl-p0-verify-capability/research/verification-probes/`
+Fixtures: `.pactile/tasks/08-06-pactile-p0-verify-capability/research/verification-probes/`
 
 | Fixture | Intent | lite | full |
 | --- | --- | --- | --- |
@@ -167,14 +167,14 @@ Fixtures: `.cstl/tasks/08-06-cstl-p0-verify-capability/research/verification-pro
 
 ---
 
-## 8. Integration with cstl-check / record-gate / archive
+## 8. Integration with pactile-check / record-gate / archive
 
 ```text
-Phase 2 Execute → cstl-check (skill/agent) → verify.md evidence
+Phase 2 Execute → pactile-check (skill/agent) → verify.md evidence
 Phase 3.1 Verify → record-gate (non-baseline) → archive --check
 ```
 
-- **cstl-check**: review against spec + task artifacts; fix in-contract defects; write human-readable evidence **before** `record-gate`.
+- **pactile-check**: review against spec + task artifacts; fix in-contract defects; write human-readable evidence **before** `record-gate`.
 - **record-gate**: machine state only; requires substantive `verify.md` for PASS/SKIPPED.
 - **archive**: `verify_evidence_status()` must pass for profile; Full also needs gate readiness.
 

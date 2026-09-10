@@ -2,7 +2,7 @@ import {
   parseProjectionPlanV1,
   type ProjectionOperationV1,
   type ProjectionPlanV1,
-} from "@blxzer/cursor-trellis-core";
+} from "@blxzer/pactile-core";
 import {
   fingerprintBytes,
   type ProjectionContent,

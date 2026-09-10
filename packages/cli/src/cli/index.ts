@@ -11,6 +11,9 @@ import { migratePreview } from "../commands/migrate.js";
 import { rollout } from "../commands/rollout.js";
 import { upgrade } from "../commands/upgrade.js";
 import { uninstall } from "../commands/uninstall.js";
+import { detach } from "../commands/detach.js";
+import { rollback } from "../commands/rollback.js";
+import { purge } from "../commands/purge.js";
 import {
   runWorkflowCommand,
   WorkflowCommandError,
@@ -19,14 +22,22 @@ import {
 import { runValidateRules } from "../commands/validate-rules.js";
 import { isWorkflowInitialized, workflowPath } from "../utils/workflow-dir.js";
 import { PACKAGE_NAME, VERSION } from "../constants/version.js";
-import { runKernelJsonCli } from "@blxzer/cursor-trellis-core/task";
+import { runKernelJsonCli } from "@blxzer/pactile-core/task";
+import {
+  PACTILE_ENVIRONMENT_KEYS,
+  readPactileEnvironment,
+} from "@blxzer/pactile-core";
 import { compareVersions } from "../utils/compare-versions.js";
+import {
+  LEGACY_IMPORT_DESCRIPTION,
+  LEGACY_IMPORT_OPTION,
+} from "../pactile/compat/cli-options.js";
 
 // Re-export for backwards compatibility (consumers should prefer constants/version.js)
 export { VERSION, PACKAGE_NAME };
 
 /**
- * Check if a Trellis update is available (compare project version with CLI version)
+ * Check if a Pactile update is available (compare project and CLI versions).
  */
 function checkForUpdates(cwd: string): void {
   const versionFile = workflowPath(cwd, ".version");
@@ -40,10 +51,10 @@ function checkForUpdates(cwd: string): void {
     // CLI is newer than project - update available
     console.log(
       chalk.yellow(
-        `\n⚠️  Trellis update available: ${projectVersion} → ${cliVersion}`,
+        `\n⚠️  Pactile update available: ${projectVersion} → ${cliVersion}`,
       ),
     );
-    console.log(chalk.gray(`   Run: cstl update\n`));
+    console.log(chalk.gray(`   Run: pactile update\n`));
   } else if (comparison < 0) {
     // CLI is older than project - CLI needs updating
     console.log(
@@ -51,7 +62,7 @@ function checkForUpdates(cwd: string): void {
         `\n⚠️  Your CLI (${cliVersion}) is older than project (${projectVersion})`,
       ),
     );
-    console.log(chalk.gray(`   Run: cstl upgrade\n`));
+    console.log(chalk.gray(`   Run: pactile upgrade\n`));
   }
 }
 
@@ -68,19 +79,30 @@ if (isWorkflowInitialized(cwd) && !isStdioMcp && !isKernelJson) {
 
 const program = new Command();
 
+function debugEnabled(): boolean {
+  return Boolean(
+    process.env.DEBUG ??
+      readPactileEnvironment(PACTILE_ENVIRONMENT_KEYS.debug),
+  );
+}
+
 function collectOption(value: string, previous: string[]): string[] {
   return [...previous, value];
 }
 
 program
-  .name("cstl")
-  .description("AI-assisted development workflow framework for Cursor")
+  .name("pactile")
+  .description(
+    "Evidence-backed governed capability workspace for Cursor and Codex",
+  )
   .version(VERSION, "-v, --version", "output the version number");
 
 program
   .command("init")
-  .description("Initialize trellis in the current project")
+  .description("Initialize Pactile in the current project")
   .option("--cursor", "Include Cursor commands")
+  .option("--codex", "Include Codex project integration")
+  .option(LEGACY_IMPORT_OPTION, LEGACY_IMPORT_DESCRIPTION)
   .option("-y, --yes", "Skip prompts and use defaults")
   .option(
     "-u, --user <name>",
@@ -121,7 +143,7 @@ program
   )
   .option(
     "--workflow <id>",
-    "Workflow template id for .cstl/workflow.md (default: native; e.g., tdd, channel-driven-subagent-dispatch)",
+    "Workflow template id for .pactile/workflow.md (default: native; e.g., tdd, channel-driven-subagent-dispatch)",
   )
   .option(
     "--workflow-source <source>",
@@ -135,7 +157,7 @@ program
         chalk.red("Error:"),
         error instanceof Error ? error.message : error,
       );
-      if (process.env.DEBUG || process.env.TRELLIS_DEBUG) {
+      if (debugEnabled()) {
         console.error(error instanceof Error ? error.stack : error);
       }
       process.exit(1);
@@ -150,7 +172,7 @@ program
   .option("--json", "Emit machine-readable capability smoke output")
   .option(
     "--write-status",
-    "Write ready/failed status back to .cstl/capabilities.json and capabilities.md",
+    "Write ready/failed status back to .pactile/capabilities.json and capabilities.md",
   )
   .action(async (options: Record<string, unknown>) => {
     try {
@@ -168,7 +190,7 @@ program
         chalk.red("Error:"),
         error instanceof Error ? error.message : error,
       );
-      if (process.env.DEBUG || process.env.TRELLIS_DEBUG) {
+      if (debugEnabled()) {
         console.error(error instanceof Error ? error.stack : error);
       }
       process.exit(1);
@@ -177,7 +199,7 @@ program
 
 program
   .command("update")
-  .description("Update trellis configuration and commands to latest version")
+  .description("Update Pactile configuration and projections")
   .option("--dry-run", "Preview changes without applying them")
   .option("-f, --force", "Overwrite all changed files without asking")
   .option("-s, --skip-all", "Skip all changed files without asking")
@@ -197,10 +219,6 @@ program
     "Skip post-apply Python script smoke checks",
   )
   .option(
-    "--force-cstl-migrate",
-    "Force the .trellis/ → .cstl/ rename even when upstream Trellis signals are detected (escape hatch)",
-  )
-  .option(
     "--write-artifacts",
     "Maintainer: after one confirm, write artifact B projections (required_controls / Topology)",
   )
@@ -217,7 +235,6 @@ program
         skipReadiness: options.skipReadiness as boolean,
         json: options.json as boolean,
         skipPostUpdateSmoke: options.skipPostUpdateSmoke as boolean,
-        forceCstlMigrate: options.forceCstlMigrate as boolean,
         writeArtifacts:
           options.writeArtifacts === true || options.maintainer === true,
       });
@@ -226,7 +243,7 @@ program
         chalk.red("Error:"),
         error instanceof Error ? error.message : error,
       );
-      if (process.env.DEBUG || process.env.TRELLIS_DEBUG) {
+      if (debugEnabled()) {
         console.error(error instanceof Error ? error.stack : error);
       }
       process.exit(1);
@@ -236,7 +253,7 @@ program
 program
   .command("migrate")
   .description(
-    "Optional P36 preview (dry-run only). Apply official + artifact writes with cstl update",
+    "Optional P36 preview (dry-run only). Apply official and artifact writes with pactile update",
   )
   .option("--dry-run", "Preview only (default; this command never writes)")
   .option(
@@ -255,11 +272,11 @@ program
 program
   .command("rollout")
   .description(
-    "Run cstl update across multiple project paths and aggregate rollout evidence",
+    "Run pactile update across multiple project paths and aggregate rollout evidence",
   )
   .requiredOption(
     "-p, --project <path>",
-    "Project root with .cstl/ (repeatable)",
+    "Project root with .pactile/ (repeatable)",
     (val: string, prev: string[] | undefined) => [...(prev ?? []), val],
     [] as string[],
   )
@@ -293,7 +310,7 @@ program
         chalk.red("Error:"),
         error instanceof Error ? error.message : error,
       );
-      if (process.env.DEBUG || process.env.TRELLIS_DEBUG) {
+      if (debugEnabled()) {
         console.error(error instanceof Error ? error.stack : error);
       }
       process.exit(1);
@@ -302,7 +319,7 @@ program
 
 program
   .command("upgrade")
-  .description("Upgrade the global Trellis CLI package")
+  .description("Upgrade the global Pactile CLI package")
   .option(
     "--tag <tag>",
     "npm dist-tag or version to install (default follows current channel: latest, beta, or rc)",
@@ -319,7 +336,7 @@ program
         chalk.red("Error:"),
         error instanceof Error ? error.message : error,
       );
-      if (process.env.DEBUG || process.env.TRELLIS_DEBUG) {
+      if (debugEnabled()) {
         console.error(error instanceof Error ? error.stack : error);
       }
       process.exit(1);
@@ -328,11 +345,9 @@ program
 
 program
   .command("uninstall")
-  .description(
-    "Remove all trellis files (managed platform files + .cstl/) from this project",
-  )
-  .option("-y, --yes", "Skip confirmation prompt")
-  .option("--dry-run", "List what would be removed without changing anything")
+  .description("Safely detach every Pactile Adapter and preserve .pactile/")
+  .option("-y, --yes", "Confirm non-interactive Adapter detach")
+  .option("--dry-run", "Preview detach decisions without changing state")
   .action(async (options: Record<string, unknown>) => {
     try {
       await uninstall({
@@ -344,7 +359,7 @@ program
         chalk.red("Error:"),
         error instanceof Error ? error.message : error,
       );
-      if (process.env.DEBUG || process.env.TRELLIS_DEBUG) {
+      if (debugEnabled()) {
         console.error(error instanceof Error ? error.stack : error);
       }
       process.exit(1);
@@ -352,9 +367,66 @@ program
   });
 
 program
+  .command("detach <adapter>")
+  .description("Safely detach one Pactile Adapter (cursor or codex)")
+  .option("--dry-run", "Preview ownership decisions without changing state")
+  .action((adapter: string, options: Record<string, unknown>) => {
+    try {
+      detach({ adapter, dryRun: options.dryRun as boolean });
+    } catch (error) {
+      console.error(
+        chalk.red("Error:"),
+        error instanceof Error ? error.message : error,
+      );
+      process.exit(1);
+    }
+  });
+
+program
+  .command("rollback <generation>")
+  .description("Switch to a sealed Pactile generation and reconcile Adapters")
+  .option("--dry-run", "Verify and preview the generation switch")
+  .action(async (generation: string, options: Record<string, unknown>) => {
+    try {
+      await rollback({ generation, dryRun: options.dryRun as boolean });
+    } catch (error) {
+      console.error(
+        chalk.red("Error:"),
+        error instanceof Error ? error.message : error,
+      );
+      process.exit(1);
+    }
+  });
+
+program
+  .command("purge")
+  .description("Explicitly remove an inactive Pactile canonical root")
+  .option("--dry-run", "Emit the exact target-set fingerprint without writing")
+  .option("--yes", "Explicitly confirm destructive canonical cleanup")
+  .option(
+    "--preview-fingerprint <sha256>",
+    "Exact fingerprint emitted by a prior purge --dry-run",
+  )
+  .action((options: Record<string, unknown>) => {
+    try {
+      purge({
+        dryRun: options.dryRun as boolean,
+        yes: options.yes as boolean,
+        previewFingerprint: options.previewFingerprint as string | undefined,
+      });
+    } catch (error) {
+      console.error(
+        chalk.red("Error:"),
+        error instanceof Error ? error.message : error,
+      );
+      process.exit(1);
+    }
+  });
+
+program
   .command("workflow")
   .description(
-    "List or switch the project's .cstl/workflow.md template (native, tdd, channel-driven-subagent-dispatch, or marketplace)",
+    "List or switch the project's .pactile/workflow.md template (native, tdd, channel-driven-subagent-dispatch, or marketplace)",
   )
   .option(
     "-t, --template <id>",
@@ -368,7 +440,7 @@ program
   .option("-f, --force", "Overwrite a modified workflow.md without asking")
   .option(
     "-n, --create-new",
-    "Write .cstl/workflow.md.new instead of replacing the active workflow",
+    "Write .pactile/workflow.md.new instead of replacing the active workflow",
   )
   .action(async (options: Record<string, unknown>) => {
     try {
@@ -388,14 +460,14 @@ program
         chalk.red("Error:"),
         error instanceof Error ? error.message : error,
       );
-      if (process.env.DEBUG || process.env.TRELLIS_DEBUG) {
+      if (debugEnabled()) {
         console.error(error instanceof Error ? error.stack : error);
       }
       process.exit(1);
     }
   });
 
-// Cursor-only product: multi-agent `channel` runtime is upstream Trellis scope; not registered.
+// The experimental multi-agent `channel` runtime remains unregistered.
 // registerChannelCommand(program);
 
 program

@@ -35,7 +35,7 @@ describe.skipIf(pythonCmd === null)("retrieval eval harness - scoring", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-retrieval-eval-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-retrieval-eval-"));
     seedEvalProject(tmpDir);
   });
 
@@ -159,7 +159,7 @@ describe.skipIf(pythonCmd === null)("retrieval eval harness - scoring", () => {
 
   it("does not mutate project files while scoring in-memory bundles", () => {
     const before = listProjectFiles(tmpDir);
-    const journalPath = `.cstl/workspace/eval-dev/journal-1.md`;
+    const journalPath = `.pactile/workspace/eval-dev/journal-1.md`;
     const manifestPath = `${EVAL_TASK_PATH}/research/smart-search/ok-run/manifest.json`;
     const journalMtime = readFileMtime(tmpDir, journalPath);
     const manifestMtime = readFileMtime(tmpDir, manifestPath);
@@ -194,7 +194,7 @@ describe.skipIf(pythonCmd === null)("retrieval eval harness - context pack", () 
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-retrieval-eval-pack-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-retrieval-eval-pack-"));
     seedEvalProject(tmpDir);
     expect(hasContextPackModule(tmpDir)).toBe(true);
   });

@@ -24,7 +24,7 @@ import {
   type PolicyCeilingV1,
   type ResolvedProviderV1,
   policyWithinCeilingV1,
-} from "@blxzer/cursor-trellis-core";
+} from "@blxzer/pactile-core";
 
 const YAML = `schemaVersion: 1
 identity:

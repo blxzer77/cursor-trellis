@@ -8,7 +8,7 @@ import {
   parseMigrationPlanV1,
   type MigrationJournalV1,
   type MigrationPlanV1,
-} from "@blxzer/cursor-trellis-core";
+} from "@blxzer/pactile-core";
 import { GenerationStore, InstallStateStore } from "../runtime/stores.js";
 import {
   assertCanonicalWriteTarget,
@@ -16,7 +16,7 @@ import {
   resolveCanonicalPaths,
 } from "../runtime/paths.js";
 
-export type MigrationFileClassification = "active" | "closed";
+export type MigrationFileClassification = "active" | "closed" | "generated";
 
 export interface MigrationSourceFile {
   readonly sourceRef: string;
@@ -86,8 +86,7 @@ interface NormalizedFile {
   readonly expectedSourceFingerprint: string;
 }
 
-interface NormalizedRequest
-  extends Omit<MigrationTransactionRequest, "files"> {
+interface NormalizedRequest extends Omit<MigrationTransactionRequest, "files"> {
   readonly files: readonly NormalizedFile[];
 }
 
@@ -121,14 +120,16 @@ function normalizeRequest(
     )
       return null;
     const files = request.files
-      .map((file): NormalizedFile => ({
-        sourceRef: file.sourceRef,
-        targetPath: normalizeRuntimeRelativePath(file.targetPath),
-        classification: file.classification,
-        sourceBytes: Buffer.from(file.sourceBytes),
-        targetBytes: Buffer.from(file.targetBytes),
-        expectedSourceFingerprint: file.expectedSourceFingerprint,
-      }))
+      .map(
+        (file): NormalizedFile => ({
+          sourceRef: file.sourceRef,
+          targetPath: normalizeRuntimeRelativePath(file.targetPath),
+          classification: file.classification,
+          sourceBytes: Buffer.from(file.sourceBytes),
+          targetBytes: Buffer.from(file.targetBytes),
+          expectedSourceFingerprint: file.expectedSourceFingerprint,
+        }),
+      )
       .sort((left, right) => left.targetPath.localeCompare(right.targetPath));
     if (
       new Set(files.map((file) => file.targetPath.toLowerCase())).size !==
@@ -138,7 +139,7 @@ function normalizeRequest(
           !file.sourceRef ||
           file.sourceRef.length > 512 ||
           /[\0\r\n]/.test(file.sourceRef) ||
-          !["active", "closed"].includes(file.classification) ||
+          !["active", "closed", "generated"].includes(file.classification) ||
           !FINGERPRINT.test(file.expectedSourceFingerprint) ||
           file.sourceBytes.byteLength > MAX_MIGRATION_FILE_BYTES ||
           file.targetBytes.byteLength > MAX_MIGRATION_FILE_BYTES ||
@@ -208,7 +209,9 @@ export function planMigrationTransaction(
         kind:
           file.classification === "closed"
             ? ("copy-byte-preserved" as const)
-            : ("transform-schema" as const),
+            : file.classification === "generated"
+              ? ("write-generation" as const)
+              : ("transform-schema" as const),
         domain: "canonical" as const,
         sourceRef: file.sourceRef,
         targetRef: `generation://${input.generationId}/${file.targetPath}`,
@@ -252,7 +255,7 @@ export function planMigrationTransaction(
         .filter((file) => file.classification === "closed")
         .map((file) => file.sourceRef),
       transformedRefs: input.files
-        .filter((file) => file.classification === "active")
+        .filter((file) => file.classification !== "closed")
         .map((file) => file.sourceRef),
     },
     recovery: {
@@ -284,17 +287,15 @@ class MigrationJournalStore {
 
   read(id: string): JournalSnapshot | null {
     try {
-      const value: unknown = JSON.parse(fs.readFileSync(this.target(id), "utf8"));
+      const value: unknown = JSON.parse(
+        fs.readFileSync(this.target(id), "utf8"),
+      );
       const parsed = parseMigrationJournalV1(value);
       return parsed.success
         ? { journal: parsed.data, fingerprint: parsed.fingerprint }
         : null;
     } catch (error) {
-      if (
-        error instanceof Error &&
-        "code" in error &&
-        error.code === "ENOENT"
-      )
+      if (error instanceof Error && "code" in error && error.code === "ENOENT")
         return null;
       throw new Error("migration-journal-unavailable");
     }
@@ -311,10 +312,7 @@ class MigrationJournalStore {
       recursive: true,
     });
     const target = this.target(id);
-    const lock = assertCanonicalWriteTarget(
-      this.projectRoot,
-      `${target}.lock`,
-    );
+    const lock = assertCanonicalWriteTarget(this.projectRoot, `${target}.lock`);
     const temporary = assertCanonicalWriteTarget(
       this.projectRoot,
       `${target}.tmp-${randomUUID()}`,
@@ -509,10 +507,7 @@ export async function runMigrationTransaction(
     if (snapshot.journal.state === "staged") {
       generations.verify(input.generationId);
       const validationFiles = input.files.map((file) => {
-        const bytes = generations.readFile(
-          input.generationId,
-          file.targetPath,
-        );
+        const bytes = generations.readFile(input.generationId, file.targetPath);
         if (
           !bytes.equals(file.targetBytes) ||
           (file.classification === "closed" &&

@@ -28,7 +28,7 @@ export interface RolloutOptions {
 export interface MultiProjectRolloutReport {
   schemaVersion: typeof UPDATE_ROLLOUT_REPORT_SCHEMA_VERSION;
   generatedAt: string;
-  trellisCliVersion: string;
+  pactileCliVersion: string;
   mode: "dry-run" | "apply";
   projects: UpdateRolloutReport[];
   summary: {
@@ -76,7 +76,7 @@ export async function rollout(options: RolloutOptions): Promise<void> {
   const mode = options.dryRun ? "dry-run" : "apply";
   const projectReports: UpdateRolloutReport[] = [];
 
-  console.log(chalk.cyan("\nTrellis multi-project rollout"));
+  console.log(chalk.cyan("\nPactile multi-project rollout"));
   console.log(chalk.cyan("════════════════════════════\n"));
   console.log(`Mode: ${mode}`);
   console.log(`Projects: ${options.projects.length}\n`);
@@ -124,7 +124,7 @@ export async function rollout(options: RolloutOptions): Promise<void> {
   const aggregate: MultiProjectRolloutReport = {
     schemaVersion: UPDATE_ROLLOUT_REPORT_SCHEMA_VERSION,
     generatedAt: new Date().toISOString(),
-    trellisCliVersion: VERSION,
+    pactileCliVersion: VERSION,
     mode,
     projects: projectReports,
     summary: {

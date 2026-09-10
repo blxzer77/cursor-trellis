@@ -2,11 +2,11 @@
  * Task directory naming.
  *
  * User-created task dirs follow the `MM-DD-slug` pattern produced by
- * `.trellis/scripts/common/task_store.py::cmd_create`:
+ * `.pactile/scripts/common/task_store.py::cmd_create`:
  *
- *     <tasks-dir>/05-13-trellis-core-sdk-package/
+ *     <tasks-dir>/05-13-pactile-core-sdk-package/
  *
- * Trellis also creates system onboarding tasks during `trellis init` using a
+ * Pactile also creates system onboarding tasks during `pactile init` using a
  * `00-slug` prefix, such as `00-bootstrap-guidelines` and `00-join-new-developer`.
  *
  * `MM` is the two-digit month, `DD` is the two-digit day, and `slug` is
@@ -20,7 +20,7 @@ const SYSTEM_TASK_DIR_RE =
 
 export interface TaskDirParts {
   /**
-   * The directory prefix. Dated tasks use `MM-DD`; Trellis system onboarding
+   * The directory prefix. Dated tasks use `MM-DD`; Pactile system onboarding
    * tasks use `00`.
    */
   prefix: string;

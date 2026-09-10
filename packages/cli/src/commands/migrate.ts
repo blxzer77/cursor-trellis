@@ -4,7 +4,7 @@ import {
   planArtifactMigration,
   planWaveC,
   scanContractMigration,
-} from "@blxzer/cursor-trellis-core/task";
+} from "@blxzer/pactile-core/task";
 import { loadHashes } from "../utils/template-hash.js";
 import { isWorkflowInitialized } from "../utils/workflow-dir.js";
 import {
@@ -20,13 +20,13 @@ export interface MigrateCommandOptions {
 
 /**
  * Optional deepening preview for P36. Writes nothing. Apply stays on
- * `cstl update` + one confirm.
+ * `pactile update` plus one confirmation.
  */
 export function migratePreview(options: MigrateCommandOptions = {}): void {
   const cwd = process.cwd();
   if (!isWorkflowInitialized(cwd)) {
-    console.log(chalk.red("Error: Trellis not initialized in this directory."));
-    console.log(chalk.gray("Run 'cstl init' first, or apply with 'cstl update'."));
+    console.log(chalk.red("Error: Pactile not initialized in this directory."));
+    console.log(chalk.gray("Run 'pactile init' first, or apply with 'pactile update'."));
     return;
   }
 
@@ -47,10 +47,10 @@ export function migratePreview(options: MigrateCommandOptions = {}): void {
   console.log(chalk.cyan("\nP36 migrate preview"));
   console.log(chalk.cyan("═══════════════════\n"));
   printP36Vernacular(plan);
-  console.log(chalk.gray("[Dry run] No changes made. Apply with: cstl update"));
+  console.log(chalk.gray("[Dry run] No changes made. Apply with: pactile update"));
   if (writeArtifacts) {
     console.log(
-      chalk.gray("Maintainer apply: cstl update --write-artifacts"),
+      chalk.gray("Maintainer apply: pactile update --write-artifacts"),
     );
   }
 }

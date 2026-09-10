@@ -1,23 +1,23 @@
-# 发布边界：CSTL 与 cstl-byok
+# 发布边界：PACTILE 与 pactile-byok
 
-CSTL（cursor-trellis）本批带走**中间件协议**与**并行原则**，外加半页用户升级说明。**cstl-byok** 是另一条产品线、另一个仓库、另一次发布。两者可并行准备，互不门禁。
+PACTILE（pactile）本批带走**中间件协议**与**并行原则**，外加半页用户升级说明。**pactile-byok** 是另一条产品线、另一个仓库、另一次发布。两者可并行准备，互不门禁。
 
-## CSTL 本批带走
+## PACTILE 本批带走
 
-- Middleware Protocol v1（义务 + Manifest 样例 + `update` 不顶掉）。Overlay 路径写死为 `.cstl/middleware/`。
+- Middleware Protocol v1（义务 + Manifest 样例 + `update` 不顶掉）。Overlay 路径写死为 `.pactile/middleware/`。
 - 并行第一原则（workflow / 池 / 规划模板）。强度是约定 + 审核指出，不是新 CLI gate。
-- 升级合同给终端用户看的半页：升包 → `cstl update` → 确认 → 接着干活。官方面可随 `update` 开迁；产物先双读；Contract 另批。
+- 升级合同给终端用户看的半页：升包 → `pactile update` → 确认 → 接着干活。官方面可随 `update` 开迁；产物先双读；Contract 另批。
 - 池注意力刻度（`priority`）与可并行组说明。注意力排序不是串行锁。
 
 文档/约定即可。本批不强制写完安装器，不实现产物迁移器。
 
-## CSTL 本批不带走
+## PACTILE 本批不带走
 
-- cstl-byok 建仓、分析、合成、npm/改名、Cursor patch 安装器。
+- pactile-byok 建仓、分析、合成、npm/改名、Cursor patch 安装器。
 - 任何 BYOK 实现或可选安装器。全库 BYOK 盘点仍搁置。
-- Cursor++ 活入口不回默认安装面。
+- 已退役的替代客户端入口不回默认安装面。
 
-未就绪的 BYOK **不是** CSTL 发版硬依赖。成功标准看 CSTL 自己的工作流轴，不用「BYOK 是否合成」当门禁。
+未就绪的 BYOK **不是** PACTILE 发版硬依赖。成功标准看 PACTILE 自己的工作流轴，不用「BYOK 是否合成」当门禁。
 
 ## 用户说明边界
 

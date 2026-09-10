@@ -45,12 +45,12 @@ describe("project capabilities", () => {
 
   it("loads stored legacy aliases while ignoring removed unknown selections", () => {
     const tmpDir = fs.mkdtempSync(
-      path.join(os.tmpdir(), "trellis-capabilities-"),
+      path.join(os.tmpdir(), "pactile-capabilities-"),
     );
     try {
-      fs.mkdirSync(path.join(tmpDir, ".cstl"), { recursive: true });
+      fs.mkdirSync(path.join(tmpDir, ".pactile"), { recursive: true });
       fs.writeFileSync(
-        path.join(tmpDir, ".cstl", "capabilities.json"),
+        path.join(tmpDir, ".pactile", "capabilities.json"),
         JSON.stringify({
           selected: [
             "fast-context-mcp",
@@ -127,7 +127,7 @@ describe("project capabilities", () => {
   });
 
   it("loads existing mcp.json when building cursor templates", () => {
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-mcp-merge-"));
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-mcp-merge-"));
     try {
       fs.mkdirSync(path.join(tmpDir, ".cursor"), { recursive: true });
       fs.writeFileSync(
@@ -251,7 +251,7 @@ describe("project capabilities", () => {
         }),
         expect.objectContaining({
           command:
-            'rg -i "storage default|sidecar|sqlite only" AGENTS.md "**/AGENTS.md" README.md CONTRIBUTING.md .cstl/spec',
+            'rg -i "storage default|sidecar|sqlite only" AGENTS.md "**/AGENTS.md" README.md CONTRIBUTING.md .pactile/spec',
           use: expect.stringContaining("before implementation"),
         }),
         expect.objectContaining({
@@ -295,7 +295,7 @@ describe("project capabilities", () => {
       "codebase-retrieval",
       "github-mcp",
     ]);
-    expect(first).toContain("# TRELLIS:PROJECT-CAPABILITIES:START");
+    expect(first).toContain("# PACTILE:PROJECT-CAPABILITIES:START");
     expect(first).toContain("[mcp_servers.fast-context]");
     expect(first).toContain("[mcp_servers.codegraph]");
     expect(first).toContain("[mcp_servers.github]");
@@ -306,7 +306,7 @@ describe("project capabilities", () => {
     expect(second).not.toContain("[mcp_servers.codegraph]");
     expect(second).not.toContain("[mcp_servers.github]");
     expect(second).toContain("[mcp_servers.playwright]");
-    expect(second.match(/TRELLIS:PROJECT-CAPABILITIES:START/g)).toHaveLength(1);
+    expect(second.match(/PACTILE:PROJECT-CAPABILITIES:START/g)).toHaveLength(1);
   });
 
   it("builds project capability templates only for selected platforms", () => {
@@ -315,10 +315,10 @@ describe("project capabilities", () => {
       ["cursor"],
     );
 
-    expect(files.get(".cstl/capabilities.json")).toContain(
+    expect(files.get(".pactile/capabilities.json")).toContain(
       '"codebase-retrieval"',
     );
-    expect(files.get(".cstl/capabilities.md")).toContain(
+    expect(files.get(".pactile/capabilities.md")).toContain(
       "## Fallback Guidance",
     );
     expect(files.get(".cursor/mcp.json")).toContain('"playwright"');
@@ -337,7 +337,7 @@ describe("project capabilities", () => {
       "## Policy and Document-First Routing (intent-gated)",
     );
     expect(capabilitiesMd).toContain(
-      "inspect `AGENTS.md`, `.cstl/spec/**`, and README/contributing/architecture docs before semantic implementation search",
+      "inspect `AGENTS.md`, `.pactile/spec/**`, and README/contributing/architecture docs before semantic implementation search",
     );
     expect(capabilitiesMd).toContain(
       "### Storage and persistence policy (benchmark C03 pattern)",
@@ -424,17 +424,17 @@ describe("project capabilities", () => {
 
   it("updates readiness state and refreshes markdown", () => {
     const tmpDir = fs.mkdtempSync(
-      path.join(os.tmpdir(), "trellis-capability-status-"),
+      path.join(os.tmpdir(), "pactile-capability-status-"),
     );
     try {
-      fs.mkdirSync(path.join(tmpDir, ".cstl"), { recursive: true });
+      fs.mkdirSync(path.join(tmpDir, ".pactile"), { recursive: true });
       fs.writeFileSync(
-        path.join(tmpDir, ".cstl", "capabilities.json"),
+        path.join(tmpDir, ".pactile", "capabilities.json"),
         renderCapabilitiesJson(["codebase-retrieval", "github-mcp"]),
         "utf-8",
       );
       fs.writeFileSync(
-        path.join(tmpDir, ".cstl", "capabilities.md"),
+        path.join(tmpDir, ".pactile", "capabilities.md"),
         renderCapabilitiesMarkdown(["codebase-retrieval", "github-mcp"]),
         "utf-8",
       );
@@ -448,7 +448,7 @@ describe("project capabilities", () => {
 
       const parsed = JSON.parse(
         fs.readFileSync(
-          path.join(tmpDir, ".cstl", "capabilities.json"),
+          path.join(tmpDir, ".pactile", "capabilities.json"),
           "utf-8",
         ),
       ) as {
@@ -462,7 +462,7 @@ describe("project capabilities", () => {
         >;
       };
       const capabilitiesMd = fs.readFileSync(
-        path.join(tmpDir, ".cstl", "capabilities.md"),
+        path.join(tmpDir, ".pactile", "capabilities.md"),
         "utf-8",
       );
 
@@ -482,17 +482,17 @@ describe("project capabilities", () => {
 
   it("preserves stored readiness state when rebuilding templates", () => {
     const tmpDir = fs.mkdtempSync(
-      path.join(os.tmpdir(), "trellis-capability-preserve-"),
+      path.join(os.tmpdir(), "pactile-capability-preserve-"),
     );
     try {
-      fs.mkdirSync(path.join(tmpDir, ".cstl"), { recursive: true });
+      fs.mkdirSync(path.join(tmpDir, ".pactile"), { recursive: true });
       fs.writeFileSync(
-        path.join(tmpDir, ".cstl", "capabilities.json"),
+        path.join(tmpDir, ".pactile", "capabilities.json"),
         renderCapabilitiesJson(["codebase-retrieval"]),
         "utf-8",
       );
       fs.writeFileSync(
-        path.join(tmpDir, ".cstl", "capabilities.md"),
+        path.join(tmpDir, ".pactile", "capabilities.md"),
         renderCapabilitiesMarkdown(["codebase-retrieval"]),
         "utf-8",
       );
@@ -505,7 +505,7 @@ describe("project capabilities", () => {
         loadStoredCapabilityStates(tmpDir),
       );
       const rebuilt = JSON.parse(
-        templates.get(".cstl/capabilities.json") ?? "{}",
+        templates.get(".pactile/capabilities.json") ?? "{}",
       ) as {
         capabilities: Record<string, { readiness_status?: string }>;
       };

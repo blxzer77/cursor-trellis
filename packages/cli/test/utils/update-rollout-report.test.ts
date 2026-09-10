@@ -43,7 +43,11 @@ describe("update-rollout-report", () => {
       },
       readiness: {
         skipped: false,
-        smartSearch: { command: "smart-search doctor --format json", ok: true, details: [] },
+        smartSearch: {
+          command: "smart-search doctor --format json",
+          ok: true,
+          details: [],
+        },
         capabilities: [],
       },
       upgradeDirection: "upgrade",
@@ -56,10 +60,33 @@ describe("update-rollout-report", () => {
       }),
       conflictsPending: ["AGENTS.md"],
       migrations: summarizeMigrationPlan(null, 0),
+      lifecycle: {
+        status: "degraded",
+        resumed: true,
+        reason: null,
+        planId: "lifecycle.update.test",
+        generationId: "generation.test",
+        generationFingerprint: `sha256:${"0".repeat(64)}`,
+        adapters: [
+          {
+            adapterId: "adapter.codex",
+            status: "failed",
+            attempts: 2,
+            reason: "target-cas-mismatch",
+            retryable: true,
+            projectionFingerprint: null,
+          },
+        ],
+      },
     });
     expect(report.schemaVersion).toBe(UPDATE_ROLLOUT_REPORT_SCHEMA_VERSION);
     expect(report.plan.conflictsPending).toEqual(["AGENTS.md"]);
     expect(report.mode).toBe("dry-run");
     expect(report.outcome).toBe("would_apply");
+    expect(report.lifecycle).toMatchObject({
+      status: "degraded",
+      generationId: "generation.test",
+      adapters: [{ adapterId: "adapter.codex", attempts: 2 }],
+    });
   });
 });

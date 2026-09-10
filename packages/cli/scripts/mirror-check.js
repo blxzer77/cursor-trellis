@@ -8,13 +8,28 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const cliPackageRoot = path.resolve(__dirname, "..");
-const trellisRoot = path.resolve(cliPackageRoot, "../..");
+const pactileRoot = path.resolve(cliPackageRoot, "../..");
 const templateCursorDir = path.join(cliPackageRoot, "src/templates/cursor");
 const templateAgentsPath = path.join(
   cliPackageRoot,
   "src/templates/markdown/agents.md",
 );
-const dogfoodCursor = path.join(trellisRoot, ".cursor");
+const dogfoodCursor = path.join(pactileRoot, ".cursor");
+const dogfoodAgents = path.join(pactileRoot, "AGENTS.md");
+
+// Thin-connected checkouts deliberately do not own a local .cursor tree: the
+// harness root owns that projection. Keep the standalone parity guard strict
+// whenever dogfood exists, but report the declared thin-connect topology as
+// not applicable instead of manufacturing host files in the product repo.
+const isThinConnected =
+  fs.existsSync(dogfoodAgents) &&
+  /\bthin-connect(?:ed)?\b/iu.test(fs.readFileSync(dogfoodAgents, "utf-8"));
+if (isThinConnected && !fs.existsSync(dogfoodCursor)) {
+  console.log(
+    "Mirror check not applicable: thin-connected checkout has no product-owned .cursor dogfood tree.",
+  );
+  process.exit(0);
+}
 
 function normalizeText(content) {
   return content
@@ -35,21 +50,16 @@ function listRelativeFiles(root, subdir) {
     .map((name) => path.posix.join(subdir, name));
 }
 
-const CSTL_BLOCK_START = "<!-- CSTL:START -->";
-const CSTL_BLOCK_END = "<!-- CSTL:END -->";
-const LEGACY_TRELLIS_BLOCK_START = "<!-- TRELLIS:START -->";
-const LEGACY_TRELLIS_BLOCK_END = "<!-- TRELLIS:END -->";
+const PACTILE_BLOCK_START = "<!-- PACTILE:START -->";
+const PACTILE_BLOCK_END = "<!-- PACTILE:END -->";
 
 function extractManagedBlock(content) {
-  for (const [start, end] of [
-    [CSTL_BLOCK_START, CSTL_BLOCK_END],
-    [LEGACY_TRELLIS_BLOCK_START, LEGACY_TRELLIS_BLOCK_END],
-  ]) {
-    const startIdx = content.indexOf(start);
-    const endIdx = content.indexOf(end);
-    if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
-      return normalizeText(content.slice(startIdx, endIdx + end.length));
-    }
+  const startIdx = content.indexOf(PACTILE_BLOCK_START);
+  const endIdx = content.indexOf(PACTILE_BLOCK_END);
+  if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+    return normalizeText(
+      content.slice(startIdx, endIdx + PACTILE_BLOCK_END.length),
+    );
   }
   return normalizeText(content);
 }
@@ -104,7 +114,7 @@ for (const subdir of ["rules", "agents"]) {
 
 comparePair(
   "AGENTS.md",
-  path.join(trellisRoot, "AGENTS.md"),
+  dogfoodAgents,
   templateAgentsPath,
   diffs,
 );

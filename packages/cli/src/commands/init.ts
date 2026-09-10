@@ -1,42 +1,34 @@
 import { execSync } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import readline from "node:readline";
 import chalk from "chalk";
 import figlet from "figlet";
 import inquirer from "inquirer";
 import { createWorkflowStructure } from "../configurators/workflow.js";
-import {
-  getInitToolChoices,
-  resolveCliFlag,
-  configurePlatform,
-  getConfiguredPlatforms,
-  getPlatformsWithPythonHooks,
-} from "../configurators/index.js";
+import { getInitToolChoices } from "../configurators/index.js";
 import {
   getPythonCommandForPlatform,
-  resolveOptionalSkills,
   setResolvedPythonCommand,
-  writeSkills,
 } from "../configurators/shared.js";
-import { AI_TOOLS, type AITool, type CliFlag } from "../types/ai-tools.js";
 import { DIR_NAMES, FILE_NAMES, PATHS } from "../constants/paths.js";
 import { VERSION } from "../constants/version.js";
-import { agentsMdContent } from "../templates/markdown/index.js";
 import {
   setWriteMode,
-  getWriteMode,
   startRecordingWrites,
   stopRecordingWrites,
-  writeFile,
   type WriteMode,
 } from "../utils/file-writer.js";
-import { insertCstlManagedBlock } from "../utils/agents-md.js";
 import {
   applyKernelCreate,
   applyKernelStart,
   writeWaveCConfirmed,
-} from "@blxzer/cursor-trellis-core/task";
+} from "@blxzer/pactile-core/task";
+import {
+  PACTILE_ENVIRONMENT_KEYS,
+  readPactileEnvironment,
+} from "@blxzer/pactile-core";
 import { emptyTaskJson, type TaskJson } from "../utils/task-json.js";
 import {
   detectProjectType,
@@ -81,7 +73,25 @@ import {
   writeProjectCapabilityFiles,
   type ProjectCapabilityId,
 } from "../utils/project-capabilities.js";
-import { assertCursorRulesValid } from "../utils/validate-rules.js";
+import {
+  collectCanonicalGenerationFiles,
+  collectLegacyCstlLifecycleFiles,
+  discoverCanonicalGenerationPaths,
+  installedPactilePlatforms,
+  materializeCanonicalGeneration,
+  materializePreparedLegacyUserState,
+  prepareLegacyCstlImport,
+  readLegacyCstlVersion,
+  runLifecycleCommand,
+  seedCanonicalBuildRoot,
+  type LifecycleResult,
+} from "../pactile/lifecycle/index.js";
+import type { PactilePlatform } from "../pactile/registry.js";
+import { InstallStateStore } from "../pactile/runtime/stores.js";
+import {
+  inspectLegacyInitContext,
+  legacyImportPreparedMessage,
+} from "../pactile/compat/init-context.js";
 
 const MIN_PYTHON_MAJOR = 3;
 const MIN_PYTHON_MINOR = 9;
@@ -123,8 +133,10 @@ function detectPythonVersion(command: string): PythonProbe {
 export function requireSupportedPython(command: string): string {
   // Final escape hatch — set when the user knows python3 is on PATH but
   // the probe keeps failing for environment-specific reasons.
-  if (process.env.TRELLIS_SKIP_PYTHON_CHECK === "1") {
-    return `version check skipped (TRELLIS_SKIP_PYTHON_CHECK=1)`;
+  if (
+    readPactileEnvironment(PACTILE_ENVIRONMENT_KEYS.skipPythonCheck) === "1"
+  ) {
+    return `version check skipped (PACTILE_SKIP_PYTHON_CHECK=1)`;
   }
 
   const versionOutput = detectPythonVersion(command);
@@ -135,7 +147,7 @@ export function requireSupportedPython(command: string): string {
         `⚠ Python version check skipped — sandboxed environment blocked ` +
           `child_process spawn (EPERM/EACCES). Assuming "${command}" is on ` +
           `PATH. If init fails later, re-run on the host or set ` +
-          `TRELLIS_SKIP_PYTHON_CHECK=1.`,
+          `PACTILE_SKIP_PYTHON_CHECK=1.`,
       ),
     );
     return `version unknown (sandbox-restricted)`;
@@ -143,13 +155,13 @@ export function requireSupportedPython(command: string): string {
 
   if (!versionOutput) {
     throw new Error(
-      `Python command "${command}" not found. Trellis init requires Python ≥ 3.9.`,
+      `Python command "${command}" not found. Pactile init requires Python ≥ 3.9.`,
     );
   }
 
   if (!isSupportedPythonVersion(versionOutput)) {
     throw new Error(
-      `${versionOutput} detected via "${command}", but Trellis init requires Python ≥ 3.9.`,
+      `${versionOutput} detected via "${command}", but Pactile init requires Python ≥ 3.9.`,
     );
   }
 
@@ -162,7 +174,7 @@ export function requireSupportedPython(command: string): string {
  * Windows: `python` is the usual python.org installer choice, but Microsoft
  * Store ships `python3`, and the `py` launcher is `py -3`. We try all three
  * before giving up — fixes #236 where users with only `python3` (not
- * `python`) had `cstl init` fail outright.
+ * `python`) had `pactile init` fail outright.
  *
  * Non-Windows: `python3` is canonical; `python` is a fallback for systems
  * where Python 3 is the only Python and is named `python` (some Arch
@@ -176,8 +188,8 @@ const PYTHON_CANDIDATES: Record<"win32" | "other", readonly string[]> = {
 /**
  * Detect a working Python ≥ 3.9 command on the host platform.
  *
- * Honors `TRELLIS_PYTHON_CMD` (explicit override, no probe) and
- * `TRELLIS_SKIP_PYTHON_CHECK=1` (skip probe, trust platform default).
+ * Honors `PACTILE_PYTHON_CMD` (explicit override, no probe) and
+ * `PACTILE_SKIP_PYTHON_CHECK=1` (skip probe, trust platform default).
  *
  * Otherwise tries each candidate in `PYTHON_CANDIDATES` in order and returns
  * the first whose `--version` matches `Python ≥ 3.9`. Caches the result via
@@ -191,19 +203,23 @@ export function resolveSupportedPython(): {
   version: string;
 } {
   // Explicit override — user knows their environment.
-  const override = process.env.TRELLIS_PYTHON_CMD?.trim();
+  const override = readPactileEnvironment(
+    PACTILE_ENVIRONMENT_KEYS.pythonCommand,
+  )?.trim();
   if (override) {
     setResolvedPythonCommand(override);
-    return { command: override, version: "set via TRELLIS_PYTHON_CMD" };
+    return { command: override, version: "set via PACTILE_PYTHON_CMD" };
   }
 
   // Skip probe entirely.
-  if (process.env.TRELLIS_SKIP_PYTHON_CHECK === "1") {
+  if (
+    readPactileEnvironment(PACTILE_ENVIRONMENT_KEYS.skipPythonCheck) === "1"
+  ) {
     const fallback = getPythonCommandForPlatform();
     setResolvedPythonCommand(fallback);
     return {
       command: fallback,
-      version: "version check skipped (TRELLIS_SKIP_PYTHON_CHECK=1)",
+      version: "version check skipped (PACTILE_SKIP_PYTHON_CHECK=1)",
     };
   }
 
@@ -221,7 +237,7 @@ export function resolveSupportedPython(): {
           `⚠ Python version check skipped — sandboxed environment blocked ` +
             `child_process spawn (EPERM/EACCES). Assuming "${candidate}" is ` +
             `on PATH. If init fails later, re-run on the host or set ` +
-            `TRELLIS_SKIP_PYTHON_CHECK=1.`,
+            `PACTILE_SKIP_PYTHON_CHECK=1.`,
         ),
       );
       setResolvedPythonCommand(candidate);
@@ -246,40 +262,16 @@ export function resolveSupportedPython(): {
   const installHint = isWindows
     ? `Install Python ≥ 3.9 from https://www.python.org/downloads/windows/ — make sure ` +
       `"Add Python to PATH" is checked in the installer. Or, if Python is ` +
-      `installed under a different name, set TRELLIS_PYTHON_CMD=<your-cmd> ` +
-      `before re-running init (e.g. \`set TRELLIS_PYTHON_CMD=py -3\`).`
+      `installed under a different name, set PACTILE_PYTHON_CMD=<your-cmd> ` +
+      `before re-running init (e.g. \`set PACTILE_PYTHON_CMD=py -3\`).`
     : `Install Python ≥ 3.9 from https://www.python.org/downloads/ or via your ` +
-      `package manager. Or set TRELLIS_PYTHON_CMD=<your-cmd> before re-running.`;
+      `package manager. Or set PACTILE_PYTHON_CMD=<your-cmd> before re-running.`;
 
   throw new Error(
     `No supported Python command found. Tried: ${candidates.join(", ")}.\n` +
       `Probe results:\n  ${probeFailures.join("\n  ")}\n\n` +
-      `Trellis init requires Python ≥ 3.9. ${installHint}\n` +
-      `Last-resort escape hatch: set TRELLIS_SKIP_PYTHON_CHECK=1 to skip the probe entirely.`,
-  );
-}
-
-function getOsDisplayName(
-  platform: NodeJS.Platform = process.platform,
-): string {
-  switch (platform) {
-    case "win32":
-      return "Windows";
-    case "darwin":
-      return "macOS";
-    case "linux":
-      return "Linux";
-    default:
-      return platform;
-  }
-}
-
-function logPythonAdaptationNotice(command: string): void {
-  const osName = getOsDisplayName();
-  console.log(
-    chalk.blue(
-      `📌 ${osName} detected: Trellis rendered Python commands as "${command}" in generated hooks, settings, and help text`,
-    ),
+      `Pactile init requires Python ≥ 3.9. ${installHint}\n` +
+      `Last-resort escape hatch: set PACTILE_SKIP_PYTHON_CHECK=1 to skip the probe entirely.`,
   );
 }
 
@@ -326,19 +318,19 @@ function writeTaskSkeleton(
     fs.mkdirSync(taskDir, { recursive: true });
     const created = applyKernelCreate({
       taskDir,
-      actor: "cstl init",
+      actor: "pactile init",
       idempotencyKey: `init:${taskName}`,
       record: { ...taskJson, status: "planning" },
-      evidence: "cstl init skeleton",
+      evidence: "pactile init skeleton",
     });
     if (taskJson.status === "in_progress") {
       applyKernelStart({
         taskDir,
         expectedRevision: created.kernel.revision,
-        actor: "cstl init",
+        actor: "pactile init",
         idempotencyKey: `init-start:${taskName}`,
         record: { ...taskJson, status: "in_progress" },
-        evidence: "cstl init skeleton start",
+        evidence: "pactile init skeleton start",
       });
     }
     fs.writeFileSync(path.join(taskDir, FILE_NAMES.PRD), prdContent, "utf-8");
@@ -399,7 +391,7 @@ Init selected optional project capabilities for this repo. Treat them as
 
 ${checklist}
 
-- Read \`.cstl/capabilities.json\` / \`.cstl/capabilities.md\` and keep the
+- Read \`.pactile/capabilities.json\` / \`.pactile/capabilities.md\` and keep the
   readiness state honest: \`pending\`, \`ready\`, or \`failed\`.
 - For \`codebase-retrieval\`, verify \`.codegraph/\` exists (or initialize it)
   and confirm the MCP path is usable. After the first index, CodeGraph's file
@@ -407,7 +399,7 @@ ${checklist}
   every code change.
 - If a capability cannot be made ready, record the failure and fallback path in
   \`verify.md\` before archiving bootstrap.
-- Validation entrypoint: \`cstl capability-smoke --write-status\`
+- Validation entrypoint: \`pactile capability-smoke --write-status\`
 
 ---
 `;
@@ -418,15 +410,15 @@ function getBootstrapRelatedFiles(
   packages?: DetectedPackage[],
 ): string[] {
   if (packages && packages.length > 0) {
-    return packages.map((pkg) => `.cstl/spec/${sanitizePkgName(pkg.name)}/`);
+    return packages.map((pkg) => `.pactile/spec/${sanitizePkgName(pkg.name)}/`);
   }
   if (projectType === "frontend") {
-    return [".cstl/spec/frontend/"];
+    return [".pactile/spec/frontend/"];
   }
   if (projectType === "backend") {
-    return [".cstl/spec/backend/"];
+    return [".pactile/spec/backend/"];
   }
-  return [".cstl/spec/backend/", ".cstl/spec/frontend/"];
+  return [".pactile/spec/backend/", ".pactile/spec/frontend/"];
 }
 
 function getBootstrapPrdContent(
@@ -444,14 +436,14 @@ function getBootstrapPrdContent(
 
 **You (the AI) are running this task. The developer does not read this file.**
 
-The developer just ran \`cstl init\` on this project for the first time.
-\`.cstl/\` now exists with empty spec scaffolding, and this bootstrap task
-exists under \`.cstl/tasks/\`. When they want to work on it, they should start
-this task from a session that provides Trellis session identity.
+The developer just ran \`pactile init\` on this project for the first time.
+\`.pactile/\` now exists with empty spec scaffolding, and this bootstrap task
+exists under \`.pactile/tasks/\`. When they want to work on it, they should start
+this task from a session that provides Pactile session identity.
 
-**Your job**: help them populate \`.cstl/spec/\` with the team's real
+**Your job**: help them populate \`.pactile/spec/\` with the team's real
 coding conventions. Every future AI session — this project's
-\`cstl-implement\` and \`cstl-check\` sub-agents — auto-loads spec files
+\`pactile-implement\` and \`pactile-check\` sub-agents — auto-loads spec files
 listed in per-task jsonl manifests. Empty spec = sub-agents write generic
 code. Real spec = sub-agents match the team's actual patterns.
 
@@ -478,11 +470,11 @@ ${renderCapabilityReadinessSection(selectedCapabilities)}
 
 | File | What to document |
 |------|------------------|
-| \`.cstl/spec/backend/directory-structure.md\` | Where different file types go (routes, services, utils) |
-| \`.cstl/spec/backend/database-guidelines.md\` | ORM, migrations, query patterns, naming conventions |
-| \`.cstl/spec/backend/error-handling.md\` | How errors are caught, logged, and returned |
-| \`.cstl/spec/backend/logging-guidelines.md\` | Log levels, format, what to log |
-| \`.cstl/spec/backend/quality-guidelines.md\` | Code review standards, testing requirements |
+| \`.pactile/spec/backend/directory-structure.md\` | Where different file types go (routes, services, utils) |
+| \`.pactile/spec/backend/database-guidelines.md\` | ORM, migrations, query patterns, naming conventions |
+| \`.pactile/spec/backend/error-handling.md\` | How errors are caught, logged, and returned |
+| \`.pactile/spec/backend/logging-guidelines.md\` | Log levels, format, what to log |
+| \`.pactile/spec/backend/quality-guidelines.md\` | Code review standards, testing requirements |
 `;
 
   const frontendSection = `
@@ -491,19 +483,19 @@ ${renderCapabilityReadinessSection(selectedCapabilities)}
 
 | File | What to document |
 |------|------------------|
-| \`.cstl/spec/frontend/directory-structure.md\` | Component/page/hook organization |
-| \`.cstl/spec/frontend/component-guidelines.md\` | Component patterns, props conventions |
-| \`.cstl/spec/frontend/hook-guidelines.md\` | Custom hook naming, patterns |
-| \`.cstl/spec/frontend/state-management.md\` | State library, patterns, what goes where |
-| \`.cstl/spec/frontend/type-safety.md\` | TypeScript conventions, type organization |
-| \`.cstl/spec/frontend/quality-guidelines.md\` | Linting, testing, accessibility |
+| \`.pactile/spec/frontend/directory-structure.md\` | Component/page/hook organization |
+| \`.pactile/spec/frontend/component-guidelines.md\` | Component patterns, props conventions |
+| \`.pactile/spec/frontend/hook-guidelines.md\` | Custom hook naming, patterns |
+| \`.pactile/spec/frontend/state-management.md\` | State library, patterns, what goes where |
+| \`.pactile/spec/frontend/type-safety.md\` | TypeScript conventions, type organization |
+| \`.pactile/spec/frontend/quality-guidelines.md\` | Linting, testing, accessibility |
 `;
 
   const footer = `
 
 ### Thinking guides (already populated)
 
-\`.cstl/spec/guides/\` contains general thinking guides pre-filled with
+\`.pactile/spec/guides/\` contains general thinking guides pre-filled with
 best practices. Customize only if something clearly doesn't fit this project.
 
 ---
@@ -513,7 +505,7 @@ best practices. Customize only if something clearly doesn't fit this project.
 ### Step 1: Import from existing convention files first (preferred)
 
 Search the repo for existing convention docs. If any exist, read them and
-extract the relevant rules into the matching \`.cstl/spec/\` files —
+extract the relevant rules into the matching \`.pactile/spec/\` files —
 usually much faster than documenting from scratch.
 
 | File / Directory | Notes |
@@ -544,14 +536,14 @@ is a separate conversation, not a bootstrap concern.
 
 ## Quick explainer of the runtime (share when they ask "why do we need spec at all")
 
-- Every AI coding task spawns two sub-agents: \`cstl-implement\` (writes
-  code) and \`cstl-check\` (verifies quality).
+- Every AI coding task spawns two sub-agents: \`pactile-implement\` (writes
+  code) and \`pactile-check\` (verifies quality).
 - Each task has \`implement.jsonl\` / \`check.jsonl\` manifests listing which
   spec files to load.
 - The platform hook auto-injects those spec files + the task's \`prd.md\`
   into every sub-agent prompt, so the sub-agent codes/reviews per team
   conventions without anyone pasting them manually.
-- Source of truth: \`.cstl/spec/\`. That's why filling it well now pays
+- Source of truth: \`.pactile/spec/\`. That's why filling it well now pays
   off forever.
 
 ---
@@ -562,7 +554,7 @@ When the developer confirms the checklist items above are done with real
 examples (not placeholders), guide them to run:
 
 \`\`\`bash
-${pythonCmd} ./.cstl/scripts/task.py archive 00-bootstrap-guidelines
+${pythonCmd} ./.pactile/scripts/task.py archive 00-bootstrap-guidelines
 \`\`\`
 
 After archive, every new developer who joins this project will get a
@@ -572,7 +564,7 @@ After archive, every new developer who joins this project will get a
 
 ## Suggested opening line
 
-"Welcome to Trellis! Your init just set me up to help you fill the project
+"Welcome to Pactile! Your init just set me up to help you fill the project
 spec — a one-time setup so every future AI session follows the team's
 conventions instead of writing generic code. Before we start, do you have
 any existing convention docs (AGENTS.md, .cursorrules, CONTRIBUTING.md,
@@ -588,10 +580,10 @@ etc.) I can pull from, or should I scan the codebase from scratch?"
       const specName = sanitizePkgName(pkg.name);
       content += `\n### Package: ${pkg.name} (\`spec/${specName}/\`)\n`;
       if (pkgType !== "frontend") {
-        content += `\n- Backend guidelines: \`.cstl/spec/${specName}/backend/\`\n`;
+        content += `\n- Backend guidelines: \`.pactile/spec/${specName}/backend/\`\n`;
       }
       if (pkgType !== "backend") {
-        content += `\n- Frontend guidelines: \`.cstl/spec/${specName}/frontend/\`\n`;
+        content += `\n- Frontend guidelines: \`.pactile/spec/${specName}/frontend/\`\n`;
       }
     }
   } else if (projectType === "frontend") {
@@ -632,7 +624,7 @@ function getBootstrapTaskJson(
     assignee: developer,
     createdAt: today,
     relatedFiles,
-    notes: `First-time setup task created by cstl init (${projectType} project)`,
+    notes: `First-time setup task created by pactile init (${projectType} project)`,
   });
 }
 
@@ -671,9 +663,9 @@ function getJoinerTaskJson(developer: string, taskName: string): TaskJson {
   return emptyTaskJson({
     id: taskName,
     name: taskName,
-    title: `Joining: Onboard to this Trellis project (${developer})`,
+    title: `Joining: Onboard to this Pactile project (${developer})`,
     description:
-      "Onboard a new developer to an existing Trellis project: learn the workflow, conventions, and find assigned work",
+      "Onboard a new developer to an existing Pactile project: learn the workflow, conventions, and find assigned work",
     status: "in_progress",
     dev_type: "docs",
     priority: "P1",
@@ -681,7 +673,7 @@ function getJoinerTaskJson(developer: string, taskName: string): TaskJson {
     assignee: developer,
     createdAt: today,
     notes:
-      "Generated by cstl init for a new developer joining an existing Trellis project",
+      "Generated by pactile init for a new developer joining an existing Pactile project",
   });
 }
 
@@ -706,7 +698,7 @@ function getJoinerPrdContent(
     capabilitySection = `
 ### 5. Re-verify selected project capabilities
 
-This repo has capability selections recorded in \`.cstl/capabilities.json\`.
+This repo has capability selections recorded in \`.pactile/capabilities.json\`.
 Before they rely on MCP-backed behavior, remind them to check the selected set:
 
 ${selectedCapabilityChecklist}
@@ -721,12 +713,12 @@ ${selectedCapabilityChecklist}
 
 **You (the AI) are running this task. The developer does not read this file.**
 
-\`${developer}\` just ran \`cstl init\` on a fresh clone, saw "Developer
+\`${developer}\` just ran \`pactile init\` on a fresh clone, saw "Developer
 initialized", and will now start asking you questions in chat. This joiner task
-exists under \`.cstl/tasks/\`; when they want to work on it, they should
-select it from a session that provides Trellis session identity.
+exists under \`.pactile/tasks/\`; when they want to work on it, they should
+select it from a session that provides Pactile session identity.
 
-Your job is to orient them to Trellis. Don't dump all of this at them — open
+Your job is to orient them to Pactile. Don't dump all of this at them — open
 with a short greeting, ask where they want to start, and fill in the rest as
 they engage.
 
@@ -734,25 +726,25 @@ they engage.
 
 ## Topics to cover (adapt order to their questions)
 
-### 1. What Trellis is + the workflow
+### 1. What Pactile is + the workflow
 
-Trellis is a workflow layer over Claude Code / Cursor / etc. that keeps AI
+Pactile is a governed capability workspace for Cursor and Codex that keeps AI
 agents consistent with project-specific conventions instead of writing generic
 code every session.
 
 - **Human lifecycle**: Open → Define → Approve → Execute → Verify →
   (Integrate? when parent-child) → Close. Kernel writes that state.
-  \`.cstl/workflow.md\` is a human overview, **not runtime SSOT**.
-- **Task files** live under \`.cstl/tasks/\`. \`status\` is a projection, not
+  \`.pactile/workflow.md\` is a human overview, **not runtime SSOT**.
+- **Task files** live under \`.pactile/tasks/\`. \`status\` is a projection, not
   the only truth.
 - **User slash (Native Cursor)**:
-  - \`/cstl-continue\` — resume only when this live session already has a
+  - \`/pactile-continue\` — resume only when this live session already has a
     selected task
-  - \`/cstl-finish-work\` — wrap up a finished task
-  - \`/cstl-handoff\` — session handoff to a temp path (not the task's
+  - \`/pactile-finish-work\` — wrap up a finished task
+  - \`/pactile-handoff\` — session handoff to a temp path (not the task's
     \`handoff.md\`)
-  SessionStart covers entry. \`/cstl-start\` is not installed as a slash on
-  agent-capable Cursor. Official \`/goal\` is not a Trellis Task.
+  SessionStart covers entry. \`/pactile-start\` is not installed as a slash on
+  agent-capable Cursor. Official \`/goal\` is not a Pactile Task.
 
 ### 2. Runtime mechanics (explain when they ask "how does it know what to do")
 
@@ -760,29 +752,29 @@ code every session.
   Dashboard, and a compiled session pack when Event Bridge subscribers
   produce one. It must not dump \`workflow.md\` Phase Index as the runtime
   program.
-- **\`/cstl-continue\`** loads Kernel / Dashboard (or the compiled pack if
+- **\`/pactile-continue\`** loads Kernel / Dashboard (or the compiled pack if
   already in context), reads \`prd.md\` + recent activity, and routes by
   Kernel human phase. Do **not** treat \`get_context.py --mode phase\` (Phase
   Index) as runtime SSOT. Internal skills (brainstorm, check, …) are not
   user slash commands.
-- **Workers**: if this Cursor Task API has no \`cstl-implement\` /
-  \`cstl-check\` enum, dispatch as \`generalPurpose\`. Never label that run
+- **Workers**: if this Cursor Task API has no \`pactile-implement\` /
+  \`pactile-check\` enum, dispatch as \`generalPurpose\`. Never label that run
   \`true-independent\`. When a check worker is available, it follows
   \`check.jsonl\` — reviews against specs, auto-fixes issues, runs
   lint/typecheck.
 
 File layout (mention when they ask "where does what live"):
-- \`.cstl/.runtime/sessions/<session>.json\` — live-session selected-task state, gitignored
-- \`.cstl/tasks/<task>/{implement,check}.jsonl\` — per-task context manifests
-- \`.cstl/spec/\` — project-wide conventions (source of truth)
-- \`.cstl/workspace/${developer}/journal-*.md\` — their session log,
+- \`.pactile/.runtime/sessions/<session>.json\` — live-session selected-task state, gitignored
+- \`.pactile/tasks/<task>/{implement,check}.jsonl\` — per-task context manifests
+- \`.pactile/spec/\` — project-wide conventions (source of truth)
+- \`.pactile/workspace/${developer}/journal-*.md\` — their session log,
   rotated at ~2000 lines
 
 ### 3. This project's actual conventions
 
-- Summarize \`.cstl/spec/\` for them — what coding conventions this
+- Summarize \`.pactile/spec/\` for them — what coding conventions this
   specific team enforces.
-- Point at the last 5 entries in \`.cstl/tasks/archive/\` as a rhythm
+- Point at the last 5 entries in \`.pactile/tasks/archive/\` as a rhythm
   example of how people actually work here. **If archive is empty** (the
   project just started), skip this — don't invent examples.
 - Not your job in this onboarding to teach them the business code itself —
@@ -790,9 +782,9 @@ File layout (mention when they ask "where does what live"):
 
 ### 4. Their assigned work
 
-- Check if \`.cstl/workspace/${developer}/\` already exists — if yes, it's
+- Check if \`.pactile/workspace/${developer}/\` already exists — if yes, it's
   their journal from another machine and worth mentioning.
-- Run \`${pythonCmd} ./.cstl/scripts/task.py list --assignee ${developer}\` to
+- Run \`${pythonCmd} ./.pactile/scripts/task.py list --assignee ${developer}\` to
   show tasks assigned to them. (Quote the name if it contains spaces.)
 - Remind them that the "My Tasks" section appears in the SessionStart context
   on every new session.
@@ -804,8 +796,8 @@ ${capabilitySection}
 ## Optional: walk through a small task end-to-end
 
 If they want to practice before touching real work, offer to pick a tiny
-P3 task or a typo fix and run the full cycle together: \`/cstl-continue\`
-→ implement in Agent → \`/cstl-finish-work\`.
+P3 task or a typo fix and run the full cycle together: \`/pactile-continue\`
+→ implement in Agent → \`/pactile-finish-work\`.
 
 ---
 
@@ -815,14 +807,14 @@ When they feel oriented (or after you've covered the four topics with
 reasonable back-and-forth), guide them to run:
 
 \`\`\`bash
-${pythonCmd} ./.cstl/scripts/task.py archive 00-join-${slug}
+${pythonCmd} ./.pactile/scripts/task.py archive 00-join-${slug}
 \`\`\`
 
 ---
 
 ## Suggested opening line
 
-"Welcome! Your \`cstl init\` set me up to onboard you to this project. I
+"Welcome! Your \`pactile init\` set me up to onboard you to this project. I
 can walk you through the workflow, show you the runtime mechanics under the
 hood, summarize the team's spec, or jump to what you're already curious about
 — which would you prefer?"
@@ -830,7 +822,7 @@ hood, summarize the team's spec, or jump to what you're already curious about
 }
 
 /**
- * Create joiner onboarding task for a new developer on an existing Trellis
+ * Create joiner onboarding task for a new developer on an existing Pactile
  * project. Task name is slugified to be filesystem-safe for arbitrary
  * developer names (spaces, Unicode, punctuation).
  */
@@ -851,7 +843,7 @@ function createJoinerOnboardingTask(
 }
 
 /**
- * Handle re-init when .cstl/ already exists.
+ * Handle re-init when .pactile/ already exists.
  * Returns true if handled (caller should return), false if user chose full re-init.
  */
 async function handleReinit(
@@ -860,10 +852,19 @@ async function handleReinit(
   developerName: string | undefined,
   pythonCmd: string,
 ): Promise<boolean> {
-  const TOOLS = getInitToolChoices();
-  const configuredPlatforms = getConfiguredPlatforms(cwd);
+  const TOOLS = getPactileInitToolChoices();
+  const installState = new InstallStateStore(cwd).read();
+  const configuredPlatforms = new Set<PactilePlatform>(
+    (installState?.state.installedAdapters ?? [])
+      .filter((adapter) => adapter.status === "active")
+      .map((adapter) => adapter.id.replace(/^adapter\./, ""))
+      .filter(
+        (platform): platform is PactilePlatform =>
+          platform === "cursor" || platform === "codex",
+      ),
+  );
   const configuredNames = [...configuredPlatforms]
-    .map((id) => AI_TOOLS[id].name)
+    .map((id) => TOOLS.find((choice) => choice.platformId === id)?.name ?? id)
     .join(", ");
 
   // Determine explicit platform flags
@@ -895,7 +896,7 @@ async function handleReinit(
       {
         type: "list",
         name: "action",
-        message: "Trellis is already initialized. What would you like to do?",
+        message: "Pactile is already initialized. What would you like to do?",
         choices: [
           { name: "Add AI platform(s)", value: "add-platform" },
           {
@@ -919,8 +920,7 @@ async function handleReinit(
     if (platformsToAdd.length === 0) {
       // Interactive: show only unconfigured platforms
       const unconfigured = TOOLS.filter((t) => {
-        const pid = resolveCliFlag(t.key);
-        return pid && !configuredPlatforms.has(pid);
+        return !configuredPlatforms.has(t.platformId);
       });
 
       if (unconfigured.length === 0) {
@@ -943,45 +943,42 @@ async function handleReinit(
       }
     }
 
-    const reinitWritten = startRecordingWrites(cwd);
-    try {
-      for (const tool of platformsToAdd) {
-        const platformId = resolveCliFlag(tool as CliFlag);
-        if (platformId) {
-          if (configuredPlatforms.has(platformId)) {
-            console.log(
-              chalk.gray(
-                `  ○ ${AI_TOOLS[platformId].name} already configured, skipping`,
-              ),
-            );
-          } else {
-            console.log(
-              chalk.blue(`📝 Configuring ${AI_TOOLS[platformId].name}...`),
-            );
-            await configurePlatform(platformId, cwd);
-          }
-        }
-      }
-    } finally {
-      stopRecordingWrites();
-    }
-
-    if (
-      platformsToAdd.some((tool) => resolveCliFlag(tool as CliFlag) === "cursor")
-    ) {
-      assertCursorRulesValid(cwd);
-    }
-
-    // Update template hashes. Merge mode: preserve previously-tracked
-    // platforms' hashes, layer in the newly-added platform's writes.
-    const hashedCount = initializeHashes(cwd, {
-      trackedPaths: reinitWritten,
-      merge: true,
-    });
-    if (hashedCount > 0) {
-      console.log(
-        chalk.gray(`📋 Tracking ${hashedCount} template files for updates`),
+    const requested = platformsToAdd
+      .map((tool) => TOOLS.find((choice) => choice.key === tool)?.platformId)
+      .filter(
+        (platform): platform is PactilePlatform => platform !== undefined,
       );
+    const toReconcile = requested.filter(
+      (platform) => !configuredPlatforms.has(platform),
+    );
+    for (const platform of requested.filter((item) =>
+      configuredPlatforms.has(item),
+    )) {
+      console.log(
+        chalk.gray(
+          `  ○ ${TOOLS.find((choice) => choice.platformId === platform)?.name ?? platform} already configured, skipping`,
+        ),
+      );
+    }
+    if (toReconcile.length > 0) {
+      const composedPlatforms = [
+        ...installedPactilePlatforms(installState?.state ?? null),
+        ...toReconcile,
+      ];
+      const files = collectCanonicalGenerationFiles(
+        cwd,
+        discoverCanonicalGenerationPaths(cwd),
+        composedPlatforms,
+        VERSION,
+      );
+      const result = await runLifecycleCommand({
+        projectRoot: cwd,
+        operation: "reconcile",
+        runtimeVersion: VERSION,
+        files,
+        platforms: composedPlatforms,
+      });
+      reportLifecycleResult(result, "Adapter reconcile");
     }
   }
 
@@ -998,7 +995,7 @@ async function handleReinit(
 
     // Capture pre-init state: if .developer did not exist before we ran
     // init_developer.py, this checkout had no identity → treat as a new
-    // joiner onboarding onto an existing Trellis project.
+    // joiner onboarding onto an existing Pactile project.
     const hadDeveloperFileBefore = fs.existsSync(
       path.join(cwd, DIR_NAMES.WORKFLOW, FILE_NAMES.DEVELOPER),
     );
@@ -1016,7 +1013,7 @@ async function handleReinit(
       );
       console.log(
         chalk.gray(
-          `  ${pythonCmd} .cstl/scripts/init_developer.py ${devName}`,
+          `  ${pythonCmd} .pactile/scripts/init_developer.py ${devName}`,
         ),
       );
     }
@@ -1045,6 +1042,8 @@ async function handleReinit(
 
 interface InitOptions {
   cursor?: boolean;
+  codex?: boolean;
+  importCstl?: boolean;
   yes?: boolean;
   user?: string;
   force?: boolean;
@@ -1061,13 +1060,26 @@ interface InitOptions {
   workflowSource?: string;
 }
 
-// Compile-time check: every CliFlag must be a key of InitOptions.
-// If a new platform is added to CliFlag but not to InitOptions, this line errors.
-// Uses [X] extends [Y] to prevent distributive conditional behavior.
-type _AssertCliFlagsInOptions = [CliFlag] extends [keyof InitOptions]
-  ? true
-  : "ERROR: CliFlag has values not present in InitOptions";
-const _cliFlagCheck: _AssertCliFlagsInOptions = true;
+function getPactileInitToolChoices(): {
+  key: "cursor" | "codex";
+  name: string;
+  defaultChecked: boolean;
+  platformId: PactilePlatform;
+}[] {
+  return [
+    ...getInitToolChoices().map((choice) => ({
+      ...choice,
+      key: choice.key as "cursor",
+      platformId: choice.platformId as "cursor",
+    })),
+    {
+      key: "codex",
+      name: "Codex (ChatGPT desktop app)",
+      defaultChecked: true,
+      platformId: "codex",
+    },
+  ];
+}
 
 /**
  * Write monorepo package configuration to config.yaml (non-destructive patch).
@@ -1121,31 +1133,33 @@ interface InitAnswers {
   capabilities?: ProjectCapabilityId[];
 }
 
-/**
- * Install explicitly requested optional/experimental skills (e.g. chrome-cdp)
- * into the Cursor skills directory. Does NOT register capabilities, does NOT
- * touch .mcp.json, and does NOT run by default — only `--with-optional` opt-in.
- */
-async function installOptionalSkills(
-  cwd: string,
-  names: readonly string[],
-): Promise<void> {
-  const ctx = AI_TOOLS.cursor.templateContext;
-  const resolved = resolveOptionalSkills(names, ctx);
-  if (resolved.length === 0) return;
-  const skillsRoot = path.join(cwd, ".cursor", "skills");
-  await writeSkills(skillsRoot, [], resolved);
-  console.log(
-    chalk.blue(
-      `📦 Installed optional skill(s): ${names.join(", ")} → .cursor/skills/`,
-    ),
-  );
+function reportLifecycleResult(result: LifecycleResult, action: string): void {
+  if (result.status === "review" || result.status === "interrupted") {
+    throw new Error(`${action} stopped: ${result.reason}`);
+  }
+  if (result.status === "degraded") {
+    const failures = result.adapters
+      .filter((adapter) => adapter.status !== "succeeded")
+      .map(
+        (adapter) =>
+          `${adapter.adapterId}: ${adapter.reason ?? "pending"}${
+            adapter.retryable ? " (retryable)" : ""
+          }`,
+      );
+    console.warn(
+      chalk.yellow(
+        `${action} committed canonical state but is degraded: ${failures.join(", ")}`,
+      ),
+    );
+    return;
+  }
+  console.log(chalk.green(`✓ ${action} completed`));
 }
 
 export async function init(options: InitOptions): Promise<void> {
   // Refuse to run in $HOME — running here would scoop platform runtime data
-  // (Claude/Codex/OpenCode session histories etc.) into the trellis hash
-  // manifest, and a subsequent `cstl uninstall` would wipe it.
+  // (Claude/Codex/OpenCode session histories etc.) into the Pactile hash
+  // manifest, and a subsequent cleanup could damage it.
   if (isCwdHomedir() && !homedirBypassEnabled()) {
     console.error(chalk.red(homedirGuardMessage("init")));
     process.exit(1);
@@ -1153,44 +1167,38 @@ export async function init(options: InitOptions): Promise<void> {
 
   const cwd = process.cwd();
   const isFirstInit = !fs.existsSync(path.join(cwd, DIR_NAMES.WORKFLOW));
+  const importingCstl = options.importCstl === true;
+  const legacyContext = inspectLegacyInitContext({
+    cwd,
+    canonicalRootAbsent: isFirstInit,
+    importRequested: importingCstl,
+    developerFileName: FILE_NAMES.DEVELOPER,
+  });
+  if ((options.withOptional?.length ?? 0) > 0) {
+    throw new Error(
+      "--with-optional no longer writes host skill directories during init; select a declared Pactile capability instead",
+    );
+  }
   // Captured here (before createWorkflowStructure + init_developer run) so
   // the three-branch dispatch at the bottom can tell "fresh clone joiner"
-  // (.cstl/ exists, .developer missing) apart from "creator first init".
-  const hadDeveloperFileAtStart = fs.existsSync(
-    path.join(cwd, DIR_NAMES.WORKFLOW, FILE_NAMES.DEVELOPER),
-  );
+  // (canonical root exists, .developer missing) apart from creator first init.
+  const hadDeveloperFileAtStart =
+    fs.existsSync(path.join(cwd, DIR_NAMES.WORKFLOW, FILE_NAMES.DEVELOPER)) ||
+    legacyContext.importedDeveloperFilePresent;
 
-  // Coexistence mode: an upstream mindfold-ai/Trellis `.trellis/` tree exists
-  // but cursor-trellis has no `.cstl/` yet. The user is adding cursor-trellis
-  // on Cursor alongside upstream Trellis (scenario 2). cursor-trellis owns
-  // `.cursor/` and `.cstl/`; it must NOT touch `.trellis/` and must preserve
-  // an existing `<!-- TRELLIS:START -->` block in AGENTS.md.
-  const coexistenceMode =
-    isFirstInit && fs.existsSync(path.join(cwd, ".trellis"));
-  if (coexistenceMode) {
-    console.log(
-      chalk.cyan(
-        "\n  Detected upstream `.trellis/` — coexistence mode: cursor-trellis will use `.cstl/`",
-      ),
-    );
-    console.log(
-      chalk.gray(
-        "  alongside `.trellis/` and take over `.cursor/`. `.trellis/` will not be touched.\n",
-      ),
-    );
-    console.log(
-      chalk.gray(
-        "  Do NOT run `cstl update --migrate` here — that would rename the upstream `.trellis/`.\n",
-      ),
-    );
+  if (legacyContext.coexistenceNotice.length > 0) {
+    console.log(chalk.cyan(legacyContext.coexistenceNotice[0]));
+    for (const line of legacyContext.coexistenceNotice.slice(1)) {
+      console.log(chalk.gray(line));
+    }
   }
 
   // Generate ASCII art banner dynamically using FIGlet "Rebel" font
-  const banner = figlet.textSync("Trellis", { font: "Rebel" });
+  const banner = figlet.textSync("Pactile", { font: "Rebel" });
   console.log(chalk.cyan(`\n${banner.trimEnd()}`));
   console.log(
     chalk.gray(
-      "\n   All-in-one AI framework & toolkit for Codex, Claude Code & Cursor\n",
+      "\n   Cross-platform AI workflow framework for Cursor & Codex\n",
     ),
   );
 
@@ -1240,10 +1248,10 @@ export async function init(options: InitOptions): Promise<void> {
   const { command: pythonCmd } = resolveSupportedPython();
 
   // ==========================================================================
-  // Re-init fast path: skip full flow when .cstl/ already exists
+  // Re-init fast path: skip full flow when .pactile/ already exists.
   // ==========================================================================
 
-  // Aborted-init recovery (issue #204): if .cstl/ exists but tasks/ is
+  // Aborted-init recovery (issue #204): if .pactile/ exists but tasks/ is
   // empty, the previous init never reached bootstrap creation. Fall through
   // to the full flow so the main-dispatch tasksEmpty fallback fires —
   // handleReinit's joiner branch would otherwise mis-route the recovery.
@@ -1253,6 +1261,7 @@ export async function init(options: InitOptions): Promise<void> {
 
   if (
     !isFirstInit &&
+    !importingCstl &&
     !options.force &&
     !options.skipExisting &&
     !tasksEmptyEarly
@@ -1271,7 +1280,7 @@ export async function init(options: InitOptions): Promise<void> {
     // Ask for developer name if not detected and not in yes mode
     console.log(
       chalk.gray(
-        "\nTrellis supports team collaboration - each developer has their own\n" +
+        "\nPactile supports team collaboration - each developer has their own\n" +
           `workspace directory (${PATHS.WORKSPACE}/{name}/) to track AI sessions.\n` +
           "Tip: Usually this is your git username (git config user.name).\n",
       ),
@@ -1337,7 +1346,7 @@ export async function init(options: InitOptions): Promise<void> {
       console.log(chalk.gray("  ✗ .gitmodules"));
       console.log(chalk.gray("  ✗ sibling .git directories (need ≥ 2)"));
       console.log("");
-      console.log("To configure manually, add to .cstl/config.yaml:");
+      console.log("To configure manually, add to .pactile/config.yaml:");
       console.log("");
       console.log(chalk.cyan("  packages:"));
       console.log(chalk.cyan("    frontend:"));
@@ -1400,7 +1409,7 @@ export async function init(options: InitOptions): Promise<void> {
                 name: "specSource",
                 message: `Spec source for ${pkg.name} (${pkg.path}):`,
                 choices: [
-                  { name: "From scratch (Trellis default)", value: "blank" },
+                  { name: "From scratch (Pactile default)", value: "blank" },
                   { name: "Download remote template", value: "remote" },
                 ],
                 default: "blank",
@@ -1484,8 +1493,8 @@ export async function init(options: InitOptions): Promise<void> {
     }
   }
 
-  // Tool definitions derived from platform registry
-  const TOOLS = getInitToolChoices();
+  // Tool definitions derived from the canonical host registry.
+  const TOOLS = getPactileInitToolChoices();
 
   // Build tools from explicit flags
   const explicitTools = TOOLS.filter(
@@ -1498,7 +1507,7 @@ export async function init(options: InitOptions): Promise<void> {
     // Explicit flags take precedence (works with or without -y)
     tools = explicitTools;
   } else if (options.yes) {
-    // No explicit tools + -y: default to Cursor and Claude
+    // No explicit tools + -y: default to Cursor and Codex
     tools = TOOLS.filter((t) => t.defaultChecked).map((t) => t.key);
   } else {
     // Interactive mode
@@ -1869,8 +1878,8 @@ export async function init(options: InitOptions): Promise<void> {
       console.log(chalk.yellow(`   ${result.message}`));
       console.log(chalk.gray("   Falling back to blank templates..."));
       const retryCmd = registry
-        ? `cstl init --registry ${registry.gigetSource} --template ${selectedTemplate}`
-        : `cstl init --template ${selectedTemplate}`;
+        ? `pactile init --registry ${registry.gigetSource} --template ${selectedTemplate}`
+        : `pactile init --template ${selectedTemplate}`;
       console.log(chalk.gray(`   You can retry later: ${retryCmd}`));
     }
   } else if (registry && fetchedTemplates.length === 0) {
@@ -1923,7 +1932,7 @@ export async function init(options: InitOptions): Promise<void> {
       console.log(chalk.gray("   Falling back to blank templates..."));
       console.log(
         chalk.gray(
-          `   You can retry later: cstl init --registry ${registry.gigetSource}`,
+          `   You can retry later: pactile init --registry ${registry.gigetSource}`,
         ),
       );
     }
@@ -1955,105 +1964,117 @@ export async function init(options: InitOptions): Promise<void> {
   // Create Workflow Structure
   // ==========================================================================
 
-  // Record every successful write from here through createRootFiles. The
-  // captured set is the source of truth for `.template-hashes.json`'s
-  // platform/root entries — replacing the previous "walk every managed dir"
-  // approach that swept user-owned runtime files into the manifest
-  // (.codex/sessions/, .claude/projects/, pre-existing AGENTS.md).
-  const writtenPaths = startRecordingWrites(cwd);
+  // Build the complete canonical candidate away from the live project. The
+  // lifecycle seals and commits these bytes before the callback publishes the
+  // live `.pactile` view; failed planning/staging/validation leaves live
+  // canonical files untouched and the legacy source remains read-only.
+  const buildRoot = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-init-"));
   try {
-    // Create workflow structure with project type
-    console.log(chalk.blue("📁 Creating workflow structure..."));
-    await createWorkflowStructure(cwd, {
-      projectType,
-      skipSpecTemplates: useRemoteTemplate,
-      packages: monorepoPackages,
-      remoteSpecPackages,
-      workflowMdOverride,
-    });
-
-    // Write monorepo packages to config.yaml (non-destructive patch)
-    if (monorepoPackages) {
-      writeMonorepoConfig(cwd, monorepoPackages);
-      console.log(chalk.blue("📦 Monorepo packages written to config.yaml"));
+    let importedFileCount = 0;
+    if (importingCstl) {
+      importedFileCount = prepareLegacyCstlImport(cwd, buildRoot).length;
+    } else if (!isFirstInit) {
+      seedCanonicalBuildRoot(cwd, buildRoot);
     }
 
-    // Write version file for update tracking
-    const versionPath = path.join(cwd, DIR_NAMES.WORKFLOW, ".version");
-    fs.writeFileSync(versionPath, VERSION);
-    writeWaveCConfirmed(cwd);
-
-    // Configure selected tools by copying entire directories (dogfooding).
-    // In coexistence mode cursor-trellis takes over `.cursor/` — force-write
-    // platform files even when `-y`/`--skipExisting` is set, so cstl hooks,
-    // rules, and commands land regardless of upstream files already present.
-    const selectedPlatformIds: AITool[] = [];
-    const savedMode = getWriteMode();
-    if (coexistenceMode) {
-      setWriteMode("force");
-    }
+    // Record every successful canonical/root write from this section. The
+    // captured set is the source of truth for `.template-hashes.json`'s
+    // platform/root entries — replacing the previous "walk every managed dir"
+    // approach that swept user-owned runtime files into the manifest.
+    const writtenPaths = startRecordingWrites(buildRoot);
     try {
-      for (const tool of tools) {
-        const platformId = resolveCliFlag(tool);
-        if (platformId) {
-          selectedPlatformIds.push(platformId);
-          console.log(
-            chalk.blue(`📝 Configuring ${AI_TOOLS[platformId].name}...`),
-          );
-          await configurePlatform(platformId, cwd);
-        }
+      console.log(chalk.blue("📁 Creating workflow structure..."));
+      await createWorkflowStructure(buildRoot, {
+        projectType,
+        skipSpecTemplates: useRemoteTemplate,
+        packages: monorepoPackages,
+        remoteSpecPackages,
+        workflowMdOverride,
+      });
+
+      if (monorepoPackages) {
+        writeMonorepoConfig(buildRoot, monorepoPackages);
+        console.log(chalk.blue("📦 Monorepo packages written to config.yaml"));
       }
+
+      fs.writeFileSync(
+        path.join(buildRoot, DIR_NAMES.WORKFLOW, ".version"),
+        VERSION,
+      );
+      await writeProjectCapabilityFiles(buildRoot, selectedCapabilities, []);
     } finally {
-      if (coexistenceMode) {
-        setWriteMode(savedMode);
-      }
+      stopRecordingWrites();
     }
 
-    if (selectedPlatformIds.includes("cursor")) {
-      assertCursorRulesValid(cwd);
+    const hashedCount = initializeHashes(buildRoot, {
+      trackedPaths: writtenPaths,
+      merge: !isFirstInit,
+    });
+    if (hashedCount > 0) {
+      console.log(
+        chalk.gray(`📋 Tracking ${hashedCount} template files for updates`),
+      );
     }
 
-    await writeProjectCapabilityFiles(
-      cwd,
-      selectedCapabilities,
+    if (workflowMdOverride !== undefined && workflowId !== NATIVE_WORKFLOW_ID) {
+      removeHash(buildRoot, PATHS.WORKFLOW_GUIDE_FILE);
+    }
+
+    const selectedPlatformIds = tools
+      .map((tool) => TOOLS.find((choice) => choice.key === tool)?.platformId)
+      .filter(
+        (platform): platform is PactilePlatform => platform !== undefined,
+      );
+    const candidateFiles = collectCanonicalGenerationFiles(
+      buildRoot,
+      discoverCanonicalGenerationPaths(buildRoot),
       selectedPlatformIds,
+      VERSION,
     );
-
-    // Optional/experimental skills — installed only when explicitly requested
-    // via `--with-optional <name>`; default init installs none of them.
-    const withOptional = options.withOptional ?? [];
-    if (withOptional.length > 0) {
-      await installOptionalSkills(cwd, withOptional);
-    }
-
-    const pythonPlatforms = getPlatformsWithPythonHooks();
-    const hasSelectedPythonPlatform = pythonPlatforms.some((id) =>
-      tools.includes(AI_TOOLS[id].cliFlag),
+    const legacyLifecycleFiles = importingCstl
+      ? collectLegacyCstlLifecycleFiles(cwd, buildRoot, candidateFiles)
+      : null;
+    const canonicalLifecycleOperation = new InstallStateStore(cwd).read()
+      ? "update"
+      : "init";
+    const lifecycleResult = await runLifecycleCommand({
+      projectRoot: cwd,
+      operation: importingCstl ? "import" : canonicalLifecycleOperation,
+      runtimeVersion: VERSION,
+      files: importingCstl ? (legacyLifecycleFiles ?? []) : candidateFiles,
+      platforms: selectedPlatformIds,
+      materializeCanonical: (context) =>
+        materializeCanonicalGeneration(cwd, context),
+      ...(importingCstl
+        ? {
+            legacy: {
+              runtimeVersion: readLegacyCstlVersion(cwd),
+              schemaVersion: null,
+              files: legacyLifecycleFiles ?? [],
+            },
+          }
+        : {}),
+    });
+    reportLifecycleResult(
+      lifecycleResult,
+      importingCstl
+        ? "Legacy import and Adapter reconcile"
+        : canonicalLifecycleOperation === "update"
+          ? "Pactile re-initialize"
+          : "Pactile init",
     );
-    if (hasSelectedPythonPlatform) {
-      logPythonAdaptationNotice(pythonCmd);
+    if (importingCstl) {
+      materializePreparedLegacyUserState(buildRoot, cwd);
+      console.log(chalk.cyan(legacyImportPreparedMessage(importedFileCount)));
     }
-
-    // Create root files (skip if exists)
-    await createRootFiles(cwd, coexistenceMode);
   } finally {
-    stopRecordingWrites();
+    fs.rmSync(buildRoot, { recursive: true, force: true });
   }
-
-  // Initialize template hashes for modification tracking
-  const hashedCount = initializeHashes(cwd, { trackedPaths: writtenPaths });
-  if (hashedCount > 0) {
-    console.log(
-      chalk.gray(`📋 Tracking ${hashedCount} template files for updates`),
-    );
-  }
-
-  // Non-native workflow is user-managed local content. Drop the
-  // `.cstl/workflow.md` hash entry so `trellis update` classifies it as
-  // modified and does not silently restore native bytes. See design.md
-  // "Durable-state contract".
-  if (workflowMdOverride !== undefined && workflowId !== NATIVE_WORKFLOW_ID) {
-    removeHash(cwd, PATHS.WORKFLOW_GUIDE_FILE);
+  if (isFirstInit && !importingCstl) {
+    // A fresh canonical install cannot contain the retired task shape. Mark
+    // that fact once so the first `pactile update` does not manufacture a
+    // migration backup or prompt for a legacy transition that never existed.
+    writeWaveCConfirmed(cwd);
   }
 
   // Initialize developer identity (silent - no output)
@@ -2075,7 +2096,7 @@ export async function init(options: InitOptions): Promise<void> {
     //   isFirstInit=false + no .developer file → joiner onboarding (fresh clone)
     //   isFirstInit=false + .developer exists  → same-dev re-init, no task
     //
-    // Tasks-empty fallback (issue #204): if .cstl/ exists but tasks dir is
+    // Tasks-empty fallback (issue #204): if .pactile/ exists but tasks dir is
     // empty, the previous init aborted before creating the bootstrap task. Run
     // bootstrap creation regardless of isFirstInit. writeTaskSkeleton is
     // idempotent so repeated triggers are safe.
@@ -2087,7 +2108,7 @@ export async function init(options: InitOptions): Promise<void> {
     const tasksEmpty =
       !fs.existsSync(tasksDir) || fs.readdirSync(tasksDir).length === 0;
 
-    if (isFirstInit || tasksEmpty) {
+    if ((isFirstInit && !importingCstl) || tasksEmpty) {
       const bootstrapCreated = createBootstrapTask(
         cwd,
         developerName,
@@ -2136,41 +2157,4 @@ function askInput(prompt: string): Promise<string> {
       resolve(answer.trim());
     });
   });
-}
-
-async function createRootFiles(
-  cwd: string,
-  coexistenceMode = false,
-): Promise<void> {
-  const agentsPath = path.join(cwd, FILE_NAMES.AGENTS);
-
-  if (coexistenceMode && fs.existsSync(agentsPath)) {
-    // Coexistence: preserve an upstream `<!-- TRELLIS:START -->` block and any
-    // user content, and add/refresh the `<!-- CSTL:START -->` block alongside.
-    // Force-write the merged result (via writeFile so the write is recorded
-    // for hash tracking) even under `-y`.
-    const existing = fs.readFileSync(agentsPath, "utf-8");
-    const merged = insertCstlManagedBlock(existing, agentsMdContent);
-    const saved = getWriteMode();
-    setWriteMode("force");
-    try {
-      const wrote = await writeFile(agentsPath, merged);
-      if (wrote) {
-        console.log(
-          chalk.blue(
-            "📄 Updated AGENTS.md with cursor-trellis managed block (preserved upstream block)",
-          ),
-        );
-      }
-    } finally {
-      setWriteMode(saved);
-    }
-    return;
-  }
-
-  // Write AGENTS.md from template
-  const agentsWritten = await writeFile(agentsPath, agentsMdContent);
-  if (agentsWritten) {
-    console.log(chalk.blue("📄 Created AGENTS.md"));
-  }
 }

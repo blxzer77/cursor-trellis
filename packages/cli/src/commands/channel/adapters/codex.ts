@@ -157,7 +157,7 @@ function handleServerRequest(msg: JsonRpcInbound): ParseResult {
 
   if (msg.method === "mcpServer/elicitation/request") {
     // MVP: auto-allow MCP tool calls. The channel worker spawn is already
-    // trusted by whoever ran `trellis channel spawn`; permission boundary
+    // trusted by whoever ran `pactile channel spawn`; permission boundary
     // is at the spawn call, not per-MCP-call.
     result = { action: "accept", content: {} };
     const params = (msg.params ?? {}) as Record<string, unknown>;

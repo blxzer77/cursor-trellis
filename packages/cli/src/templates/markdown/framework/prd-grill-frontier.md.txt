@@ -41,7 +41,7 @@ Treat `prd.md` (+ existing `design.md` fragments) as the **only document surface
 
 ## Micro-grill unresolved
 
-For each **blocking** open question after the checklist, embed the `cstl-micro-grill` contract:
+For each **blocking** open question after the checklist, embed the `pactile-micro-grill` contract:
 
 - exactly **one** question per message
 - user-facing text in the project's human-review language (default Simplified Chinese)
@@ -59,7 +59,7 @@ Stop micro-grill when no blocking open questions remain. Do not ask process ques
 - **Decisions are the user's job**: every decision waits for the user's answer; do not answer for them.
 - A user answer reshapes the design tree and the frontier extrapolates into the next round; **an empty frontier = the design tree is exhausted** — summarize the consensus and confirm before treating planning as done.
 
-> **Override note**: this pacing overrides the "Ask the questions one at a time" line in the Non-Negotiable Interview Contract — Phase B (PRD Grill) follows frontier rounds; `cstl-micro-grill` still defaults to one question at a time.
+> **Override note**: this pacing overrides the "Ask the questions one at a time" line in the Non-Negotiable Interview Contract — Phase B (PRD Grill) follows frontier rounds; `pactile-micro-grill` still defaults to one question at a time.
 
 ## Question rules
 
@@ -102,4 +102,4 @@ Then proceed to Research (if needed), `task.py start-execution <task> --check`, 
 
 - Full SSOT: bundled `brainstorm` skill (`common/skills/brainstorm.md`) — interview contract, First Principles, Occam's Razor.
 - Reachability: [internal-skills-cursor-reachability.md](./internal-skills-cursor-reachability.md).
-- Workflow routing: `.cstl/workflow.md` Phase 1 (Plan) and Active Task Routing.
+- Workflow routing: `.pactile/workflow.md` Phase 1 (Plan) and Active Task Routing.

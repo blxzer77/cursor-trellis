@@ -9,10 +9,10 @@ const cliRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../..",
 );
-const trellisRoot = path.resolve(cliRoot, "../..");
+const pactileRoot = path.resolve(cliRoot, "../..");
 const templateScriptsDir = path.join(
   cliRoot,
-  "src/templates/trellis/scripts",
+  "src/templates/pactile/scripts",
 );
 
 function pythonExe(): string {
@@ -56,7 +56,7 @@ describe("project_file_stats (template scripts dir)", () => {
   });
 
   it("counts files in a tiny temp tree via walk fallback", () => {
-    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-pfc-"));
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-pfc-"));
     try {
       fs.writeFileSync(path.join(tmp, "a.txt"), "a");
       fs.mkdirSync(path.join(tmp, "sub"));
@@ -75,8 +75,8 @@ print(count_project_files(Path(r"${tmpPy}")))
     }
   });
 
-  it("resolve auto returns an integer for Trellis repo", () => {
-    const rootPy = trellisRoot.replace(/\\/g, "/");
+  it("resolve auto returns an integer for the Pactile repo", () => {
+    const rootPy = pactileRoot.replace(/\\/g, "/");
     const { status, stdout, stderr } = runFromScriptsDir(`
 from pathlib import Path
 from common.project_file_stats import resolve_project_file_count_arg

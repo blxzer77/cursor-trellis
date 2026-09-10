@@ -17,7 +17,7 @@ describe("getConfiguredPlatforms", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-platforms-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-platforms-"));
   });
 
   afterEach(() => {
@@ -52,7 +52,7 @@ describe("configurePlatform", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-configure-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-configure-"));
     setWriteMode("force");
   });
 
@@ -72,23 +72,23 @@ describe("configurePlatform", () => {
       tmpDir,
       ".cursor",
       "commands",
-      "cstl-continue.md",
+      "pactile-continue.md",
     );
     const finishCmd = path.join(
       tmpDir,
       ".cursor",
       "commands",
-      "cstl-finish-work.md",
+      "pactile-finish-work.md",
     );
-    const c2pCmd = path.join(
+    const retiredCmd = path.join(
       tmpDir,
       ".cursor",
       "commands",
-      "cstl-cursor2plus-setup.md",
+      "pactile-alternate-client-setup.md",
     );
     expect(fs.existsSync(continueCmd)).toBe(true);
     expect(fs.existsSync(finishCmd)).toBe(true);
-    expect(fs.existsSync(c2pCmd)).toBe(false);
+    expect(fs.existsSync(retiredCmd)).toBe(false);
     expect(fs.readFileSync(finishCmd, "utf-8")).toContain("get_context.py");
     expect(fs.existsSync(path.join(tmpDir, ".cursor", "skills"))).toBe(false);
   });
@@ -98,9 +98,9 @@ describe("configurePlatform", () => {
     const templates = collectPlatformTemplates("cursor");
     expect(templates).toBeInstanceOf(Map);
     if (!templates) throw new Error("cursor did not expose template tracking");
-    expect(templates.has(".cursor/commands/cstl-continue.md")).toBe(true);
-    expect(templates.has(".cursor/commands/cstl-finish-work.md")).toBe(true);
-    expect(templates.has(".cursor/commands/cstl-cursor2plus-setup.md")).toBe(
+    expect(templates.has(".cursor/commands/pactile-continue.md")).toBe(true);
+    expect(templates.has(".cursor/commands/pactile-finish-work.md")).toBe(true);
+    expect(templates.has(".cursor/commands/pactile-alternate-client-setup.md")).toBe(
       false,
     );
     const skillKeys = [...templates.keys()].filter((k) =>

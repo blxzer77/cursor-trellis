@@ -136,10 +136,10 @@ export async function runCapabilitySmokeCommand(
 }
 
 export function ensureCapabilitiesFileExists(cwd: string): void {
-  const capabilitiesPath = path.join(cwd, ".cstl", "capabilities.json");
+  const capabilitiesPath = path.join(cwd, ".pactile", "capabilities.json");
   if (!fs.existsSync(capabilitiesPath)) {
     throw new Error(
-      "No .cstl/capabilities.json found. Run `cstl init` with at least one capability first.",
+      "No .pactile/capabilities.json found. Run `pactile init` with at least one capability first.",
     );
   }
 }

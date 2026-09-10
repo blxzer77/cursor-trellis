@@ -18,7 +18,7 @@ import os
 import sys
 from pathlib import Path
 
-DIR_WORKFLOW = ".cstl"
+DIR_WORKFLOW = ".pactile"
 # Host context-injection events. ``permission`` belongs to preToolUse /
 # beforeShellExecution, not these.
 _CONTEXT_EVENTS = frozenset(
@@ -99,7 +99,7 @@ def main() -> int:
     try:
         hook_input = _safe_payload()
         event = _event_name(sys.argv[1:], hook_input)
-        sys.path.insert(0, str(Path(__file__).resolve().parents[2] / ".cstl" / "scripts"))
+        sys.path.insert(0, str(Path(__file__).resolve().parents[2] / ".pactile" / "scripts"))
         try:
             from common.adapter_middleware import (  # type: ignore[import-not-found]
                 dispatch_hook_event,

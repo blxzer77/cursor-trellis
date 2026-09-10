@@ -26,11 +26,11 @@ if sys.platform.startswith("win"):
     elif hasattr(sys.stdout, "detach"):
         sys.stdout = _io.TextIOWrapper(sys.stdout.detach(), encoding="utf-8", errors="replace")  # type: ignore[union-attr]
 
-DIR_WORKFLOW = ".cstl"
+DIR_WORKFLOW = ".pactile"
 
-AGENT_IMPLEMENT = "cstl-implement"
-AGENT_CHECK = "cstl-check"
-AGENT_RESEARCH = "cstl-research"
+AGENT_IMPLEMENT = "pactile-implement"
+AGENT_CHECK = "pactile-check"
+AGENT_RESEARCH = "pactile-research"
 AGENTS_ALL = (AGENT_IMPLEMENT, AGENT_CHECK, AGENT_RESEARCH)
 AGENTS_REQUIRE_TASK = (AGENT_IMPLEMENT, AGENT_CHECK)
 
@@ -178,7 +178,7 @@ def _parse_hook_input(input_data: dict) -> tuple[str, str, dict]:
 
 
 def main() -> None:
-    if os.environ.get("TRELLIS_HOOKS") == "0" or os.environ.get("TRELLIS_DISABLE_HOOKS") == "1":
+    if os.environ.get("PACTILE_HOOKS") == "0" or os.environ.get("PACTILE_DISABLE_HOOKS") == "1":
         sys.exit(0)
 
     try:

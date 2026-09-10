@@ -1,9 +1,9 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { getAllScriptsForTests } from "../../src/templates/trellis/index.js";
+import { getAllScriptsForTests } from "../../src/templates/pactile/index.js";
 
-export const EVAL_TASK_PATH = ".cstl/tasks/06-13-eval";
+export const EVAL_TASK_PATH = ".pactile/tasks/06-13-eval";
 export const EVAL_DEVELOPER = "eval-dev";
 export const EVAL_SESSION_ID = "retrieval-eval-test";
 
@@ -55,15 +55,15 @@ export function writeJson(root: string, rel: string, data: unknown): void {
   writeFile(root, rel, `${JSON.stringify(data, null, 2)}\n`);
 }
 
-export function writeTrellisScripts(root: string): void {
-  const scriptsDir = path.join(root, ".cstl", "scripts");
+export function writePactileScripts(root: string): void {
+  const scriptsDir = path.join(root, ".pactile", "scripts");
   for (const [rel, content] of getAllScriptsForTests()) {
     writeFile(scriptsDir, rel, content);
   }
 }
 
 export function contextPackModulePath(root: string): string {
-  return path.join(root, ".cstl", "scripts", "common", "context_pack.py");
+  return path.join(root, ".pactile", "scripts", "common", "context_pack.py");
 }
 
 export function hasContextPackModule(root: string): boolean {
@@ -111,7 +111,7 @@ export const evalRecommendations = [
     source: "artifact-search",
     priority: 90,
     confidence: "high",
-    reason: "Search durable Trellis artifacts.",
+    reason: "Search durable Pactile artifacts.",
     action: "python search_artifacts.py",
     reference: EVAL_TASK_PATH,
   },
@@ -121,7 +121,7 @@ export const evalRecommendations = [
     confidence: "medium",
     reason: "Search local session history.",
     action: "python search_memory.py",
-    reference: ".cstl/workspace/",
+    reference: ".pactile/workspace/",
   },
   {
     source: "smart-search",
@@ -169,9 +169,9 @@ function manifestFixture(
 }
 
 export function seedEvalProject(root: string): void {
-  writeTrellisScripts(root);
-  writeFile(root, ".cstl/.developer", `name=${EVAL_DEVELOPER}\n`);
-  writeJson(root, ".cstl/.runtime/sessions/retrieval-eval-test.json", {
+  writePactileScripts(root);
+  writeFile(root, ".pactile/.developer", `name=${EVAL_DEVELOPER}\n`);
+  writeJson(root, ".pactile/.runtime/sessions/retrieval-eval-test.json", {
     selected_task: EVAL_TASK_PATH,
   });
   writeJson(root, `${EVAL_TASK_PATH}/task.json`, {
@@ -185,7 +185,7 @@ export function seedEvalProject(root: string): void {
     createdAt: "2026-06-13",
     children: [],
     parent: null,
-    package: "trellis",
+    package: "pactile",
   });
   writeFile(root, `${EVAL_TASK_PATH}/prd.md`, "# PRD\n\nEval fixture task artifacts.\n");
   writeFile(root, `${EVAL_TASK_PATH}/design.md`, "# Design\n\nEval fixture design.\n");
@@ -196,19 +196,19 @@ export function seedEvalProject(root: string): void {
   );
   writeFile(
     root,
-    ".cstl/spec/Trellis/framework/retrieval.md",
+    ".pactile/spec/Pactile/framework/retrieval.md",
     "# Retrieval Framework\n\nDurable spec artifact for eval harness.\n",
   );
   writeFile(
     root,
-    `.cstl/workspace/${EVAL_DEVELOPER}/journal-1.md`,
+    `.pactile/workspace/${EVAL_DEVELOPER}/journal-1.md`,
     [
       "# Journal 1",
       "",
       "## 2026-06-13 — Retrieval eval",
       "",
       "Task: Retrieval eval harness",
-      "Package: Trellis",
+      "Package: Pactile",
       "Branch: feature/retrieval-eval",
       "",
       "### Summary",
@@ -254,7 +254,7 @@ export function buildMixedSourceBundle(): Record<string, unknown> {
     },
     artifactSearchResults: [
       {
-        path: ".cstl/spec/Trellis/framework/retrieval.md",
+        path: ".pactile/spec/Pactile/framework/retrieval.md",
         title: "Retrieval Framework",
         kind: "spec",
         category: "spec",
@@ -272,13 +272,13 @@ export function buildMixedSourceBundle(): Record<string, unknown> {
         title: "Retrieval eval",
         date: "2026-06-13",
         task: "Retrieval eval harness",
-        package: "Trellis",
+        package: "Pactile",
         branch: "feature/retrieval-eval",
         commits: ["abc1234"],
         summary: "Seeded session memory for deterministic eval coverage.",
         matchedSections: ["Summary"],
         matchedFields: ["task"],
-        path: `.cstl/workspace/${EVAL_DEVELOPER}/journal-1.md`,
+        path: `.pactile/workspace/${EVAL_DEVELOPER}/journal-1.md`,
         line: 12,
         score: 16,
         reason: "matched 'retrieval'",
@@ -316,7 +316,7 @@ export function runScoreEvidence(
 ): { status: number | null; stdout: string; stderr: string } {
   const script = `
 import json, sys
-sys.path.insert(0, r"${path.join(root, ".cstl", "scripts").replace(/\\/g, "\\\\")}")
+sys.path.insert(0, r"${path.join(root, ".pactile", "scripts").replace(/\\/g, "\\\\")}")
 from common.retrieval_evidence import score_evidence_bundle
 print(json.dumps(score_evidence_bundle(json.loads(sys.stdin.read())), ensure_ascii=False))
 `;
@@ -340,11 +340,11 @@ export function runGetContext(
 ): { status: number | null; stdout: string; stderr: string } {
   const result = spawnSync(
     pythonCmd,
-    [path.join(root, ".cstl", "scripts", "get_context.py"), ...args],
+    [path.join(root, ".pactile", "scripts", "get_context.py"), ...args],
     {
       cwd: root,
       encoding: "utf-8",
-      env: { ...process.env, TRELLIS_CONTEXT_ID: sessionId },
+      env: { ...process.env, PACTILE_CONTEXT_ID: sessionId },
     },
   );
   return {
@@ -371,7 +371,7 @@ export function runBuildContextPack(
 
   const script = `
 import json, sys
-sys.path.insert(0, r"${path.join(root, ".cstl", "scripts").replace(/\\/g, "\\\\")}")
+sys.path.insert(0, r"${path.join(root, ".pactile", "scripts").replace(/\\/g, "\\\\")}")
 from common.context_pack import build_context_pack
 print(json.dumps(build_context_pack(json.loads(sys.stdin.read())${kwargsExpr}), ensure_ascii=False))
 `;
@@ -488,7 +488,7 @@ export function runBuildRetrievalPack(
 
   const script = `
 import json, sys
-sys.path.insert(0, r"${path.join(root, ".cstl", "scripts").replace(/\\/g, "\\\\")}")
+sys.path.insert(0, r"${path.join(root, ".pactile", "scripts").replace(/\\/g, "\\\\")}")
 from common.retrieval_pack import build_retrieval_pack
 payload = json.loads(sys.stdin.read())
 print(json.dumps(build_retrieval_pack(

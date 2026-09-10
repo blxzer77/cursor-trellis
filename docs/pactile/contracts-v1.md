@@ -33,7 +33,7 @@ import {
   parseTileManifestV1,
   type PactileContractParseResultV1,
   type TileManifestV1,
-} from "@blxzer/cursor-trellis-core";
+} from "@blxzer/pactile-core";
 
 const result: PactileContractParseResultV1<TileManifestV1> =
   parseTileManifestV1(input);

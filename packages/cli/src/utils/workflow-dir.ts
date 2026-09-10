@@ -1,16 +1,19 @@
 import path from "node:path";
+import fs from "node:fs";
 import { resolveLegacyWorkflowDirName } from "../pactile/runtime/paths.js";
 
 /** Pre-0.3.1 cursor-trellis runtime directory (upstream Trellis still uses this name). */
 export const LEGACY_WORKFLOW_DIR = ".trellis";
+export const LEGACY_CSTL_WORKFLOW_DIR = ".cstl";
+export const CANONICAL_WORKFLOW_DIR = ".pactile";
 
 /**
- * Resolve the active workflow directory name for this project.
- * Prefers `.cstl/`; falls back to legacy `.trellis/` for pre-migration trees.
+ * Resolve the active workflow directory name for this project. New writes use
+ * `.pactile/`; legacy roots remain read-only discovery inputs during 0.5.x.
  */
 export function resolveWorkflowDirName(cwd: string): string | null {
-  // Existing update/hash consumers still use legacy lifecycle semantics. New
-  // Runtime clients use resolveCanonicalPaths + assertCanonicalWriteTarget.
+  if (fs.existsSync(path.join(cwd, CANONICAL_WORKFLOW_DIR)))
+    return CANONICAL_WORKFLOW_DIR;
   return resolveLegacyWorkflowDirName(cwd);
 }
 

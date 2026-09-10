@@ -18,7 +18,7 @@ describe("Stage 7 contract migrate dry-run", () => {
   let tmp: string;
 
   beforeEach(() => {
-    tmp = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-stage7-migrate-"));
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-stage7-migrate-"));
   });
 
   afterEach(() => {
@@ -26,7 +26,7 @@ describe("Stage 7 contract migrate dry-run", () => {
   });
 
   it("reports old fields, parent, depends_mode, and file-inferred rigor without writing", () => {
-    const tasks = path.join(tmp, ".cstl", "tasks");
+    const tasks = path.join(tmp, ".pactile", "tasks");
     const legacy = path.join(tasks, "legacy-full");
     writeJson(path.join(legacy, "task.json"), {
       ...emptyTaskRecord({
@@ -42,7 +42,7 @@ describe("Stage 7 contract migrate dry-run", () => {
     });
     fs.writeFileSync(path.join(legacy, "design.md"), "# d\n", "utf-8");
     fs.writeFileSync(path.join(legacy, "implement.md"), "# i\n", "utf-8");
-    writeJson(path.join(tmp, ".cstl", "config.yaml"), "classification: personal\n");
+    writeJson(path.join(tmp, ".pactile", "config.yaml"), "classification: personal\n");
 
     const before = fs.readFileSync(path.join(legacy, "task.json"), "utf-8");
     const report = scanContractMigration({ root: tmp });
@@ -68,7 +68,7 @@ describe("Stage 7 contract migrate dry-run", () => {
   });
 
   it("Kernel migrate without dryRun is rejected and writes nothing", () => {
-    const taskDir = path.join(tmp, ".cstl", "tasks", "x");
+    const taskDir = path.join(tmp, ".pactile", "tasks", "x");
     writeJson(path.join(taskDir, "task.json"), emptyTaskRecord({ id: "x", name: "x" }));
     const before = fs.readdirSync(taskDir);
     const result = handleKernelRequest({ op: "migrate", cwd: tmp });
@@ -79,7 +79,7 @@ describe("Stage 7 contract migrate dry-run", () => {
   });
 
   it("Kernel migrate dry-run returns findings over JSON CLI and does not rewrite task.json", () => {
-    const taskDir = path.join(tmp, ".cstl", "tasks", "old");
+    const taskDir = path.join(tmp, ".pactile", "tasks", "old");
     const record = {
       ...emptyTaskRecord({ id: "old", name: "old", meta: { classification: "parent" } }),
       kind: "parent",

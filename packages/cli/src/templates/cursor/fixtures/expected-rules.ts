@@ -4,7 +4,7 @@
  */
 
 export interface ExpectedRule {
-  /** Filename including .mdc extension, e.g. "cstl-bootstrap.mdc" */
+  /** Filename including .mdc extension, e.g. "pactile-bootstrap.mdc" */
   filename: string;
   /** Substrings that must appear in rule body (case-sensitive) */
   requiredSections: string[];
@@ -14,14 +14,14 @@ export interface ExpectedRule {
 
 export const expectedRules: ExpectedRule[] = [
   {
-    filename: "cstl-bootstrap.mdc",
+    filename: "pactile-bootstrap.mdc",
     requiredSections: [
       "Event Bridge",
       "Capability router",
       "external-knowledge",
       "Optional",
       "Native SSOT",
-      ".cstl/middleware",
+      ".pactile/middleware",
       "Next native action",
     ],
     minBytes: 400,

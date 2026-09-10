@@ -23,8 +23,8 @@ describe("DIR_NAMES", () => {
     expect(DIR_NAMES).toHaveProperty("MODULES");
   });
 
-  it("WORKFLOW is .trellis", () => {
-    expect(DIR_NAMES.WORKFLOW).toBe(".cstl");
+  it("WORKFLOW is .pactile", () => {
+    expect(DIR_NAMES.WORKFLOW).toBe(".pactile");
   });
 
   it("all values are non-empty strings", () => {
@@ -123,15 +123,15 @@ describe("PATHS", () => {
 
 describe("getWorkspaceDir", () => {
   it("returns correct path for developer name", () => {
-    expect(getWorkspaceDir("john")).toBe(".cstl/workspace/john");
+    expect(getWorkspaceDir("john")).toBe(".pactile/workspace/john");
   });
 
   it("handles hyphenated names", () => {
-    expect(getWorkspaceDir("john-doe")).toBe(".cstl/workspace/john-doe");
+    expect(getWorkspaceDir("john-doe")).toBe(".pactile/workspace/john-doe");
   });
 
   it("handles empty string", () => {
-    expect(getWorkspaceDir("")).toBe(".cstl/workspace/");
+    expect(getWorkspaceDir("")).toBe(".pactile/workspace/");
   });
 });
 
@@ -141,15 +141,15 @@ describe("getWorkspaceDir", () => {
 
 describe("getTaskDir", () => {
   it("returns correct path for task name", () => {
-    expect(getTaskDir("01-21-my-task")).toBe(".cstl/tasks/01-21-my-task");
+    expect(getTaskDir("01-21-my-task")).toBe(".pactile/tasks/01-21-my-task");
   });
 
   it("handles nested-looking names", () => {
-    expect(getTaskDir("sub/task")).toBe(".cstl/tasks/sub/task");
+    expect(getTaskDir("sub/task")).toBe(".pactile/tasks/sub/task");
   });
 
   it("handles empty string", () => {
-    expect(getTaskDir("")).toBe(".cstl/tasks/");
+    expect(getTaskDir("")).toBe(".pactile/tasks/");
   });
 });
 
@@ -159,7 +159,7 @@ describe("getTaskDir", () => {
 
 describe("getArchiveDir", () => {
   it("returns correct archive path", () => {
-    expect(getArchiveDir()).toBe(".cstl/tasks/archive");
+    expect(getArchiveDir()).toBe(".pactile/tasks/archive");
   });
 
   it("is under PATHS.TASKS", () => {

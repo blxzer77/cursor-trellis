@@ -84,10 +84,10 @@ export function planArtifactMigration(
   const root = path.resolve(options.root);
   const tasksRoot = options.tasksDir
     ? path.resolve(options.tasksDir)
-    : path.join(root, ".cstl", "tasks");
+    : path.join(root, ".pactile", "tasks");
   const poolRoot = options.poolDir
     ? path.resolve(options.poolDir)
-    : path.join(root, ".cstl", "pool", "items");
+    : path.join(root, ".pactile", "pool", "items");
 
   const degraded: string[] = [];
   const tasks: ArtifactTaskScan[] = [];

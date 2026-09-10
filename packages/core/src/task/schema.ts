@@ -1,7 +1,7 @@
 /**
- * Canonical task.json shape — single source of truth for Trellis tasks.
+ * Canonical task.json shape — single source of truth for Pactile tasks.
  *
- * The runtime Python writer is `.trellis/scripts/common/task_store.py`
+ * The runtime Python writer is `.pactile/scripts/common/task_store.py`
  * (`cmd_create`). The 24-field shape and field order below mirror that
  * writer exactly so every TS and Python entry point produces structurally
  * identical task.json files.
@@ -10,7 +10,7 @@
  * services) should depend on this type instead of redefining their own
  * task.json shape.
  */
-export interface TrellisTaskRecord {
+export interface PactileTaskRecord {
   id: string;
   name: string;
   title: string;
@@ -66,7 +66,7 @@ export const TASK_RECORD_FIELD_ORDER = [
   "relatedFiles",
   "notes",
   "meta",
-] as const satisfies readonly (keyof TrellisTaskRecord)[];
+] as const satisfies readonly (keyof PactileTaskRecord)[];
 
 export type TaskRecordField = (typeof TASK_RECORD_FIELD_ORDER)[number];
 
@@ -103,7 +103,7 @@ const STRING_ARRAY_FIELDS: ReadonlySet<TaskRecordField> = new Set([
 ]);
 
 /**
- * Lightweight runtime schema for {@link TrellisTaskRecord}. Zero-dep on
+ * Lightweight runtime schema for {@link PactileTaskRecord}. Zero-dep on
  * purpose — `taskRecordSchema.parse(input)` returns a canonicalized
  * record, throwing on shape violations; `taskRecordSchema.safeParse`
  * returns a result discriminated by `success`.
@@ -115,13 +115,13 @@ const STRING_ARRAY_FIELDS: ReadonlySet<TaskRecordField> = new Set([
  * JSON object.
  */
 export const taskRecordSchema = {
-  parse(input: unknown): TrellisTaskRecord {
+  parse(input: unknown): PactileTaskRecord {
     return parseTaskRecord(input);
   },
   safeParse(
     input: unknown,
   ):
-    | { success: true; data: TrellisTaskRecord }
+    | { success: true; data: PactileTaskRecord }
     | { success: false; error: Error } {
     try {
       return { success: true, data: parseTaskRecord(input) };
@@ -134,7 +134,7 @@ export const taskRecordSchema = {
   },
 } as const;
 
-function parseTaskRecord(input: unknown): TrellisTaskRecord {
+function parseTaskRecord(input: unknown): PactileTaskRecord {
   if (!isPlainObject(input)) {
     throw new Error("task record must be a JSON object");
   }
@@ -150,7 +150,7 @@ function parseTaskRecord(input: unknown): TrellisTaskRecord {
 }
 
 function assignField(
-  record: TrellisTaskRecord,
+  record: PactileTaskRecord,
   field: TaskRecordField,
   value: unknown,
 ): void {
@@ -189,7 +189,7 @@ function assignField(
 }
 
 /**
- * Produce a fully-populated canonical-shape {@link TrellisTaskRecord}.
+ * Produce a fully-populated canonical-shape {@link PactileTaskRecord}.
  *
  * All 24 fields are present in canonical order. `overrides` shallow-merges
  * over the defaults — callers supply per-task values (id, name, title,
@@ -197,10 +197,10 @@ function assignField(
  * unless they have a real value.
  */
 export function emptyTaskRecord(
-  overrides: Partial<TrellisTaskRecord> = {},
-): TrellisTaskRecord {
+  overrides: Partial<PactileTaskRecord> = {},
+): PactileTaskRecord {
   const today = new Date().toISOString().split("T")[0] ?? "";
-  const base: TrellisTaskRecord = {
+  const base: PactileTaskRecord = {
     id: "",
     name: "",
     title: "",

@@ -1,6 +1,6 @@
 # Cursor Context Injection Guide
 
-> **Purpose**: Know which Cursor injection channels actually reach the model, and route Trellis content accordingly. Most "agent ignored my instructions" failures on Cursor are channel-routing bugs, not wording problems.
+> **Purpose**: Know which Cursor injection channels actually reach the model, and route Pactile content accordingly. Most "agent ignored my instructions" failures on Cursor are channel-routing bugs, not wording problems.
 
 ---
 
@@ -8,14 +8,14 @@
 
 Cursor has **several** channels that can put text in front of the model. They are **not** equally reliable:
 
-| Channel | How it loads | Reliable on Cursor? | Trellis content here |
+| Channel | How it loads | Reliable on Cursor? | Pactile content here |
 |---|---|---|---|
-| `.cursor/rules/*.mdc` (`alwaysApply: true`) | Prepended before **every** prompt, independent path | ✅ **Yes** | Thin `cstl-bootstrap.mdc` adapter pointer plus any project-specific hard constraints; the former `cstl-triage.mdc` no longer exists |
-| `AGENTS.md` (repo root + nested) | Read automatically, treated as an always-on rule | ✅ **Yes** | Compact CSTL pointers to the framework index, workflow interface card, and project docs (the `<!-- CSTL:START -->` block) |
+| `.cursor/rules/*.mdc` (`alwaysApply: true`) | Prepended before **every** prompt, independent path | ✅ **Yes** | Thin `pactile-bootstrap.mdc` adapter pointer plus any project-specific hard constraints; the former `pactile-triage.mdc` no longer exists |
+| `AGENTS.md` (repo root + nested) | Read automatically, treated as an always-on rule | ✅ **Yes** | Compact PACTILE pointers to the framework index, workflow interface card, and project docs (the `<!-- PACTILE:START -->` block) |
 | `sessionStart` hook → `additional_context` | Once per session; delivered via `hooks_context` | ✅ **Yes** (fixed — verified 2026-08-05; was #158452) | Context-progressive Session pack and first-reply notice |
-| `beforeSubmitPrompt` hook → `additional_context` | Per user message; router would emit `## 代码库检索计划` | ❌ **No (telemetry-only since 2026-06-24)** | `inject-retrieval-plan.py` logs to `.cstl/.runtime/retrieval-plan-events.log`; **no injection** |
-| `.cstl/workflow.md` (read on demand) | Only if the agent explicitly reads the file | ⚠️ Depends on agent taking action | Human interface card, artifact / Kernel pointers, and `workflow-state` accounting facts; **not runtime SSOT** |
-| **`task.py generate-dispatch-prompt` → Task `prompt`** (CLI Layer 2) | Main session runs Trellis script before `Task(...)` | ✅ **Yes (primary for subagent task context on Cursor)** | Full embed: marker, `Selected task:`, prd/jsonl/spec bodies (budgeted — see [injection-budget-guide](./injection-budget-guide.md)) |
+| `beforeSubmitPrompt` hook → `additional_context` | Per user message; router would emit `## 代码库检索计划` | ❌ **No (telemetry-only since 2026-06-24)** | `inject-retrieval-plan.py` logs to `.pactile/.runtime/retrieval-plan-events.log`; **no injection** |
+| `.pactile/workflow.md` (read on demand) | Only if the agent explicitly reads the file | ⚠️ Depends on agent taking action | Human interface card, artifact / Kernel pointers, and `workflow-state` accounting facts; **not runtime SSOT** |
+| **`task.py generate-dispatch-prompt` → Task `prompt`** (CLI Layer 2) | Main session runs Pactile script before `Task(...)` | ✅ **Yes (primary for subagent task context on Cursor)** | Full embed: marker, `Selected task:`, prd/jsonl/spec bodies (budgeted — see [injection-budget-guide](./injection-budget-guide.md)) |
 
 **Key takeaway**: anything that must reach the model **every turn** must live in `.cursor/rules` or `AGENTS.md`. `sessionStart` is reliable for the **session-level** context-progressive pack but fires only once. Retrieval plans: use the capability router or run `route_codebase_retrieval.py --instructions` on demand — do **not** rely on `beforeSubmitPrompt` injection. Subagent task context uses **CLI Layer 2** before Task dispatch.
 
@@ -38,20 +38,20 @@ Cursor has **several** channels that can put text in front of the model. They ar
 
 ---
 
-## Trellis routing rules on Cursor
+## Pactile routing rules on Cursor
 
-Trellis routes content by reliability on Cursor:
+Pactile routes content by reliability on Cursor:
 
-| Trellis content | Where it lives | Why |
+| Pactile content | Where it lives | Why |
 |---|---|---|
-| **Intake orientation** (silent request routing; do **not** print a `[Triage:]` line) | Baseline `intake-basic` module in the Session pack | No dedicated triage rule; `cstl-triage.mdc` no longer exists |
-| **Codebase retrieval capability routing** | Thin `.cursor/rules/cstl-bootstrap.mdc` pointer + `retrieval-daily-guide.md` / router CLI on demand | `beforeSubmitPrompt` injection is telemetry-only; provider detail stays out of always-on rules |
-| **Prefer Cursor native modes** (Plan/Ask/Debug/Agent/Multitask × Trellis) | `.cursor/rules/cstl-bootstrap.mdc` pointer + `cursor-native-modes-guide.md` | The thin adapter points to the on-demand guide |
-| **Framework entry pointers** | `AGENTS.md` (CSTL block) | Reliable always-on pointers to the framework index, workflow interface card, and project docs |
+| **Intake orientation** (silent request routing; do **not** print a `[Triage:]` line) | Baseline `intake-basic` module in the Session pack | No dedicated triage rule; `pactile-triage.mdc` no longer exists |
+| **Codebase retrieval capability routing** | Thin `.cursor/rules/pactile-bootstrap.mdc` pointer + `retrieval-daily-guide.md` / router CLI on demand | `beforeSubmitPrompt` injection is telemetry-only; provider detail stays out of always-on rules |
+| **Prefer Cursor native modes** (Plan/Ask/Debug/Agent/Multitask × Pactile) | `.cursor/rules/pactile-bootstrap.mdc` pointer + `cursor-native-modes-guide.md` | The thin adapter points to the on-demand guide |
+| **Framework entry pointers** | `AGENTS.md` (PACTILE block) | Reliable always-on pointers to the framework index, workflow interface card, and project docs |
 | **Session orientation** (context-progressive pack, first-reply notice) | `sessionStart` hook → `additional_context` | Reliable on Cursor 3.8.x+; session-level only |
-| **Workflow interface card and `workflow-state` accounting facts** | `.cstl/workflow.md` | Human overview and pointers only; runtime facts come from Kernel / `task.json` projections and the Session pack |
+| **Workflow interface card and `workflow-state` accounting facts** | `.pactile/workflow.md` | Human overview and pointers only; runtime facts come from Kernel / `task.json` projections and the Session pack |
 
-**If a new "must-always-be-visible" rule is added to Trellis**: keep it thin and ship it as a `.cursor/rules/*.mdc` (Cursor) — do **not** rely on `workflow.md` or sessionStart alone for per-turn enforcement, and do not restore a triage rule or `[Triage:]` ritual. Run `injection_budget_probe.py` after adding rules (see [injection-budget-guide](./injection-budget-guide.md)).
+**If a new "must-always-be-visible" rule is added to Pactile**: keep it thin and ship it as a `.cursor/rules/*.mdc` (Cursor) — do **not** rely on `workflow.md` or sessionStart alone for per-turn enforcement, and do not restore a triage rule or `[Triage:]` ritual. Run `injection_budget_probe.py` after adding rules (see [injection-budget-guide](./injection-budget-guide.md)).
 
 ---
 
@@ -64,7 +64,7 @@ Per-channel caps and jsonl/Layer 2 limits are defined in **[injection-budget-gui
 - **Subagent:** C06 Layer 2 with role `max_chars` + jsonl entry/file/total caps.
 - **Retrieval:** C16 Rules + router CLI on demand.
 
-Probe: `python ./.cstl/scripts/injection_budget_probe.py --repo-root .`
+Probe: `python ./.pactile/scripts/injection_budget_probe.py --repo-root .`
 
 ---
 
@@ -72,14 +72,14 @@ Probe: `python ./.cstl/scripts/injection_budget_probe.py --repo-root .`
 
 - Cursor major upgrade → re-run sessionStart first-reply-notice probe and update the matrix date.
 - `beforeSubmitPrompt.additional_context` becomes reliable on a future build → re-enable injection in `inject-retrieval-plan.py` and update this guide.
-- Trellis adds a new `.cursor/rules/*.mdc` → add a row to the routing table.
+- Pactile adds a new `.cursor/rules/*.mdc` → add a row to the routing table.
 
 ---
 
 ## Related
 
 - `cursor-subagent-policy.md` — Task tool scenes, model routing (this guide is about **context injection**, that one is about **subagent dispatch**).
-- `cursor-native-modes-guide.md` — Prefer Plan/Ask/Debug/Agent/Multitask; reached from the thin `cstl-bootstrap.mdc` pointer.
-- `.cstl/workflow.md` — human interface card and `workflow-state` accounting facts; not runtime SSOT.
+- `cursor-native-modes-guide.md` — Prefer Plan/Ask/Debug/Agent/Multitask; reached from the thin `pactile-bootstrap.mdc` pointer.
+- `.pactile/workflow.md` — human interface card and `workflow-state` accounting facts; not runtime SSOT.
 - Task `06-19-cursor-rules-triage` (archive) — the investigation that produced this guide.
 - Cursor forum thread: https://forum.cursor.com/t/sessionstart-hook-additional-context-is-never-injected-into-agents-initial-system-context/158452

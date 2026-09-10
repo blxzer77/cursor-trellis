@@ -9,18 +9,18 @@ This command is a Cursor `/` escape hatch. It does not implement the Session com
 ## Step 1: Load Kernel / Dashboard
 
 ```bash
-{{PYTHON_CMD}} ./.cstl/scripts/get_context.py
+{{PYTHON_CMD}} ./.pactile/scripts/get_context.py
 ```
 
 Confirms: selected task, Kernel projection (Open / Define / Approve / Execute / Verify / Integrate? / Close), Task Dashboard, git state, recent commits.
 
-If a **compiled session pack** is already in context (SessionStart injected it), use that pack. If `./.cstl/scripts/compile_session_pack.py` exists, you MAY call it to refresh the pack. Do **not** implement or patch the compiler.
+If a **compiled session pack** is already in context (SessionStart injected it), use that pack. If `./.pactile/scripts/compile_session_pack.py` exists, you MAY call it to refresh the pack. Do **not** implement or patch the compiler.
 
-Do **not** treat `{{PYTHON_CMD}} ./.cstl/scripts/get_context.py --mode phase` (Phase Index) as runtime SSOT. That extractor is a human overview of `workflow.md`, not Kernel truth.
+Do **not** treat `{{PYTHON_CMD}} ./.pactile/scripts/get_context.py --mode phase` (Phase Index) as runtime SSOT. That extractor is a human overview of `workflow.md`, not Kernel truth.
 
 If the output says `Selected task: none`, stop. Show the dashboard and ask the user to choose one route:
 
-- select a task with `{{PYTHON_CMD}} ./.cstl/scripts/task.py select <task>`
+- select a task with `{{PYTHON_CMD}} ./.pactile/scripts/task.py select <task>`
 - create a task (Open Proposal first; no create without consent)
 - inspect details
 - continue without a task for read-only Q&A (Ask if the user is already there; otherwise Agent read-only)
@@ -32,7 +32,7 @@ If the output says `Selected task: none`, stop. Show the dashboard and ask the u
 When a task is selected, search past session memory so resume work can reuse journal context instead of re-asking the user:
 
 ```bash
-{{PYTHON_CMD}} ./.cstl/scripts/search_memory.py --query "<task topic or title>" --json
+{{PYTHON_CMD}} ./.pactile/scripts/search_memory.py --query "<task topic or title>" --json
 ```
 
 Use the selected task's title or topic as the query. From the JSON results, summarize **1–3** most relevant hits for the user (title, summary, and next steps when present). Carry that context into the rest of the continue flow.
@@ -51,12 +51,12 @@ When a task is selected, route by Kernel / Dashboard human phase and persisted `
 
 Return-to-Define when scope, AC, execution contract, verification strategy, or capability assumptions change.
 
-If this Cursor Task API has no `cstl-implement` / `cstl-check` enum, dispatch workers as `generalPurpose`. Never label that run `true-independent`.
+If this Cursor Task API has no `pactile-implement` / `pactile-check` enum, dispatch workers as `generalPurpose`. Never label that run `true-independent`.
 
-Official `/goal` / CreateGoal is **not** a Trellis Task. Do not restore `cstl-goal`.
+Official `/goal` / CreateGoal is **not** a Pactile Task. Do not restore `pactile-goal`.
 
 ---
 
 ## Reference
 
-Human overview: `.cstl/workflow.md` (not runtime SSOT). Native mode bindings: `.cstl/framework/cursor-native-modes-guide.md` (on-demand).
+Human overview: `.pactile/workflow.md` (not runtime SSOT). Native mode bindings: `.pactile/framework/cursor-native-modes-guide.md` (on-demand).

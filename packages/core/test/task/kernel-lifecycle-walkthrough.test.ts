@@ -9,7 +9,7 @@ import { emptyTaskRecord } from "../../src/task/schema.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const bridgeModule = path.resolve(here, "../../dist/task/kernel-cli.js");
-const scripts = path.resolve(here, "../../../cli/src/templates/trellis/scripts");
+const scripts = path.resolve(here, "../../../cli/src/templates/pactile/scripts");
 const python = ["python", "python3", "py"].find((command) => spawnSync(command, ["--version"], { encoding: "utf8" }).status === 0);
 
 // Integration smoke uses the package's built JSON bridge. Unit suites work on a
@@ -17,7 +17,7 @@ const python = ["python", "python3", "py"].find((command) => spawnSync(command, 
 it.skipIf(!python || !fs.existsSync(bridgeModule))("walks isolated PRD → execution → verify → actual Python archive → persisted notes projection", () => {
   if (!python) throw new Error("Python required");
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "kernel-walkthrough-"));
-  const workflow = path.join(root, ".cstl");
+  const workflow = path.join(root, ".pactile");
   const taskDir = path.join(workflow, "tasks", "walkthrough");
   try {
     fs.cpSync(scripts, path.join(workflow, "scripts"), { recursive: true });
@@ -34,7 +34,7 @@ it.skipIf(!python || !fs.existsSync(bridgeModule))("walks isolated PRD → execu
     fs.writeFileSync(path.join(taskDir, "verify.md"), "# Verification\nValidation commands: isolated kernel walkthrough passed\nFinal acceptance evidence: PRD to archived kernel projection\nDurable learning decision: no durable learning\n");
     const bridge = path.join(root, "kernel-bridge.mjs");
     fs.writeFileSync(bridge, `import { runKernelJsonCli } from ${JSON.stringify(pathToFileURL(bridgeModule).href)}; process.exitCode = await runKernelJsonCli();\n`);
-    const env = { ...process.env, TRELLIS_KERNEL_CLI: `node ${bridge}`, PYTHONIOENCODING: "utf-8" };
+    const env = { ...process.env, PACTILE_KERNEL_CLI: `node ${bridge}`, PYTHONIOENCODING: "utf-8" };
     for (const flags of [["--check"], ["--no-commit"]]) {
       const result = spawnSync(python, [path.join(workflow, "scripts/task.py"), "archive", taskDir, ...flags], { cwd: root, env, encoding: "utf8" });
       expect(result.status, result.stdout + result.stderr).toBe(0);

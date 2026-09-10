@@ -3,7 +3,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { getAllScriptsForTests } from "../../src/templates/trellis/index.js";
+import { getAllScriptsForTests } from "../../src/templates/pactile/index.js";
 
 function resolvePython(): string | null {
   const candidates =
@@ -76,20 +76,20 @@ function writeJson(root: string, rel: string, data: unknown): void {
   writeFile(root, rel, `${JSON.stringify(data, null, 2)}\n`);
 }
 
-function writeTrellisScripts(root: string): void {
-  const scriptsDir = path.join(root, ".cstl", "scripts");
+function writePactileScripts(root: string): void {
+  const scriptsDir = path.join(root, ".pactile", "scripts");
   for (const [rel, content] of getAllScriptsForTests()) {
     writeFile(scriptsDir, rel, content);
   }
 }
 
 function seedProject(root: string): void {
-  writeTrellisScripts(root);
-  writeFile(root, ".cstl/.developer", "name=test-dev\n");
-  writeJson(root, ".cstl/.runtime/sessions/context-loading-test.json", {
-    selected_task: ".cstl/tasks/06-13-context",
+  writePactileScripts(root);
+  writeFile(root, ".pactile/.developer", "name=test-dev\n");
+  writeJson(root, ".pactile/.runtime/sessions/context-loading-test.json", {
+    selected_task: ".pactile/tasks/06-13-context",
   });
-  writeJson(root, ".cstl/tasks/06-13-context/task.json", {
+  writeJson(root, ".pactile/tasks/06-13-context/task.json", {
     id: "context",
     name: "context",
     title: "Context Loading",
@@ -100,20 +100,20 @@ function seedProject(root: string): void {
     createdAt: "2026-06-13",
     children: [],
     parent: null,
-    package: "trellis",
+    package: "pactile",
   });
-  writeFile(root, ".cstl/tasks/06-13-context/prd.md", "# PRD\n");
-  writeFile(root, ".cstl/tasks/06-13-context/design.md", "# Design\n");
+  writeFile(root, ".pactile/tasks/06-13-context/prd.md", "# PRD\n");
+  writeFile(root, ".pactile/tasks/06-13-context/design.md", "# Design\n");
   writeFile(
     root,
-    ".cstl/tasks/06-13-context/research/baseline.md",
+    ".pactile/tasks/06-13-context/research/baseline.md",
     "# Baseline\n",
   );
 }
 
 function seedProjectWithoutSelectedTask(root: string): void {
-  writeTrellisScripts(root);
-  writeFile(root, ".cstl/.developer", "name=test-dev\n");
+  writePactileScripts(root);
+  writeFile(root, ".pactile/.developer", "name=test-dev\n");
 }
 
 function runGetContext(
@@ -122,11 +122,11 @@ function runGetContext(
 ): { status: number | null; stdout: string; stderr: string } {
   const result = spawnSync(
     pythonCmd as string,
-    [path.join(root, ".cstl", "scripts", "get_context.py"), ...args],
+    [path.join(root, ".pactile", "scripts", "get_context.py"), ...args],
     {
       cwd: root,
       encoding: "utf-8",
-      env: { ...process.env, TRELLIS_CONTEXT_ID: "context-loading-test" },
+      env: { ...process.env, PACTILE_CONTEXT_ID: "context-loading-test" },
     },
   );
   return {
@@ -140,7 +140,7 @@ describe.skipIf(pythonCmd === null)("get_context.py retrieval guidance", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-context-loading-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-context-loading-"));
     seedProject(tmpDir);
   });
 
@@ -155,16 +155,16 @@ describe.skipIf(pythonCmd === null)("get_context.py retrieval guidance", () => {
     expect(result.stderr).toBe("");
     expect(result.stdout).toContain("## RETRIEVAL GUIDE");
     expect(result.stdout).toContain(
-      `Artifact search: ${pythonCmd} ./.cstl/scripts/search_artifacts.py --query "<topic>" --json`,
+      `Artifact search: ${pythonCmd} ./.pactile/scripts/search_artifacts.py --query "<topic>" --json`,
     );
     expect(result.stdout).toContain(
-      `Session memory: ${pythonCmd} ./.cstl/scripts/search_memory.py --query "<topic>" --json`,
+      `Session memory: ${pythonCmd} ./.pactile/scripts/search_memory.py --query "<topic>" --json`,
     );
     expect(result.stdout).toContain(
       "Use session memory for reusable prior decisions",
     );
     expect(result.stdout).toContain(
-      `Smart Search evidence: ${pythonCmd} ./.cstl/scripts/run_smart_search.py "<question>" --intent deep-research --json`,
+      `Smart Search evidence: ${pythonCmd} ./.pactile/scripts/run_smart_search.py "<question>" --intent deep-research --json`,
     );
     expect(result.stdout).toContain(
       "Run Smart Search evidence only when external/current source evidence is needed",
@@ -173,10 +173,10 @@ describe.skipIf(pythonCmd === null)("get_context.py retrieval guidance", () => {
       "Codebase evidence: adapter output is candidate evidence",
     );
     expect(result.stdout).toContain(
-      ".cstl/tasks/06-13-context/research/*.md for exploratory chains",
+      ".pactile/tasks/06-13-context/research/*.md for exploratory chains",
     );
     expect(result.stdout).toContain(
-      ".cstl/tasks/06-13-context/verify.md for final proof",
+      ".pactile/tasks/06-13-context/verify.md for final proof",
     );
     expect(result.stdout).toContain("Selected-task artifacts:");
     expect(result.stdout).toContain("- prd.md: present");
@@ -190,7 +190,7 @@ describe.skipIf(pythonCmd === null)("get_context.py retrieval guidance", () => {
     );
     expect(result.stdout).toContain("2. artifact-search [high] priority 90");
     expect(result.stdout).toContain(
-      `Action: ${pythonCmd} ./.cstl/scripts/search_artifacts.py --query`,
+      `Action: ${pythonCmd} ./.pactile/scripts/search_artifacts.py --query`,
     );
   });
 
@@ -204,16 +204,16 @@ describe.skipIf(pythonCmd === null)("get_context.py retrieval guidance", () => {
     expect(payload.developer).toBe("test-dev");
     expect(payload.tasks.active).toHaveLength(1);
     expect(payload.retrievalGuide.artifactSearch.command).toBe(
-      `${pythonCmd} ./.cstl/scripts/search_artifacts.py --query "<topic>" --json`,
+      `${pythonCmd} ./.pactile/scripts/search_artifacts.py --query "<topic>" --json`,
     );
     expect(payload.retrievalGuide.sessionMemory.command).toBe(
-      `${pythonCmd} ./.cstl/scripts/search_memory.py --query "<topic>" --json`,
+      `${pythonCmd} ./.pactile/scripts/search_memory.py --query "<topic>" --json`,
     );
     expect(payload.retrievalGuide.sessionMemory.purpose).toContain(
       "workspace journals",
     );
     expect(payload.retrievalGuide.smartSearchEvidence.command).toBe(
-      `${pythonCmd} ./.cstl/scripts/run_smart_search.py "<question>" --intent deep-research --json`,
+      `${pythonCmd} ./.pactile/scripts/run_smart_search.py "<question>" --intent deep-research --json`,
     );
     expect(payload.retrievalGuide.smartSearchEvidence.purpose).toContain(
       "task-local evidence manifest",
@@ -225,7 +225,7 @@ describe.skipIf(pythonCmd === null)("get_context.py retrieval guidance", () => {
       "selected task research/*.md",
     );
     expect(payload.retrievalGuide.selectedTaskArtifacts).toEqual({
-      taskPath: ".cstl/tasks/06-13-context",
+      taskPath: ".pactile/tasks/06-13-context",
       prd: true,
       design: true,
       implement: false,
@@ -246,23 +246,23 @@ describe.skipIf(pythonCmd === null)("get_context.py retrieval guidance", () => {
       100, 90, 80, 60, 55,
     ]);
     expect(recommendations[1]?.action).toContain(
-      'search_artifacts.py --query "Context Loading trellis Exercise selected-task retrieval output" --json',
+      'search_artifacts.py --query "Context Loading pactile Exercise selected-task retrieval output" --json',
     );
     expect(recommendations[2]?.action).toContain(
-      'search_memory.py --query "Context Loading trellis Exercise selected-task retrieval output" --json',
+      'search_memory.py --query "Context Loading pactile Exercise selected-task retrieval output" --json',
     );
     expect(recommendations[4]).toMatchObject({
       source: "smart-search",
       confidence: "low",
-      reference: ".cstl/tasks/06-13-context/research/smart-search/",
+      reference: ".pactile/tasks/06-13-context/research/smart-search/",
     });
   });
 
   it("keeps fallback recommendations when selected-task artifacts are missing", () => {
-    fs.rmSync(path.join(tmpDir, ".cstl", "tasks", "06-13-context", "prd.md"));
-    fs.rmSync(path.join(tmpDir, ".cstl", "tasks", "06-13-context", "design.md"));
+    fs.rmSync(path.join(tmpDir, ".pactile", "tasks", "06-13-context", "prd.md"));
+    fs.rmSync(path.join(tmpDir, ".pactile", "tasks", "06-13-context", "design.md"));
     fs.rmSync(
-      path.join(tmpDir, ".cstl", "tasks", "06-13-context", "research"),
+      path.join(tmpDir, ".pactile", "tasks", "06-13-context", "research"),
       { recursive: true, force: true },
     );
 
@@ -295,7 +295,7 @@ describe.skipIf(pythonCmd === null)("get_context.py retrieval guidance", () => {
 
   it("returns no recommendations when no selected task is resolved", () => {
     const emptyProject = fs.mkdtempSync(
-      path.join(os.tmpdir(), "trellis-context-empty-"),
+      path.join(os.tmpdir(), "pactile-context-empty-"),
     );
     try {
       seedProjectWithoutSelectedTask(emptyProject);

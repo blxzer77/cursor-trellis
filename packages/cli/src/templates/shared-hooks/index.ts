@@ -1,7 +1,7 @@
 /**
  * Shared hook templates — platform-independent Python hook scripts.
  *
- * These scripts read only from .cstl/ paths (JSONL, prd.md, spec/) and
+ * These scripts read only from .pactile/ paths (JSONL, prd.md, spec/) and
  * have no platform-specific placeholders. They can be written as-is to any
  * platform's hooks directory.
  */
@@ -49,7 +49,7 @@ export type SharedHookPlatform =
 /**
  * Which shared hooks each platform actually invokes. Single source of truth
  * for shared-hook distribution — both `writeSharedHooks` (runtime install)
- * and `collectSharedHooks` (`cstl update` diff) read from this table.
+ * and `collectSharedHooks` (`pactile update` diff) read from this table.
  *
  * Routing rules encoded here:
  * - `session-start.py` — shipped by every platform with a SessionStart
@@ -66,7 +66,7 @@ export type SharedHookPlatform =
  *   event), so it takes just `inject-subagent-context.py`.
  * - Claude Code `statusLine` is intentionally not installed by default.
  *   Users can add their own statusLine command in `.claude/settings.json`
- *   without Trellis owning a generated hook file.
+ *   without Pactile owning a generated hook file.
  */
 export const SHARED_HOOKS_BY_PLATFORM: Record<
   SharedHookPlatform,

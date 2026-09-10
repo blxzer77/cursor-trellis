@@ -5,7 +5,7 @@ Spec Write Audit Hook — machine record of writes to long-term spec knowledge.
 
 Part of the "record mandatory / flow free / verdict by human" trichotomy
 (P41 memory-s3-spec-gate). This hook ONLY records that a write to
-`.cstl/spec/`, `docs/adr/`, or Policy files was initiated. It NEVER blocks
+`.pactile/spec/`, `docs/adr/`, or Policy files was initiated. It NEVER blocks
 the write:
 
 - Always prints a preToolUse ``allow`` permission decision.
@@ -35,20 +35,20 @@ if sys.platform.startswith("win"):
     elif hasattr(sys.stdout, "detach"):
         sys.stdout = _io.TextIOWrapper(sys.stdout.detach(), encoding="utf-8", errors="replace")  # type: ignore[union-attr]
 
-DIR_WORKFLOW = ".cstl"
+DIR_WORKFLOW = ".pactile"
 DIR_RUNTIME = ".runtime"
 DIR_HOOKS = "hooks"
 AUDIT_FILE = "spec-write.log"
 
 # Authoritative protected roots, matching `spec-learning` contract wording:
-# ".cstl/spec/", ADR (docs/adr/), Policy. Policy files live under .cstl/spec/
-# (e.g. .cstl/spec/Trellis/...); platform rule files (.cursor/rules/*.mdc) are
+# ".pactile/spec/", ADR (docs/adr/), Policy. Policy files live under .pactile/spec/
+# (e.g. .pactile/spec/Pactile/...); platform rule files (.cursor/rules/*.mdc) are
 # outside this machine-record scope.
 PROTECTED_REL_PREFIXES = (
-    ".cstl/spec/",
-    "cstl/spec/",
+    ".pactile/spec/",
+    "pactile/spec/",
     "docs/adr/",
-    ".cstl/spec",
+    ".pactile/spec",
     "docs/adr",
 )
 

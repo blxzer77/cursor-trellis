@@ -9,7 +9,7 @@ import {
   type ExternalAssetSourceV1,
   type ExternalAssetScopeV1,
   type InstallHintV1,
-} from "@blxzer/cursor-trellis-core";
+} from "@blxzer/pactile-core";
 import {
   diagnostic,
   diagnostics,

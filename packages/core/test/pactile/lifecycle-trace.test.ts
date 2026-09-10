@@ -152,6 +152,83 @@ describe("MigrationJournalV1", () => {
     expect(codex.status).toBe("succeeded");
   });
 
+  it("allows an applied Adapter to be rechecked after a completed doctor cycle", () => {
+    const journal = validMigrationJournal();
+    const cursor = journal.adapterReconciliations.find(
+      (entry) => entry.adapterId === "cursor",
+    );
+    const codex = journal.adapterReconciliations.find(
+      (entry) => entry.adapterId === "codex",
+    );
+    if (cursor === undefined || codex === undefined)
+      throw new Error("missing Adapter reconcile fixture");
+
+    codex.status = "succeeded";
+    codex.attempts = 2;
+    codex.lastAttemptAt = "2026-09-09T10:16:00Z";
+    codex.lastError = null;
+    journal.events.push(
+      {
+        sequence: 10,
+        at: "2026-09-09T10:15:00Z",
+        event: "adapter-reconcile-started",
+        actionId: "migration.reconcile.codex",
+        adapterId: "codex",
+        evidenceRefs: [],
+      },
+      {
+        sequence: 11,
+        at: "2026-09-09T10:16:00Z",
+        event: "adapter-reconcile-succeeded",
+        actionId: "migration.reconcile.codex",
+        adapterId: "codex",
+        evidenceRefs: ["evidence://projection/codex/retry"],
+      },
+      {
+        sequence: 12,
+        at: "2026-09-09T10:17:00Z",
+        event: "doctor-completed",
+        actionId: "migration.doctor",
+        adapterId: null,
+        evidenceRefs: ["evidence://doctor/first"],
+      },
+    );
+
+    cursor.status = "succeeded";
+    cursor.attempts = 2;
+    cursor.lastAttemptAt = "2026-09-09T10:19:00Z";
+    cursor.lastError = null;
+    journal.state = "completed";
+    journal.events.push(
+      {
+        sequence: 13,
+        at: "2026-09-09T10:18:00Z",
+        event: "adapter-reconcile-started",
+        actionId: "migration.reconcile.cursor",
+        adapterId: "cursor",
+        evidenceRefs: [],
+      },
+      {
+        sequence: 14,
+        at: "2026-09-09T10:19:00Z",
+        event: "adapter-reconcile-succeeded",
+        actionId: "migration.reconcile.cursor",
+        adapterId: "cursor",
+        evidenceRefs: ["evidence://projection/cursor/recheck"],
+      },
+      {
+        sequence: 15,
+        at: "2026-09-09T10:20:00Z",
+        event: "doctor-completed",
+        actionId: "migration.doctor",
+        adapterId: null,
+        evidenceRefs: ["evidence://doctor/recheck"],
+      },
+    );
+
+    expect(parseMigrationJournalV1(journal).success).toBe(true);
+  });
+
   it("rejects retry counters that are not backed by journal events", () => {
     const invalid = validMigrationJournal();
     const codex = invalid.adapterReconciliations.find(

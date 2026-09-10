@@ -37,13 +37,13 @@ describe("CONFIG_DIRS", () => {
 });
 
 describe("ALL_MANAGED_DIRS", () => {
-  it("starts with .trellis", () => {
-    expect(ALL_MANAGED_DIRS[0]).toBe(".cstl");
+  it("starts with .pactile", () => {
+    expect(ALL_MANAGED_DIRS[0]).toBe(".pactile");
   });
 
-  it("contains .trellis plus all managed dirs", () => {
+  it("contains .pactile plus all managed dirs", () => {
     expect(ALL_MANAGED_DIRS).toEqual([
-      ".cstl",
+      ".pactile",
       ...new Set(PLATFORM_MANAGED_DIRS),
     ]);
   });
@@ -56,18 +56,18 @@ describe("ALL_MANAGED_DIRS", () => {
 describe("isManagedPath", () => {
   it("matches cursor config sub-paths", () => {
     expect(isManagedPath(".cursor/rules/bar.md")).toBe(true);
-    expect(isManagedPath(".cursor/commands/cstl-continue.md")).toBe(true);
+    expect(isManagedPath(".cursor/commands/pactile-continue.md")).toBe(true);
     expect(isManagedPath(".cursor/hooks/session-start.py")).toBe(true);
   });
 
   it("matches exact managed directory names", () => {
     expect(isManagedPath(".cursor")).toBe(true);
-    expect(isManagedPath(".cstl")).toBe(true);
+    expect(isManagedPath(".pactile")).toBe(true);
   });
 
-  it("matches .trellis sub-paths", () => {
-    expect(isManagedPath(".cstl/spec")).toBe(true);
-    expect(isManagedPath(".cstl/tasks/some-task")).toBe(true);
+  it("matches .pactile sub-paths", () => {
+    expect(isManagedPath(".pactile/spec")).toBe(true);
+    expect(isManagedPath(".pactile/tasks/some-task")).toBe(true);
   });
 
   it("rejects legacy platform paths not in registry", () => {
@@ -78,7 +78,7 @@ describe("isManagedPath", () => {
 
   it("rejects prefix-similar non-sub-paths", () => {
     expect(isManagedPath(".cursorignore")).toBe(false);
-    expect(isManagedPath(".trellis-old")).toBe(false);
+    expect(isManagedPath(".pactile-old")).toBe(false);
   });
 
   it("rejects empty string", () => {
@@ -87,7 +87,7 @@ describe("isManagedPath", () => {
 
   it("rejects path traversal", () => {
     expect(isManagedPath("../.cursor")).toBe(false);
-    expect(isManagedPath("../.cstl/spec")).toBe(false);
+    expect(isManagedPath("../.pactile/spec")).toBe(false);
   });
 
   it("rejects unrelated directories", () => {
@@ -98,7 +98,7 @@ describe("isManagedPath", () => {
 
   it("matches Windows-style backslash paths for cursor", () => {
     expect(isManagedPath(".cursor\\commands\\foo.md")).toBe(true);
-    expect(isManagedPath(".cstl\\spec\\backend")).toBe(true);
+    expect(isManagedPath(".pactile\\spec\\backend")).toBe(true);
   });
 });
 
@@ -107,13 +107,13 @@ describe("isManagedRootDir", () => {
     expect(isManagedRootDir(".cursor")).toBe(true);
   });
 
-  it("matches .trellis", () => {
-    expect(isManagedRootDir(".cstl")).toBe(true);
+  it("matches .pactile", () => {
+    expect(isManagedRootDir(".pactile")).toBe(true);
   });
 
   it("rejects sub-paths (not a root dir)", () => {
     expect(isManagedRootDir(".cursor/commands")).toBe(false);
-    expect(isManagedRootDir(".cstl/spec")).toBe(false);
+    expect(isManagedRootDir(".pactile/spec")).toBe(false);
   });
 
   it("rejects unrelated directories", () => {
@@ -184,7 +184,7 @@ describe("collectPlatformTemplates", () => {
 
   it("tracks cursor commands but not skills (commands-only policy)", () => {
     const result = collectPlatformTemplates("cursor");
-    expect(result?.has(".cursor/commands/cstl-continue.md")).toBe(true);
+    expect(result?.has(".cursor/commands/pactile-continue.md")).toBe(true);
     expect(result?.has(".cursor/hooks.json")).toBe(true);
     const skillKeys = [...(result?.keys() ?? [])].filter((k) =>
       k.includes(".cursor/skills/"),

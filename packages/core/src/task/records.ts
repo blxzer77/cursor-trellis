@@ -6,7 +6,7 @@ import {
   emptyTaskRecord,
   isPlainObject,
   taskRecordSchema,
-  type TrellisTaskRecord,
+  type PactileTaskRecord,
 } from "./schema.js";
 
 const TASK_JSON_BASENAME = "task.json";
@@ -22,7 +22,7 @@ export interface WriteTaskRecordOptions {
   /** Absolute or repo-relative directory containing `task.json`. */
   taskDir: string;
   /** Canonical record to persist. Unknown fields on disk are preserved. */
-  record: TrellisTaskRecord;
+  record: PactileTaskRecord;
   /** Optional repo root used to resolve relative `taskDir` values. */
   cwd?: string;
   /**
@@ -43,7 +43,7 @@ export interface WriteTaskRecordOptions {
  */
 export function loadTaskRecord(
   options: LoadTaskRecordOptions,
-): TrellisTaskRecord {
+): PactileTaskRecord {
   const file = resolveTaskJsonPath(options.taskDir, options.cwd);
   const raw = fs.readFileSync(file, "utf-8");
   let parsed: unknown;

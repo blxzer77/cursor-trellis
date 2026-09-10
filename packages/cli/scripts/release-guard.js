@@ -1,11 +1,9 @@
-#!/usr/bin/env node
-
 import { execFileSync } from "node:child_process";
 
 const VERSION_RE =
   /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-(beta|rc|alpha)\.(0|[1-9]\d*))?$/;
 
-export const RELEASE_TAG_PREFIX = "cstl-v";
+export const RELEASE_TAG_PREFIX = "pactile-v";
 
 function commandName(command) {
   if (process.platform !== "win32") return command;
@@ -135,14 +133,27 @@ export function resolveReleaseTag({ explicitTag, env = process.env } = {}) {
 export function assertMatchingVersions({
   coreVersion,
   cliVersion,
+  legacyCoreVersion,
+  legacyCliVersion,
   expectedVersion,
 }) {
-  parseReleaseVersion(coreVersion);
-  parseReleaseVersion(cliVersion);
-  if (coreVersion !== cliVersion) {
+  const versions = [
+    ["core", coreVersion],
+    ["cli", cliVersion],
+    ...(legacyCoreVersion === undefined
+      ? []
+      : [["legacy-core", legacyCoreVersion]]),
+    ...(legacyCliVersion === undefined
+      ? []
+      : [["legacy-cli", legacyCliVersion]]),
+  ];
+  for (const [, version] of versions) parseReleaseVersion(version);
+  const mismatched = versions.filter(([, version]) => version !== cliVersion);
+  if (mismatched.length > 0) {
     throw new Error(
-      `Version mismatch: core=${coreVersion}, cli=${cliVersion}. Both packages ` +
-        `must share the exact release version.`,
+      `Version mismatch: ${versions
+        .map(([key, version]) => `${key}=${version}`)
+        .join(", ")}. All release packages must share the exact version.`,
     );
   }
   if (expectedVersion !== undefined && cliVersion !== expectedVersion) {

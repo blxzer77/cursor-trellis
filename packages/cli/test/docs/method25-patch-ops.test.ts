@@ -52,7 +52,7 @@ describe("Method 2.5 / Cursor++ docs retired (P23)", () => {
       ),
     ).toBe(false);
     expect(
-      fs.existsSync(path.join(cliRoot, "src/templates/trellis/local")),
+      fs.existsSync(path.join(cliRoot, "src/templates/pactile/local")),
     ).toBe(false);
   });
 });

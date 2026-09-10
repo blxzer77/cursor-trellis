@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 /**
- * Bump @blxzer/cursor-trellis and @blxzer/cursor-trellis-core to the same next
- * version. Replaces the per-package `pnpm version --no-git-tag-version`
- * calls in the release scripts so the two packages can never drift.
+ * Bump the canonical Pactile packages and both 0.5.x compatibility shims to
+ * the same next version. The release set must never drift.
  *
  * Usage:
  *   node scripts/bump-versions.js <type>
@@ -26,6 +25,14 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "../../..");
 const CORE_PKG = path.join(REPO_ROOT, "packages/core/package.json");
 const CLI_PKG = path.join(REPO_ROOT, "packages/cli/package.json");
+const LEGACY_CORE_PKG = path.join(
+  REPO_ROOT,
+  "packages/cursor-trellis-core-shim/package.json",
+);
+const LEGACY_CLI_PKG = path.join(
+  REPO_ROOT,
+  "packages/cursor-trellis-shim/package.json",
+);
 
 const RED = "\x1b[31m";
 const GREEN = "\x1b[32m";
@@ -121,10 +128,20 @@ function main() {
 
   const core = readJSON(CORE_PKG);
   const cli = readJSON(CLI_PKG);
-  if (core.version !== cli.version) {
+  const legacyCore = readJSON(LEGACY_CORE_PKG);
+  const legacyCli = readJSON(LEGACY_CLI_PKG);
+  const versions = [
+    ["core", core.version],
+    ["cli", cli.version],
+    ["legacy-core", legacyCore.version],
+    ["legacy-cli", legacyCli.version],
+  ];
+  if (versions.some(([, version]) => version !== cli.version)) {
     fail(
-      `Pre-bump version mismatch: core=${core.version} cli=${cli.version}.\n` +
-        `Reconcile them manually (edit both package.json files to the same value)\n` +
+      `Pre-bump version mismatch: ${versions
+        .map(([key, version]) => `${key}=${version}`)
+        .join(" ")}.\n` +
+        `Reconcile all four package.json files to the same value\n` +
         `before running release scripts again.`,
     );
   }
@@ -132,11 +149,15 @@ function main() {
   const next = computeNext(cli.version, type);
   core.version = next;
   cli.version = next;
+  legacyCore.version = next;
+  legacyCli.version = next;
   writeJSON(CORE_PKG, core);
   writeJSON(CLI_PKG, cli);
+  writeJSON(LEGACY_CORE_PKG, legacyCore);
+  writeJSON(LEGACY_CLI_PKG, legacyCli);
   // Human message to stderr so stdout stays a clean machine-readable value.
   process.stderr.write(
-    `${GREEN}ok${RESET} bumped @blxzer/cursor-trellis and @blxzer/cursor-trellis-core (${type}) -> ${next}\n`,
+    `${GREEN}ok${RESET} bumped the four-package Pactile release set (${type}) -> ${next}\n`,
   );
   process.stdout.write(next + "\n");
 }

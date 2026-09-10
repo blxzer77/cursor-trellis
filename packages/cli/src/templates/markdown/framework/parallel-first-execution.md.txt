@@ -1,6 +1,6 @@
 # Parallel-first execution contract
 
-> **Purpose**: Make “parallel by default, serial by written reason” a **product** principle and an executable planning contract. After a Task is Open, first judge isolatable units; if they exist, prefer **host-native** parallel. Trellis owns declaration + integration only.
+> **Purpose**: Make “parallel by default, serial by written reason” a **product** principle and an executable planning contract. After a Task is Open, first judge isolatable units; if they exist, prefer **host-native** parallel. Pactile owns declaration + integration only.
 >
 > **Not a scheduler.** No queue, no new CLI, no host-parallel replacement, no cross-platform dispatch.
 >
@@ -8,7 +8,7 @@
 >
 > **Strength:** convention + Independent Check / planning review. Missing declaration on Full/Parent is **Check FAIL**. Not a `start-execution --check` hard gate. Attention order (`priority`) is not a serial lock.
 
-Full Prefer/Adapt/Own and serial-exception list: `.cstl/workflow.md` (Parallel-first). Host binding lives in the Adapter guide, not this contract. Who/where dispatch: `.cstl/framework/execution-strategy.md` (orthogonal).
+Full Prefer/Adapt/Own and serial-exception list: `.pactile/workflow.md` (Parallel-first). Host binding lives in the Adapter guide, not this contract. Who/where dispatch: `.pactile/framework/execution-strategy.md` (orthogonal).
 
 ---
 
@@ -58,7 +58,7 @@ conflict_surface: [path/that/collides]
 # serial_reason:  # omit when parallel groups are declared
 ```
 
-These fields are **planning declarations**. CLI may round-trip them on `task-map.md` writes; nothing in Trellis auto-dispatches workers from them.
+These fields are **planning declarations**. CLI may round-trip them on `task-map.md` writes; nothing in Pactile auto-dispatches workers from them.
 
 ---
 
@@ -86,7 +86,7 @@ HITL, `start-execution --approved`, reviewer, and `integrate-child` (`merge_limi
 
 ## Archived Parent 对照 (do not edit the archive)
 
-Source (read-only): `.cstl/tasks/archive/2026-08/08-05-cursor-trellis-optimization/task-map.md`
+Source (read-only): `.pactile/tasks/archive/2026-08/08-05-pactile-optimization/task-map.md`
 
 That campaign already behaved parallel-first; this table shows which **named** fields the contract would ask for vs what the archive already has. The archive body is **not** rewritten.
 
@@ -98,12 +98,12 @@ That campaign already behaved parallel-first; this table shows which **named** f
 | 合并点 | `merge_limit: 1`; Event Log integrates one Child at a time; Suggested integration order: 合入仍串行 | Met via `merge_limit` + notes. Missing the literal key `merge_points:` |
 | 冲突面 | Per-child `touches` (hooks/rules/templates overlap called out) | Met via `touches`. Missing top-level `conflict_surface:` |
 | `serial_reason` | Topology is not `serial`, so none required. HITL/gates stayed serial through `merge_limit` | No gap for this map. A **serial** topology would need one exception line |
-| Prefer host-native | Parent routed workers to the host parallel surface / worktrees; Trellis did not schedule | Met (capability). Contract now makes that the **default**, not “when useful” |
+| Prefer host-native | Parent routed workers to the host parallel surface / worktrees; Pactile did not schedule | Met (capability). Contract now makes that the **default**, not “when useful” |
 | Worker prompt path | Child prompts under `child-prompts/` with explicit task dirs | Met |
 
-**Would-write `serial_reason` only if** this Parent had set `execution_topology: serial` despite empty `depends_on` — e.g. shared write-set on `cursor-trellis/packages/cli/src/templates/`. It did not; it kept topology parallel and serialized **merge** only.
+**Would-write `serial_reason` only if** this Parent had set `execution_topology: serial` despite empty `depends_on` — e.g. shared write-set on `pactile/packages/cli/src/templates/`. It did not; it kept topology parallel and serialized **merge** only.
 
-Contrast (not edited): `.cstl/tasks/archive/2026-08/08-20-08-20-byok-headless-backend/task-map.md` has `execution_topology: serial` with every `depends_on: []` and **no** `serial_reason`. Under this contract that map would add one line (likely shared write-set / same branch `feat/byok-headless`).
+Contrast (not edited): `.pactile/tasks/archive/2026-08/08-20-08-20-byok-headless-backend/task-map.md` has `execution_topology: serial` with every `depends_on: []` and **no** `serial_reason`. Under this contract that map would add one line (likely shared write-set / same branch `feat/byok-headless`).
 
 ---
 

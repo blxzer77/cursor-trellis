@@ -1,11 +1,11 @@
 /**
- * `trellis workflow` command — list and switch the active `.cstl/workflow.md`.
+ * `pactile workflow` command — list and switch `.pactile/workflow.md`.
  *
  * Behavior contracts:
  *
  * - Hash boundary: after writing native content, refresh the
- *   `.cstl/workflow.md` entry in `.template-hashes.json`. After writing
- *   any non-native content, remove that entry. This prevents `trellis update`
+ *   `.pactile/workflow.md` entry in `.template-hashes.json`. After writing
+ *   any non-native content, remove that entry. This prevents `pactile update`
  *   from silently restoring native bytes over a user-selected variant
  *   (see design.md "Durable-state contract").
  *
@@ -14,8 +14,8 @@
  *   interactive runs prompt; non-interactive runs fail unless `--force` or
  *   `--create-new` was passed.
  *
- * - `--create-new`: never touches `.cstl/workflow.md`; writes
- *   `.cstl/workflow.md.new` and leaves the hash file alone.
+ * - `--create-new`: never touches `.pactile/workflow.md`; writes
+ *   `.pactile/workflow.md.new` and leaves the hash file alone.
  */
 
 import fs from "node:fs";
@@ -127,11 +127,11 @@ async function confirmOverwriteInteractively(): Promise<
       type: "list",
       name: "action",
       message:
-        "Your .cstl/workflow.md has local edits. What do you want to do?",
+        "Your .pactile/workflow.md has local edits. What do you want to do?",
       choices: [
         { name: "Overwrite (replace local edits)", value: "overwrite" },
         {
-          name: "Write to .cstl/workflow.md.new and keep current",
+          name: "Write to .pactile/workflow.md.new and keep current",
           value: "create-new",
         },
         { name: "Skip (no changes)", value: "skip" },
@@ -151,7 +151,7 @@ function applyHashContract(cwd: string, templateId: string): void {
     updateHashes(cwd, files);
   } else {
     // Non-native workflow is user-managed local content. Drop the hash entry
-    // so `trellis update` treats it as modified and does not silently restore
+    // so `pactile update` treats it as modified and does not silently restore
     // native bytes.
     removeHash(cwd, relPath);
   }
@@ -244,7 +244,7 @@ export async function runWorkflowCommand(
   const cwd = process.cwd();
   if (!isWorkflowInitialized(cwd)) {
     throw new WorkflowCommandError(
-      "No .cstl/ directory found. Run `cstl init` first.",
+      "No .pactile/ directory found. Run `pactile init` first.",
     );
   }
 

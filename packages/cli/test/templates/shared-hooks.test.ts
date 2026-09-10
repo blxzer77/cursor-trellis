@@ -65,23 +65,23 @@ def resolve_context_key(input_data, platform=None):
     return None
 
 def resolve_selected_task(repo_root, input_data, platform=None):
-    path = os.environ.get("CSTL_TEST_SELECTED_TASK") or None
-    stale = os.environ.get("CSTL_TEST_SELECTED_STALE") == "1"
+    path = os.environ.get("PACTILE_TEST_SELECTED_TASK") or None
+    stale = os.environ.get("PACTILE_TEST_SELECTED_STALE") == "1"
     return SelectedTask(task_path=path, source_type="test" if path else "none", stale=stale)
 `;
 
 const MODULES_SRC = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
-  "../../src/templates/trellis/modules",
+  "../../src/templates/pactile/modules",
 );
 const SESSION_PACK_SRC = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
-  "../../src/templates/trellis/scripts/common/session_pack.py",
+  "../../src/templates/pactile/scripts/common/session_pack.py",
 );
 
 function seedCompiler(tmpDir: string, opts: { sessionPack?: boolean } = {}): void {
   const includePack = opts.sessionPack !== false;
-  const modulesDest = path.join(tmpDir, ".cstl", "modules");
+  const modulesDest = path.join(tmpDir, ".pactile", "modules");
   fs.cpSync(MODULES_SRC, modulesDest, { recursive: true });
   fs.mkdirSync(path.join(modulesDest, "ghost-unactivated"), { recursive: true });
   fs.writeFileSync(
@@ -90,24 +90,24 @@ function seedCompiler(tmpDir: string, opts: { sessionPack?: boolean } = {}): voi
     "utf-8",
   );
   if (includePack) {
-    const commonDir = path.join(tmpDir, ".cstl", "scripts", "common");
+    const commonDir = path.join(tmpDir, ".pactile", "scripts", "common");
     fs.mkdirSync(commonDir, { recursive: true });
     fs.copyFileSync(SESSION_PACK_SRC, path.join(commonDir, "session_pack.py"));
   }
 }
 
 function makeFixtureProject(opts: { sessionPack?: boolean } = {}): string {
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "cstl-mod-compiler-"));
-  const commonDir = path.join(tmpDir, ".cstl", "scripts", "common");
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-mod-compiler-"));
+  const commonDir = path.join(tmpDir, ".pactile", "scripts", "common");
   fs.mkdirSync(commonDir, { recursive: true });
-  fs.writeFileSync(path.join(tmpDir, ".cstl", "workflow.md"), WORKFLOW_FIXTURE);
+  fs.writeFileSync(path.join(tmpDir, ".pactile", "workflow.md"), WORKFLOW_FIXTURE);
   fs.writeFileSync(
     path.join(tmpDir, "AGENTS.md"),
     "UNIQUE_AGENTS_LONGFORM_SENTINEL\n[workflow-state:no_task]\n",
   );
   fs.writeFileSync(path.join(commonDir, "__init__.py"), "");
   fs.writeFileSync(path.join(commonDir, "active_task.py"), ACTIVE_TASK_STUB);
-  const otherTask = path.join(tmpDir, ".cstl", "tasks", "other-task");
+  const otherTask = path.join(tmpDir, ".pactile", "tasks", "other-task");
   fs.mkdirSync(otherTask, { recursive: true });
   fs.writeFileSync(
     path.join(otherTask, "prd.md"),
@@ -345,7 +345,7 @@ describe("shared-hooks capability table", () => {
     expect(sessionStart, "session-start.py is missing from shared-hooks/").toBeDefined();
     const content = sessionStart ? sessionStart.content : "";
     expect(content).toContain("_compile_session_pack_text");
-    expect(content).toContain("cstl_session_pack");
+    expect(content).toContain("pactile_session_pack");
     expect(content).not.toContain("<trellis-workflow>");
     expect(content).not.toContain("<guidelines>");
     expect(content).not.toContain("Task context order");
@@ -398,14 +398,14 @@ describe("shared-hooks capability table", () => {
     }
   });
 
-  it("session-start.py writes a side-channel log under .cstl/.runtime/hooks", () => {
+  it("session-start.py writes a side-channel log under .pactile/.runtime/hooks", () => {
     const tmpDir = makeFixtureProject();
     try {
       const ran = runHook("session-start.py", tmpDir);
       expect(ran.status, ran.stderr).toBe(0);
       const logPath = path.join(
         tmpDir,
-        ".cstl",
+        ".pactile",
         ".runtime",
         "hooks",
         "session-start.log",
@@ -428,22 +428,22 @@ describe("shared-hooks capability table", () => {
     }
   });
 
-  it("session-start.py resolves the trellis dir upward, not hardcoded to project_dir", () => {
-    // Regression: the template previously hardcoded `trellis_dir = project_dir / ".cstl"`,
-    // which crashes in thin-connect sub-repos that resolve to a root cstl instance
+  it("session-start.py resolves the Pactile dir upward, not hardcoded to project_dir", () => {
+    // Regression: the template must not hardcode `pactile_dir = project_dir / ".pactile"`,
+    // which crashes in thin-connect sub-repos that resolve to a root Pactile instance
     // (2026-08-16 instance-boundary decision). Must mirror the deployed root hook's
-    // _resolve_trellis_dir(): nearest .cstl upward, fallback to project_dir/.cstl.
+    // _resolve_pactile_dir(): nearest .pactile upward, fallback to project_dir/.pactile.
     const sessionStart = getSharedHookScripts().find(
       (h) => h.name === "session-start.py",
     );
     expect(sessionStart, "session-start.py is missing from shared-hooks/").toBeDefined();
     const content = sessionStart ? sessionStart.content : "";
-    expect(content).not.toContain('trellis_dir = project_dir / ".cstl"');
-    expect(content).toContain("def _resolve_trellis_dir(project_dir");
-    expect(content).toContain("trellis_dir = _resolve_trellis_dir(project_dir)");
-    expect(content).toContain('(current / ".cstl").is_dir()');
+    expect(content).not.toContain('pactile_dir = project_dir / ".pactile"');
+    expect(content).toContain("def _resolve_pactile_dir(project_dir");
+    expect(content).toContain("pactile_dir = _resolve_pactile_dir(project_dir)");
+    expect(content).toContain('(current / ".pactile").is_dir()');
     expect(content).toContain("current.parent == current");
-    expect(content).toContain('return project_dir / ".cstl"');
+    expect(content).toContain('return project_dir / ".pactile"');
   });
 
   it("session-start does not dump fixture Phase Index / Task Ladder / AGENTS", () => {
@@ -531,7 +531,7 @@ describe("shared-hooks capability table", () => {
   it("Lite Single selected task keeps blocked on-demand modules out of layer 2", () => {
     const tmpDir = makeFixtureProject();
     try {
-      const taskDir = path.join(tmpDir, ".cstl", "tasks", "lite-exec");
+      const taskDir = path.join(tmpDir, ".pactile", "tasks", "lite-exec");
       fs.mkdirSync(taskDir, { recursive: true });
       fs.writeFileSync(
         path.join(taskDir, "task.json"),
@@ -564,7 +564,7 @@ describe("shared-hooks capability table", () => {
       );
       fs.writeFileSync(path.join(taskDir, "prd.md"), "# Lite\n\n- [ ] AC one\n");
       const ran = runHook("session-start.py", tmpDir, {
-        CSTL_TEST_SELECTED_TASK: ".cstl/tasks/lite-exec",
+        PACTILE_TEST_SELECTED_TASK: ".pactile/tasks/lite-exec",
       });
       expect(ran.status, ran.stderr).toBe(0);
       const context = hookContext(ran.stdout);
@@ -587,7 +587,7 @@ describe("shared-hooks capability table", () => {
   it("session-start compiler failure no-ops with exit 0", () => {
     const tmpDir = makeFixtureProject({ sessionPack: false });
     try {
-      fs.rmSync(path.join(tmpDir, ".cstl", "scripts", "common", "session_pack.py"), {
+      fs.rmSync(path.join(tmpDir, ".pactile", "scripts", "common", "session_pack.py"), {
         force: true,
       });
       const ran = runHook("session-start.py", tmpDir);
@@ -609,7 +609,7 @@ describe("shared-hooks capability table", () => {
       expect(ran.stdout).not.toContain("UNIQUE_WORKFLOW_STATE_METHODOLOGY");
       expect(ran.stdout).not.toContain("[Triage: No Task");
 
-      const missing = fs.mkdtempSync(path.join(os.tmpdir(), "cstl-except-old-none-"));
+      const missing = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-except-old-none-"));
       try {
         const silent = runHook("inject-workflow-state.py", missing);
         expect(silent.status, silent.stderr).toBe(0);

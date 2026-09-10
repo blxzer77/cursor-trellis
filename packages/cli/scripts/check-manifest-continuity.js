@@ -3,13 +3,13 @@
  * Pre-release gate: ensure migration-manifest continuity with npm.
  *
  * Contract: once a version is published to npm, its manifest is part of the
- * public update contract. `trellis update` applies manifests where
+ * public update contract. `pactile update` applies manifests where
  * `v > installed && v <= current` — if any published version is missing a
  * local manifest, users upgrading from that version silently skip their
  * bucket of migrations.
  *
  * This guard runs before `pnpm version` bumps on every release track:
- *   1. Query npm for all published versions of @blxzer/cursor-trellis
+ *   1. Query npm for all published versions of @blxzer/pactile
  *   2. Diff against local `src/migrations/manifests/*.json`
  *   3. Fail non-zero if any npm version lacks a local manifest
  *
@@ -22,7 +22,7 @@
  *
  * Background:
  *   The beta.10 incident (manifest deleted from repo AFTER being published
- *   to npm) motivated this gate — see .trellis/spec/cli/backend/migrations.md.
+ *   to npm) motivated this gate — see .pactile/spec/cli/backend/migrations.md.
  */
 import { execSync } from "node:child_process";
 import fs from "node:fs";
@@ -31,7 +31,7 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const MANIFESTS_DIR = path.join(__dirname, "../src/migrations/manifests");
-const PACKAGE_NAME = "@blxzer/cursor-trellis";
+const PACKAGE_NAME = "@blxzer/pactile";
 
 /**
  * Historical npm versions whose manifests are permanently missing from the
@@ -42,7 +42,7 @@ const PACKAGE_NAME = "@blxzer/cursor-trellis";
  * manifest from git or change the release plan) instead of appending here.
  */
 const KNOWN_GAPS = new Set([
-  // New package line (@blxzer/cursor-trellis): no historical npm debt yet.
+  // New package line (@blxzer/pactile): no historical npm debt yet.
 ]);
 
 const RED = "\x1b[31m";
@@ -104,8 +104,8 @@ function main() {
     newGaps.forEach((v) => console.error(`  - ${v}.json`));
     console.error(
       `\n` +
-      `A version on npm without its local manifest breaks \`trellis update\`\n` +
-      `for users on adjacent versions. See .trellis/spec/cli/backend/migrations.md.\n` +
+      `A version on npm without its local manifest breaks \`pactile update\`\n` +
+      `for users on adjacent versions. See .pactile/spec/cli/backend/migrations.md.\n` +
       `\n` +
       `Fix options:\n` +
       `  1. Restore the manifest from git history\n` +

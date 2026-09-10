@@ -5,7 +5,7 @@ import {
   type CapabilityBindingV1,
   type ProjectionOperationV1,
   type ProviderResolutionResultV1,
-} from "@blxzer/cursor-trellis-core";
+} from "@blxzer/pactile-core";
 import {
   reduceExternalBindingClaims,
   type ExternalBindingClaim,

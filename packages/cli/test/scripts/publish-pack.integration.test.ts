@@ -10,7 +10,7 @@ import path from "node:path";
 
 const TEMPLATE_SCRIPTS = path.resolve(
   __dirname,
-  "../../src/templates/trellis/scripts",
+  "../../src/templates/pactile/scripts",
 );
 
 function hasPython(): boolean {
@@ -48,7 +48,7 @@ function runPython(cwd: string, script: string, args: string[] = []): {
 
 function stampRepo(tmp: string): void {
   fs.mkdirSync(tmp, { recursive: true });
-  fs.cpSync(TEMPLATE_SCRIPTS, path.join(tmp, ".cstl", "scripts"), {
+  fs.cpSync(TEMPLATE_SCRIPTS, path.join(tmp, ".pactile", "scripts"), {
     recursive: true,
   });
 }
@@ -81,7 +81,7 @@ describe("publish-pack integration", () => {
 
   beforeEach(() => {
     if (!hasPython()) return;
-    tmp = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-publish-pack-"));
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-publish-pack-"));
     stampRepo(tmp);
   });
 
@@ -94,10 +94,10 @@ describe("publish-pack integration", () => {
   it("round-trips stages in task-map frontmatter", () => {
     if (!hasPython()) return;
 
-    const parentDir = path.join(tmp, ".cstl", "tasks", "parent-campaign");
+    const parentDir = path.join(tmp, ".pactile", "tasks", "parent-campaign");
     writeTask(parentDir, "parent-campaign");
-    writeTask(path.join(tmp, ".cstl", "tasks", "child-a"), "child-a");
-    writeTask(path.join(tmp, ".cstl", "tasks", "child-b"), "child-b");
+    writeTask(path.join(tmp, ".pactile", "tasks", "child-a"), "child-a");
+    writeTask(path.join(tmp, ".pactile", "tasks", "child-b"), "child-b");
 
     fs.writeFileSync(
       path.join(parentDir, "task-map.md"),
@@ -130,7 +130,7 @@ integration_queue: []
     );
 
     const probePath = path.join(tmp, "probe_stages.py");
-    const scriptsPath = path.join(tmp, ".cstl", "scripts").replace(/\\/g, "/");
+    const scriptsPath = path.join(tmp, ".pactile", "scripts").replace(/\\/g, "/");
     const parentPosix = parentDir.replace(/\\/g, "/");
     fs.writeFileSync(
       probePath,
@@ -162,7 +162,7 @@ print("ok")
   it("publish-pack writes PACK.md and ready prompts; blocks unmet deps", () => {
     if (!hasPython()) return;
 
-    const tasks = path.join(tmp, ".cstl", "tasks");
+    const tasks = path.join(tmp, ".pactile", "tasks");
     const parentDir = path.join(tasks, "parent-campaign");
     writeTask(parentDir, "parent-campaign");
     writeTask(path.join(tasks, "child-a"), "child-a");
@@ -208,9 +208,9 @@ integration_queue: []
 `,
     );
 
-    const { status, stdout, stderr } = runPython(tmp, ".cstl/scripts/task.py", [
+    const { status, stdout, stderr } = runPython(tmp, ".pactile/scripts/task.py", [
       "publish-pack",
-      ".cstl/tasks/parent-campaign",
+      ".pactile/tasks/parent-campaign",
     ]);
     expect(stderr).toBe("");
     expect(status).toBe(0);
@@ -230,7 +230,7 @@ integration_queue: []
       path.join(parentDir, "child-prompts", "child-a.md"),
       "utf-8",
     );
-    expect(readyA).toContain("select .cstl/tasks/child-a");
+    expect(readyA).toContain("select .pactile/tasks/child-a");
     expect(readyA).toContain("Fixture goal for child-a");
 
     const blockedB = fs.readFileSync(
@@ -244,7 +244,7 @@ integration_queue: []
   it("publish-pack --stage filters and --dry-run writes nothing", () => {
     if (!hasPython()) return;
 
-    const tasks = path.join(tmp, ".cstl", "tasks");
+    const tasks = path.join(tmp, ".pactile", "tasks");
     const parentDir = path.join(tasks, "parent-campaign");
     writeTask(parentDir, "parent-campaign");
     writeTask(path.join(tasks, "child-a"), "child-a");
@@ -283,9 +283,9 @@ integration_queue: []
 `,
     );
 
-    const dry = runPython(tmp, ".cstl/scripts/task.py", [
+    const dry = runPython(tmp, ".pactile/scripts/task.py", [
       "publish-pack",
-      ".cstl/tasks/parent-campaign",
+      ".pactile/tasks/parent-campaign",
       "--stage",
       "stage-2",
       "--dry-run",
@@ -296,9 +296,9 @@ integration_queue: []
     expect(dry.stdout).not.toContain("### `stage-1`");
     expect(fs.existsSync(path.join(parentDir, "child-prompts"))).toBe(false);
 
-    const filtered = runPython(tmp, ".cstl/scripts/task.py", [
+    const filtered = runPython(tmp, ".pactile/scripts/task.py", [
       "publish-pack",
-      ".cstl/tasks/parent-campaign",
+      ".pactile/tasks/parent-campaign",
       "--stage",
       "stage-1",
     ]);
@@ -314,7 +314,7 @@ integration_queue: []
   it("parent-status shows stages section", () => {
     if (!hasPython()) return;
 
-    const tasks = path.join(tmp, ".cstl", "tasks");
+    const tasks = path.join(tmp, ".pactile", "tasks");
     const parentDir = path.join(tasks, "parent-campaign");
     writeTask(parentDir, "parent-campaign");
     writeTask(path.join(tasks, "child-a"), "child-a");
@@ -343,9 +343,9 @@ integration_queue: []
 `,
     );
 
-    const { status, stdout } = runPython(tmp, ".cstl/scripts/task.py", [
+    const { status, stdout } = runPython(tmp, ".pactile/scripts/task.py", [
       "parent-status",
-      ".cstl/tasks/parent-campaign",
+      ".pactile/tasks/parent-campaign",
     ]);
     expect(status).toBe(0);
     expect(stdout).toContain("## Stages");
@@ -357,7 +357,7 @@ integration_queue: []
   it("parent-status text includes stalePack and newlyReady", () => {
     if (!hasPython()) return;
 
-    const tasks = path.join(tmp, ".cstl", "tasks");
+    const tasks = path.join(tmp, ".pactile", "tasks");
     const parentDir = path.join(tasks, "parent-campaign");
     writeTask(parentDir, "parent-campaign");
     writeTask(path.join(tasks, "child-a"), "child-a");
@@ -397,9 +397,9 @@ integration_queue: []
 `,
     );
 
-    const { status, stdout } = runPython(tmp, ".cstl/scripts/task.py", [
+    const { status, stdout } = runPython(tmp, ".pactile/scripts/task.py", [
       "parent-status",
-      ".cstl/tasks/parent-campaign",
+      ".pactile/tasks/parent-campaign",
     ]);
     expect(status).toBe(0);
     expect(stdout).toContain("## Pack freshness");
@@ -411,7 +411,7 @@ integration_queue: []
   it("parent-status --json includes stalePack and newlyReady", () => {
     if (!hasPython()) return;
 
-    const tasks = path.join(tmp, ".cstl", "tasks");
+    const tasks = path.join(tmp, ".pactile", "tasks");
     const parentDir = path.join(tasks, "parent-campaign");
     writeTask(parentDir, "parent-campaign");
     writeTask(path.join(tasks, "child-a"), "child-a");
@@ -440,9 +440,9 @@ integration_queue: []
 `,
     );
 
-    const { status, stdout } = runPython(tmp, ".cstl/scripts/task.py", [
+    const { status, stdout } = runPython(tmp, ".pactile/scripts/task.py", [
       "parent-status",
-      ".cstl/tasks/parent-campaign",
+      ".pactile/tasks/parent-campaign",
       "--json",
     ]);
     expect(status).toBe(0);
@@ -463,7 +463,7 @@ integration_queue: []
   it("integrate-child integrated refreshes PACK by default", () => {
     if (!hasPython()) return;
 
-    const tasks = path.join(tmp, ".cstl", "tasks");
+    const tasks = path.join(tmp, ".pactile", "tasks");
     const parentDir = path.join(tasks, "parent-campaign");
     const childADir = path.join(tasks, "child-a");
     const childBDir = path.join(tasks, "child-b");
@@ -502,9 +502,9 @@ integration_queue: [child-a]
 `,
     );
 
-    runPython(tmp, ".cstl/scripts/task.py", [
+    runPython(tmp, ".pactile/scripts/task.py", [
       "publish-pack",
-      ".cstl/tasks/parent-campaign",
+      ".pactile/tasks/parent-campaign",
     ]);
     const packBefore = fs.readFileSync(
       path.join(parentDir, "child-prompts", "PACK.md"),
@@ -512,10 +512,10 @@ integration_queue: [child-a]
     );
     expect(packBefore).toContain("**blocked**");
 
-    const integrated = runPython(tmp, ".cstl/scripts/task.py", [
+    const integrated = runPython(tmp, ".pactile/scripts/task.py", [
       "integrate-child",
-      ".cstl/tasks/parent-campaign",
-      ".cstl/tasks/child-a",
+      ".pactile/tasks/parent-campaign",
+      ".pactile/tasks/child-a",
       "integrated",
       "--evidence",
       "task-map.md",
@@ -538,7 +538,7 @@ integration_queue: [child-a]
   it("integrate-child --no-publish-pack skips PACK refresh", () => {
     if (!hasPython()) return;
 
-    const tasks = path.join(tmp, ".cstl", "tasks");
+    const tasks = path.join(tmp, ".pactile", "tasks");
     const parentDir = path.join(tasks, "parent-campaign");
     const childADir = path.join(tasks, "child-a");
     writeTask(parentDir, "parent-campaign");
@@ -569,9 +569,9 @@ integration_queue: [child-a]
 `,
     );
 
-    runPython(tmp, ".cstl/scripts/task.py", [
+    runPython(tmp, ".pactile/scripts/task.py", [
       "publish-pack",
-      ".cstl/tasks/parent-campaign",
+      ".pactile/tasks/parent-campaign",
     ]);
     const packBefore = fs.readFileSync(
       path.join(parentDir, "child-prompts", "PACK.md"),
@@ -581,10 +581,10 @@ integration_queue: [child-a]
       .split("\n")
       .find((line) => line.startsWith("- Generated:"));
 
-    const integrated = runPython(tmp, ".cstl/scripts/task.py", [
+    const integrated = runPython(tmp, ".pactile/scripts/task.py", [
       "integrate-child",
-      ".cstl/tasks/parent-campaign",
-      ".cstl/tasks/child-a",
+      ".pactile/tasks/parent-campaign",
+      ".pactile/tasks/child-a",
       "integrated",
       "--evidence",
       "task-map.md",

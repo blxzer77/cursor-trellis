@@ -34,12 +34,12 @@ describe("validate-rules", () => {
   });
 
   it("fails when installed rules dir is missing a required file", () => {
-    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-rules-"));
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-rules-"));
     const rulesDir = path.join(tmp, "rules");
     fs.mkdirSync(rulesDir);
 
     for (const rule of getAllRules()) {
-      if (rule.name !== "cstl-bootstrap.mdc") {
+      if (rule.name !== "pactile-bootstrap.mdc") {
         fs.writeFileSync(path.join(rulesDir, rule.name), rule.content);
       }
     }
@@ -48,7 +48,7 @@ describe("validate-rules", () => {
     expect(result.ok).toBe(false);
     expect(
       result.issues.some(
-        (i) => i.filename === "cstl-bootstrap.mdc" && i.kind === "missing",
+        (i) => i.filename === "pactile-bootstrap.mdc" && i.kind === "missing",
       ),
     ).toBe(true);
   });

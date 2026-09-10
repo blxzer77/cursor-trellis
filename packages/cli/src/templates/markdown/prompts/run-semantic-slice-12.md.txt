@@ -1,13 +1,13 @@
 # Cursor semantic slice — 12-query eval (maintainer)
 
-> **Note:** `batch_plan_envelope.py` and `aggregate_retrieval_telemetry.py` were removed from user-shipped templates. Use `route_codebase_retrieval.py` per query and record JSONL manually, or restore those scripts from Trellis git history for batch eval runs.
+> **Note:** `batch_plan_envelope.py` and `aggregate_retrieval_telemetry.py` were removed from user-shipped templates. Use `route_codebase_retrieval.py` per query and record JSONL manually, or restore those scripts from Pactile git history for batch eval runs.
 
 ## Plan phase
 
 For each query in `queries-semantic-slice.jsonl`:
 
 ```powershell
-python .cstl/scripts/route_codebase_retrieval.py "<question>" --json
+python .pactile/scripts/route_codebase_retrieval.py "<question>" --json
 ```
 
 Record `semantic_in_plan` / route list from the envelope.
@@ -18,7 +18,7 @@ Run each query in a live Cursor session. Append one JSON object per line to `run
 
 - `query_id`, `platform`: `"cursor"`
 - `tools_called`, `plan_block_in_prompt`, `semantic_in_plan`
-- Classify with `common/retrieval_tool_classification.py` (see `.cstl/framework/cursor-semantic-compliance.md`)
+- Classify with `common/retrieval_tool_classification.py` (see `.pactile/framework/cursor-semantic-compliance.md`)
 
 ## Report
 

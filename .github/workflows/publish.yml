@@ -1,11 +1,12 @@
-# Publish @blxzer/cursor-trellis-core and @blxzer/cursor-trellis to npm when a
-# cursor-trellis release tag is pushed.
+# Publish the two canonical Pactile packages and two 0.5.x compatibility shims
+# to npm when a
+# Pactile release tag is pushed.
 #
-# Tag convention: cstl-v<semver> (NOT v<semver> — legacy @blxzer/trellis tags
-# occupy v0.3.x–v0.6.x in this repo's history).
+# Tag convention: pactile-v<semver>. Earlier tag families remain immutable
+# history and are never reused for new releases.
 #
 # Required repo secret: NPM_TOKEN (npm automation token with publish access to
-# both @blxzer/cursor-trellis and @blxzer/cursor-trellis-core).
+# the complete four-package release set).
 #
 # Manual fallback uses the same two-process credential wall: run
 # `publish-packages.js --prepare-only --receipt-output <outside-artifact-file>`
@@ -17,7 +18,7 @@ name: Publish
 on:
   push:
     tags:
-      - "cstl-v*"
+      - "pactile-v*"
 
 # contents: write — GitHub Release on the same tag (Latest was stuck on 0.3.4
 # when only npm published). Do not drop this back to read.
@@ -54,11 +55,11 @@ jobs:
 
       - name: Materialize dogfood for tests
         run: |
-          rm -rf .cursor/rules .cursor/agents .cstl/scripts
-          mkdir -p .cursor/rules .cursor/agents .cstl/scripts
+          rm -rf .cursor/rules .cursor/agents .pactile/scripts
+          mkdir -p .cursor/rules .cursor/agents .pactile/scripts
           cp packages/cli/src/templates/cursor/rules/* .cursor/rules/
           cp packages/cli/src/templates/cursor/agents/* .cursor/agents/
-          cp -r packages/cli/src/templates/trellis/scripts/* .cstl/scripts/
+          cp -r packages/cli/src/templates/pactile/scripts/* .pactile/scripts/
 
       - name: Prepare GitHub Release notes from CHANGELOG
         run: |
@@ -90,7 +91,7 @@ jobs:
           --tag "${GITHUB_REF_NAME}" --remote origin
         env:
           # Candidate tests call Kernel before either package is published.
-          TRELLIS_KERNEL_CLI: node ${{ github.workspace }}/packages/cli/bin/cstl.js kernel --json
+          PACTILE_KERNEL_CLI: node ${{ github.workspace }}/packages/cli/bin/pactile.js kernel --json
 
       - name: Publish verified tarballs
         run: >-

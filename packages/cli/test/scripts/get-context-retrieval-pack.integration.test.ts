@@ -22,7 +22,7 @@ describe.skipIf(pythonCmd === null)("get_context.py --mode retrieval-pack", () =
 
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(
-      path.join(os.tmpdir(), "trellis-get-context-retrieval-pack-"),
+      path.join(os.tmpdir(), "pactile-get-context-retrieval-pack-"),
     );
     seedEvalProject(tmpDir);
   });
@@ -74,7 +74,7 @@ describe.skipIf(pythonCmd === null)("get_context.py --mode retrieval-pack", () =
   });
 
   it("works without a selected task and returns an explicit empty pack", () => {
-    fs.rmSync(path.join(tmpDir, ".cstl", ".runtime", "sessions"), {
+    fs.rmSync(path.join(tmpDir, ".pactile", ".runtime", "sessions"), {
       recursive: true,
       force: true,
     });

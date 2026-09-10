@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * Fail-closed release candidate planner.
  *
@@ -25,6 +24,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CLI_DIR = path.resolve(__dirname, "..");
 const REPO_ROOT = path.resolve(CLI_DIR, "../..");
 const CORE_DIR = path.join(REPO_ROOT, "packages/core");
+const LEGACY_CORE_DIR = path.join(
+  REPO_ROOT,
+  "packages/cursor-trellis-core-shim",
+);
+const LEGACY_CLI_DIR = path.join(REPO_ROOT, "packages/cursor-trellis-shim");
 
 const RELEASE_TYPES = new Set([
   "patch",
@@ -93,11 +97,21 @@ function readPackageInfo() {
   const core = JSON.parse(
     fs.readFileSync(path.join(CORE_DIR, "package.json"), "utf-8"),
   );
+  const legacyCore = JSON.parse(
+    fs.readFileSync(path.join(LEGACY_CORE_DIR, "package.json"), "utf-8"),
+  );
+  const legacyCli = JSON.parse(
+    fs.readFileSync(path.join(LEGACY_CLI_DIR, "package.json"), "utf-8"),
+  );
   return {
     cliName: cli.name,
     cliVersion: cli.version,
     coreName: core.name,
     coreVersion: core.version,
+    legacyCoreName: legacyCore.name,
+    legacyCoreVersion: legacyCore.version,
+    legacyCliName: legacyCli.name,
+    legacyCliVersion: legacyCli.version,
   };
 }
 
@@ -149,15 +163,15 @@ export function runReleaseCandidate({
     remote,
   });
   if (validate) {
-    const kernelBin = path.join(cliDir, "bin", "cstl.js");
+    const kernelBin = path.join(cliDir, "bin", "pactile.js");
     const quoted = /\s/.test(kernelBin) ? `"${kernelBin}"` : kernelBin;
     runCandidateValidation({
       runner,
       repoRoot,
       cliDir,
       env: {
-        TRELLIS_KERNEL_CLI: `node ${quoted} kernel --json`,
-        TRELLIS_SKIP_SMART_SEARCH_POSTINSTALL: "1",
+        PACTILE_KERNEL_CLI: `node ${quoted} kernel --json`,
+        PACTILE_SKIP_SMART_SEARCH_POSTINSTALL: "1",
       },
     });
   }

@@ -21,7 +21,11 @@ import {
   reduceWorkerRegistry,
   type ChannelEvent,
   type WorkerState,
-} from "@blxzer/cursor-trellis-core/channel";
+} from "@blxzer/pactile-core/channel";
+import {
+  PACTILE_ENVIRONMENT_KEYS,
+  readPactileEnvironment,
+} from "@blxzer/pactile-core";
 
 import { DIR_NAMES } from "../../constants/paths.js";
 
@@ -40,10 +44,10 @@ export const DEFAULT_IDLE_TTL_MS = 5 * 60 * 1000;
 export const DEFAULT_MAX_LIVE_WORKERS = 6;
 
 /** Env var override for the idle-cleanup TTL. */
-export const ENV_IDLE_TIMEOUT = "TRELLIS_CHANNEL_WORKER_IDLE_TIMEOUT";
+export const ENV_IDLE_TIMEOUT = PACTILE_ENVIRONMENT_KEYS.channelWorkerIdleTimeout;
 
 /** Env var override for the live-worker budget. */
-export const ENV_MAX_LIVE_WORKERS = "TRELLIS_CHANNEL_MAX_LIVE_WORKERS";
+export const ENV_MAX_LIVE_WORKERS = PACTILE_ENVIRONMENT_KEYS.channelMaxLiveWorkers;
 
 export interface WorkerGuardConfig {
   /** Idle-cleanup TTL in ms. `0` disables idle cleanup for new spawns. */
@@ -67,7 +71,7 @@ export interface ResolveGuardOptions {
  * Resolve the effective guard policy. Precedence:
  *   1. CLI flag (`flag*Ms` / `flagMaxLiveWorkers`)
  *   2. environment variable
- *   3. `.cstl/config.yaml` `channel.worker_guard`
+ *   3. `.pactile/config.yaml` `channel.worker_guard`
  *   4. built-in default constant
  */
 export function resolveWorkerGuardConfig(
@@ -79,13 +83,19 @@ export function resolveWorkerGuardConfig(
 
   const idleTimeoutMs = pickNonNegativeMs(
     opts.flagIdleTimeoutMs,
-    parseEnvDuration(env[ENV_IDLE_TIMEOUT], ENV_IDLE_TIMEOUT),
+    parseEnvDuration(
+      readPactileEnvironment(ENV_IDLE_TIMEOUT, { env }),
+      ENV_IDLE_TIMEOUT,
+    ),
     fromConfig?.idleTimeoutMs,
     DEFAULT_IDLE_TTL_MS,
   );
   const maxLiveWorkers = pickNonNegativeInt(
     opts.flagMaxLiveWorkers,
-    parseEnvInt(env[ENV_MAX_LIVE_WORKERS], ENV_MAX_LIVE_WORKERS),
+    parseEnvInt(
+      readPactileEnvironment(ENV_MAX_LIVE_WORKERS, { env }),
+      ENV_MAX_LIVE_WORKERS,
+    ),
     fromConfig?.maxLiveWorkers,
     DEFAULT_MAX_LIVE_WORKERS,
   );
@@ -151,7 +161,7 @@ interface ProjectGuardConfig {
 }
 
 /**
- * Parse the `channel.worker_guard` section out of `.cstl/config.yaml`.
+ * Parse the `channel.worker_guard` section out of `.pactile/config.yaml`.
  * Mirrors the lightweight line-scanner used elsewhere in update.ts so we
  * don't pull in a YAML dependency just for this two-field section.
  */
@@ -634,10 +644,10 @@ export function formatBudgetOverflowError(args: {
     .join("\n");
   const hint = [
     "Free a slot before spawning, e.g.:",
-    `  trellis channel kill <channel> --as <worker>`,
+    `  pactile channel kill <channel> --as <worker>`,
     "Or override per spawn:",
-    `  trellis channel spawn ... --max-live-workers ${live.length + 1}`,
-    "Or raise the default in .cstl/config.yaml under channel.worker_guard.max_live_workers.",
+    `  pactile channel spawn ... --max-live-workers ${live.length + 1}`,
+    "Or raise the default in .pactile/config.yaml under channel.worker_guard.max_live_workers.",
   ].join("\n");
   return [header, rows, hint].join("\n");
 }

@@ -1,5 +1,5 @@
 /**
- * Trellis - AI-assisted development workflow framework
+ * Pactile - governed capability tiles with evidence-backed execution
  *
  * Based on Anthropic's "Effective Harnesses for Long-Running Agents"
  * https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents

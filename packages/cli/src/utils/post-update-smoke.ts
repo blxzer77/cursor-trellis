@@ -23,8 +23,8 @@ function runCheck(command: string, cwd: string): UpdateSmokeCheckResult {
 }
 
 /**
- * Repeatable, non-destructive checks after a successful `trellis update` apply.
- * Verifies generated Trellis Python entrypoints compile and respond to --help.
+ * Repeatable, non-destructive checks after a successful `pactile update` apply.
+ * Verifies generated Pactile Python entrypoints compile and respond to --help.
  */
 export function runPostUpdateSmoke(cwd: string): UpdateSmokeCheckResult[] {
   const results: UpdateSmokeCheckResult[] = [];

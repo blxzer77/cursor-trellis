@@ -24,10 +24,9 @@ import {
 } from "../constants/paths.js";
 import type { TemplateHashes } from "../types/migration.js";
 import { toPosix } from "./posix.js";
-import { resolveWorkflowDirName } from "./workflow-dir.js";
 import {
-  CSTL_BLOCK_END,
-  CSTL_BLOCK_START,
+  PACTILE_BLOCK_END,
+  PACTILE_BLOCK_START,
   extractBlock,
 } from "./agents-md.js";
 
@@ -55,16 +54,16 @@ export function computeHash(content: string): string {
 }
 
 /**
- * Hash content for a tracked path. AGENTS.md is hashed at the CSTL managed
+ * Hash content for a tracked path. AGENTS.md is hashed at the Pactile managed
  * block level (not the whole file) so that in a coexistence repo, upstream
- * edits to the TRELLIS block or user content outside the CSTL block do NOT
- * register as "cursor-trellis template modified" (which would prompt the
- * user on every `cstl update`). Files without a CSTL block (or non-AGENTS
+ * edits to a foreign block or user content outside the Pactile block do not
+ * register as "Pactile template modified" (which would prompt the user on
+ * every `pactile update`). Files without a Pactile block (or non-AGENTS
  * paths) hash the whole content.
  */
 function hashContentForPath(relativePath: string, content: string): string {
   if (toPosix(relativePath) === FILE_NAMES.AGENTS) {
-    const block = extractBlock(content, CSTL_BLOCK_START, CSTL_BLOCK_END);
+    const block = extractBlock(content, PACTILE_BLOCK_START, PACTILE_BLOCK_END);
     if (block !== null) {
       return computeHash(block);
     }
@@ -76,8 +75,7 @@ function hashContentForPath(relativePath: string, content: string): string {
  * Get path to the hashes file
  */
 function getHashesPath(cwd: string): string {
-  const dirName = resolveWorkflowDirName(cwd) ?? DIR_NAMES.WORKFLOW;
-  return path.join(cwd, dirName, HASHES_FILE);
+  return path.join(cwd, DIR_NAMES.WORKFLOW, HASHES_FILE);
 }
 
 /**
@@ -155,7 +153,7 @@ export function updateHashes(cwd: string, files: Map<string, string>): void {
   const hashes = loadHashes(cwd);
 
   for (const [relativePath, content] of files) {
-    if (isUserMiddlewareOverlayPath(relativePath)) {
+    if (shouldExcludeFromHash(relativePath)) {
       continue;
     }
     hashes[toPosix(relativePath)] = hashContentForPath(relativePath, content);
@@ -168,7 +166,7 @@ export function updateHashes(cwd: string, files: Map<string, string>): void {
  * Update hash for a single file by reading its current content
  */
 export function updateHashFromFile(cwd: string, relativePath: string): void {
-  if (isUserMiddlewareOverlayPath(relativePath)) {
+  if (shouldExcludeFromHash(relativePath)) {
     return;
   }
   const fullPath = path.join(cwd, relativePath);
@@ -240,7 +238,7 @@ export function isTemplateModified(
   }
 
   // Compare current content hash with stored hash. AGENTS.md is compared at
-  // the CSTL block level (see hashContentForPath). Legacy grace: pre-0.3.3
+  // the Pactile block level (see hashContentForPath). Legacy grace: pre-0.3.3
   // manifests stored a WHOLE-FILE hash for AGENTS.md, so the first 0.3.3
   // update would see a block-hash mismatch. If the whole file still matches
   // the legacy stored hash, treat it as unmodified — the upcoming write will
@@ -307,7 +305,7 @@ export function getModificationStatus(
 }
 
 /**
- * Patterns to exclude from hash tracking (only applied to the .cstl/ walk).
+ * Patterns to exclude from canonical workflow hash tracking.
  */
 const EXCLUDE_FROM_HASH = [
   ".template-hashes.json", // Hash file itself
@@ -317,8 +315,9 @@ const EXCLUDE_FROM_HASH = [
   "workspace/", // Workspace files (user data)
   "tasks/", // Task files (user data)
   ".current-task", // Current task marker (file, not directory)
-  ".cstl/spec/", // User-customized spec files
-  ".cstl/middleware/", // User middleware overlay (never hashed)
+  ".pactile/runtime/", // Immutable generations, journals, ledgers, receipts
+  ".pactile/spec/", // User-customized canonical spec files
+  ".pactile/middleware/", // Canonical user middleware overlay
   ".backup-", // Backup directories
 ];
 
@@ -373,7 +372,7 @@ function collectFiles(cwd: string, dir: string): string[] {
 /** Options accepted by {@link initializeHashes}. */
 export interface InitializeHashesOptions {
   /**
-   * POSIX-style relative paths trellis actually wrote during the init run
+   * POSIX-style relative paths Pactile actually wrote during the init run
    * (captured via `startRecordingWrites` in `file-writer.ts`). Only these
    * paths are hashed for the platform/root-level coverage; anything else
    * under `.codex/` / `.claude/` / etc. is left alone, even if it exists
@@ -384,9 +383,10 @@ export interface InitializeHashesOptions {
   trackedPaths?: ReadonlySet<string>;
   /**
    * When true, merge `trackedPaths`-derived hashes into the EXISTING manifest
-   * instead of replacing it. Used by `handleReinit` "add platform" flow so
-   * previously-tracked platforms aren't wiped from the manifest when only
-   * a new platform's writes are recorded. Defaults to false (replace).
+   * instead of replacing it. Used by canonical re-init and the add-platform
+   * flow so byte-identical, previously tracked root files are not stripped
+   * from ownership evidence merely because no disk write was needed.
+   * Defaults to false (replace) for a fresh install.
    */
   merge?: boolean;
 }
@@ -400,10 +400,9 @@ export interface InitializeHashesOptions {
  * where a blind directory walk of `.codex/` / `.claude/` swept up
  * user-owned runtime data (chat history, session JSONLs).
  *
- * `.cstl/` is still walked recursively (with `EXCLUDE_FROM_HASH`) because
- * uninstall removes `.cstl/` wholesale via `rm -rf` regardless of manifest
- * content — accuracy there doesn't affect data-loss, only `trellis update`
- * 3-way-merge fidelity (preserved by the existing walk).
+ * The canonical `.pactile/` tree is walked recursively with user-owned
+ * runtime/spec/task/workspace paths excluded. Uninstall never relies on this
+ * manifest for deletion; projection receipts and ledgers remain authoritative.
  *
  * @returns Number of files hashed in the final manifest.
  */
@@ -417,8 +416,9 @@ export function initializeHashes(
   // Platform + root files: hash only paths actually written this run.
   if (trackedPaths) {
     for (const relativePath of trackedPaths) {
-      // `.cstl/` paths are handled by the walk below — don't double-track.
-      if (relativePath.startsWith(".cstl/") || relativePath === ".cstl") {
+      if (shouldExcludeFromHash(relativePath)) continue;
+      // Canonical workflow paths are handled by the walk below.
+      if (relativePath.startsWith(".pactile/") || relativePath === ".pactile") {
         continue;
       }
       const fullPath = path.join(cwd, ...relativePath.split("/"));
@@ -432,11 +432,9 @@ export function initializeHashes(
     }
   }
 
-  // .cstl/ workflow tree: still walked recursively. Accuracy here is for
-  // `trellis update`'s 3-way merge of workflow.md / config.yaml / scripts;
-  // uninstall removes .cstl/ wholesale so it does not matter for the
-  // data-loss bug this contract addresses.
-  const files = collectFiles(cwd, ".cstl");
+  // Canonical workflow tree. Legacy roots are import inputs only and are
+  // intentionally never walked or written by this canonical manifest path.
+  const files = collectFiles(cwd, DIR_NAMES.WORKFLOW);
   for (const relativePath of files) {
     const fullPath = path.join(cwd, relativePath);
     try {

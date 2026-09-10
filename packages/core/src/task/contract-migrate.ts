@@ -79,7 +79,7 @@ export function scanContractMigration(
 ): ContractMigrateReport {
   const tasksRoot = options.tasksDir
     ? path.resolve(options.tasksDir)
-    : path.join(path.resolve(options.root), ".cstl", "tasks");
+    : path.join(path.resolve(options.root), ".pactile", "tasks");
   const files = collectTaskJsonFiles(tasksRoot);
   const findings: ContractMigrateFinding[] = [];
 
@@ -225,7 +225,7 @@ function scanTaskFile(file: string): ContractMigrateFinding[] {
 }
 
 function scanProfileRefs(root: string): ContractMigrateFinding[] {
-  const configPath = path.join(path.resolve(root), ".cstl", "config.yaml");
+  const configPath = path.join(path.resolve(root), ".pactile", "config.yaml");
   if (!fs.existsSync(configPath)) return [];
   let text: string;
   try {

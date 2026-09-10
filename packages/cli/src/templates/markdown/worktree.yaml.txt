@@ -22,7 +22,7 @@ copy:
   # - .env
   # - .env.local
   # Workflow config
-  - .cstl/.developer
+  - .pactile/.developer
 
 #-------------------------------------------------------------------------------
 # Post-Create Hooks

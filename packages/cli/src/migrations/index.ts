@@ -1,5 +1,5 @@
 /**
- * Migration manifests for Trellis versions
+ * Preserved migration manifests for pre-Pactile versions
  *
  * Each version's migrations are stored in separate JSON files under manifests/
  * Format: manifests/{version}.json (e.g., manifests/0.1.9.json)
