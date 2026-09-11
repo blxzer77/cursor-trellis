@@ -65,6 +65,7 @@ jobs:
 
       - name: Materialize dogfood for release validation
         run: |
+          printf '\n# Release validation dogfood\n/.pactile/\n' >> .git/info/exclude
           rm -rf .cursor/rules .cursor/agents .pactile/scripts
           mkdir -p .cursor/rules .cursor/agents .pactile/scripts
           cp packages/cli/src/templates/cursor/rules/* .cursor/rules/
