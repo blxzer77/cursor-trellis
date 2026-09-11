@@ -596,6 +596,17 @@ def _pactile_is_link(info) -> bool:
     )
 
 
+def _pactile_same_path(left: str, right: str) -> bool:
+    """Treat Windows junction/8.3 spellings of one inode as the same path."""
+    import os
+    try:
+        if os.path.samefile(left, right):
+            return True
+    except (OSError, ValueError):
+        pass
+    return os.path.normcase(os.path.abspath(left)) == os.path.normcase(os.path.abspath(right))
+
+
 def _pactile_assert_root(root: str) -> None:
     import os
     import stat
@@ -606,7 +617,7 @@ def _pactile_assert_root(root: str) -> None:
         raise PactileRuntimeError("link-escape")
     if not stat.S_ISDIR(root_stat.st_mode):
         raise PactileRuntimeError("outside-project")
-    if os.path.relpath(os.path.realpath(root), root) != ".":
+    if not _pactile_same_path(os.path.realpath(root), root):
         raise PactileRuntimeError("link-escape")
 
 
@@ -631,6 +642,7 @@ def assert_canonical_write_target(project_root: str, target: str) -> str:
     if parts[0] != ".pactile":
         raise PactileRuntimeError("canonical-collision")
     _pactile_assert_root(root)
+    real_root = os.path.realpath(root)
     current = root
     for index, part in enumerate(parts):
         parent_stat = _pactile_lstat(current)
@@ -642,7 +654,14 @@ def assert_canonical_write_target(project_root: str, target: str) -> str:
         info = _pactile_lstat(current)
         if info is None:
             continue
-        if _pactile_is_link(info) or os.path.relpath(os.path.realpath(current), current) != ".":
+        real = os.path.realpath(current)
+        if _pactile_is_link(info) or not _pactile_same_path(real, current):
+            raise PactileRuntimeError("link-escape")
+        try:
+            relative_real = os.path.relpath(real, real_root)
+        except ValueError:
+            raise PactileRuntimeError("link-escape") from None
+        if relative_real == ".." or relative_real.startswith(".." + os.sep) or os.path.isabs(relative_real):
             raise PactileRuntimeError("link-escape")
         if stat.S_ISREG(info.st_mode) and info.st_nlink > 1:
             raise PactileRuntimeError("link-escape")
@@ -658,6 +677,7 @@ def discover_runtime_roots(project_root: str) -> dict:
     import stat
     root = os.path.abspath(project_root)
     _pactile_assert_root(root)
+    real_root = os.path.realpath(root)
     names = os.listdir(root)
     diagnostics = []
 
@@ -670,7 +690,16 @@ def discover_runtime_roots(project_root: str) -> dict:
             return False
         target = os.path.join(root, name)
         info = os.lstat(target)
-        if _pactile_is_link(info) or os.path.relpath(os.path.realpath(target), target) != ".":
+        real = os.path.realpath(target)
+        if _pactile_is_link(info) or not _pactile_same_path(real, target):
+            diagnostics.append({"code": "link-escape", "root": name})
+            return False
+        try:
+            relative_real = os.path.relpath(real, real_root)
+        except ValueError:
+            diagnostics.append({"code": "link-escape", "root": name})
+            return False
+        if relative_real == ".." or relative_real.startswith(".." + os.sep) or os.path.isabs(relative_real):
             diagnostics.append({"code": "link-escape", "root": name})
             return False
         if not stat.S_ISDIR(info.st_mode):

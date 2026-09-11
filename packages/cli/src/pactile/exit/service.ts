@@ -147,6 +147,24 @@ function physicalIdentity(value: string): string {
   return value.normalize("NFC").toLocaleLowerCase("en-US");
 }
 
+/**
+ * Compare paths by filesystem identity when Windows exposes an alias for a
+ * directory (for example, a runner temp directory junction or an 8.3 path).
+ * The textual fallback keeps this helper usable for paths that no longer
+ * exist, while stat identity prevents a harmless spelling difference from
+ * being mistaken for an escape.
+ */
+function samePhysicalPath(left: string, right: string): boolean {
+  if (physicalIdentity(left) === physicalIdentity(right)) return true;
+  try {
+    const leftStat = fs.statSync(left);
+    const rightStat = fs.statSync(right);
+    return leftStat.dev === rightStat.dev && leftStat.ino === rightStat.ino;
+  } catch {
+    return false;
+  }
+}
+
 function digestIdentity(value: unknown): string {
   return fingerprintPactileContractV1(value).slice(7, 31);
 }
@@ -198,8 +216,7 @@ function readHostSurface(projectRoot: string, relative: string): Buffer | null {
   if (!rootStat.isDirectory() || rootStat.isSymbolicLink())
     throw new Error("unsafe-project-root");
   const realRoot = fs.realpathSync.native(root);
-  if (physicalIdentity(realRoot) !== physicalIdentity(root))
-    throw new Error("unsafe-project-root");
+  if (!samePhysicalPath(realRoot, root)) throw new Error("unsafe-project-root");
 
   let cursor = root;
   for (const part of relative.split("/")) {
@@ -217,10 +234,7 @@ function readHostSurface(projectRoot: string, relative: string): Buffer | null {
     if (stat.isSymbolicLink() || (stat.isFile() && stat.nlink !== 1))
       throw new Error("unsafe-exit-target");
     const real = fs.realpathSync.native(cursor);
-    if (
-      !contained(realRoot, real) ||
-      physicalIdentity(real) !== physicalIdentity(cursor)
-    )
+    if (!contained(realRoot, real) || !samePhysicalPath(real, cursor))
       throw new Error("unsafe-exit-target");
   }
   const stat = fs.lstatSync(target);
@@ -343,10 +357,7 @@ function inventoryCanonicalRoot(projectRoot: string): readonly PurgeTarget[] {
   const first = fs.lstatSync(canonical);
   if (!first.isDirectory() || first.isSymbolicLink())
     throw new Error("unsafe-purge-root");
-  if (
-    physicalIdentity(fs.realpathSync.native(canonical)) !==
-    physicalIdentity(canonical)
-  )
+  if (!samePhysicalPath(fs.realpathSync.native(canonical), canonical))
     throw new Error("unsafe-purge-root");
 
   const targets: PurgeTarget[] = [];
@@ -354,10 +365,7 @@ function inventoryCanonicalRoot(projectRoot: string): readonly PurgeTarget[] {
     const stat = fs.lstatSync(absolute);
     if (stat.isSymbolicLink() || (stat.isFile() && stat.nlink !== 1))
       throw new Error("unsafe-purge-target");
-    if (
-      physicalIdentity(fs.realpathSync.native(absolute)) !==
-      physicalIdentity(absolute)
-    )
+    if (!samePhysicalPath(fs.realpathSync.native(absolute), absolute))
       throw new Error("unsafe-purge-target");
     if (hasTransientOrLockName(relative)) throw new Error("purge-runtime-busy");
     if (stat.isFile()) {
