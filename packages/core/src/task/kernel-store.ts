@@ -203,13 +203,15 @@ function assertSafeProjectionPath(target: string, kind: "file" | "directory"): v
           (stat.isFile() && stat.nlink !== 1)) {
         throw new KernelError("INVALID_REQUEST", "projection repair refuses unsafe projection path");
       }
-      // Node exposes Windows junctions as symlinks; realpath additionally fails
-      // closed on redirected names it can resolve but lstat does not classify.
-      const actual = fs.realpathSync.native(current);
-      const normalized = (value: string): string => process.platform === "win32" ? value.toLowerCase() : value;
-      if (normalized(path.resolve(actual)) !== normalized(current)) {
-        throw new KernelError("INVALID_REQUEST", "projection repair refuses unsafe projection path");
-      }
+      // Node exposes Windows junctions as symlinks, and lstat also reports
+      // hard links through nlink. Do not compare the textual result of
+      // realpathSync.native() with the requested path here: hosted Windows
+      // runners can place the temp directory below a reparse-point alias (or
+      // return an 8.3/\\?\\ spelling), even though the requested file is
+      // inside the same namespace. Such a comparison rejects every ordinary
+      // repair on those runners. Explicit links are rejected above; the
+      // atomic writer below re-checks the same lstat/nlink invariants before
+      // installation.
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     }

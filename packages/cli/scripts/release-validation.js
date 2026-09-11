@@ -4,8 +4,8 @@ import path from "node:path";
 
 import { validateReleasePackPaths } from "./check-release-pack-contents.js";
 import {
-  computeNpmTag,
   releasePackageDefinitions,
+  resolveNpmTag,
   validatePackedCliPackage,
   validatePackedShimPackage,
 } from "./release-preflight.js";
@@ -314,12 +314,14 @@ export function prepareReleaseArtifacts({
   artifactDir,
   packageInfo,
   provenance,
+  npmTag,
 }) {
   const resolvedArtifactDir = assertArtifactDirectory({
     artifactDir,
     repoRoot,
   });
   const version = packageInfo.cliVersion;
+  const resolvedNpmTag = resolveNpmTag(version, npmTag);
   const definitions = releasePackageDefinitions(packageInfo).map(
     (definition) => ({
       ...definition,
@@ -349,7 +351,7 @@ export function prepareReleaseArtifacts({
   const manifest = {
     schemaVersion: 1,
     version,
-    npmTag: computeNpmTag(version),
+    npmTag: resolvedNpmTag,
     releaseTag: provenance.tag ?? null,
     commit: provenance.head,
     packages: records,
@@ -469,7 +471,14 @@ export function readPreparedReleaseArtifacts({
   ) {
     throw new Error("Release artifact version no longer matches the checkout.");
   }
-  if (manifest.npmTag !== computeNpmTag(manifest.version)) {
+  try {
+    if (
+      typeof manifest.npmTag !== "string" ||
+      resolveNpmTag(manifest.version, manifest.npmTag) !== manifest.npmTag
+    ) {
+      throw new Error("invalid npm tag");
+    }
+  } catch {
     throw new Error("Release artifact npm tag does not match its version.");
   }
   if (

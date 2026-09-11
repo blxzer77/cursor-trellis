@@ -10,6 +10,8 @@
  * source directory. `--dry-run` exercises both phases in one process, passes
  * the generated receipt internally, and performs no registry writes, though
  * the manifest-continuity gate still performs its documented read-only query.
+ * A stable release can be staged under `--npm-tag candidate`; publish-only
+ * derives the sealed tag from the manifest when the flag is omitted.
  */
 import fs from "node:fs";
 import os from "node:os";
@@ -32,10 +34,10 @@ import {
   runCandidateValidation,
 } from "./release-validation.js";
 import {
-  computeNpmTag,
   createPublishPlan,
   npmVersionExists,
   releasePackageDefinitions,
+  resolveNpmTag,
 } from "./release-preflight.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -142,10 +144,10 @@ export function writeManifestReceiptOutput({
   );
 }
 
-function dryRunPlan(packageInfo) {
+function dryRunPlan(packageInfo, npmTag) {
   const plan = {
     version: packageInfo.cliVersion,
-    tag: computeNpmTag(packageInfo.cliVersion),
+    tag: resolveNpmTag(packageInfo.cliVersion, npmTag),
     registryChecked: false,
   };
   for (const definition of releasePackageDefinitions(packageInfo)) {
@@ -176,6 +178,7 @@ function statusAfter(runner, repoRoot) {
 export function runCandidatePreparation({
   dryRun = false,
   explicitTag,
+  explicitNpmTag,
   remote = "private",
   artifactDir,
   runner = createCommandRunner(),
@@ -222,6 +225,7 @@ export function runCandidatePreparation({
     artifactDir,
     packageInfo,
     provenance,
+    npmTag: explicitNpmTag,
   });
   const manifestSha256 = assertManifestSha256(artifacts.manifestSha256);
   assertCleanTree(statusAfter(preparationRunner, repoRoot));
@@ -241,6 +245,7 @@ function packageArtifact(artifacts, key) {
 export function runPreparedPublish({
   dryRun = false,
   explicitTag,
+  explicitNpmTag,
   artifactDir,
   expectedManifestSha256,
   runner = createCommandRunner(),
@@ -273,6 +278,15 @@ export function runPreparedPublish({
     expectedReleaseTag: releaseTag,
     expectedManifestSha256,
   });
+  const requestedNpmTag =
+    explicitNpmTag === undefined
+      ? artifacts.npmTag
+      : resolveNpmTag(packageInfo.cliVersion, explicitNpmTag);
+  if (artifacts.npmTag !== requestedNpmTag) {
+    throw new Error(
+      `Prepared artifact npm tag ${artifacts.npmTag} does not match requested ${requestedNpmTag}.`,
+    );
+  }
   const currentCommit =
     env.GITHUB_SHA ??
     String(
@@ -295,10 +309,11 @@ export function runPreparedPublish({
   // All artifact parsing, content checks, and checksum verification are above
   // the first registry query and therefore above the first possible publish.
   const plan = dryRun
-    ? dryRunPlan(packageInfo)
+    ? dryRunPlan(packageInfo, artifacts.npmTag)
     : {
         ...createPublishPlan({
           versions: packageInfo,
+          npmTag: artifacts.npmTag,
           exists: (name, version) => npmExists(name, version, { runner }),
         }),
         registryChecked: true,
@@ -414,6 +429,7 @@ function main() {
     }
     const remote = optionValue(args, "--remote", "private");
     const explicitTag = optionValue(args, "--tag");
+    const explicitNpmTag = optionValue(args, "--npm-tag");
     const artifactDir = optionValue(args, "--artifact-dir");
     const receiptOutput = optionValue(args, "--receipt-output");
     const expectedManifestSha256 = optionValue(
@@ -423,6 +439,9 @@ function main() {
     if (!remote) throw new Error("--remote requires a remote name.");
     if (args.includes("--tag") && !explicitTag) {
       throw new Error("--tag requires an exact pactile-v<semver> value.");
+    }
+    if (args.includes("--npm-tag") && !explicitNpmTag) {
+      throw new Error("--npm-tag requires a non-empty npm dist-tag.");
     }
     if (args.includes("--receipt-output") && !receiptOutput) {
       throw new Error("--receipt-output requires a path.");
@@ -442,6 +461,7 @@ function main() {
       }
       const result = runCandidatePreparation({
         explicitTag,
+        explicitNpmTag,
         remote,
         artifactDir,
       });
@@ -468,6 +488,7 @@ function main() {
       }
       const result = runPreparedPublish({
         explicitTag,
+        explicitNpmTag,
         artifactDir,
         expectedManifestSha256,
       });
@@ -479,7 +500,11 @@ function main() {
         "--dry-run creates and consumes its manifest receipt in the same process; receipt flags are not accepted.",
       );
     }
-    const result = runPublishDryRun({ remote, artifactDir });
+    const result = runPublishDryRun({
+      remote,
+      artifactDir,
+      explicitNpmTag,
+    });
     console.log(
       `ok publish dry-run completed for ${result.plan.version}; registry continuity was read only and no registry state changed.`,
     );

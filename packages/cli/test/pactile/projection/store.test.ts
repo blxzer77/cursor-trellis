@@ -769,7 +769,8 @@ describe("Windows projection namespace boundaries", () => {
       expect(fs.readdirSync(outside)).toEqual(["foreign"]);
       expect(() => new ProjectionStore(path.join(root, "link"))).toThrow();
     } finally {
-      fs.rmdirSync(path.join(root, "link"));
+      const linkPath = path.join(root, "link");
+      if (fs.existsSync(linkPath)) fs.unlinkSync(linkPath);
       fs.rmSync(outside, { recursive: true, force: true });
     }
   });

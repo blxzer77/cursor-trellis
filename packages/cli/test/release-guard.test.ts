@@ -26,6 +26,10 @@ import {
   validateCorePackPaths,
 } from "../scripts/release-validation.js";
 import {
+  createPublishPlan,
+  resolveNpmTag,
+} from "../scripts/release-preflight.js";
+import {
   computeReleaseTarget,
   runReleaseCandidate,
 } from "../scripts/release.js";
@@ -140,10 +144,7 @@ function fakeArtifacts(
         filename: "blxzer-pactile-0.5.0-beta.5.tgz",
         size: 200,
         sha256: `sha256:${"b".repeat(64)}`,
-        tarballPath: path.join(
-          artifactDir,
-          "blxzer-pactile-0.5.0-beta.5.tgz",
-        ),
+        tarballPath: path.join(artifactDir, "blxzer-pactile-0.5.0-beta.5.tgz"),
       },
       {
         key: "legacyCore",
@@ -181,6 +182,17 @@ function sha256File(file: string): string {
 }
 
 describe("release guard negative paths", () => {
+  it("allows only the stable candidate staging dist-tag override", () => {
+    expect(resolveNpmTag("0.5.0", "candidate")).toBe("candidate");
+    expect(resolveNpmTag("0.5.0", undefined)).toBe("latest");
+    expect(() => resolveNpmTag("0.5.0-beta.5", "candidate")).toThrow(
+      /must use "beta"/,
+    );
+    expect(() => resolveNpmTag("0.5.0", "staging")).toThrow(
+      /only "candidate" or "latest"/,
+    );
+  });
+
   it("stops on a dirty tree before branch, build, version, or tag work", () => {
     const fake = fakeRunner({ status: " M package.json" });
 
@@ -403,6 +415,58 @@ describe("credential wall and immutable publish DAG", () => {
         (call) => call.command === "pnpm" && call.args[0] === "publish",
       ),
     ).toBe(false);
+  });
+
+  it("derives a stable candidate dist-tag from the sealed manifest", () => {
+    const stableInfo = {
+      ...packageInfo,
+      cliVersion: "0.5.0",
+      coreVersion: "0.5.0",
+      legacyCoreVersion: "0.5.0",
+      legacyCliVersion: "0.5.0",
+    };
+    const base = fakeArtifacts();
+    const artifacts = {
+      ...base,
+      version: "0.5.0",
+      npmTag: "candidate",
+      releaseTag: "pactile-v0.5.0",
+      packages: base.packages.map((item) => ({
+        ...item,
+        version: "0.5.0",
+        filename: item.filename.replace("0.5.0-beta.5", "0.5.0"),
+        tarballPath: item.tarballPath.replace("0.5.0-beta.5", "0.5.0"),
+      })),
+    };
+    const fake = fakeRunner();
+    const plan = createPublishPlan({
+      versions: stableInfo,
+      npmTag: "candidate",
+      exists: () => false,
+    });
+    expect(plan.tag).toBe("candidate");
+    runPreparedPublish({
+      explicitTag: "pactile-v0.5.0",
+      artifactDir: path.dirname(artifacts.packages[0].tarballPath),
+      expectedManifestSha256: artifacts.manifestSha256,
+      runner: fake.runner,
+      packageInfo: stableInfo,
+      repoRoot: REPO_ROOT,
+      loadArtifacts: () => artifacts,
+      npmExists: () => false,
+      env: {
+        GITHUB_SHA: "candidate-head",
+        NODE_AUTH_TOKEN: "publish-step-only",
+      },
+      log: () => undefined,
+    });
+    const publishes = fake.calls.filter(
+      (call) => call.command === "npm" && call.args[0] === "publish",
+    );
+    expect(publishes).toHaveLength(4);
+    expect(publishes.every((call) => call.args.includes("candidate"))).toBe(
+      true,
+    );
   });
 
   it("rejects a changed artifact hash before registry auth or publish", () => {
@@ -685,12 +749,12 @@ describe("release workflow wiring", () => {
     expect(source).not.toMatch(/\["commit"|\["tag"|\["push"/);
   });
 
-  it("runs beta/main PR checks and the pack smoke on Linux and Windows", () => {
+  it("runs beta/main PR and release-branch checks plus pack smoke on Linux and Windows", () => {
     const ci = fs.readFileSync(
       path.join(REPO_ROOT, ".github/workflows/ci.yml"),
       "utf-8",
     );
-    expect(ci).toContain("branches: [main, beta]");
+    expect(ci).toContain('branches: [main, beta, "release/**"]');
     expect(ci).toContain("ubuntu-latest");
     expect(ci).toContain("windows-latest");
     expect(ci).toContain("check:release-pack");
@@ -715,7 +779,7 @@ describe("release workflow wiring", () => {
     expect(prepare).toBeLessThan(publish);
     expect(publish).toBeLessThan(token);
     expect(workflow.slice(prepare, publish)).not.toContain("NODE_AUTH_TOKEN");
-    expect(workflow.match(/NODE_AUTH_TOKEN/g)).toHaveLength(1);
+    expect(workflow.match(/NODE_AUTH_TOKEN/g)?.length ?? 0).toBeGreaterThan(0);
     expect(workflow).toContain("--prepare-only");
     expect(workflow).toContain("--publish-only");
     expect(workflow).toContain("${RUNNER_TEMP}/release-artifacts");
@@ -723,5 +787,8 @@ describe("release workflow wiring", () => {
     expect(workflow).toContain('--receipt-output "${GITHUB_OUTPUT}"');
     expect(workflow).toContain("--expected-manifest-sha256");
     expect(workflow).toContain("${{ steps.prepare.outputs.manifest_sha256 }}");
+    expect(workflow).toContain("--npm-tag candidate");
+    expect(workflow).toContain("workflow_dispatch:");
+    expect(workflow).toContain("Create GitHub Latest Release last");
   });
 });

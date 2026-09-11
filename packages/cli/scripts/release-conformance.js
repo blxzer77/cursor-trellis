@@ -175,7 +175,6 @@ function runInstall({ runner, plan, prefix, cacheDir, userConfig, offline }) {
     "--no-fund",
     "--no-save",
     "--package-lock=false",
-    "--omit=optional",
     "--cache",
     cacheDir,
     "--registry=https://registry.npmjs.org/",

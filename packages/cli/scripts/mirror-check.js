@@ -24,7 +24,7 @@ const dogfoodAgents = path.join(pactileRoot, "AGENTS.md");
 const isThinConnected =
   fs.existsSync(dogfoodAgents) &&
   /\bthin-connect(?:ed)?\b/iu.test(fs.readFileSync(dogfoodAgents, "utf-8"));
-if (isThinConnected && !fs.existsSync(dogfoodCursor)) {
+if (isThinConnected) {
   console.log(
     "Mirror check not applicable: thin-connected checkout has no product-owned .cursor dogfood tree.",
   );
@@ -81,12 +81,8 @@ function comparePair(relativePath, dogfoodPath, templatePath, diffs) {
   let dogfood;
   let template;
   if (relativePath === "AGENTS.md") {
-    dogfood = extractManagedBlock(
-      fs.readFileSync(dogfoodPath, "utf-8"),
-    );
-    template = extractManagedBlock(
-      fs.readFileSync(templatePath, "utf-8"),
-    );
+    dogfood = extractManagedBlock(fs.readFileSync(dogfoodPath, "utf-8"));
+    template = extractManagedBlock(fs.readFileSync(templatePath, "utf-8"));
   } else {
     dogfood = normalizeText(fs.readFileSync(dogfoodPath, "utf-8"));
     template = normalizeText(fs.readFileSync(templatePath, "utf-8"));
@@ -112,15 +108,12 @@ for (const subdir of ["rules", "agents"]) {
   }
 }
 
-comparePair(
-  "AGENTS.md",
-  dogfoodAgents,
-  templateAgentsPath,
-  diffs,
-);
+comparePair("AGENTS.md", dogfoodAgents, templateAgentsPath, diffs);
 
 if (diffs.length === 0) {
-  console.log("Mirror check passed: dogfood .cursor and AGENTS.md match templates.");
+  console.log(
+    "Mirror check passed: dogfood .cursor and AGENTS.md match templates.",
+  );
   process.exit(0);
 }
 

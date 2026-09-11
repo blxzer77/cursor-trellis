@@ -413,6 +413,14 @@ function gitInventoryFiles(repoRoot) {
     .sort((a, b) => a.localeCompare(b));
 }
 
+function isThinConnectedCheckout(repoRoot) {
+  const agentsPath = path.join(repoRoot, "AGENTS.md");
+  return (
+    fs.existsSync(agentsPath) &&
+    /\bthin-connect(?:ed)?\b/iu.test(fs.readFileSync(agentsPath, "utf8"))
+  );
+}
+
 function walkFiles(rootDir, relativeDir) {
   const absoluteDir = path.join(rootDir, ...relativeDir.split("/"));
   if (!fs.existsSync(absoluteDir)) return [];
@@ -442,9 +450,19 @@ function inventoryFiles(repoRoot, trackedFiles) {
   ].filter((relativePath) =>
     fs.existsSync(path.join(repoRoot, ...relativePath.split("/"))),
   );
+  const thinConnected = isThinConnectedCheckout(repoRoot);
   return sortedUnique([...trackedFiles, ...controlFiles]).filter(
     (relativePath) =>
-      fs.existsSync(path.join(repoRoot, ...relativePath.split("/"))),
+      // Thin-connected CI materializes the harness-owned templates into these
+      // paths solely for integration tests. They are not product-owned source
+      // and must not become brand debt or snapshot input.
+      !(
+        thinConnected &&
+        (relativePath === ".pactile/scripts" ||
+          relativePath.startsWith(".pactile/scripts/") ||
+          relativePath === ".cursor" ||
+          relativePath.startsWith(".cursor/"))
+      ) && fs.existsSync(path.join(repoRoot, ...relativePath.split("/"))),
   );
 }
 

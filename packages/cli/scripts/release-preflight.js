@@ -126,6 +126,45 @@ export function computeNpmTag(version) {
   return "latest";
 }
 
+/**
+ * Resolve the npm dist-tag sealed into a release artifact.
+ *
+ * Prereleases always use their channel tag. A stable release normally uses
+ * `latest`, but may be staged under the single explicitly supported
+ * temporary tag `candidate`; promotion is a separate, manually authorized
+ * operation. Keeping the allowlist here prevents an arbitrary CLI argument
+ * from redirecting a stable package to an unexpected public channel.
+ */
+export function resolveNpmTag(version, explicitTag) {
+  const defaultTag = computeNpmTag(version);
+  if (explicitTag === undefined || explicitTag === null || explicitTag === "") {
+    return defaultTag;
+  }
+  if (
+    typeof explicitTag !== "string" ||
+    !/^[a-z][a-z0-9._-]*$/i.test(explicitTag)
+  ) {
+    throw new Error(
+      `Invalid npm dist-tag "${String(explicitTag)}". Expected a simple npm tag name.`,
+    );
+  }
+  if (defaultTag !== "latest") {
+    if (explicitTag !== defaultTag) {
+      throw new Error(
+        `Npm dist-tag override "${explicitTag}" is not allowed for ${version}; ` +
+          `prereleases must use "${defaultTag}".`,
+      );
+    }
+    return defaultTag;
+  }
+  if (explicitTag !== "candidate" && explicitTag !== "latest") {
+    throw new Error(
+      `Stable releases may use only "candidate" or "latest" as the npm dist-tag, not "${explicitTag}".`,
+    );
+  }
+  return explicitTag;
+}
+
 function errorText(error) {
   if (!(error instanceof Error)) return String(error);
   const stderr = "stderr" in error ? String(error.stderr ?? "") : "";
@@ -263,9 +302,13 @@ export function checkPublishProvenance({
   return { ...checked, ...provenance };
 }
 
-export function createPublishPlan({ versions, exists = npmVersionExists }) {
+export function createPublishPlan({
+  versions,
+  npmTag,
+  exists = npmVersionExists,
+}) {
   assertMatchingVersions(versions);
-  const tag = computeNpmTag(versions.cliVersion);
+  const tag = resolveNpmTag(versions.cliVersion, npmTag);
   const plan = {
     version: versions.cliVersion,
     tag,
@@ -281,10 +324,11 @@ export function createPublishPlan({ versions, exists = npmVersionExists }) {
   return plan;
 }
 
-function publishPlan({ output, runner = createCommandRunner() }) {
+function publishPlan({ output, npmTag, runner = createCommandRunner() }) {
   const versions = checkVersions({ quiet: output === "json" });
   const plan = createPublishPlan({
     versions,
+    npmTag,
     exists: (name, version) => npmVersionExists(name, version, { runner }),
   });
   if (output === "json") {
@@ -453,9 +497,13 @@ export function verifyPackedCli({
   }
 }
 
-async function verifyNpm({ packageFilter, runner = createCommandRunner() }) {
+async function verifyNpm({
+  packageFilter,
+  npmTag,
+  runner = createCommandRunner(),
+}) {
   const versions = checkVersions();
-  const tag = computeNpmTag(versions.cliVersion);
+  const tag = resolveNpmTag(versions.cliVersion, npmTag);
   const packages = releasePackageDefinitions(versions).filter(
     (pkg) => packageFilter === "all" || pkg.key === packageFilter,
   );
@@ -502,9 +550,9 @@ async function main() {
         "  check-versions [--require-tag] [--tag pactile-vX.Y.Z]\n" +
         "  check-provenance [--tag pactile-vX.Y.Z] [--remote origin]\n" +
         "  npm-tag\n" +
-        "  publish-plan [--json|--github]\n" +
+        "  publish-plan [--json|--github] [--npm-tag candidate|latest|beta|rc|alpha]\n" +
         "  verify-packed-cli\n" +
-        "  verify-npm [--package all|core|cli|legacyCore|legacyCli]",
+        "  verify-npm [--package all|core|cli|legacyCore|legacyCli] [--npm-tag candidate|latest|beta|rc|alpha]",
     );
     return;
   }
@@ -534,6 +582,7 @@ async function main() {
         : args.includes("--github")
           ? "github"
           : "text",
+      npmTag: optionValue(args, "--npm-tag"),
       runner,
     });
     return;
@@ -551,7 +600,11 @@ async function main() {
         "--package must be one of: all, core, cli, legacyCore, legacyCli.",
       );
     }
-    await verifyNpm({ packageFilter, runner });
+    await verifyNpm({
+      packageFilter,
+      npmTag: optionValue(args, "--npm-tag"),
+      runner,
+    });
     return;
   }
   throw new Error(`unknown command: ${command}`);

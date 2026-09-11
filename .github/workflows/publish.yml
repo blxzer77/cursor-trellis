@@ -1,6 +1,7 @@
 # Publish the two canonical Pactile packages and two 0.5.x compatibility shims
-# to npm when a
-# Pactile release tag is pushed.
+# to npm when a Pactile release tag is pushed. Stable versions are published
+# under the temporary `candidate` dist-tag; a separate manual promotion job
+# moves an already-verified version to `latest` and creates the GitHub Release.
 #
 # Tag convention: pactile-v<semver>. Earlier tag families remain immutable
 # history and are never reused for new releases.
@@ -19,14 +20,23 @@ on:
   push:
     tags:
       - "pactile-v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Stable version to promote (for example 0.5.0)"
+        required: true
+        type: string
+      confirmation:
+        description: "Type PROMOTE to authorize dist-tag, deprecation, and release actions"
+        required: true
+        type: string
 
-# contents: write — GitHub Release on the same tag (Latest was stuck on 0.3.4
-# when only npm published). Do not drop this back to read.
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   publish:
+    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/pactile-v') }}
     runs-on: ubuntu-latest
     steps:
       # Publish provenance needs the tag commit plus release branch ancestry.
@@ -53,42 +63,27 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Materialize dogfood for tests
+      - name: Select npm dist-tag
+        id: npm-tag
+        shell: bash
         run: |
-          rm -rf .cursor/rules .cursor/agents .pactile/scripts
-          mkdir -p .cursor/rules .cursor/agents .pactile/scripts
-          cp packages/cli/src/templates/cursor/rules/* .cursor/rules/
-          cp packages/cli/src/templates/cursor/agents/* .cursor/agents/
-          cp -r packages/cli/src/templates/pactile/scripts/* .pactile/scripts/
-
-      - name: Prepare GitHub Release notes from CHANGELOG
-        run: |
-          export NOTES_FILE="${RUNNER_TEMP}/release-notes.md"
-          node <<'NODE'
-          const fs = require("node:fs");
-          const version = JSON.parse(
-            fs.readFileSync("packages/cli/package.json", "utf8"),
-          ).version;
-          const text = fs.readFileSync("packages/cli/CHANGELOG.md", "utf8");
-          const header = `## [${version}]`;
-          const start = text.indexOf(header);
-          if (start < 0) {
-            console.error(`CHANGELOG.md has no ${header} section`);
-            process.exit(1);
-          }
-          const rest = text.slice(start);
-          const next = rest.indexOf("\n## [", 1);
-          const notes = `${(next < 0 ? rest : rest.slice(0, next)).trim()}\n`;
-          fs.writeFileSync(process.env.NOTES_FILE, notes);
-          NODE
+          version="$(node -p "require('./packages/cli/package.json').version")"
+          if [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "value=candidate" >> "$GITHUB_OUTPUT"
+            echo "args=--npm-tag candidate" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=$(node packages/cli/scripts/release-preflight.js npm-tag)" >> "$GITHUB_OUTPUT"
+            echo "args=" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Validate candidate and prepare immutable tarballs
         id: prepare
-        run: >-
-          node packages/cli/scripts/publish-packages.js
-          --prepare-only --artifact-dir "${RUNNER_TEMP}/release-artifacts"
-          --receipt-output "${GITHUB_OUTPUT}"
-          --tag "${GITHUB_REF_NAME}" --remote origin
+        run: |
+          node packages/cli/scripts/publish-packages.js \
+            --prepare-only --artifact-dir "${RUNNER_TEMP}/release-artifacts" \
+            --receipt-output "${GITHUB_OUTPUT}" \
+            --tag "${GITHUB_REF_NAME}" --remote origin \
+            ${{ steps.npm-tag.outputs.args }}
         env:
           # Candidate tests call Kernel before either package is published.
           PACTILE_KERNEL_CLI: node ${{ github.workspace }}/packages/cli/bin/pactile.js kernel --json
@@ -104,27 +99,150 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Verify npm registry visibility
-        run: node packages/cli/scripts/release-preflight.js verify-npm --package all
+        run: >-
+          node packages/cli/scripts/release-preflight.js verify-npm --package all
+          --npm-tag "${{ steps.npm-tag.outputs.value }}"
 
-      - name: Create GitHub Release
+  promote:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.confirmation == 'PROMOTE' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Validate stable version input
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ inputs.version }}
         run: |
-          NOTES_FILE="${RUNNER_TEMP}/release-notes.md"
-          TAG="${GITHUB_REF_NAME}"
-          TITLE="$(node -p "require('./packages/cli/package.json').version")"
-          # Prerelease (semver contains '-') must be --prerelease so GitHub
-          # does not steal Latest from the last stable tag. Stable uses --latest.
-          RELEASE_FLAGS="--latest"
-          if [ "$(node -p "/-/.test(require('./packages/cli/package.json').version)")" = "true" ]; then
-            RELEASE_FLAGS="--prerelease"
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "version must be a stable X.Y.Z semver" >&2
+            exit 1
           fi
-          if gh release view "${TAG}" >/dev/null 2>&1; then
-            gh release edit "${TAG}" --notes-file "${NOTES_FILE}" --title "${TITLE}" ${RELEASE_FLAGS}
+
+      - uses: actions/checkout@v7
+        with:
+          ref: pactile-v${{ inputs.version }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          registry-url: https://registry.npmjs.org
+
+      - name: Verify stable tag and package versions
+        env:
+          VERSION: ${{ inputs.version }}
+        run: node packages/cli/scripts/release-preflight.js check-versions --require-tag --tag "pactile-v${VERSION}"
+
+      - name: Verify every package is staged under candidate
+        env:
+          VERSION: ${{ inputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for package_name in \
+            @blxzer/pactile-core \
+            @blxzer/pactile \
+            @blxzer/cursor-trellis-core \
+            @blxzer/cursor-trellis; do
+            staged="$(npm view "${package_name}@candidate" version --json)"
+            if [[ "$staged" != "\"$VERSION\"" && "$staged" != "$VERSION" ]]; then
+              echo "${package_name}@candidate resolves to $staged, expected $VERSION" >&2
+              exit 1
+            fi
+          done
+
+      - name: Promote canonical packages to latest
+        env:
+          VERSION: ${{ inputs.version }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm dist-tag add "@blxzer/pactile-core@$VERSION" latest
+          npm dist-tag add "@blxzer/pactile@$VERSION" latest
+
+      - name: Promote legacy shims to latest
+        env:
+          VERSION: ${{ inputs.version }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm dist-tag add "@blxzer/cursor-trellis-core@$VERSION" latest
+          npm dist-tag add "@blxzer/cursor-trellis@$VERSION" latest
+
+      - name: Verify latest points to the promoted version
+        env:
+          VERSION: ${{ inputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for package_name in \
+            @blxzer/pactile-core \
+            @blxzer/pactile \
+            @blxzer/cursor-trellis-core \
+            @blxzer/cursor-trellis; do
+            latest="$(npm view "${package_name}@latest" version --json)"
+            if [[ "$latest" != "\"$VERSION\"" && "$latest" != "$VERSION" ]]; then
+              echo "${package_name}@latest resolves to $latest, expected $VERSION" >&2
+              exit 1
+            fi
+          done
+
+      - name: Deprecate pre-Pactile shim versions
+        env:
+          VERSION: ${{ inputs.version }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm deprecate "@blxzer/cursor-trellis-core@<$VERSION" \
+            "Use @blxzer/pactile-core@$VERSION; the legacy package remains a compatibility bridge."
+          npm deprecate "@blxzer/cursor-trellis@<$VERSION" \
+            "Use @blxzer/pactile@$VERSION; the legacy package remains a compatibility bridge."
+
+      - name: Remove temporary candidate dist-tag
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for package_name in \
+            @blxzer/pactile-core \
+            @blxzer/pactile \
+            @blxzer/cursor-trellis-core \
+            @blxzer/cursor-trellis; do
+            if npm view "${package_name}@candidate" version --json >/dev/null 2>&1; then
+              npm dist-tag rm "$package_name" candidate
+            else
+              echo "${package_name} has no candidate tag; continuing"
+            fi
+          done
+
+      - name: Create GitHub Latest Release last
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ inputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          notes_file="${RUNNER_TEMP}/pactile-release-notes.md"
+          node - "$notes_file" <<'NODE'
+          const fs = require("node:fs");
+          const output = process.argv[2];
+          const version = JSON.parse(fs.readFileSync("packages/cli/package.json", "utf8")).version;
+          const text = fs.readFileSync("packages/cli/CHANGELOG.md", "utf8");
+          const start = text.indexOf(`## [${version}]`);
+          if (start < 0) throw new Error(`CHANGELOG.md has no ## [${version}] section`);
+          const rest = text.slice(start);
+          const next = rest.indexOf("\n## [", 1);
+          fs.writeFileSync(output, `${(next < 0 ? rest : rest.slice(0, next)).trim()}\n`);
+          NODE
+          if gh release view "pactile-v${VERSION}" >/dev/null 2>&1; then
+            gh release edit "pactile-v${VERSION}" \
+              --title "$VERSION" --notes-file "$notes_file" --latest
           else
-            gh release create "${TAG}" \
-              --verify-tag \
-              --notes-file "${NOTES_FILE}" \
-              --title "${TITLE}" \
-              ${RELEASE_FLAGS}
+            gh release create "pactile-v${VERSION}" --verify-tag \
+              --title "$VERSION" --notes-file "$notes_file" --latest
           fi
