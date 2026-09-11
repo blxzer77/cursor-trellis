@@ -232,8 +232,7 @@ export class ProjectionStore {
       if (
         stat.isSymbolicLink() ||
         (!stat.isDirectory() && !stat.isFile()) ||
-        (stat.isFile() && stat.nlink !== 1) ||
-        identity(fs.realpathSync.native(cursor)) !== identity(cursor)
+        (stat.isFile() && stat.nlink !== 1)
       )
         throw new Error("unsafe-projection-link");
     }

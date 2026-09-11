@@ -12,6 +12,12 @@ import unicodedata as ucd
 if ucd.unidata_version != "15.0.0":
     raise RuntimeError("The independent oracle requires Unicode 15.0.0 (Python 3.12)")
 
+# Node writes JSON request bytes as UTF-8 on every host.  Windows Python may
+# otherwise decode a redirected stdin pipe using the active ANSI code page,
+# turning non-ASCII corpus entries into mojibake before json.load sees them.
+if hasattr(sys.stdin, "reconfigure"):
+    sys.stdin.reconfigure(encoding="utf-8")
+
 
 def tables():
     decomposition = []

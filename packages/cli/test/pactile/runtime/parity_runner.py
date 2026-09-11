@@ -13,6 +13,8 @@ class _ReconfigurableTextIO(Protocol):
 
 
 sys.dont_write_bytecode = True
+if hasattr(sys.stdin, "reconfigure"):
+    cast(_ReconfigurableTextIO, sys.stdin).reconfigure(encoding="utf-8")
 if hasattr(sys.stdout, "reconfigure"):
     cast(_ReconfigurableTextIO, sys.stdout).reconfigure(encoding="utf-8")
 

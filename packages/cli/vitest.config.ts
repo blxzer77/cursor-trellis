@@ -2,9 +2,11 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
-    // Integration tests spawn git/npm/python; 10s was flaky under parallel load (prepublishOnly).
-    testTimeout: 30_000,
-    hookTimeout: 30_000,
+    // Integration tests spawn git/npm/python and exercise real Windows temp
+    // projects; cold starts and recursive cleanup can exceed 30s on hosted
+    // runners, especially when a case performs two init/update passes.
+    testTimeout: 120_000,
+    hookTimeout: 120_000,
     pool: "forks",
     include: ["test/**/*.test.ts"],
     exclude: ["third/**", "node_modules/**"],
