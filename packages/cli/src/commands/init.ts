@@ -2063,8 +2063,20 @@ export async function init(options: InitOptions): Promise<void> {
           ? "Pactile re-initialize"
           : "Pactile init",
     );
-    if (importingCstl) {
+    if (importingCstl || isFirstInit) {
+      // User-owned namespaces are intentionally excluded from the immutable
+      // generation. Publish the freshly prepared workspace/spec skeleton (and
+      // any imported state) only after canonical activation succeeds.
       materializePreparedLegacyUserState(buildRoot, cwd);
+      if (isFirstInit && !importingCstl) {
+        // A fresh init may have no developer name yet, so its empty tasks/
+        // directory has no file for the state publisher to copy.
+        for (const relativePath of [PATHS.WORKSPACE, PATHS.TASKS, PATHS.SPEC]) {
+          fs.mkdirSync(path.join(cwd, relativePath), { recursive: true });
+        }
+      }
+    }
+    if (importingCstl) {
       console.log(chalk.cyan(legacyImportPreparedMessage(importedFileCount)));
     }
   } finally {

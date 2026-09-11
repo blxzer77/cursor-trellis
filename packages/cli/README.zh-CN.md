@@ -1,216 +1,108 @@
-# @blxzer/cursor-trellis
+# `@blxzer/pactile`
 
 [English](README.md) | 简体中文
 
-Trellis CLI 的 npm 包。项目总览：[../../README.zh-CN.md](../../README.zh-CN.md)。Cursor 工作流：[../../docs/workflow.zh-CN.md](../../docs/workflow.zh-CN.md)。
-
-**为何 `cstl` 与 `.cstl/`？** CLI 为 `cstl`（非 `trellis`），运行时目录为 `.cstl/`（非 `.trellis/`），以便与上游 Trellis 在同一仓库共存。详见[仓库 README](../../README.zh-CN.md#为何使用-cstl-与-cstl)。
+Pactile CLI 为 Cursor、Codex 或双宿主建立并维护可追溯证据的能力工作空间。Canonical 状态位于 `.pactile/`；宿主文件是可重建投影，并受显式 ownership 约束。
 
 ## 安装
 
 ```bash
-npm install -g @blxzer/cursor-trellis
+npm install -g @blxzer/pactile
+pactile --version
 ```
 
-需要 **Node.js ≥ 18.17**。生成项目的钩子在运行 Cursor 的机器上需要 **Python ≥ 3.9**。
+需要 Node.js 18.17 或更高版本。生成的 Python 脚本与宿主 hooks 需要 Python 3.9 或更高版本。Smart Search 等 Middleware Provider 是可选、独立探测的能力；Pactile 不会静默安装宿主原生资产，也不会复制凭据。
 
-日常升级（本批起）：升包 → 在项目里跑 `cstl update` → 看摘要并确认一次 → 接着干活。半页说明随 `cstl init` / `cstl update` 写到 `.cstl/framework/upgrade.md`。
-
-## 从 0.3.0 升级（v0.3.1）
-
-v0.3.1 将 cursor-trellis **运行时目录**从 `.trellis/` 迁至 **`.cstl/`**。
+## 第一个项目
 
 ```bash
-npm install -g @blxzer/cursor-trellis@latest
-cd /path/to/your-app
-cstl update --migrate
+mkdir my-pactile-project
+cd my-pactile-project
+pactile init --cursor --codex -y
+pactile capability-smoke --json
 ```
 
-`--migrate` **必须**带上；历史通过目录 rename 保留。脚本路径为 `python ./.cstl/scripts/...`。
+选择 `--cursor`、`--codex`，或同时使用两者。生成投影前会检查既有用户文件和原生资产。兼容的外部资产可以 borrowed 方式 adopt；冲突或 malformed 宿主文件保持原样，并返回恢复动作。
 
-## 从 0.2.x 升级（v0.3.0）
+## 命令参考
 
-v0.3.0 为**硬切更名**：CLI 仅保留 **`cstl`**，`trellis` 与 `tl` 两个 bin 别名已移除。
+| 命令                                                 | 契约                                                           |
+| ---------------------------------------------------- | -------------------------------------------------------------- |
+| `pactile init --cursor [--codex]`                    | 创建 canonical 状态并协调所选 Adapter。                        |
+| `pactile capability-smoke [--json] [--write-status]` | 探测所选能力，并可写入 readiness。                             |
+| `pactile update --dry-run`                           | 预览官方文件、迁移与投影变化。                                 |
+| `pactile update`                                     | 应用一次确认过的事务，再独立协调各 Adapter。                   |
+| `pactile migrate`                                    | 生成可选迁移预览；实际写入仍由 `update` 完成。                 |
+| `pactile rollout`                                    | 对显式项目路径运行 `update` 并汇总证据。                       |
+| `pactile upgrade`                                    | 升级全局安装的 canonical CLI 包。                              |
+| `pactile detach cursor`                              | 移除一个 Adapter 的绑定与 claimant；保留共享和 borrowed 资源。 |
+| `pactile detach codex`                               | 对 Codex 应用相同的单 Adapter 契约。                           |
+| `pactile uninstall --dry-run`                        | 预览分离全部 Adapter，同时保留 `.pactile/`。                   |
+| `pactile rollback <generation> --dry-run`            | 验证并预览 sealed generation 切换。                            |
+| `pactile purge --dry-run`                            | 生成 inactive canonical root 的精确目标指纹，不删除。          |
+| `pactile workflow`                                   | 列出或选择 canonical workflow 模板。                           |
+| `pactile validate-rules`                             | 验证受支持的 Cursor rule 投影。                                |
+| `pactile kernel --json`                              | 运行生成项目脚本使用的机器 JSON 生命周期边界。                 |
 
-| 变了 | 没变 |
-| --- | --- |
-| CLI：`trellis` / `tl` → `cstl` | （0.3.1+）运行时目录为 `.cstl/` |
-| skill / command / agent / rule：`trellis-*` → `cstl-*` | `trellis-task-models.json5` 文件名 |
+用 `pactile <command> --help` 查看当前参数。`detach` 使用位置参数指定 Adapter。`purge` 固定为两步：破坏性执行必须同时提供 `--yes` 和 preview 返回的精确指纹。
 
-**迁移步骤**（每个项目执行一次）：
+## 影响 ownership 的 init 参数
+
+- `--import-cstl` 显式声明一个既有旧树作为只读迁移源；它永远不会变成写入目标。
+- `--capability <id>` 启用可选项目能力；可重复使用或传入 `all`。
+- `--with-optional <name>` 把包内可选 Skill 安装到项目 Skill 目录；不会安装宿主原生插件或服务。
+- `--skip-readiness` 将 framework readiness 记录为 unverified，而不是虚构 Provider 结果。
+- `--force` 与 `--skip-existing` 控制文件冲突，但不会转移用户资产所有权。
+
+## 更新、恢复与退出
+
+对不确定的操作先做 preview：
 
 ```bash
-npm install -g @blxzer/cursor-trellis@latest
-cd /path/to/your-app
-cstl update --migrate
+pactile update --dry-run --json
+pactile detach cursor --dry-run
+pactile uninstall --dry-run
+pactile rollback <generation> --dry-run
+pactile purge --dry-run
 ```
 
-`--migrate` **必须**带上，才会重命名 `.cursor/` 下的 `trellis-*` → `cstl-*`。重命名经哈希校验；若你本地改过文件，会保留旧路径并警告——请手动改名或把自定义内容迁到新的 `cstl-*` 路径。
+Canonical generation 在宿主协调前提交。如果一个 Adapter 失败，canonical 状态和已成功的 sibling Adapter 保持有效；失败 Adapter 保留可重试 receipt。更新与退出决策会查询 ownership ledger，因此 modified、foreign、unknown、shared 与 borrowed 资源都会安全保留。
 
-0.3.0 之后日常 CLI 小版本可用 `cstl upgrade`。升级到 0.3.0 后，旧的 `trellis upgrade` 命令已不存在。
+详细说明见[生命周期](../../docs/lifecycle/index.zh-CN.md)、[恢复](../../docs/troubleshooting/recovery.zh-CN.md)和 [Projection 与 Ownership](../../docs/concepts/projection-and-ownership.zh-CN.md)。
 
-**Cursor++ 已废弃：** 勿运行 setup/patch。遗留 `.cstl/local/cursor2plus/` 或历史 `trellis-task-models.json5` 视为残渣——`cstl update` 清理未改动托管副本。
+## 包关系
 
-详见 [CHANGELOG](./CHANGELOG.md#030---2026-07-01)。
+| 包                     | 角色                                                |
+| ---------------------- | --------------------------------------------------- |
+| `@blxzer/pactile`      | Canonical CLI、Adapters、模板、生命周期与项目集成。 |
+| `@blxzer/pactile-core` | Canonical 严格契约与宿主无关原语。                  |
+| 旧 CLI bridge          | 0.5.x 临时兼容包，委托给本 CLI。                    |
+| 旧 Core bridge         | 0.5.x 临时兼容包，重新导出 canonical Core。         |
 
-## 可执行文件
+打包后的内部依赖必须是精确发布版本，不能残留 workspace protocol。发布 CLI 暴露 `pactile`；兼容 executable 不是推荐入口。
 
-| Bin | 作用 |
-| --- | --- |
-| `cstl` | 在项目中初始化、更新、管理 Trellis |
-| `smart-search` | 独立 Middleware 探测包装；缺失时降级，不作为同包自动安装契约（见 [smart-search](#smart-search)） |
+## 程序化导出
 
-```bash
-cstl --version
-smart-search --version
+```js
+import { VERSION, listPactilePlatforms } from "@blxzer/pactile";
+
+console.log(VERSION, listPactilePlatforms());
 ```
 
-## 命令一览（摘要）
+根导出提供受支持的库接口。`./cli` 是 package bridge 使用的 executable 入口，`./compat` 仅供这一临时 bridge，`./package.json` 供工具读取。宿主无关契约应从 `@blxzer/pactile-core` 及其已记录的 subpath 导入。
 
-| 命令 | 用途 |
-| --- | --- |
-| `init` | 创建 `.cstl/` 与所选平台目录 |
-| `update` | 将模板同步到当前安装的 CLI 版本 |
-| `uninstall` | 从项目中移除 Trellis 管理文件 |
-| `upgrade` | 升级全局 CLI npm 包 |
-| `rollout` | 对多个项目路径批量 `update` |
-| `workflow` | 工作流模板工具（进阶） |
+## 安全边界
 
-与 **channel** 相关的命令服务于进阶多 Agent 工作流，不属于 Cursor-first 公开文档范围。完整列表：`cstl --help`。
+Pactile 存储逻辑 Provider 引用与 Evidence 链接，不保存 secret value、OAuth 状态、模型私有推理或复制的外部资产正文。Adapter 不能写 canonical `.pactile/` 状态；只有 Reconciler 能写投影。Borrowed 资产始终使用 `preserve` 删除策略。
 
-下文详述 **`init`**、**`update`**、**`uninstall`**。
+## 更多文档
 
----
+- [仓库概览](../../README.zh-CN.md)
+- [五分钟示例](../../examples/minimal-agent-app/README.zh-CN.md)
+- [核心概念](../../docs/concepts/index.zh-CN.md)
+- [宿主](../../docs/hosts/index.zh-CN.md)
+- [能力与 Provider](../../docs/capabilities/index.zh-CN.md)
+- [生命周期](../../docs/lifecycle/index.zh-CN.md)
+- [故障排查](../../docs/troubleshooting/index.zh-CN.md)
 
-## `cstl init`
-
-在**目标项目根目录**执行：
-
-```bash
-cstl init --cursor
-```
-
-### 平台标志
-
-| 标志 | 平台 |
-| --- | --- |
-| `--cursor` | Cursor（`.cursor/`）— 默认文档路径 |
-
-本 fork 的 init 与公开文档为 **Cursor-only**：[../../docs/cursor.zh-CN.md](../../docs/cursor.zh-CN.md)。默认分发为 Native Cursor；CSTL **不内嵌 BYOK**。
-
-### 常用标志
-
-| 标志 | 说明 |
-| --- | --- |
-| `-y, --yes` | 非交互默认项 |
-| `-f, --force` | 覆盖已有受管文件 |
-| `-s, --skip-existing` | 跳过已存在文件 |
-| `-u, --user <name>` | 开发者身份 |
-| `--skip-readiness` | 跳过 smart-search / 能力项 readiness |
-| `--capability <id>` | 启用可选能力（可重复；`all` 表示全部可选） |
-| `--workflow <id>` | `.cstl/workflow.md` 工作流模板 |
-| `-t, --template <name>` | 远程 spec 模板 |
-| `-r, --registry <source>` | 自定义模板 registry |
-| `--monorepo` / `--no-monorepo` | monorepo 检测覆盖 |
-
-### 生成内容
-
-- `.cstl/` — workflow、spec、tasks、workspace、scripts、模板哈希
-- `AGENTS.md` — 受管说明块
-- 平台目录 — Cursor 下为 `.cursor/commands`、`rules`、`agents`、`hooks`、`hooks.json`、`worktrees.json`
-
----
-
-## `cstl update`
-
-在已有 `.cstl/` 的项目根目录：
-
-```bash
-cstl update
-cstl update --dry-run
-```
-
-### 标志
-
-| 标志 | 说明 |
-| --- | --- |
-| `--dry-run` | 仅预览不写盘 |
-| `-f, --force` | 覆盖所有有变更的受管文件 |
-| `-s, --skip-all` | 跳过所有有变更文件 |
-| `-n, --create-new` | 对有变更文件写 `.new` 副本 |
-| `--migrate` | 执行待处理路径迁移（重命名/删除） |
-| `--allow-downgrade` | 允许模板版本低于记录版本 |
-| `--skip-readiness` | 跳过 readiness 复检 |
-| `--json` | 单行 JSON rollout 证据 |
-| `--skip-post-update-smoke` | 跳过应用后 Python 冒烟脚本 |
-
-常见流程：升级全局 CLI → 进入项目 → `cstl update`（从 0.2.x 首次升到 0.3.0 须加 `--migrate`）→ 若自定义过 workflow/rules 请审阅 diff。
-
----
-
-## `cstl uninstall`
-
-```bash
-cstl uninstall
-cstl uninstall --dry-run
-cstl uninstall -y
-```
-
-### 标志
-
-| 标志 | 说明 |
-| --- | --- |
-| `-y, --yes` | 跳过确认 |
-| `--dry-run` | 仅列出将删除/_scrub_ 的内容 |
-
-按哈希清单与结构化 scrubber 移除受管平台文件及 `.cstl/`。卸载前请**备份**自定义 workflow 或 rules。
-
----
-
-## smart-search 集成
-
-Trellis 把 [smart-search](https://github.com/blxzer77/smart-search) 当作独立的 `external-knowledge` **Middleware Provider**。CSTL 只做运行时探测。安装 cursor-trellis **并不**契约式地自动安装 smart-search；smart-search 发版也不得迫使 CSTL Core 发版。
-
-**安装：**
-
-请单独安装该 Provider（或在包管理器提供可选安装时接受）：
-
-```bash
-npm install -g @blxzer/smart-search
-smart-search --version
-```
-
-Provider 缺失时 Profile 为 `degraded`。不需要外部知识的 Task 仍可 Close。真正需要的 Task 会阻塞，或按 Policy 降级。平台原生 Web 是降级，不是等价物。
-
-**链接：**
-- npm 包：https://www.npmjs.com/package/@blxzer/smart-search
-- GitHub 仓库：https://github.com/blxzer77/smart-search
-
-工作流在 Provider 就绪时把外部事实查询路由到 smart-search。配置与用法见其仓库。
-
----
-
-## 维护者脚本（本包）
-
-面向**编辑本仓库**的贡献者，终端用户不必运行：
-
-| 脚本 | 用途 |
-| --- | --- |
-| `pnpm build` | `tsc` + 拷贝模板 |
-| `pnpm test` | Vitest |
-| `pnpm mirror-check` | Dogfood `.cursor` / `.agents` vs templates |
-| `pnpm run sync:smart-search` | 刷新 bundled `smart-search-cli` skill（从 smart-search 仓库拷贝；非 vendor 源码） |
-
-Release 与 npm 发布流程**不在**公开 README 中；见内部维护文档。
-
----
-
-## 延伸阅读
-
-- [项目 README](../../README.zh-CN.md)
-- [Cursor 集成](../../docs/cursor.zh-CN.md)
-- [架构概览](../../docs/architecture.zh-CN.md)
-
-> **Cursor++ 已废弃：** Trellis 不再提供 Cursor++ 安装面（`cstl-cursor2plus-setup`、`.cstl/local/cursor2plus/`）。产品路径 = **Native Cursor**。CSTL **不内嵌 BYOK**。**勿**运行 `patch_wpelc8.py`。遗留 local 包视为残渣（`cstl update` 对未改动的托管文件做哈希安全清理）。`cursorEnv` / `TRELLIS_CURSOR_BYOK` / `~/.ccursor/routes.json` 仅作检索环境探测。
-
-- [CHANGELOG](./CHANGELOG.md)
+公开 package README 刻意不包含 release 或 registry 写操作说明。

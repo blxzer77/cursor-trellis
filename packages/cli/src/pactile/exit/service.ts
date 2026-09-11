@@ -458,12 +458,11 @@ export class PactileExitManager {
         const matchingClaimants = entry.claimants.filter(
           (claimant) => physicalIdentity(claimant.id) === normalizedAdapterId,
         );
-        if (
-          matchingClaimants.length > 1 ||
-          matchingClaimants[0]?.id !== adapterId
-        )
+        if (matchingClaimants.length > 1)
           return failure("review", "ambiguous-claimant-identity");
         if (matchingClaimants.length === 0) continue;
+        if (matchingClaimants[0]?.id !== adapterId)
+          return failure("review", "ambiguous-claimant-identity");
         if (entry.control === "unknown")
           return failure("review", "ownership-review-required");
 
@@ -858,6 +857,8 @@ export class PactileExitManager {
           files: target.files,
           readFile: (relativePath) =>
             generations.readFile(target.generationId, relativePath),
+          readFiles: (relativePaths) =>
+            generations.readFiles(target.generationId, relativePaths),
         });
 
       if (plan.alreadyActive) {

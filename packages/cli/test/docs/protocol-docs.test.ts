@@ -46,7 +46,7 @@ describe("P31–P36 product protocol docs", () => {
 
   it("P32 protocol names overlay, transports, Manifest, and update isolation", () => {
     const protocol = doc("middleware-protocol.md");
-    expect(protocol).toContain(".cstl/middleware/");
+    expect(protocol).toContain(".pactile/middleware/");
     expect(protocol).toContain("protocol: 1");
     expect(protocol).toContain("skill+cli");
     expect(protocol).toContain("preserve-user-overlay");
@@ -80,7 +80,7 @@ describe("P31–P36 product protocol docs", () => {
 
   it("P36 user upgrade is a half-page with no Stage map and no local full-migrate", () => {
     const upgrade = doc("upgrade.md");
-    expect(upgrade).toContain("cstl update");
+    expect(upgrade).toContain("pactile update");
     expect(upgrade).toMatch(/确认一次/);
     expect(upgrade).toMatch(/双读/);
     expect(upgrade).toMatch(/确认后才会停读旧形状/);
@@ -94,16 +94,16 @@ describe("P31–P36 product protocol docs", () => {
 
   it("P35 does not make BYOK a CSTL release gate", () => {
     const boundary = doc("release-boundary.md");
-    expect(boundary).toContain("cstl-byok");
+    expect(boundary).toContain("pactile-byok");
     expect(boundary).toMatch(/不是.*硬依赖|互不门禁/);
-    expect(boundary).toContain(".cstl/middleware/");
+    expect(boundary).toContain(".pactile/middleware/");
     expect(boundary).not.toMatch(/P33.*硬依赖/);
   });
 
   it("P34 workflow points to the parallel-first product contract", () => {
     expect(workflowMdTemplate).toMatch(/Parallel first/i);
     expect(workflowMdTemplate).toContain(
-      ".cstl/framework/parallel-first-execution.md",
+      ".pactile/framework/parallel-first-execution.md",
     );
     const parallelFirst = doc("parallel-first-execution.md");
     expect(parallelFirst).toMatch(/product/i);

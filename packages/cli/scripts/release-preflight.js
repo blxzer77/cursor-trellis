@@ -48,21 +48,75 @@ export function readVersions() {
   };
 }
 
+export const RELEASE_PACKAGE_DAG = [
+  { key: "core", dependsOn: [] },
+  { key: "cli", dependsOn: ["core"] },
+  { key: "legacyCore", dependsOn: ["cli"] },
+  { key: "legacyCli", dependsOn: ["legacyCore"] },
+];
+
+export function assertReleasePackageOrder(order) {
+  const expectedKeys = RELEASE_PACKAGE_DAG.map((node) => node.key);
+  if (!Array.isArray(order) || order.length !== expectedKeys.length) {
+    throw new Error(
+      `Release publish DAG must contain exactly: ${expectedKeys.join(" -> ")}.`,
+    );
+  }
+
+  const seen = new Set();
+  for (const key of order) {
+    const node = RELEASE_PACKAGE_DAG.find((candidate) => candidate.key === key);
+    if (!node) throw new Error(`Unknown release package key "${key}".`);
+    if (seen.has(key)) {
+      throw new Error(
+        `Release publish DAG contains duplicate package "${key}".`,
+      );
+    }
+    const missing = node.dependsOn.filter(
+      (dependency) => !seen.has(dependency),
+    );
+    if (missing.length > 0) {
+      throw new Error(
+        `Release package "${key}" cannot run before ${missing.join(", ")}.`,
+      );
+    }
+    seen.add(key);
+  }
+
+  const omitted = expectedKeys.filter((key) => !seen.has(key));
+  if (omitted.length > 0) {
+    throw new Error(`Release publish DAG omitted: ${omitted.join(", ")}.`);
+  }
+  return order;
+}
+
 export function releasePackageDefinitions(versions) {
-  return [
-    { key: "core", name: versions.coreName, version: versions.coreVersion },
-    { key: "cli", name: versions.cliName, version: versions.cliVersion },
-    {
+  const definitions = {
+    core: {
+      key: "core",
+      name: versions.coreName,
+      version: versions.coreVersion,
+    },
+    cli: {
+      key: "cli",
+      name: versions.cliName,
+      version: versions.cliVersion,
+    },
+    legacyCore: {
       key: "legacyCore",
       name: versions.legacyCoreName,
       version: versions.legacyCoreVersion,
     },
-    {
+    legacyCli: {
       key: "legacyCli",
       name: versions.legacyCliName,
       version: versions.legacyCliVersion,
     },
-  ];
+  };
+  const order = assertReleasePackageOrder(
+    RELEASE_PACKAGE_DAG.map((node) => node.key),
+  );
+  return order.map((key) => definitions[key]);
 }
 
 export function computeNpmTag(version) {
@@ -373,7 +427,9 @@ export function verifyPackedCli({
   versions = readVersions(),
 } = {}) {
   assertMatchingVersions(versions);
-  const temporary = fs.mkdtempSync(path.join(os.tmpdir(), "pactile-pack-verify-"));
+  const temporary = fs.mkdtempSync(
+    path.join(os.tmpdir(), "pactile-pack-verify-"),
+  );
   try {
     const packed = packWorkspacePackage(
       path.join(REPO_ROOT, "packages/cli"),
@@ -489,9 +545,7 @@ async function main() {
   if (command === "verify-npm") {
     const packageFilter = optionValue(args, "--package", "all");
     if (
-      !["all", "core", "cli", "legacyCore", "legacyCli"].includes(
-        packageFilter,
-      )
+      !["all", "core", "cli", "legacyCore", "legacyCli"].includes(packageFilter)
     ) {
       throw new Error(
         "--package must be one of: all, core, cli, legacyCore, legacyCli.",

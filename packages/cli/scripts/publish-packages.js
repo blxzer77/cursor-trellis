@@ -314,12 +314,10 @@ export function runPreparedPublish({
       `legacyCore=${plan.legacyCore.publish ? "publish" : "skip"}, ` +
       `legacyCli=${plan.legacyCli.publish ? "publish" : "skip"})`,
   );
-  const orderedPlan = [
-    { key: "core", item: plan.core },
-    { key: "cli", item: plan.cli },
-    { key: "legacyCore", item: plan.legacyCore },
-    { key: "legacyCli", item: plan.legacyCli },
-  ];
+  const orderedPlan = releasePackageDefinitions(packageInfo).map(({ key }) => ({
+    key,
+    item: plan[key],
+  }));
   if (!dryRun && orderedPlan.some((entry) => entry.item.publish)) {
     try {
       runner("npm", ["whoami"], { cwd: repoRoot, capture: true });
@@ -368,7 +366,8 @@ export function runPreparedPublish({
 export function runPublishDryRun({ artifactDir, ...options } = {}) {
   const ownDirectory = !artifactDir;
   const target =
-    artifactDir ?? fs.mkdtempSync(path.join(os.tmpdir(), "pactile-release-dry-"));
+    artifactDir ??
+    fs.mkdtempSync(path.join(os.tmpdir(), "pactile-release-dry-"));
   try {
     const preparation = runCandidatePreparation({
       ...options,

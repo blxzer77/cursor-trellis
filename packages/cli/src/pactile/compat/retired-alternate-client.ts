@@ -153,7 +153,12 @@ export function cleanupCursor2plusResidue(
     }
     if (!options.dryRun) {
       fs.unlinkSync(fullPath);
-      removeHash(cwd, rel);
+      // Legacy-only projects can have residue without a canonical Pactile
+      // hash manifest.  Deleting that residue must not create a new canonical
+      // root (or fail while trying to update one).
+      if (fs.existsSync(path.join(cwd, DIR_NAMES.WORKFLOW, ".template-hashes.json"))) {
+        removeHash(cwd, rel);
+      }
       tryRemoveEmptyParents(fullPath, cwd);
     }
     result.deleted.push(rel);

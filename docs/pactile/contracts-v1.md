@@ -12,8 +12,9 @@ The v1 authority model is:
 
 1. `.pactile/` is the only writable canonical runtime root.
 2. `.cstl/` and `.trellis/` may be declared only as `read-only` legacy sources.
-3. `.agents/skills/`, `.cursor/`, `.codex/`, and managed instruction blocks are
-   rebuildable projections, not a second source of truth.
+3. `.agents/skills/`, `.cursor/`, optional `.codex/`, and managed instruction
+   blocks are rebuildable projections, not a second source of truth. Codex
+   project leaves are emitted only when the host reports native support.
 4. An Adapter emits a `ProjectionPlanV1`; it does not write canonical state or
    host files. A later Reconciler is the sole projection writer.
 5. The model selects, orders, and composes Tiles. Kernel validates composition

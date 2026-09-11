@@ -115,6 +115,10 @@ export interface LifecycleValidationContext {
   readonly generationId: string;
   readonly files: readonly GenerationFile[];
   readonly readFile: (relativePath: string) => Uint8Array;
+  /** Read several sealed files after one generation-inventory verification. */
+  readonly readFiles?: (
+    relativePaths: readonly string[],
+  ) => ReadonlyMap<string, Uint8Array>;
 }
 
 export type LifecycleMaterializationContext = LifecycleValidationContext;
@@ -1519,6 +1523,8 @@ export async function runLifecycleTransaction(
             files: seal.files,
             readFile: (relativePath) =>
               generations.readFile(input.generationId, relativePath),
+            readFiles: (relativePaths) =>
+              generations.readFiles(input.generationId, relativePaths),
           });
         }
         return {
@@ -1577,6 +1583,8 @@ export async function runLifecycleTransaction(
         files: seal.files,
         readFile: (relativePath) =>
           generations.readFile(input.generationId, relativePath),
+        readFiles: (relativePaths) =>
+          generations.readFiles(input.generationId, relativePaths),
       });
     }
 

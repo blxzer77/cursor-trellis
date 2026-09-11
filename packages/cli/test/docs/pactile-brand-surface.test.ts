@@ -182,11 +182,16 @@ function createMinimalContractRepository(): string {
 describe("Pactile Batch 0 brand and documentation surface", () => {
   it("keeps the checked-in inventory and every public documentation source exact", () => {
     const result = runChecker(repoRoot);
+    const documentationMap = readJson<DocumentationMap>(
+      path.join(contractDir, "documentation-map.json"),
+    );
 
     expect(result.status, result.stderr).toBe(0);
     expect(result.report.ok).toBe(true);
     expect(result.report.errors).toEqual([]);
-    expect(result.report.documentationSourceCount).toBe(33);
+    expect(result.report.documentationSourceCount).toBe(
+      documentationMap.sourceMappings.length,
+    );
     expect(result.report.filesByClassification.history).toContain(
       "packages/cli/CHANGELOG.md",
     );

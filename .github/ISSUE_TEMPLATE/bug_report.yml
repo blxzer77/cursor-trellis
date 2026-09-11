@@ -1,0 +1,57 @@
+name: Bug report
+description: Report a reproducible Pactile problem without sharing secrets.
+title: "[Bug] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not include credentials, tokens, private logs, customer data, or hidden reasoning.
+        不要提交凭据、token、私有日志、客户数据或隐藏推理。
+  - type: input
+    id: version
+    attributes:
+      label: Pactile version / 版本
+      description: Output of `pactile --version`.
+    validations:
+      required: true
+  - type: dropdown
+    id: host
+    attributes:
+      label: Host / 宿主
+      options:
+        - Cursor
+        - Codex
+        - Both / 二者
+        - CLI only / 仅 CLI
+    validations:
+      required: true
+  - type: input
+    id: mode
+    attributes:
+      label: Capability mode / 能力 mode
+      description: For example native, provider, heuristic, or unsupported.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction / 复现
+      description: Give the smallest safe steps and expected/actual result.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Redacted evidence / 脱敏 evidence
+      description: Include exit status, receipt, or fingerprint; remove secrets and private paths.
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety check / 安全检查
+      options:
+        - label: I removed credentials, tokens, private logs, and user data. / 我已移除凭据、token、私有日志和用户数据。
+          required: true

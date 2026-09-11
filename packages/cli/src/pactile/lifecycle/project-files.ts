@@ -179,12 +179,19 @@ export function materializeCanonicalGeneration(
   projectRoot: string,
   context: LifecycleMaterializationContext,
 ): void {
+  const bytesByPath = context.readFiles
+    ? context.readFiles(context.files.map((file) => file.path))
+    : new Map(
+        context.files.map((file) => [file.path, context.readFile(file.path)]),
+      );
   applyCanonicalView(
     projectRoot,
-    context.files.map((file) => ({
-      path: file.path,
-      bytes: Buffer.from(context.readFile(file.path)),
-    })),
+    context.files.map((file) => {
+      const bytes = bytesByPath.get(file.path);
+      if (bytes === undefined)
+        throw new Error("canonical-materialization-file-missing");
+      return { path: file.path, bytes: Buffer.from(bytes) };
+    }),
   );
 }
 

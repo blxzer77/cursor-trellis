@@ -30,10 +30,8 @@ describe("Cursor env docs after Cursor++ retirement (P23)", () => {
     expect(en).toMatch(/Cursor\+\+ retired/i);
     expect(zh).toMatch(/Cursor\+\+ 已废弃/);
     expect(en).toContain("Native Cursor");
-    expect(en).toContain("TRELLIS_CURSOR_BYOK");
-    expect(en).toContain("routes.json");
-    expect(zh).toContain("TRELLIS_CURSOR_BYOK");
-    expect(zh).toContain("routes.json");
+    expect(en).toContain("hosts/cursor.md");
+    expect(zh).toContain("hosts/cursor.zh-CN.md");
     expect(en).not.toMatch(/cstl init --cursor --cursor2plus/);
     expect(zh).not.toMatch(/cstl init --cursor --cursor2plus/);
   });

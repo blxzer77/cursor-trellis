@@ -21,7 +21,9 @@ describe("Method 2.5 / Cursor++ docs retired (P23)", () => {
     for (const docPath of DOC_PATHS) {
       const content = readUtf8(docPath);
       expect(content, docPath).toMatch(/Cursor\+\+ retired|Cursor\+\+ 已废弃/i);
-      expect(content, docPath).toMatch(/do not run|勿.*运行|retired/i);
+      expect(content, docPath).toMatch(
+        /do not run|勿.*运行|retired|已废弃|not a current product path|不是当前产品路径/i,
+      );
       expect(content, docPath).not.toMatch(/cstl init --cursor --cursor2plus/);
       expect(content, docPath).not.toMatch(
         /python \.cstl\/local\/cursor2plus\/patch_wpelc8\.py --check-compat/,

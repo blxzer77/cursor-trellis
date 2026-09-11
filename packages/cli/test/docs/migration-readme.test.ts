@@ -14,11 +14,7 @@ const MIGRATION_README_PATHS = [
   path.join(cliRoot, "README.zh-CN.md"),
 ];
 
-const REQUIRED_MIGRATION_PHRASES = [
-  "npm install -g @blxzer/cursor-trellis@latest",
-  "cstl update --migrate",
-  ".cstl/",
-];
+const REQUIRED_MIGRATION_PHRASES = ["pactile update", ".pactile/"];
 
 /** Patterns that imply `tl` is still a shipped bin alias (not historical mention). */
 const TL_BIN_ALIAS_PATTERNS = [
@@ -32,19 +28,17 @@ function readUtf8(filePath: string): string {
   return fs.readFileSync(filePath, "utf-8");
 }
 
-describe("0.3.0 migration README narrative", () => {
-  it("README files exist and share the migration closed loop", () => {
+describe("canonical migration README narrative", () => {
+  it("README files exist and point to the canonical update path", () => {
     for (const readmePath of MIGRATION_README_PATHS) {
       expect(fs.existsSync(readmePath), readmePath).toBe(true);
       const content = readUtf8(readmePath);
       for (const phrase of REQUIRED_MIGRATION_PHRASES) {
         expect(content, `${readmePath} missing ${phrase}`).toContain(phrase);
       }
-      // Cursor++ operational setup must not be required for 0.3.0 migration
+      // Retired Cursor++ operational setup must not be required by current docs.
       expect(content, readmePath).not.toMatch(/patch_wpelc8\.py --apply/);
-      expect(content, readmePath).toMatch(
-        /Cursor\+\+ retired|Cursor\+\+ 已废弃|trellis-task-models\.json5|residue|残渣/i,
-      );
+      expect(content, readmePath).toMatch(/Pactile|迁移|migration/i);
     }
   });
 

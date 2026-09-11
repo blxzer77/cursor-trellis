@@ -625,6 +625,780 @@
   ],
   "sourceMappings": [
     {
+      "path": ".github/ISSUE_TEMPLATE/bug_report.yml",
+      "classification": "live",
+      "language": "neutral",
+      "action": "rewrite",
+      "targetPage": "governance.security",
+      "ownerLane": "batch-4-docs-governance-history",
+      "reason": "The bug template is a live intake surface and must keep reports redacted and reproducible."
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/config.yml",
+      "classification": "live",
+      "language": "neutral",
+      "action": "rewrite",
+      "targetPage": "governance.security",
+      "ownerLane": "batch-4-docs-governance-history",
+      "reason": "Issue routing links are live community navigation and must point to safe support and security guidance."
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/feature_request.yml",
+      "classification": "live",
+      "language": "neutral",
+      "action": "rewrite",
+      "targetPage": "governance.contributing",
+      "ownerLane": "batch-4-docs-governance-history",
+      "reason": "The feature template is a live contribution intake surface with bounded-scope prompts."
+    },
+    {
+      "path": ".github/PULL_REQUEST_TEMPLATE.md",
+      "classification": "live",
+      "language": "neutral",
+      "action": "rewrite",
+      "targetPage": "governance.contributing",
+      "ownerLane": "batch-4-docs-governance-history",
+      "reason": "The pull-request template is the live review contract for scope, evidence, and safety."
+    },
+    {
+      "path": "CODE_OF_CONDUCT.md",
+      "classification": "live",
+      "language": "en",
+      "action": "rewrite",
+      "targetPage": "governance.contributing",
+      "ownerLane": "batch-4-docs-governance-history",
+      "reason": "The repository conduct policy is a live contributor boundary."
+    },
+    {
+      "path": "CONTRIBUTING.md",
+      "classification": "live",
+      "language": "en",
+      "action": "rewrite",
+      "targetPage": "governance.contributing",
+      "ownerLane": "batch-4-docs-governance-history",
+      "reason": "The root contribution entry is the live GitHub-facing route into governance."
+    },
+    {
+      "path": "SECURITY.md",
+      "classification": "live",
+      "language": "en",
+      "action": "rewrite",
+      "targetPage": "governance.security",
+      "ownerLane": "batch-4-docs-governance-history",
+      "reason": "The root security policy is a live vulnerability-reporting boundary."
+    },
+    {
+      "path": "SUPPORT.md",
+      "classification": "live",
+      "language": "en",
+      "action": "rewrite",
+      "targetPage": "governance.index",
+      "ownerLane": "batch-4-docs-governance-history",
+      "reason": "The root support entry is a live user-help and redaction boundary."
+    },
+    {
+      "path": "docs/capabilities/index.md",
+      "classification": "live",
+      "language": "en",
+      "action": "rewrite",
+      "targetPage": "capabilities.index",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "reason": "Canonical English capability index."
+    },
+    {
+      "path": "docs/capabilities/index.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "rewrite",
+      "targetPage": "capabilities.index",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "reason": "Canonical Chinese capability index."
+    },
+    {
+      "path": "docs/capabilities/mcp.md",
+      "classification": "live",
+      "language": "en",
+      "action": "rewrite",
+      "targetPage": "capabilities.mcp",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "reason": "Canonical English MCP capability guide."
+    },
+    {
+      "path": "docs/capabilities/mcp.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "rewrite",
+      "targetPage": "capabilities.mcp",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "reason": "Canonical Chinese MCP capability guide."
+    },
+    {
+      "path": "docs/capabilities/native-adoption.md",
+      "classification": "live",
+      "language": "en",
+      "action": "rewrite",
+      "targetPage": "capabilities.native-adoption",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "reason": "Canonical English native adoption and ownership guide."
+    },
+    {
+      "path": "docs/capabilities/native-adoption.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "rewrite",
+      "targetPage": "capabilities.native-adoption",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "reason": "Canonical Chinese native adoption and ownership guide."
+    },
+    {
+      "path": "docs/capabilities/privacy-and-permissions.md",
+      "classification": "live",
+      "language": "en",
+      "action": "rewrite",
+      "targetPage": "capabilities.privacy",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "reason": "Canonical English privacy and permission boundary guide."
+    },
+    {
+      "path": "docs/capabilities/privacy-and-permissions.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "rewrite",
+      "targetPage": "capabilities.privacy",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "reason": "Canonical Chinese privacy and permission boundary guide."
+    },
+    {
+      "path": "docs/capabilities/providers.md",
+      "classification": "live",
+      "language": "en",
+      "action": "rewrite",
+      "targetPage": "capabilities.providers",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "reason": "Canonical English Provider readiness and origin guide."
+    },
+    {
+      "path": "docs/capabilities/providers.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "rewrite",
+      "targetPage": "capabilities.providers",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "reason": "Canonical Chinese Provider readiness and origin guide."
+    },
+    {
+      "path": "docs/capabilities/retrieval.md",
+      "classification": "live",
+      "language": "en",
+      "action": "rewrite",
+      "targetPage": "capabilities.retrieval",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "reason": "Canonical English retrieval assurance guide."
+    },
+    {
+      "path": "docs/capabilities/retrieval.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "rewrite",
+      "targetPage": "capabilities.retrieval",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "reason": "Canonical Chinese retrieval assurance guide."
+    },
+    {
+      "path": "docs/capabilities/skills.md",
+      "classification": "live",
+      "language": "en",
+      "action": "rewrite",
+      "targetPage": "capabilities.skills",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "reason": "Canonical English shared Skills projection guide."
+    },
+    {
+      "path": "docs/capabilities/skills.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "rewrite",
+      "targetPage": "capabilities.skills",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "reason": "Canonical Chinese shared Skills projection guide."
+    },
+    {
+      "path": "docs/capabilities/subagents.md",
+      "classification": "live",
+      "language": "en",
+      "action": "rewrite",
+      "targetPage": "capabilities.subagents",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "reason": "Canonical English subagent capability boundary guide."
+    },
+    {
+      "path": "docs/capabilities/subagents.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "rewrite",
+      "targetPage": "capabilities.subagents",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "reason": "Canonical Chinese subagent capability boundary guide."
+    },
+    {
+      "path": "docs/concepts/architecture.md",
+      "classification": "live",
+      "language": "en",
+      "action": "rewrite",
+      "targetPage": "concepts.architecture",
+      "ownerLane": "batch-4-docs-entry-concepts",
+      "reason": "Canonical English architecture concept page."
+    },
+    {
+      "path": "docs/concepts/architecture.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "rewrite",
+      "targetPage": "concepts.architecture",
+      "ownerLane": "batch-4-docs-entry-concepts",
+      "reason": "Canonical Chinese architecture concept page."
+    },
+    {
+      "path": "docs/concepts/index.md",
+      "classification": "live",
+      "language": "en",
+      "action": "rewrite",
+      "targetPage": "concepts.index",
+      "ownerLane": "batch-4-docs-entry-concepts",
+      "reason": "Canonical English concepts index."
+    },
+    {
+      "path": "docs/concepts/index.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "rewrite",
+      "targetPage": "concepts.index",
+      "ownerLane": "batch-4-docs-entry-concepts",
+      "reason": "Canonical Chinese concepts index."
+    },
+    {
+      "path": "docs/concepts/kernel-evidence-trace.md",
+      "classification": "live",
+      "language": "en",
+      "action": "rewrite",
+      "targetPage": "concepts.kernel-evidence-trace",
+      "ownerLane": "batch-4-docs-entry-concepts",
+      "reason": "Canonical English Kernel, Evidence, and Trace concept page."
+    },
+    {
+      "path": "docs/concepts/kernel-evidence-trace.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "rewrite",
+      "targetPage": "concepts.kernel-evidence-trace",
+      "ownerLane": "batch-4-docs-entry-concepts",
+      "reason": "Canonical Chinese Kernel, Evidence, and Trace concept page."
+    },
+    {
+      "path": "docs/concepts/projection-and-ownership.md",
+      "classification": "live",
+      "language": "en",
+      "action": "rewrite",
+      "targetPage": "concepts.projection-ownership",
+      "ownerLane": "batch-4-docs-entry-concepts",
+      "reason": "Canonical English Projection and Ownership concept page."
+    },
+    {
+      "path": "docs/concepts/projection-and-ownership.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "rewrite",
+      "targetPage": "concepts.projection-ownership",
+      "ownerLane": "batch-4-docs-entry-concepts",
+      "reason": "Canonical Chinese Projection and Ownership concept page."
+    },
+    {
+      "path": "docs/concepts/spec-system.md",
+      "classification": "live",
+      "language": "en",
+      "action": "rewrite",
+      "targetPage": "concepts.spec-system",
+      "ownerLane": "batch-4-docs-entry-concepts",
+      "reason": "Canonical English spec-system concept page."
+    },
+    {
+      "path": "docs/concepts/spec-system.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "rewrite",
+      "targetPage": "concepts.spec-system",
+      "ownerLane": "batch-4-docs-entry-concepts",
+      "reason": "Canonical Chinese spec-system concept page."
+    },
+    {
+      "path": "docs/concepts/task-system.md",
+      "classification": "live",
+      "language": "en",
+      "action": "rewrite",
+      "targetPage": "concepts.task-system",
+      "ownerLane": "batch-4-docs-entry-concepts",
+      "reason": "Canonical English task-system concept page."
+    },
+    {
+      "path": "docs/concepts/task-system.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "rewrite",
+      "targetPage": "concepts.task-system",
+      "ownerLane": "batch-4-docs-entry-concepts",
+      "reason": "Canonical Chinese task-system concept page."
+    },
+    {
+      "path": "docs/concepts/tiles.md",
+      "classification": "live",
+      "language": "en",
+      "action": "rewrite",
+      "targetPage": "concepts.tiles",
+      "ownerLane": "batch-4-docs-entry-concepts",
+      "reason": "Canonical English Tiles concept page."
+    },
+    {
+      "path": "docs/concepts/tiles.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "rewrite",
+      "targetPage": "concepts.tiles",
+      "ownerLane": "batch-4-docs-entry-concepts",
+      "reason": "Canonical Chinese Tiles concept page."
+    },
+    {
+      "path": "docs/governance/compatibility.md",
+      "classification": "live",
+      "language": "en",
+      "action": "rewrite",
+      "targetPage": "governance.compatibility",
+      "ownerLane": "batch-4-docs-governance-history",
+      "reason": "Canonical English compatibility policy."
+    },
+    {
+      "path": "docs/governance/compatibility.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "rewrite",
+      "targetPage": "governance.compatibility",
+      "ownerLane": "batch-4-docs-governance-history",
+      "reason": "Canonical Chinese compatibility policy."
+    },
+    {
+      "path": "docs/governance/contributing.md",
+      "classification": "live",
+      "language": "en",
+      "action": "rewrite",
+      "targetPage": "governance.contributing",
+      "ownerLane": "batch-4-docs-governance-history",
+      "reason": "Canonical English contribution and review policy."
+    },
+    {
+      "path": "docs/governance/contributing.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "rewrite",
+      "targetPage": "governance.contributing",
+      "ownerLane": "batch-4-docs-governance-history",
+      "reason": "Canonical Chinese contribution and review policy."
+    },
+    {
+      "path": "docs/governance/index.md",
+      "classification": "live",
+      "language": "en",
+      "action": "rewrite",
+      "targetPage": "governance.index",
+      "ownerLane": "batch-4-docs-governance-history",
+      "reason": "Canonical English governance index."
+    },
+    {
+      "path": "docs/governance/index.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "rewrite",
+      "targetPage": "governance.index",
+      "ownerLane": "batch-4-docs-governance-history",
+      "reason": "Canonical Chinese governance index."
+    },
+    {
+      "path": "docs/governance/releasing.md",
+      "classification": "live",
+      "language": "en",
+      "action": "rewrite",
+      "targetPage": "governance.releasing",
+      "ownerLane": "batch-4-docs-governance-history",
+      "reason": "Canonical English release policy and preflight boundary."
+    },
+    {
+      "path": "docs/governance/releasing.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "rewrite",
+      "targetPage": "governance.releasing",
+      "ownerLane": "batch-4-docs-governance-history",
+      "reason": "Canonical Chinese release policy and preflight boundary."
+    },
+    {
+      "path": "docs/governance/security.md",
+      "classification": "live",
+      "language": "en",
+      "action": "rewrite",
+      "targetPage": "governance.security",
+      "ownerLane": "batch-4-docs-governance-history",
+      "reason": "Canonical English security reporting policy."
+    },
+    {
+      "path": "docs/governance/security.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "rewrite",
+      "targetPage": "governance.security",
+      "ownerLane": "batch-4-docs-governance-history",
+      "reason": "Canonical Chinese security reporting policy."
+    },
+    {
+      "path": "docs/history/campaign-ui.md",
+      "classification": "history",
+      "language": "en",
+      "action": "archive",
+      "targetPage": "history.campaign-ui",
+      "ownerLane": "batch-4-docs-governance-history",
+      "reason": "History IA wrapper keeps the removed UI experiment out of current guidance."
+    },
+    {
+      "path": "docs/history/community/linux-do-release.md",
+      "classification": "history",
+      "language": "zh-CN",
+      "action": "archive",
+      "targetPage": "history.community-linux-do",
+      "ownerLane": "batch-4-docs-governance-history",
+      "reason": "History IA wrapper preserves the original community release narrative."
+    },
+    {
+      "path": "docs/history/cursor-plus-plus.md",
+      "classification": "history",
+      "language": "en",
+      "action": "archive",
+      "targetPage": "history.cursor-plus-plus",
+      "ownerLane": "batch-4-docs-governance-history",
+      "reason": "Retired host experiment is explicitly historical and not an operating path."
+    },
+    {
+      "path": "docs/history/cursor-plus-plus.zh-CN.md",
+      "classification": "history",
+      "language": "zh-CN",
+      "action": "archive",
+      "targetPage": "history.cursor-plus-plus",
+      "ownerLane": "batch-4-docs-governance-history",
+      "reason": "Retired host experiment is explicitly historical and not an operating path."
+    },
+    {
+      "path": "docs/history/index.md",
+      "classification": "history",
+      "language": "en",
+      "action": "archive",
+      "targetPage": "history.index",
+      "ownerLane": "batch-4-docs-governance-history",
+      "reason": "Bilingual history index labels preserved evidence as non-operational context."
+    },
+    {
+      "path": "docs/history/index.zh-CN.md",
+      "classification": "history",
+      "language": "zh-CN",
+      "action": "archive",
+      "targetPage": "history.index",
+      "ownerLane": "batch-4-docs-governance-history",
+      "reason": "Bilingual history index labels preserved evidence as non-operational context."
+    },
+    {
+      "path": "docs/history/research/personal-skills-integration.md",
+      "classification": "history",
+      "language": "en",
+      "action": "archive",
+      "targetPage": "history.research-personal-skills",
+      "ownerLane": "batch-4-docs-governance-history",
+      "reason": "History IA wrapper preserves the personal Skills research record."
+    },
+    {
+      "path": "docs/hosts/codex.md",
+      "classification": "live",
+      "language": "en",
+      "action": "rewrite",
+      "targetPage": "hosts.codex",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "reason": "Canonical English Codex host guide."
+    },
+    {
+      "path": "docs/hosts/codex.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "rewrite",
+      "targetPage": "hosts.codex",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "reason": "Canonical Chinese Codex host guide."
+    },
+    {
+      "path": "docs/hosts/coexistence.md",
+      "classification": "live",
+      "language": "en",
+      "action": "rewrite",
+      "targetPage": "hosts.coexistence",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "reason": "Canonical English Cursor/Codex coexistence guide."
+    },
+    {
+      "path": "docs/hosts/coexistence.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "rewrite",
+      "targetPage": "hosts.coexistence",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "reason": "Canonical Chinese Cursor/Codex coexistence guide."
+    },
+    {
+      "path": "docs/hosts/cursor-limitations.md",
+      "classification": "live",
+      "language": "en",
+      "action": "rewrite",
+      "targetPage": "hosts.cursor-limitations",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "reason": "Canonical English Cursor limitations and degraded-mode guide."
+    },
+    {
+      "path": "docs/hosts/cursor-limitations.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "rewrite",
+      "targetPage": "hosts.cursor-limitations",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "reason": "Canonical Chinese Cursor limitations and degraded-mode guide."
+    },
+    {
+      "path": "docs/hosts/cursor.md",
+      "classification": "live",
+      "language": "en",
+      "action": "rewrite",
+      "targetPage": "hosts.cursor",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "reason": "Canonical English Cursor host guide."
+    },
+    {
+      "path": "docs/hosts/cursor.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "rewrite",
+      "targetPage": "hosts.cursor",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "reason": "Canonical Chinese Cursor host guide."
+    },
+    {
+      "path": "docs/hosts/index.md",
+      "classification": "live",
+      "language": "en",
+      "action": "rewrite",
+      "targetPage": "hosts.index",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "reason": "Canonical English host index."
+    },
+    {
+      "path": "docs/hosts/index.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "rewrite",
+      "targetPage": "hosts.index",
+      "ownerLane": "batch-4-docs-hosts-capabilities",
+      "reason": "Canonical Chinese host index."
+    },
+    {
+      "path": "docs/lifecycle/detach-and-uninstall.md",
+      "classification": "live",
+      "language": "en",
+      "action": "rewrite",
+      "targetPage": "lifecycle.detach-uninstall",
+      "ownerLane": "batch-4-docs-lifecycle-support",
+      "reason": "Canonical English detach and uninstall lifecycle guide."
+    },
+    {
+      "path": "docs/lifecycle/detach-and-uninstall.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "rewrite",
+      "targetPage": "lifecycle.detach-uninstall",
+      "ownerLane": "batch-4-docs-lifecycle-support",
+      "reason": "Canonical Chinese detach and uninstall lifecycle guide."
+    },
+    {
+      "path": "docs/lifecycle/index.md",
+      "classification": "live",
+      "language": "en",
+      "action": "rewrite",
+      "targetPage": "lifecycle.index",
+      "ownerLane": "batch-4-docs-lifecycle-support",
+      "reason": "Canonical English lifecycle index."
+    },
+    {
+      "path": "docs/lifecycle/index.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "rewrite",
+      "targetPage": "lifecycle.index",
+      "ownerLane": "batch-4-docs-lifecycle-support",
+      "reason": "Canonical Chinese lifecycle index."
+    },
+    {
+      "path": "docs/lifecycle/install.md",
+      "classification": "live",
+      "language": "en",
+      "action": "rewrite",
+      "targetPage": "lifecycle.install",
+      "ownerLane": "batch-4-docs-lifecycle-support",
+      "reason": "Canonical English install and first-run guide."
+    },
+    {
+      "path": "docs/lifecycle/install.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "rewrite",
+      "targetPage": "lifecycle.install",
+      "ownerLane": "batch-4-docs-lifecycle-support",
+      "reason": "Canonical Chinese install and first-run guide."
+    },
+    {
+      "path": "docs/lifecycle/rollback-and-purge.md",
+      "classification": "live",
+      "language": "en",
+      "action": "rewrite",
+      "targetPage": "lifecycle.rollback-purge",
+      "ownerLane": "batch-4-docs-lifecycle-support",
+      "reason": "Canonical English rollback and purge safety guide."
+    },
+    {
+      "path": "docs/lifecycle/rollback-and-purge.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "rewrite",
+      "targetPage": "lifecycle.rollback-purge",
+      "ownerLane": "batch-4-docs-lifecycle-support",
+      "reason": "Canonical Chinese rollback and purge safety guide."
+    },
+    {
+      "path": "docs/lifecycle/upgrade-and-migrate.md",
+      "classification": "live",
+      "language": "en",
+      "action": "rewrite",
+      "targetPage": "lifecycle.upgrade-migrate",
+      "ownerLane": "batch-4-docs-lifecycle-support",
+      "reason": "Canonical English upgrade and migration guide."
+    },
+    {
+      "path": "docs/lifecycle/upgrade-and-migrate.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "rewrite",
+      "targetPage": "lifecycle.upgrade-migrate",
+      "ownerLane": "batch-4-docs-lifecycle-support",
+      "reason": "Canonical Chinese upgrade and migration guide."
+    },
+    {
+      "path": "docs/lifecycle/workflow.md",
+      "classification": "live",
+      "language": "en",
+      "action": "rewrite",
+      "targetPage": "lifecycle.workflow",
+      "ownerLane": "batch-4-docs-lifecycle-support",
+      "reason": "Canonical English workflow lifecycle guide."
+    },
+    {
+      "path": "docs/lifecycle/workflow.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "rewrite",
+      "targetPage": "lifecycle.workflow",
+      "ownerLane": "batch-4-docs-lifecycle-support",
+      "reason": "Canonical Chinese workflow lifecycle guide."
+    },
+    {
+      "path": "docs/troubleshooting/doctor.md",
+      "classification": "live",
+      "language": "en",
+      "action": "rewrite",
+      "targetPage": "troubleshooting.doctor",
+      "ownerLane": "batch-4-docs-lifecycle-support",
+      "reason": "Canonical English diagnostic checks, explicitly backed by available commands."
+    },
+    {
+      "path": "docs/troubleshooting/doctor.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "rewrite",
+      "targetPage": "troubleshooting.doctor",
+      "ownerLane": "batch-4-docs-lifecycle-support",
+      "reason": "Canonical Chinese diagnostic checks, explicitly backed by available commands."
+    },
+    {
+      "path": "docs/troubleshooting/index.md",
+      "classification": "live",
+      "language": "en",
+      "action": "rewrite",
+      "targetPage": "troubleshooting.index",
+      "ownerLane": "batch-4-docs-lifecycle-support",
+      "reason": "Canonical English troubleshooting index."
+    },
+    {
+      "path": "docs/troubleshooting/index.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "rewrite",
+      "targetPage": "troubleshooting.index",
+      "ownerLane": "batch-4-docs-lifecycle-support",
+      "reason": "Canonical Chinese troubleshooting index."
+    },
+    {
+      "path": "docs/troubleshooting/known-limitations.md",
+      "classification": "live",
+      "language": "en",
+      "action": "rewrite",
+      "targetPage": "troubleshooting.known-limitations",
+      "ownerLane": "batch-4-docs-lifecycle-support",
+      "reason": "Canonical English known-limitations guide."
+    },
+    {
+      "path": "docs/troubleshooting/known-limitations.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "rewrite",
+      "targetPage": "troubleshooting.known-limitations",
+      "ownerLane": "batch-4-docs-lifecycle-support",
+      "reason": "Canonical Chinese known-limitations guide."
+    },
+    {
+      "path": "docs/troubleshooting/recovery.md",
+      "classification": "live",
+      "language": "en",
+      "action": "rewrite",
+      "targetPage": "troubleshooting.recovery",
+      "ownerLane": "batch-4-docs-lifecycle-support",
+      "reason": "Canonical English recovery runbook."
+    },
+    {
+      "path": "docs/troubleshooting/recovery.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "rewrite",
+      "targetPage": "troubleshooting.recovery",
+      "ownerLane": "batch-4-docs-lifecycle-support",
+      "reason": "Canonical Chinese recovery runbook."
+    },
+    {
+      "path": "examples/minimal-agent-app/README.zh-CN.md",
+      "classification": "live",
+      "language": "zh-CN",
+      "action": "rewrite",
+      "targetPage": "entry.example-minimal",
+      "ownerLane": "batch-4-docs-entry-concepts",
+      "reason": "Chinese first-run example must exercise the same supported hosts and smoke command."
+    },
+    {
       "path": ".github/workflows/ci.yml",
       "classification": "live",
       "language": "neutral",
@@ -1065,17 +1839,17 @@
       "surfaces": ["clean", "legacy", "coexistence"]
     },
     {
-      "command": "pactile doctor",
-      "availableAfter": "provider-doctor",
+      "command": "pactile capability-smoke --json",
+      "availableAfter": "batch-2-vertical-capabilities",
       "surfaces": ["cursor", "codex", "coexistence"]
     },
     {
-      "command": "pactile detach --host cursor",
+      "command": "pactile detach cursor",
       "availableAfter": "projection-lifecycle",
       "surfaces": ["coexistence"]
     },
     {
-      "command": "pactile detach --host codex",
+      "command": "pactile detach codex",
       "availableAfter": "projection-lifecycle",
       "surfaces": ["coexistence"]
     },

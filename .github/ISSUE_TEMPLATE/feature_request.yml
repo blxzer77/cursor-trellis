@@ -1,0 +1,47 @@
+name: Feature request
+description: Propose a bounded Pactile capability or workflow improvement.
+title: "[Feature] "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the user outcome, host boundary, and Evidence needed. Do not include secrets.
+        请说明用户结果、宿主边界和所需 Evidence，不要提交 secret。
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem and user outcome / 问题与用户结果
+    validations:
+      required: true
+  - type: dropdown
+    id: host
+    attributes:
+      label: Host scope / 宿主范围
+      options:
+        - Host-neutral / 宿主无关
+        - Cursor
+        - Codex
+        - Both / 二者
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed bounded change / 有限变更建议
+      description: Include ownership, privacy, fallback, and rollback considerations.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence or prior art / Evidence 或先例
+      description: Link public references or provide redacted local evidence only.
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety check / 安全检查
+      options:
+        - label: I removed credentials, tokens, private logs, and user data. / 我已移除凭据、token、私有日志和用户数据。
+          required: true

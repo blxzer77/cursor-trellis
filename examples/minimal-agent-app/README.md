@@ -1,59 +1,69 @@
-# minimal-agent-app
+# Minimal Pactile project
 
-A **5-minute** walkthrough of `@blxzer/cursor-trellis` on an empty application directory. This folder is a placeholder app root — Trellis is not initialized here by default. The demo scripts create a fresh workspace, run `cstl init`, validate rules, and print the generated tree.
+English | [简体中文](README.zh-CN.md)
 
-Based on the [Trellis framework by mindfold-ai](https://github.com/mindfold-ai/Trellis); this fork targets **Cursor** (rules, commands, agents, hooks).
+This example exercises the same five-minute path shown on the repository front page, but always creates a disposable `_demo-workspace/` next to the scripts. It never initializes the Pactile source checkout itself.
 
 ## Prerequisites
 
-- **Node.js** ≥ 18.17
-- **Python** ≥ 3.9 (Trellis hooks and scripts)
-- **smart-search** — installed automatically with `npm install -g @blxzer/cursor-trellis`, or use `--skip-readiness` (see scripts)
+- Node.js 18.17 or newer
+- Python 3.9 or newer for generated scripts and hooks
+- Either a global `@blxzer/pactile` installation or a built checkout of this repository
 
-## Option A — global CLI
+## Run it
 
-```bash
-npm install -g @blxzer/cursor-trellis
-cd examples/minimal-agent-app
-./demo.sh          # macOS / Linux / Git Bash
-# or
-./demo.ps1         # Windows PowerShell
-```
-
-## Option B — from this monorepo (contributors)
+From the repository root:
 
 ```bash
-# repo root
-pnpm install && pnpm build
+pnpm install --frozen-lockfile
+pnpm build
 cd examples/minimal-agent-app
-./demo.sh          # auto-detects ../../packages/cli/bin/cstl.js
+./demo.sh
 ```
 
-## What the demo does
+On Windows PowerShell:
 
-1. Creates a clean `_demo-workspace/` directory (gitignored).
-2. Runs `cstl init --cursor -y`.
-3. Runs `cstl validate-rules` (templates + installed `.cursor/rules`).
-4. Lists `.cstl/`, `.cursor/`, and `AGENTS.md`.
+```powershell
+pnpm install --frozen-lockfile
+pnpm build
+Set-Location examples/minimal-agent-app
+./demo.ps1
+```
 
-Expected output ends with a tree similar to:
+The scripts prefer the repository's built `packages/cli/bin/pactile.js`. If it is unavailable, they use the global `pactile` executable.
+
+## Expected contract
+
+The demo will:
+
+1. Create a clean `_demo-workspace/`.
+2. Run `pactile init --cursor --codex -y`.
+3. Run `pactile capability-smoke --json`.
+4. Print the canonical and host projection roots.
+
+The resulting shape includes:
 
 ```text
 _demo-workspace/
-  .cstl/          workflow, spec, tasks, scripts
-  .cursor/           rules, commands, agents, hooks
+  .pactile/
+  .agents/
+  .cursor/
   AGENTS.md
 ```
 
-## Next steps (manual, in Cursor)
+Codex uses the canonical `.pactile/` state and shared `.agents/` projection; the
+CLI does not create a native `.codex/` tree during baseline initialization.
 
-1. Open `_demo-workspace/` in Cursor Agent mode.
-2. Create a task: `python .cstl/scripts/task.py create "Hello Trellis" --slug hello`.
-3. Use `/cstl-continue` to resume; Request Triage is enforced via `.cursor/rules/cstl-triage.mdc`.
+Capability output may honestly be `degraded` when an optional provider is not installed or ready. That does not invalidate canonical initialization; read the reported user action instead of treating provider absence as native support.
 
-See [docs/workflow.md](../../docs/workflow.md) and [docs/cursor.md](../../docs/cursor.md).
+## What to inspect
 
-## Notes
+- `.pactile/runtime/install-state.json` identifies the active generation and adapter status.
+- `.pactile/runtime/ownership-ledger.json` records projected resources and claimants.
+- `.pactile/runtime/receipts/` keeps durable lifecycle Evidence.
+- `.cursor/` is the generated host projection; `.codex/` is optional and only appears when native Codex project support is ready.
+- `.agents/skills/` and the managed `AGENTS.md` block may be shared by both adapters.
 
-- Examples are **not** shipped in the npm package (`packages/cli/package.json` `files` field).
-- Do not run `cstl init` inside the **cursor-trellis source tree** — use this example or your own app repo.
+The demo scripts are part of the Batch 4 dogfood contract. Their commands must stay identical to this page and the root quick start.
+
+Continue with [Core concepts](../../docs/concepts/index.md), [Hosts](../../docs/hosts/index.md), or [Lifecycle](../../docs/lifecycle/index.md).

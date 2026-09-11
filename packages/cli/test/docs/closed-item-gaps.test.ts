@@ -14,7 +14,7 @@ function readUtf8(filePath: string): string {
 
 describe("closed-item product-template gaps (P02/P10/P12/P14/P19/P20)", () => {
   it("P02/P10-③ CONTEXT seed has governance + architecture terms", () => {
-    const context = readUtf8(path.join(templates, "trellis/CONTEXT.md"));
+    const context = readUtf8(path.join(templates, "pactile/CONTEXT.md"));
     expect(context).toMatch(/## Governance domain seed/);
     expect(context).toMatch(/\*\*审核池\*\*/);
     expect(context).toMatch(/## Architecture \(deep-module vocabulary\)/);
@@ -26,7 +26,7 @@ describe("closed-item product-template gaps (P02/P10/P12/P14/P19/P20)", () => {
     const rules = readUtf8(
       path.join(
         templates,
-        "common/bundled-skills/cstl-skill-creator/references/authoring-rules.md",
+        "common/bundled-skills/pactile-skill-creator/references/authoring-rules.md",
       ),
     );
     expect(rules).toContain("Leading words");
@@ -37,7 +37,7 @@ describe("closed-item product-template gaps (P02/P10/P12/P14/P19/P20)", () => {
 
   it("P12/P20 retired goal commands stay absent after AGENTS pointer compaction", () => {
     const agents = readUtf8(path.join(templates, "markdown/agents.md"));
-    expect(agents).toContain(".cstl/framework/index.md");
+    expect(agents).toContain(".pactile/framework/index.md");
     expect(agents).not.toContain("cstl-goal");
     expect(
       fs.existsSync(path.join(templates, "cursor/commands/cstl-goal.md")),
@@ -51,7 +51,7 @@ describe("closed-item product-template gaps (P02/P10/P12/P14/P19/P20)", () => {
     const dogfood = readUtf8(
       path.join(templates, "markdown/framework/dogfood-only-surfaces.md.txt"),
     );
-    expect(dogfood).toMatch(/\*\*not\*\* an optional live surface/);
+    expect(dogfood).toMatch(/\*\*not\*\* shipped by a default/);
     expect(dogfood).not.toMatch(/(?:is|as) an optional live (?:install|surface)/i);
     expect(dogfood).not.toMatch(/goal-regression runbook/);
   });

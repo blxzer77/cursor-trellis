@@ -143,11 +143,11 @@ Skills and MCP pages apply the same model. External services are Providers resol
 
 ## Required new surfaces
 
-There is no current tracked source for several required 0.5.0 pages and GitHub community surfaces. They are explicitly planned in the JSON map rather than silently omitted:
+Batch 4 has materialized the required 0.5.0 pages and GitHub community surfaces. The JSON map remains the machine-readable inventory and records the owner lane for each source:
 
 - Codex host guide and Cursor+Codex coexistence guide.
 - MCP, Provider, privacy/permissions, and native adoption guides.
-- Upgrade/migrate, detach/uninstall, rollback/purge, doctor, recovery, and known-limitations guides.
+- Upgrade/migrate, detach/uninstall, rollback/purge, capability-smoke diagnostics, recovery, and known-limitations guides.
 - Contribution, security, compatibility, and release governance.
 - `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, `SUPPORT.md`.
 - GitHub issue forms and pull-request template with bilingual routing.
@@ -160,22 +160,22 @@ There is no current tracked source for several required 0.5.0 pages and GitHub c
 - Historical snapshots may retain dead historical outbound links, but their archive header must identify them as unverified history.
 - The final documentation lane runs relative-link checks and command smoke after target files exist.
 
-## Planned command smoke
+## Command smoke
 
-The following commands are a future Batch 3/4 contract, not commands introduced by this audit:
+The following commands are the documented CLI smoke contract and use the current Commander interface:
 
 ```powershell
 pactile --version
 pactile init --cursor
 pactile init --codex
+pactile capability-smoke --json
 pactile update
-pactile doctor
-pactile detach --host cursor
-pactile detach --host codex
+pactile detach cursor
+pactile detach codex
 pactile uninstall
 ```
 
-Smoke must run on Windows and POSIX from a clean project, an upgraded legacy project, and a project with both host Adapters. Until a command lands, its documentation target remains `planned` and cannot be presented as currently executable.
+Smoke must run on Windows and POSIX from a clean project, an upgraded legacy project, and a project with both host Adapters. `capability-smoke --json` is the supported Pactile diagnostic; there is no separate `pactile doctor` command.
 
 ## Batch 0 checks
 
