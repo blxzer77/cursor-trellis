@@ -63,6 +63,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Materialize dogfood for release validation
+        run: |
+          rm -rf .cursor/rules .cursor/agents .pactile/scripts
+          mkdir -p .cursor/rules .cursor/agents .pactile/scripts
+          cp packages/cli/src/templates/cursor/rules/* .cursor/rules/
+          cp packages/cli/src/templates/cursor/agents/* .cursor/agents/
+          cp -r packages/cli/src/templates/pactile/scripts/* .pactile/scripts/
+
       - name: Ignore package-manager executable-bit normalization
         run: git config core.filemode false
 
