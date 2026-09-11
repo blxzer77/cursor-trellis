@@ -63,6 +63,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Ignore package-manager executable-bit normalization
+        run: git config core.filemode false
+
       - name: Select npm dist-tag
         id: npm-tag
         shell: bash
