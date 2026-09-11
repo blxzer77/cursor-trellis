@@ -122,3 +122,9 @@ The complete Core and CLI test suite is the final release gate. Focused changes 
 Pactile is local project tooling. It does not promise cloud orchestration, a plugin marketplace, automatic installation of host-native assets, or ownership of credentials and OAuth state. Optional middleware providers remain independently installed and explicitly probed.
 
 Lineage, copyright, and license notices are preserved in [COPYRIGHT](COPYRIGHT) and [LICENSE](LICENSE).
+
+## License
+
+Pactile is distributed under the GNU Affero General Public License v3.0-only
+(`AGPL-3.0-only`). See [LICENSE](LICENSE) for the complete license text and
+[COPYRIGHT](COPYRIGHT) for Pactile's project and upstream attribution.

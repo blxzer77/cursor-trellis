@@ -106,3 +106,10 @@ Pactile stores logical provider references and Evidence links, not secret values
 - [Troubleshooting](../../docs/troubleshooting/index.md)
 
 Release and registry mutation procedures are intentionally absent from this public package README.
+
+## License
+
+Pactile is distributed under the GNU Affero General Public License v3.0-only
+(`AGPL-3.0-only`). The complete license text is included in this package as
+[`LICENSE`](LICENSE); project and upstream attribution is documented in the
+repository's [`COPYRIGHT`](https://github.com/blxzer77/pactile/blob/main/COPYRIGHT).

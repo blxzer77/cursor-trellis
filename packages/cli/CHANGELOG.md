@@ -9,6 +9,42 @@ SemVer: [semver.org](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.5.0] - 2026-09-11
+
+Pactile 0.5.0 is the first stable release of the Pactile product line. The
+canonical package and repository names are now Pactile; the legacy
+`cursor-trellis` package names remain available as thin 0.5.x compatibility
+bridges.
+
+### Highlights
+
+- Canonical npm packages: `@blxzer/pactile` (CLI) and
+  `@blxzer/pactile-core` (Core SDK).
+- Canonical project state under `.pactile/`, with `PACTILE` markers and
+  host-neutral contracts shared by Cursor and Codex adapters.
+- Ownership-aware projections preserve existing user and host resources while
+  making Pactile-managed changes auditable and reversible.
+- The release graph validates and publishes the Core, CLI, and both legacy
+  bridges as one versioned set.
+
+### Install
+
+```sh
+npm install -g @blxzer/pactile
+```
+
+Pactile is distributed under `AGPL-3.0-only`; see the repository
+[`LICENSE`](../../LICENSE) and [`COPYRIGHT`](../../COPYRIGHT) files for the
+complete license and project/upstream attribution.
+
+### Compatibility
+
+Existing `@blxzer/cursor-trellis` and `@blxzer/cursor-trellis-core` installs
+remain supported during the 0.5.x compatibility window. New installations
+should use the canonical Pactile package names.
+
+---
+
 ## [0.5.0-beta.5] - 2026-09-08
 
 P42/P43 Freestyle product mirrors + P44 E2E guide init registry. **Not** `@latest` — install with `@beta` or the exact version.

@@ -1,6 +1,6 @@
 {
   "name": "@blxzer/cursor-trellis-core",
-  "version": "0.5.0-beta.5",
+  "version": "0.5.0",
   "description": "Deprecated compatibility shim for @blxzer/pactile-core",
   "type": "module",
   "main": "./index.js",

@@ -122,3 +122,9 @@ pnpm lint
 Pactile 是本地项目工具。它不承诺云端编排、插件市场、自动安装宿主原生资产，也不取得凭据或 OAuth 状态的所有权。可选 Middleware Provider 仍需独立安装并显式探测。
 
 项目沿革、版权与许可证通知保留在 [COPYRIGHT](COPYRIGHT) 和 [LICENSE](LICENSE) 中。
+
+## 许可证
+
+Pactile 采用 GNU Affero General Public License v3.0-only
+（`AGPL-3.0-only`）发布。完整许可证正文见 [LICENSE](LICENSE)；Pactile
+项目归属和上游归属见 [COPYRIGHT](COPYRIGHT)。

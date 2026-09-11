@@ -1,6 +1,6 @@
 {
   "name": "@blxzer/pactile-core",
-  "version": "0.5.0-beta.5",
+  "version": "0.5.0",
   "description": "Pactile core SDK — channel, task, and capability contract primitives consumed by the Pactile CLI and downstream Node services",
   "type": "module",
   "main": "./dist/index.js",

@@ -106,3 +106,10 @@ Pactile 存储逻辑 Provider 引用与 Evidence 链接，不保存 secret value
 - [故障排查](../../docs/troubleshooting/index.zh-CN.md)
 
 公开 package README 刻意不包含 release 或 registry 写操作说明。
+
+## 许可证
+
+Pactile 采用 GNU Affero General Public License v3.0-only
+（`AGPL-3.0-only`）发布。完整许可证正文随 package 一并提供于
+[`LICENSE`](LICENSE)；项目归属和上游归属记录在仓库的
+[`COPYRIGHT`](https://github.com/blxzer77/pactile/blob/main/COPYRIGHT)。
