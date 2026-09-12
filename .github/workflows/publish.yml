@@ -157,10 +157,18 @@ jobs:
             @blxzer/pactile \
             @blxzer/cursor-trellis-core \
             @blxzer/cursor-trellis; do
-            staged="$(npm view "${package_name}@candidate" version --json)"
-            if [[ "$staged" != "\"$VERSION\"" && "$staged" != "$VERSION" ]]; then
-              echo "${package_name}@candidate resolves to $staged, expected $VERSION" >&2
-              exit 1
+            if staged="$(npm view "${package_name}@candidate" version --json 2>/dev/null)"; then
+              if [[ "$staged" != "\"$VERSION\"" && "$staged" != "$VERSION" ]]; then
+                echo "${package_name}@candidate resolves to $staged, expected $VERSION" >&2
+                exit 1
+              fi
+            else
+              latest="$(npm view "${package_name}@latest" version --json)"
+              if [[ "$latest" != "\"$VERSION\"" && "$latest" != "$VERSION" ]]; then
+                echo "${package_name} has no candidate tag and latest resolves to $latest, expected $VERSION" >&2
+                exit 1
+              fi
+              echo "${package_name} has no candidate tag; latest already resolves to $VERSION"
             fi
           done
 
