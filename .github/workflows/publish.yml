@@ -209,9 +209,28 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npm deprecate "@blxzer/cursor-trellis-core@<$VERSION" \
-            "Use @blxzer/pactile-core@$VERSION; the legacy package remains a compatibility bridge."
-          npm deprecate "@blxzer/cursor-trellis@<$VERSION" \
+          deprecation_message="Use @blxzer/pactile-core@$VERSION; the legacy package remains a compatibility bridge."
+          deprecate_and_verify() {
+            local package_name="$1"
+            local message="$2"
+            if npm deprecate "$package_name@<$VERSION" "$message"; then
+              echo "$package_name deprecation request completed"
+            else
+              echo "$package_name deprecation request returned non-zero; verifying registry state before continuing"
+            fi
+            deprecations="$(npm view "$package_name@<$VERSION" deprecated --json)"
+            node - "$deprecations" "$message" "$package_name" <<'NODE'
+          const [rawDeprecations, expected, packageName] = process.argv.slice(2);
+          const parsed = JSON.parse(rawDeprecations);
+          const values = Array.isArray(parsed) ? parsed : [parsed];
+          if (values.length === 0 || values.some((value) => value !== expected)) {
+            throw new Error(`Registry deprecation state is incomplete for ${packageName}.`);
+          }
+          console.log(`${packageName} pre-release deprecations verified (${values.length} versions)`);
+          NODE
+          }
+          deprecate_and_verify "@blxzer/cursor-trellis-core" "$deprecation_message"
+          deprecate_and_verify "@blxzer/cursor-trellis" \
             "Use @blxzer/pactile@$VERSION; the legacy package remains a compatibility bridge."
 
       - name: Remove temporary candidate dist-tag
