@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -790,5 +791,348 @@ describe("release workflow wiring", () => {
     expect(workflow).toContain("--npm-tag candidate");
     expect(workflow).toContain("workflow_dispatch:");
     expect(workflow).toContain("Create GitHub Latest Release last");
+  });
+});
+
+describe("promotion registry readback guards", () => {
+  function workflowStep(stepName: string): string {
+    const workflow = fs.readFileSync(
+      path.join(REPO_ROOT, ".github/workflows/publish.yml"),
+      "utf-8",
+    );
+    const stepStart = workflow.indexOf(`      - name: ${stepName}`);
+    expect(stepStart).toBeGreaterThan(-1);
+    const rest = workflow.slice(stepStart);
+    const nextStep = rest.slice(1).search(/^ {6}- /m);
+    return nextStep < 0 ? rest : rest.slice(0, nextStep + 1);
+  }
+
+  function runWorkflowCheck(stepName: string, args: unknown[], checkIndex = 0) {
+    const step = workflowStep(stepName);
+    const scripts = [
+      ...step.matchAll(/node -[^\n]+<<'NODE'\r?\n([\s\S]*?)^\s*NODE\s*$/gm),
+    ];
+    let script = scripts[checkIndex]?.[1].replace(/^ {10}/gm, "");
+    expect(script).toBeDefined();
+    if (stepName === "Deprecate pre-Pactile shim versions") {
+      script = `${deprecationFetchMock}\n${script}`;
+      args = [...args, "0.5.0"];
+    }
+    return spawnSync(
+      process.execPath,
+      [
+        "-",
+        ...args.map((arg) =>
+          typeof arg === "string" ? arg : JSON.stringify(arg),
+        ),
+      ],
+      { input: script, encoding: "utf-8" },
+    );
+  }
+
+  const stagedStep = "Verify every package is staged under candidate";
+  const cleanupStep = "Remove temporary candidate dist-tag";
+  const deprecationStep = "Deprecate pre-Pactile shim versions";
+  const version = "0.5.0";
+  const message = `Use ${packageInfo.cliName}@${version}; the legacy package remains a compatibility bridge.`;
+
+  const deprecationFetchMock = `
+    const fixture = JSON.parse(process.argv[2]);
+    process.argv.splice(2, 1);
+    globalThis.fetch = async () => ({
+      ok: true,
+      json: async () => ({
+        name: process.argv[3],
+        versions: {
+          [process.argv[4]]: { version: process.argv[4] },
+          ...Object.fromEntries((Array.isArray(fixture) ? fixture : [fixture]).map((value, index) => [value?.version ?? 'invalid-' + index, value])),
+        },
+      }),
+    });
+  `;
+
+  function runShellCheck(stepName: string, overrides: Record<string, string>) {
+    const step = workflowStep(stepName);
+    const runStart = step.search(/^ {8}run: \|\r?\n/m);
+    expect(runStart).toBeGreaterThan(-1);
+    const script = step
+      .slice(runStart)
+      .replace(/^ {8}run: \|\r?\n/, "")
+      .replace(/^ {10}/gm, "");
+    const bash =
+      process.platform === "win32"
+        ? path.join(
+            process.env.ProgramFiles ?? "C:/Program Files",
+            "Git/bin/bash.exe",
+          )
+        : "bash";
+    const mock = [
+      "node() {",
+      '  if [[ -n "${MOCK_FETCH_PREFIX:-}" ]]; then',
+      '    local program; program="$(</dev/stdin)"',
+      '    printf "%s\\n" "$MOCK_FETCH_PREFIX" "$program" | command node "$@"',
+      '  else command node "$@"; fi',
+      "}",
+      "npm() {",
+      '  if [[ "$1" == "view" ]]; then',
+      '    if [[ "${MOCK_VIEW_STATUS:-0}" != "0" ]]; then return "$MOCK_VIEW_STATUS"; fi',
+      '    if [[ "$3" == "dist-tags" ]]; then',
+      '      printf "%s\\n" "$MOCK_TAGS"',
+      '    elif [[ "$3" == "version" && "$4" == "deprecated" ]]; then',
+      '      if [[ "$2" == "$MOCK_CORE_PACKAGE@<$VERSION" ]]; then',
+      '        printf "%s\\n" "$MOCK_CORE_DEPRECATIONS"',
+      "      else",
+      '        printf "%s\\n" "$MOCK_DEPRECATIONS"',
+      "      fi",
+      "    else return 91; fi",
+      '  elif [[ "$1" == "deprecate" ]]; then',
+      "    return 22",
+      '  elif [[ "$1" == "dist-tag" && "$2" == "rm" ]]; then',
+      "    echo __DELETE_CALLED__",
+      '    MOCK_TAGS="${MOCK_AFTER_TAGS:-$MOCK_TAGS}"',
+      "  else return 92; fi",
+      "}",
+    ].join("\n");
+    return spawnSync(bash, ["-s"], {
+      input: `${mock}\n${script}\necho __STEP_COMPLETED__\n`,
+      encoding: "utf-8",
+      env: {
+        ...process.env,
+        NODE_AUTH_TOKEN: "",
+        NPM_TOKEN: "",
+        VERSION: version,
+        MOCK_VIEW_STATUS: "0",
+        MOCK_TAGS: JSON.stringify({ latest: version }),
+        MOCK_CORE_PACKAGE: packageInfo.legacyCoreName,
+        MOCK_FETCH_PREFIX:
+          stepName === deprecationStep
+            ? `
+          globalThis.fetch = async () => {
+            if (process.env.MOCK_VIEW_STATUS !== '0') throw new Error('mock registry read failed');
+            const raw = process.argv[3] === process.env.MOCK_CORE_PACKAGE ? process.env.MOCK_CORE_DEPRECATIONS : process.env.MOCK_DEPRECATIONS;
+            const fixture = JSON.parse(raw);
+            return { ok: true, json: async () => ({ name: process.argv[3], versions: {
+              [process.argv[4]]: { version: process.argv[4] },
+              ...Object.fromEntries((Array.isArray(fixture) ? fixture : [fixture]).map((value, index) => [value?.version ?? 'invalid-' + index, value])),
+            } }) };
+          };
+        `
+            : "",
+        MOCK_CORE_DEPRECATIONS: JSON.stringify({
+          version: "0.4.3",
+          deprecated: message.replace(
+            packageInfo.cliName,
+            packageInfo.coreName,
+          ),
+        }),
+        MOCK_DEPRECATIONS: JSON.stringify({
+          version: "0.4.3",
+          deprecated: message,
+        }),
+        ...overrides,
+      },
+    });
+  }
+
+  it.each([stagedStep, cleanupStep, deprecationStep])(
+    "fails closed when npm readback fails: %s",
+    (step) => {
+      const result = runShellCheck(step, { MOCK_VIEW_STATUS: "21" });
+      expect(result.status, result.stderr).not.toBe(0);
+      expect(result.stdout).not.toContain("__STEP_COMPLETED__");
+      expect(result.stdout).not.toContain("__DELETE_CALLED__");
+    },
+  );
+
+  it("skips deletion only after successful absent-candidate reads", () => {
+    const result = runShellCheck(cleanupStep, {});
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.stdout).toContain("__STEP_COMPLETED__");
+    expect(result.stdout).not.toContain("__DELETE_CALLED__");
+  });
+
+  it("rejects a successful DELETE that did not remove candidate", () => {
+    const result = runShellCheck(cleanupStep, {
+      MOCK_TAGS: JSON.stringify({ latest: version, candidate: version }),
+    });
+    expect(result.status, result.stderr).not.toBe(0);
+    expect(result.stdout).toContain("__DELETE_CALLED__");
+    expect(result.stdout).not.toContain("__STEP_COMPLETED__");
+  });
+
+  it("accepts cleanup only after removal readback matches", () => {
+    const result = runShellCheck(cleanupStep, {
+      MOCK_TAGS: JSON.stringify({
+        latest: version,
+        candidate: version,
+        beta: "0.5.0-beta.5",
+      }),
+      MOCK_AFTER_TAGS: JSON.stringify({
+        latest: version,
+        beta: "0.5.0-beta.5",
+      }),
+    });
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.stdout).toContain("__DELETE_CALLED__");
+    expect(result.stdout).toContain("__STEP_COMPLETED__");
+  });
+
+  it("accepts a non-zero deprecation request only with complete readback", () => {
+    const result = runShellCheck(deprecationStep, {});
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.stdout).toContain("deprecation request returned non-zero");
+    expect(result.stdout).toContain("__STEP_COMPLETED__");
+  });
+
+  it("rejects a non-zero deprecation request with a missing deprecated field", () => {
+    const result = runShellCheck(deprecationStep, {
+      MOCK_DEPRECATIONS: JSON.stringify([
+        { version: "0.4.2", deprecated: message },
+        { version: "0.4.3" },
+      ]),
+    });
+    expect(result.status, result.stderr).not.toBe(0);
+    expect(result.stdout).not.toContain("__STEP_COMPLETED__");
+  });
+
+  it.each([{ candidate: version, latest: "0.4.3" }, { latest: version }])(
+    "accepts a staged or already-promoted version: %j",
+    (tags) => {
+      const result = runWorkflowCheck(stagedStep, [
+        tags,
+        version,
+        packageInfo.cliName,
+      ]);
+      expect(result.status, result.stderr).toBe(0);
+    },
+  );
+
+  it.each([
+    { candidate: "0.5.1", latest: version },
+    { candidate: null, latest: version },
+    { latest: "0.4.3" },
+    {},
+    [],
+    null,
+    "invalid json",
+  ])("rejects mismatched or invalid staging metadata: %j", (tags) => {
+    expect(
+      runWorkflowCheck(stagedStep, [tags, version, packageInfo.cliName]).status,
+    ).not.toBe(0);
+  });
+
+  it("uses successful dist-tags reads instead of swallowing lookup failures", () => {
+    const workflow = fs.readFileSync(
+      path.join(REPO_ROOT, ".github/workflows/publish.yml"),
+      "utf-8",
+    );
+    expect(workflow).not.toContain('if staged="$(npm view');
+    expect(workflow).not.toContain('if npm view "${package_name}@candidate"');
+    expect(workflow).toContain(
+      'tags="$(npm view "$package_name" dist-tags --json)"',
+    );
+    expect(workflow).toContain("Object.entries(metadata.versions)");
+    expect(workflow).toContain("AbortSignal.timeout(30000)");
+  });
+
+  it.each([
+    { version: "0.4.3", deprecated: message },
+    { version: "0.5.0-beta.5", deprecated: message },
+    [{ version: "0.4.3", deprecated: message }, { version: "0.5.1" }],
+    [
+      { version: "0.4.2", deprecated: message },
+      { version: "0.4.3", deprecated: message },
+    ],
+  ])("accepts complete deprecation readback: %j", (metadata) => {
+    const result = runWorkflowCheck(deprecationStep, [
+      metadata,
+      message,
+      packageInfo.legacyCliName,
+    ]);
+    expect(result.status, result.stderr).toBe(0);
+  });
+
+  it.each([
+    [{ version: "0.4.2", deprecated: message }, { version: "0.4.3" }],
+    [{ version: "0.4.3", deprecated: message }, { version: "0.5.0-beta.5" }],
+    { version: "0.4.3", deprecated: "different message" },
+    { version: "0.5.0", deprecated: message },
+    { deprecated: message },
+    [],
+    null,
+    [message],
+    "invalid json",
+  ])("rejects incomplete or invalid deprecation readback: %j", (metadata) => {
+    expect(
+      runWorkflowCheck(deprecationStep, [
+        metadata,
+        message,
+        packageInfo.legacyCliName,
+      ]).status,
+    ).not.toBe(0);
+  });
+
+  it.each([
+    [{ latest: version, candidate: version }, "present"],
+    [{ latest: version }, "absent"],
+  ])(
+    "classifies candidate cleanup from a successful snapshot: %j",
+    (tags, expected) => {
+      const result = runWorkflowCheck(cleanupStep, [
+        tags,
+        version,
+        packageInfo.cliName,
+      ]);
+      expect(result.status, result.stderr).toBe(0);
+      expect(result.stdout.trim()).toBe(expected);
+    },
+  );
+
+  it.each([
+    { latest: version, candidate: "0.5.1" },
+    { latest: "0.4.3", candidate: version },
+    null,
+    [],
+    "invalid json",
+  ])("refuses cleanup of mismatched or invalid registry state: %j", (tags) => {
+    expect(
+      runWorkflowCheck(cleanupStep, [tags, version, packageInfo.cliName])
+        .status,
+    ).not.toBe(0);
+  });
+
+  it("verifies candidate removal while preserving other tags", () => {
+    const before = {
+      latest: version,
+      beta: "0.5.0-beta.5",
+      candidate: version,
+    };
+    const after = { latest: version, beta: "0.5.0-beta.5" };
+    const result = runWorkflowCheck(
+      cleanupStep,
+      [before, after, packageInfo.cliName],
+      1,
+    );
+    expect(result.status, result.stderr).toBe(0);
+  });
+
+  it.each([
+    { latest: version, beta: "0.5.0-beta.5", candidate: version },
+    { latest: "0.5.1", beta: "0.5.0-beta.5" },
+    { latest: version },
+    { latest: version, beta: "0.5.0-beta.5", extra: version },
+    null,
+    [],
+    "invalid json",
+  ])("rejects failed removal or changes to other tags: %j", (after) => {
+    const before = {
+      latest: version,
+      beta: "0.5.0-beta.5",
+      candidate: version,
+    };
+    expect(
+      runWorkflowCheck(cleanupStep, [before, after, packageInfo.cliName], 1)
+        .status,
+    ).not.toBe(0);
   });
 });

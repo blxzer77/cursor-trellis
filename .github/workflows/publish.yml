@@ -157,19 +157,23 @@ jobs:
             @blxzer/pactile \
             @blxzer/cursor-trellis-core \
             @blxzer/cursor-trellis; do
-            if staged="$(npm view "${package_name}@candidate" version --json 2>/dev/null)"; then
-              if [[ "$staged" != "\"$VERSION\"" && "$staged" != "$VERSION" ]]; then
-                echo "${package_name}@candidate resolves to $staged, expected $VERSION" >&2
-                exit 1
-              fi
-            else
-              latest="$(npm view "${package_name}@latest" version --json)"
-              if [[ "$latest" != "\"$VERSION\"" && "$latest" != "$VERSION" ]]; then
-                echo "${package_name} has no candidate tag and latest resolves to $latest, expected $VERSION" >&2
-                exit 1
-              fi
-              echo "${package_name} has no candidate tag; latest already resolves to $VERSION"
-            fi
+            tags="$(npm view "$package_name" dist-tags --json)"
+            node - "$tags" "$VERSION" "$package_name" <<'NODE'
+          const [rawTags, expected, packageName] = process.argv.slice(2);
+          const tags = JSON.parse(rawTags);
+          if (!tags || typeof tags !== "object" || Array.isArray(tags)) {
+            throw new Error(`Invalid registry dist-tags for ${packageName}.`);
+          }
+          if (Object.hasOwn(tags, "candidate")) {
+            if (tags.candidate !== expected) {
+              throw new Error(`${packageName}@candidate does not resolve to ${expected}.`);
+            }
+          } else if (tags.latest !== expected) {
+            throw new Error(`${packageName} has no candidate and latest does not resolve to ${expected}.`);
+          } else {
+            console.log(`${packageName} has no candidate tag; latest already resolves to ${expected}`);
+          }
+          NODE
           done
 
       - name: Promote canonical packages to latest
@@ -226,15 +230,37 @@ jobs:
             else
               echo "$package_name deprecation request returned non-zero; verifying registry state before continuing"
             fi
-            deprecations="$(npm view "$package_name@<$VERSION" deprecated --json)"
-            node - "$deprecations" "$message" "$package_name" <<'NODE'
-          const [rawDeprecations, expected, packageName] = process.argv.slice(2);
-          const parsed = JSON.parse(rawDeprecations);
-          const values = Array.isArray(parsed) ? parsed : [parsed];
-          if (values.length === 0 || values.some((value) => value !== expected)) {
-            throw new Error(`Registry deprecation state is incomplete for ${packageName}.`);
+            node - "$message" "$package_name" "$VERSION" <<'NODE'
+          const [expected, packageName, stableVersion] = process.argv.slice(2);
+          async function verifyDeprecations() {
+            const response = await fetch(`https://registry.npmjs.org/${encodeURIComponent(packageName)}`, {
+              signal: AbortSignal.timeout(30000),
+            });
+            if (!response.ok) throw new Error(`Registry metadata read failed for ${packageName}: HTTP ${response.status}.`);
+            const metadata = await response.json();
+            if (metadata.name !== packageName || !metadata.versions ||
+              typeof metadata.versions !== "object" || Array.isArray(metadata.versions)
+            ) throw new Error(`Invalid registry metadata for ${packageName}.`);
+            const stable = metadata.versions[stableVersion];
+            if (!stable || stable.version !== stableVersion || stable.deprecated) {
+              throw new Error(`Stable version metadata changed for ${packageName}.`);
+            }
+            const target = stableVersion.split(".").map(BigInt);
+            const historical = Object.entries(metadata.versions).filter(([version]) => {
+              const match = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/.exec(version);
+              if (!match) throw new Error(`Invalid registry version for ${packageName}.`);
+              for (let index = 0; index < 3; index++) {
+                const part = BigInt(match[index + 1]);
+                if (part !== target[index]) return part < target[index];
+              }
+              return Boolean(match[4]);
+            });
+            if (historical.length === 0 || historical.some(([version, value]) =>
+              !value || value.version !== version || value.deprecated !== expected
+            )) throw new Error(`Registry deprecation state is incomplete for ${packageName}.`);
+            console.log(`${packageName} historical deprecations verified (${historical.length} versions, including prereleases)`);
           }
-          console.log(`${packageName} pre-release deprecations verified (${values.length} versions)`);
+          verifyDeprecations().catch((error) => { console.error(error.message); process.exitCode = 1; });
           NODE
           }
           deprecate_and_verify "@blxzer/cursor-trellis-core" "$deprecation_message"
@@ -243,6 +269,7 @@ jobs:
 
       - name: Remove temporary candidate dist-tag
         env:
+          VERSION: ${{ inputs.version }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         shell: bash
         run: |
@@ -252,11 +279,40 @@ jobs:
             @blxzer/pactile \
             @blxzer/cursor-trellis-core \
             @blxzer/cursor-trellis; do
-            if npm view "${package_name}@candidate" version --json >/dev/null 2>&1; then
+            tags="$(npm view "$package_name" dist-tags --json)"
+            candidate_state="$(node - "$tags" "$VERSION" "$package_name" <<'NODE'
+          const [rawTags, expected, packageName] = process.argv.slice(2);
+          const tags = JSON.parse(rawTags);
+          if (!tags || typeof tags !== "object" || Array.isArray(tags) || tags.latest !== expected) {
+            throw new Error(`Invalid registry state before candidate cleanup for ${packageName}.`);
+          }
+          const present = Object.hasOwn(tags, "candidate");
+          if (present && tags.candidate !== expected) {
+            throw new Error(`Refusing to remove a different candidate version for ${packageName}.`);
+          }
+          console.log(present ? "present" : "absent");
+          NODE
+            )"
+            if [[ "$candidate_state" == "present" ]]; then
               npm dist-tag rm "$package_name" candidate
             else
               echo "${package_name} has no candidate tag; continuing"
             fi
+            after_tags="$(npm view "$package_name" dist-tags --json)"
+            node - "$tags" "$after_tags" "$package_name" <<'NODE'
+          const [rawBefore, rawAfter, packageName] = process.argv.slice(2);
+          const before = JSON.parse(rawBefore);
+          const after = JSON.parse(rawAfter);
+          const expected = { ...before };
+          delete expected.candidate;
+          if (!after || typeof after !== "object" || Array.isArray(after) ||
+            Object.hasOwn(after, "candidate") ||
+            Object.keys(after).length !== Object.keys(expected).length ||
+            Object.entries(expected).some(([tag, version]) => after[tag] !== version)
+          ) {
+            throw new Error(`Candidate cleanup readback does not match for ${packageName}.`);
+          }
+          NODE
           done
 
       - name: Create GitHub Latest Release last
