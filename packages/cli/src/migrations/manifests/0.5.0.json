@@ -1,0 +1,9 @@
+{
+  "version": "0.5.0",
+  "description": "Pactile 0.5.0 stable baseline — canonical .pactile runtime and explicit legacy import. No automatic project-file migrations.",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**@blxzer/pactile 0.5.0**\n\n- feat(product): first stable Pactile product line with canonical package and repository names.\n- feat(runtime): canonical project state under `.pactile/`, with host-neutral contracts and ownership-aware projections.\n- feat(compat): legacy `cursor-trellis` packages remain 0.5.x compatibility bridges; existing legacy project trees are read only through explicit `pactile init --import-cstl`.\n- chore(release): core, CLI, and both compatibility bridges publish as one versioned set.\n- chore: empty migrations list; use `pactile update` for official-file refresh and `pactile init --import-cstl` for explicit legacy import.",
+  "migrations": [],
+  "notes": "Stable Pactile baseline. Existing legacy project trees are not rewritten by an automatic version migration; review `pactile init --import-cstl` before importing. No `--migrate` required for this manifest."
+}
